@@ -1,0 +1,10 @@
+version: "3.3"
+services:
+  api:
+    image: segleralex/radiobrowser-api-rust:latest
+    deploy:
+      replicas: 1
+  db:
+    image: mariadb:latest
+    deploy:
+      replicas: 1
