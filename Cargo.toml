@@ -1,0 +1,11 @@
+[package]
+name = "rusttest"
+version = "0.1.0"
+authors = ["segler_alex"]
+
+[dependencies]
+rouille = "*"
+mysql = "*"
+serde = "*"
+serde_json = "*"
+serde_derive = "*"
