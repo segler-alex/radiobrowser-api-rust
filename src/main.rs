@@ -39,7 +39,7 @@ fn get_stations(pool: &mysql::Pool) -> Vec<Station>{
 
 fn main() {
     println!("Listening on 8080");
-    let pool = my::Pool::new("mysql://radiouser:password@localhost:3306").unwrap();
+    let pool = my::Pool::new("mysql://radiouser:password@dbserver:3306").unwrap();
 
     rouille::start_server("0.0.0.0:8080", move |request| {
         rouille::log(&request, io::stdout(), || {

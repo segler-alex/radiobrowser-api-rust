@@ -6,7 +6,7 @@ services:
       replicas: 1
     networks:
       - mynet
-  db:
+  dbserver:
     image: mariadb:latest
     deploy:
       replicas: 1
