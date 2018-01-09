@@ -1,10 +1,27 @@
-version: "3.3"
+version: "3.0"
 services:
   api:
     image: segleralex/radiobrowser-api-rust:latest
     deploy:
       replicas: 1
+    networks:
+      - mynet
   db:
     image: mariadb:latest
     deploy:
       replicas: 1
+    environment:
+       - MYSQL_ROOT_PASSWORD=12345678
+       - MYSQL_USER=radiouser
+       - MYSQL_PASSWORD=password
+       - MYSQL_DATABASE=radio
+    networks:
+      - mynet
+    volumes:
+      - ./latest.sql.gz:/docker-entrypoint-initdb.d/radio.sql.gz
+      - ./dbdata:/var/lib/mysql
+networks:
+  mynet:
+    driver: "overlay"
+    driver_opts:
+      encrypted: ""
