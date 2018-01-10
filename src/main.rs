@@ -20,6 +20,13 @@ struct Station {
     homepage: String,
 }
 
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+struct Result1n {
+    name: String,
+    value: String,
+    stationcount: u32,
+}
+
 fn get_stations(pool: &mysql::Pool) -> Vec<Station>{
     let stations: Vec<Station> =
     pool.prep_exec("SELECT StationID,Name,Url,Homepage from radio.Station ORDER BY Name LIMIT 10", ())
@@ -31,6 +38,25 @@ fn get_stations(pool: &mysql::Pool) -> Vec<Station>{
                 name: name,
                 url: url,
                 homepage: homepage,
+            }
+        }).collect() // Collect payments so now `QueryResult` is mapped to `Vec<Payment>`
+    }).unwrap(); // Unwrap `Vec<Payment>`
+
+    stations
+}
+
+fn get_1_n(pool: &mysql::Pool, column: &str, search: &str) -> Vec<Result1n>{
+    let query = format!("SELECT {column},{column},COUNT(*) AS stationcount FROM radio.Station WHERE {column} LIKE '%{search}%' AND {column}<>'' GROUP BY {column}", column = column, search = search);
+    println!("{}",query);
+    let stations: Vec<Result1n> =
+    pool.prep_exec(query, ())
+    .map(|result| {
+        result.map(|x| x.unwrap()).map(|row| {
+            let (name, value, stationcount) = my::from_row(row);
+            Result1n {
+                name: name,
+                value: value,
+                stationcount: stationcount,
             }
         }).collect() // Collect payments so now `QueryResult` is mapped to `Vec<Payment>`
     }).unwrap(); // Unwrap `Vec<Payment>`
@@ -57,6 +83,12 @@ fn main() {
 
                 (GET) (/stations) => {
                     let stations = get_stations(&pool);
+                    let j = serde_json::to_string(&stations).unwrap();
+                    rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+                },
+
+                (GET) (/json/countries) => {
+                    let stations = get_1_n(&pool, "Country", "");
                     let j = serde_json::to_string(&stations).unwrap();
                     rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
                 },
