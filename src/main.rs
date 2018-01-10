@@ -40,21 +40,13 @@ fn get_stations(pool: &mysql::Pool) -> Vec<Station>{
 
 fn main() {
     println!("Listening on 8080");
-    let mut dbhost : String = String::from("localhost");
-    let mut dbport : String = String::from("3306");
-    let dbuser = env::var("DB_USER").unwrap();
-    let dbpass = env::var("DB_PASS").unwrap();
-    match env::var("DB_HOST") {
-        Ok(val) => dbhost = val,
-        Err(_) => println!("use default db host"),
-    }
-    match env::var("DB_PORT") {
-        Ok(val) => dbport = val,
-        Err(_) => println!("use default db port"),
-    }
-    let connectionString = format!("mysql://{}:{}@{}:{}",dbuser,dbpass,dbhost,dbport);
-    println!("Connection string: {}", connectionString);
-    let pool = my::Pool::new(connectionString).unwrap();
+    let dbhost = env::var("DB_HOST").unwrap_or(String::from("localhost"));
+    let dbport = env::var("DB_PORT").unwrap_or(String::from("3306"));
+    let dbuser = env::var("DB_USER").expect("You have to set DB_USER env var");
+    let dbpass = env::var("DB_PASS").expect("You have to set DB_PASS env var");
+    let connection_string = format!("mysql://{}:{}@{}:{}",dbuser,dbpass,dbhost,dbport);
+    println!("Connection string: {}", connection_string);
+    let pool = my::Pool::new(connection_string).unwrap();
 
     rouille::start_server("0.0.0.0:8080", move |request| {
         rouille::log(&request, io::stdout(), || {
