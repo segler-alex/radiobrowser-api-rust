@@ -87,10 +87,14 @@ fn main() {
                     rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
                 },
 
-                (GET) (/json/countries) => {
+                (GET) (/{format : String}/countries) => {
                     let stations = get_1_n(&pool, "Country", "");
                     let j = serde_json::to_string(&stations).unwrap();
-                    rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+                    if format == "json" {
+                        rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+                    }else{
+                        rouille::Response::empty_404()
+                    }
                 },
 
                 _ => rouille::Response::empty_404()
