@@ -10,6 +10,7 @@ extern crate serde_derive;
 
 use std::io;
 use mysql as my;
+use std::env;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 struct Station {
@@ -39,7 +40,21 @@ fn get_stations(pool: &mysql::Pool) -> Vec<Station>{
 
 fn main() {
     println!("Listening on 8080");
-    let pool = my::Pool::new("mysql://radiouser:password@dbserver:3306").unwrap();
+    let mut dbhost : String = String::from("localhost");
+    let mut dbport : String = String::from("3306");
+    let dbuser = env::var("DB_USER").unwrap();
+    let dbpass = env::var("DB_PASS").unwrap();
+    match env::var("DB_HOST") {
+        Ok(val) => dbhost = val,
+        Err(_) => println!("use default db host"),
+    }
+    match env::var("DB_PORT") {
+        Ok(val) => dbport = val,
+        Err(_) => println!("use default db port"),
+    }
+    let connectionString = format!("mysql://{}:{}@{}:{}",dbuser,dbpass,dbhost,dbport);
+    println!("Connection string: {}", connectionString);
+    let pool = my::Pool::new(connectionString).unwrap();
 
     rouille::start_server("0.0.0.0:8080", move |request| {
         rouille::log(&request, io::stdout(), || {
