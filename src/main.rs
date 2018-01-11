@@ -27,9 +27,20 @@ struct Result1n {
     stationcount: u32,
 }
 
-fn get_stations(pool: &mysql::Pool) -> Vec<Station>{
+fn get_stations(pool: &mysql::Pool, search: Option<String>) -> Vec<Station>{
+    let query : String;
+    match search{
+        Some(value) => {
+            query = format!("SELECT StationID,Name,Url,Homepage from radio.Station WHERE Name LIKE '%{search}%' ORDER BY Name", search = value);
+        },
+        None => {
+            query = format!("SELECT StationID,Name,Url,Homepage from radio.Station ORDER BY Name");
+        }
+    }
+    println!("{}",query);
+
     let stations: Vec<Station> =
-    pool.prep_exec("SELECT StationID,Name,Url,Homepage from radio.Station ORDER BY Name LIMIT 10", ())
+    pool.prep_exec(query, ())
     .map(|result| {
         result.map(|x| x.unwrap()).map(|row| {
             let (station_id, name, url, homepage) = my::from_row(row);
@@ -56,7 +67,6 @@ fn get_1_n(pool: &mysql::Pool, column: &str, search: Option<String>) -> Vec<Resu
         }
     }
 
-    println!("{}",query);
     let stations: Vec<Result1n> =
     pool.prep_exec(query, ())
     .map(|result| {
@@ -90,10 +100,24 @@ fn main() {
                     rouille::Response::text("hello world!")
                 },
 
-                (GET) (/stations) => {
-                    let stations = get_stations(&pool);
+                (GET) (/{format : String}/stations) => {
+                    let stations = get_stations(&pool, None);
                     let j = serde_json::to_string(&stations).unwrap();
-                    rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+                    if format == "json" {
+                        rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+                    }else{
+                        rouille::Response::empty_404()
+                    }
+                },
+
+                (GET) (/{format : String}/stations/{search : String}) => {
+                    let stations = get_stations(&pool, Some(search));
+                    let j = serde_json::to_string(&stations).unwrap();
+                    if format == "json" {
+                        rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+                    }else{
+                        rouille::Response::empty_404()
+                    }
                 },
 
                 (GET) (/{format : String}/languages) => {
