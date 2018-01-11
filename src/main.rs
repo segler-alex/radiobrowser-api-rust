@@ -45,8 +45,17 @@ fn get_stations(pool: &mysql::Pool) -> Vec<Station>{
     stations
 }
 
-fn get_1_n(pool: &mysql::Pool, column: &str, search: &str) -> Vec<Result1n>{
-    let query = format!("SELECT {column},{column},COUNT(*) AS stationcount FROM radio.Station WHERE {column} LIKE '%{search}%' AND {column}<>'' GROUP BY {column}", column = column, search = search);
+fn get_1_n(pool: &mysql::Pool, column: &str, search: Option<String>) -> Vec<Result1n>{
+    let query : String;
+    match search{
+        Some(value) => {
+            query = format!("SELECT {column},{column},COUNT(*) AS stationcount FROM radio.Station WHERE {column} LIKE '%{search}%' AND {column}<>'' GROUP BY {column}", column = column, search = value);
+        },
+        None => {
+            query = format!("SELECT {column},{column},COUNT(*) AS stationcount FROM radio.Station WHERE {column}<>'' GROUP BY {column}", column = column);
+        }
+    }
+
     println!("{}",query);
     let stations: Vec<Result1n> =
     pool.prep_exec(query, ())
@@ -87,8 +96,18 @@ fn main() {
                     rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
                 },
 
+                (GET) (/{format : String}/languages) => {
+                    let stations = get_1_n(&pool, "Language", None);
+                    let j = serde_json::to_string(&stations).unwrap();
+                    if format == "json" {
+                        rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+                    }else{
+                        rouille::Response::empty_404()
+                    }
+                },
+
                 (GET) (/{format : String}/countries) => {
-                    let stations = get_1_n(&pool, "Country", "");
+                    let stations = get_1_n(&pool, "Country", None);
                     let j = serde_json::to_string(&stations).unwrap();
                     if format == "json" {
                         rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
@@ -98,7 +117,7 @@ fn main() {
                 },
 
                 (GET) (/{format : String}/codecs) => {
-                    let stations = get_1_n(&pool, "Codec", "");
+                    let stations = get_1_n(&pool, "Codec", None);
                     let j = serde_json::to_string(&stations).unwrap();
                     if format == "json" {
                         rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
@@ -107,8 +126,28 @@ fn main() {
                     }
                 },
 
-                (GET) (/{format : String}/languages) => {
-                    let stations = get_1_n(&pool, "Language", "");
+                (GET) (/{format : String}/countries/{filter : String}) => {
+                    let stations = get_1_n(&pool, "Country", Some(filter));
+                    let j = serde_json::to_string(&stations).unwrap();
+                    if format == "json" {
+                        rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+                    }else{
+                        rouille::Response::empty_404()
+                    }
+                },
+
+                (GET) (/{format : String}/codecs/{filter : String}) => {
+                    let stations = get_1_n(&pool, "Codec", Some(filter));
+                    let j = serde_json::to_string(&stations).unwrap();
+                    if format == "json" {
+                        rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+                    }else{
+                        rouille::Response::empty_404()
+                    }
+                },
+
+                (GET) (/{format : String}/languages/{filter : String}) => {
+                    let stations = get_1_n(&pool, "Language", Some(filter));
                     let j = serde_json::to_string(&stations).unwrap();
                     if format == "json" {
                         rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
