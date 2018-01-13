@@ -56,14 +56,25 @@ fn get_stations(pool: &mysql::Pool, search: Option<String>) -> Vec<Station>{
     stations
 }
 
-fn get_1_n(pool: &mysql::Pool, column: &str, search: Option<String>) -> Vec<Result1n>{
+fn get_1_n_with_parse(request: &rouille::Request, pool: &mysql::Pool, column: &str, filter_prev : Option<String>) -> Vec<Result1n>{
+    let filter : String = request.get_param("filter").unwrap_or(filter_prev.unwrap_or(String::from("")));
+    let order : String = request.get_param("order").unwrap_or(String::from("value"));
+    let reverse : bool = request.get_param("reverse").unwrap_or(String::from("false")) == "true";
+    let hidebroken : bool = request.get_param("hidebroken").unwrap_or(String::from("false")) == "true";
+    let stations = get_1_n(&pool, column, Some(filter), order, reverse, hidebroken);
+    stations
+}
+
+fn get_1_n(pool: &mysql::Pool, column: &str, search: Option<String>, order : String, reverse : bool, hidebroken : bool) -> Vec<Result1n>{
     let query : String;
+    let reverse_string = if reverse { "DESC" } else { "ASC" };
+    let hidebroken_string = if hidebroken { " AND LastCheckOK=TRUE" } else { "" };
     match search{
         Some(value) => {
-            query = format!("SELECT {column},{column},COUNT(*) AS stationcount FROM radio.Station WHERE {column} LIKE '%{search}%' AND {column}<>'' GROUP BY {column}", column = column, search = value);
+            query = format!("SELECT {column} AS value,{column},COUNT(*) AS stationcount FROM radio.Station WHERE {column} LIKE '%{search}%' AND {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, search = value, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
         },
         None => {
-            query = format!("SELECT {column},{column},COUNT(*) AS stationcount FROM radio.Station WHERE {column}<>'' GROUP BY {column}", column = column);
+            query = format!("SELECT {column} AS value,{column},COUNT(*) AS stationcount FROM radio.Station WHERE {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
         }
     }
 
@@ -121,7 +132,7 @@ fn main() {
                 },
 
                 (GET) (/{format : String}/languages) => {
-                    let stations = get_1_n(&pool, "Language", None);
+                    let stations = get_1_n_with_parse(&request, &pool, "Language", None);
                     let j = serde_json::to_string(&stations).unwrap();
                     if format == "json" {
                         rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
@@ -131,7 +142,7 @@ fn main() {
                 },
 
                 (GET) (/{format : String}/countries) => {
-                    let stations = get_1_n(&pool, "Country", None);
+                    let stations = get_1_n_with_parse(&request, &pool, "Country", None);
                     let j = serde_json::to_string(&stations).unwrap();
                     if format == "json" {
                         rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
@@ -141,7 +152,7 @@ fn main() {
                 },
 
                 (GET) (/{format : String}/codecs) => {
-                    let stations = get_1_n(&pool, "Codec", None);
+                    let stations = get_1_n_with_parse(&request, &pool, "Codec", None);
                     let j = serde_json::to_string(&stations).unwrap();
                     if format == "json" {
                         rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
@@ -151,7 +162,7 @@ fn main() {
                 },
 
                 (GET) (/{format : String}/countries/{filter : String}) => {
-                    let stations = get_1_n(&pool, "Country", Some(filter));
+                    let stations = get_1_n_with_parse(&request, &pool, "Country", Some(filter));
                     let j = serde_json::to_string(&stations).unwrap();
                     if format == "json" {
                         rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
@@ -161,7 +172,7 @@ fn main() {
                 },
 
                 (GET) (/{format : String}/codecs/{filter : String}) => {
-                    let stations = get_1_n(&pool, "Codec", Some(filter));
+                    let stations = get_1_n_with_parse(&request, &pool, "Codec", Some(filter));
                     let j = serde_json::to_string(&stations).unwrap();
                     if format == "json" {
                         rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
@@ -171,7 +182,7 @@ fn main() {
                 },
 
                 (GET) (/{format : String}/languages/{filter : String}) => {
-                    let stations = get_1_n(&pool, "Language", Some(filter));
+                    let stations = get_1_n_with_parse(&request, &pool, "Language", Some(filter));
                     let j = serde_json::to_string(&stations).unwrap();
                     if format == "json" {
                         rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
