@@ -12,6 +12,7 @@ services:
        - DB_USER=radiouser
        - DB_PASS=password
        - DB_HOST=dbserver
+       - DB_NAME=radio
   dbserver:
     image: mariadb:latest
     deploy:
