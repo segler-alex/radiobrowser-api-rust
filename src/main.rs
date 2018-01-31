@@ -1,6 +1,6 @@
-#[macro_use]
+//#[macro_use]
 extern crate rouille;
-#[macro_use]
+//#[macro_use]
 extern crate mysql;
 extern crate serde;
 extern crate serde_json;
@@ -32,10 +32,10 @@ fn get_stations(pool: &mysql::Pool, search: Option<String>) -> Vec<Station>{
     let query : String;
     match search{
         Some(value) => {
-            query = format!("SELECT StationID,Name,Url,Homepage from radio.Station WHERE Name LIKE '%{search}%' ORDER BY Name", search = value);
+            query = format!("SELECT StationID,Name,Url,Homepage from Station WHERE Name LIKE '%{search}%' ORDER BY Name", search = value);
         },
         None => {
-            query = format!("SELECT StationID,Name,Url,Homepage from radio.Station ORDER BY Name");
+            query = format!("SELECT StationID,Name,Url,Homepage from Station ORDER BY Name");
         }
     }
     println!("{}",query);
@@ -72,10 +72,10 @@ fn get_1_n(pool: &mysql::Pool, column: &str, search: Option<String>, order : Str
     let hidebroken_string = if hidebroken { " AND LastCheckOK=TRUE" } else { "" };
     match search{
         Some(value) => {
-            query = format!("SELECT {column} AS value,{column},COUNT(*) AS stationcount FROM radio.Station WHERE {column} LIKE '%{search}%' AND {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, search = value, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
+            query = format!("SELECT {column} AS value,{column},COUNT(*) AS stationcount FROM Station WHERE {column} LIKE '%{search}%' AND {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, search = value, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
         },
         None => {
-            query = format!("SELECT {column} AS value,{column},COUNT(*) AS stationcount FROM radio.Station WHERE {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
+            query = format!("SELECT {column} AS value,{column},COUNT(*) AS stationcount FROM Station WHERE {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
         }
     }
 
@@ -95,14 +95,24 @@ fn get_1_n(pool: &mysql::Pool, column: &str, search: Option<String>, order : Str
     stations
 }
 
-fn encode_other(list : Vec<Result1n>) -> rouille::Response {
-    let j = serde_json::to_string(&list).unwrap();
-    rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+fn encode_other(list : Vec<Result1n>, format : &str) -> rouille::Response {
+    match format {
+        "json" => {
+            let j = serde_json::to_string(&list).unwrap();
+            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+        },
+        _ => rouille::Response::empty_404()
+    }
 }
 
 fn encode_stations(list : Vec<Station>, format : &str) -> rouille::Response {
-    let j = serde_json::to_string(&list).unwrap();
-    rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+    match format {
+        "json" => {
+            let j = serde_json::to_string(&list).unwrap();
+            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+        },
+        _ => rouille::Response::empty_404()
+    }
 }
 
 fn myrun(pool : mysql::Pool) {
@@ -120,9 +130,9 @@ fn myrun(pool : mysql::Pool) {
 
                 let filter : Option<String> = if items.len() >= 4 {Some(String::from(items[3]))} else {None};
                 let result = match command {
-                    "languages" => encode_other(get_1_n_with_parse(&request, &pool, "Language", filter)),
-                    "countries" => encode_other(get_1_n_with_parse(&request, &pool, "Country", filter)),
-                    "codecs" => encode_other(get_1_n_with_parse(&request, &pool, "Codec", filter)),
+                    "languages" => encode_other(get_1_n_with_parse(&request, &pool, "Language", filter), format),
+                    "countries" => encode_other(get_1_n_with_parse(&request, &pool, "Country", filter), format),
+                    "codecs" => encode_other(get_1_n_with_parse(&request, &pool, "Codec", filter), format),
                     "stations" => encode_stations(get_stations(&pool, None), format),
                     _ => rouille::Response::empty_404()
                 };
@@ -140,10 +150,11 @@ fn main() {
     let dbport = env::var("DB_PORT").unwrap_or(String::from("3306"));
     let dbuser = env::var("DB_USER").expect("You have to set DB_USER env var");
     let dbpass = env::var("DB_PASS").expect("You have to set DB_PASS env var");
+    let dbname = env::var("DB_NAME").expect("You have to set DB_NAME env var");
     
     let mut counter : i32 = 0;
     loop {
-        let connection_string = format!("mysql://{}:{}@{}:{}",dbuser,dbpass,dbhost,dbport);
+        let connection_string = format!("mysql://{}:{}@{}:{}/{}",dbuser,dbpass,dbhost,dbport,dbname);
         println!("Connection string: {}", connection_string);
         let pool = my::Pool::new(connection_string);
         match pool {
