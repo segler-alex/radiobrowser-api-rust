@@ -11,6 +11,7 @@ extern crate serde_derive;
 use std::io;
 use mysql as my;
 use std::env;
+use std::{thread, time};
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 struct Station {
@@ -104,16 +105,7 @@ fn encode_stations(list : Vec<Station>, format : &str) -> rouille::Response {
     rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
 }
 
-fn main() {
-    println!("Listening on 8080");
-    let dbhost = env::var("DB_HOST").unwrap_or(String::from("localhost"));
-    let dbport = env::var("DB_PORT").unwrap_or(String::from("3306"));
-    let dbuser = env::var("DB_USER").expect("You have to set DB_USER env var");
-    let dbpass = env::var("DB_PASS").expect("You have to set DB_PASS env var");
-    let connection_string = format!("mysql://{}:{}@{}:{}",dbuser,dbpass,dbhost,dbport);
-    println!("Connection string: {}", connection_string);
-    let pool = my::Pool::new(connection_string).unwrap();
-
+fn myrun(pool : mysql::Pool) {
     rouille::start_server("0.0.0.0:8080", move |request| {
         rouille::log(&request, io::stdout(), || {
             if request.method() != "POST" && request.method() != "GET" {
@@ -122,7 +114,7 @@ fn main() {
             let items : Vec<&str> = request.raw_url().split('/').collect();
             // println!("method: {} - {} - {} len={}",request.method(), request.raw_url(), items[1], items.len());
 
-            if items.len() >= 3  && items.len() <= 4 {
+            if items.len() >= 3 && items.len() <= 4 {
                 let format = items[1];
                 let command = items[2];
 
@@ -140,4 +132,33 @@ fn main() {
             }
         })
     });
+}
+
+fn main() {
+    println!("Listening on 8080");
+    let dbhost = env::var("DB_HOST").unwrap_or(String::from("localhost"));
+    let dbport = env::var("DB_PORT").unwrap_or(String::from("3306"));
+    let dbuser = env::var("DB_USER").expect("You have to set DB_USER env var");
+    let dbpass = env::var("DB_PASS").expect("You have to set DB_PASS env var");
+    
+    let mut counter : i32 = 0;
+    loop {
+        let connection_string = format!("mysql://{}:{}@{}:{}",dbuser,dbpass,dbhost,dbport);
+        println!("Connection string: {}", connection_string);
+        let pool = my::Pool::new(connection_string);
+        match pool {
+            Ok(v) => {
+                myrun(v);
+                break;
+            },
+            Err(_) => {
+                counter = counter + 1;
+                if counter < 10 {
+                    thread::sleep(time::Duration::from_millis(1000));
+                }else{
+                    break;
+                }
+            }
+        }
+    }
 }
