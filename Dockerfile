@@ -4,4 +4,4 @@ WORKDIR /root
 RUN cargo install
 
 EXPOSE 8080
-CMD [ "rusttest" ]
+CMD [ "radiobrowser-api-rust" ]

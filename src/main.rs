@@ -58,11 +58,11 @@ fn get_stations(pool: &mysql::Pool, search: Option<String>) -> Vec<Station>{
 }
 
 fn get_1_n_with_parse(request: &rouille::Request, pool: &mysql::Pool, column: &str, filter_prev : Option<String>) -> Vec<Result1n>{
-    let filter : String = request.get_param("filter").unwrap_or(filter_prev.unwrap_or(String::from("")));
+    let filter = request.get_param("filter").or(filter_prev);
     let order : String = request.get_param("order").unwrap_or(String::from("value"));
     let reverse : bool = request.get_param("reverse").unwrap_or(String::from("false")) == "true";
     let hidebroken : bool = request.get_param("hidebroken").unwrap_or(String::from("false")) == "true";
-    let stations = get_1_n(&pool, column, Some(filter), order, reverse, hidebroken);
+    let stations = get_1_n(&pool, column, filter, order, reverse, hidebroken);
     stations
 }
 
@@ -133,7 +133,7 @@ fn myrun(pool : mysql::Pool) {
                     "languages" => encode_other(get_1_n_with_parse(&request, &pool, "Language", filter), format),
                     "countries" => encode_other(get_1_n_with_parse(&request, &pool, "Country", filter), format),
                     "codecs" => encode_other(get_1_n_with_parse(&request, &pool, "Codec", filter), format),
-                    "stations" => encode_stations(get_stations(&pool, None), format),
+                    "stations" => encode_stations(get_stations(&pool, filter), format),
                     _ => rouille::Response::empty_404()
                 };
                 result
