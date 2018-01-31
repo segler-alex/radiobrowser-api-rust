@@ -94,6 +94,16 @@ fn get_1_n(pool: &mysql::Pool, column: &str, search: Option<String>, order : Str
     stations
 }
 
+fn encode_other(list : Vec<Result1n>) -> rouille::Response {
+    let j = serde_json::to_string(&list).unwrap();
+    rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+}
+
+fn encode_stations(list : Vec<Station>, format : &str) -> rouille::Response {
+    let j = serde_json::to_string(&list).unwrap();
+    rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+}
+
 fn main() {
     println!("Listening on 8080");
     let dbhost = env::var("DB_HOST").unwrap_or(String::from("localhost"));
@@ -106,93 +116,28 @@ fn main() {
 
     rouille::start_server("0.0.0.0:8080", move |request| {
         rouille::log(&request, io::stdout(), || {
-            router!(request,
-                (GET) (/) => {
-                    rouille::Response::text("hello world!")
-                },
+            if request.method() != "POST" && request.method() != "GET" {
+                return rouille::Response::empty_404();
+            }
+            let items : Vec<&str> = request.raw_url().split('/').collect();
+            // println!("method: {} - {} - {} len={}",request.method(), request.raw_url(), items[1], items.len());
 
-                (GET) (/{format : String}/stations) => {
-                    let stations = get_stations(&pool, None);
-                    let j = serde_json::to_string(&stations).unwrap();
-                    if format == "json" {
-                        rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
-                    }else{
-                        rouille::Response::empty_404()
-                    }
-                },
+            if items.len() >= 3  && items.len() <= 4 {
+                let format = items[1];
+                let command = items[2];
 
-                (GET) (/{format : String}/stations/{search : String}) => {
-                    let stations = get_stations(&pool, Some(search));
-                    let j = serde_json::to_string(&stations).unwrap();
-                    if format == "json" {
-                        rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
-                    }else{
-                        rouille::Response::empty_404()
-                    }
-                },
-
-                (GET) (/{format : String}/languages) => {
-                    let stations = get_1_n_with_parse(&request, &pool, "Language", None);
-                    let j = serde_json::to_string(&stations).unwrap();
-                    if format == "json" {
-                        rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
-                    }else{
-                        rouille::Response::empty_404()
-                    }
-                },
-
-                (GET) (/{format : String}/countries) => {
-                    let stations = get_1_n_with_parse(&request, &pool, "Country", None);
-                    let j = serde_json::to_string(&stations).unwrap();
-                    if format == "json" {
-                        rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
-                    }else{
-                        rouille::Response::empty_404()
-                    }
-                },
-
-                (GET) (/{format : String}/codecs) => {
-                    let stations = get_1_n_with_parse(&request, &pool, "Codec", None);
-                    let j = serde_json::to_string(&stations).unwrap();
-                    if format == "json" {
-                        rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
-                    }else{
-                        rouille::Response::empty_404()
-                    }
-                },
-
-                (GET) (/{format : String}/countries/{filter : String}) => {
-                    let stations = get_1_n_with_parse(&request, &pool, "Country", Some(filter));
-                    let j = serde_json::to_string(&stations).unwrap();
-                    if format == "json" {
-                        rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
-                    }else{
-                        rouille::Response::empty_404()
-                    }
-                },
-
-                (GET) (/{format : String}/codecs/{filter : String}) => {
-                    let stations = get_1_n_with_parse(&request, &pool, "Codec", Some(filter));
-                    let j = serde_json::to_string(&stations).unwrap();
-                    if format == "json" {
-                        rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
-                    }else{
-                        rouille::Response::empty_404()
-                    }
-                },
-
-                (GET) (/{format : String}/languages/{filter : String}) => {
-                    let stations = get_1_n_with_parse(&request, &pool, "Language", Some(filter));
-                    let j = serde_json::to_string(&stations).unwrap();
-                    if format == "json" {
-                        rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
-                    }else{
-                        rouille::Response::empty_404()
-                    }
-                },
-
-                _ => rouille::Response::empty_404()
-            )
+                let filter : Option<String> = if items.len() >= 4 {Some(String::from(items[3]))} else {None};
+                let result = match command {
+                    "languages" => encode_other(get_1_n_with_parse(&request, &pool, "Language", filter)),
+                    "countries" => encode_other(get_1_n_with_parse(&request, &pool, "Country", filter)),
+                    "codecs" => encode_other(get_1_n_with_parse(&request, &pool, "Codec", filter)),
+                    "stations" => encode_stations(get_stations(&pool, None), format),
+                    _ => rouille::Response::empty_404()
+                };
+                result
+            } else {
+                rouille::Response::empty_404()
+            }
         })
     });
 }
