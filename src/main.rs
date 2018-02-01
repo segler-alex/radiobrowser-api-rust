@@ -8,10 +8,14 @@ extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 
+extern crate dns_lookup;
+
 use std::io;
 use mysql as my;
 use std::env;
 use std::{thread, time};
+use dns_lookup::lookup_host;
+use dns_lookup::lookup_addr;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 struct Station {
@@ -26,6 +30,12 @@ struct Result1n {
     name: String,
     value: String,
     stationcount: u32,
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+struct ServerEntry {
+    ip: String,
+    name: String
 }
 
 fn get_stations(pool: &mysql::Pool, search: Option<String>) -> Vec<Station>{
@@ -115,6 +125,27 @@ fn encode_stations(list : Vec<Station>, format : &str) -> rouille::Response {
     }
 }
 
+fn dns_resolve(format : &str) -> rouille::Response {
+    let hostname = "api.radio-browser.info";
+    let ips: Vec<std::net::IpAddr> = lookup_host(hostname).unwrap();
+    let mut list: Vec<ServerEntry> = Vec::new();
+    for ip in ips {
+        let ip_str : String = format!("{}",ip);
+        let reverse = lookup_addr(&ip).unwrap();
+        let name : String = format!("{}",reverse);
+        let item = ServerEntry{ip: ip_str, name};
+        list.push(item);
+    }
+    
+    match format {
+        "json" => {
+            let j = serde_json::to_string(&list).unwrap();
+            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+        },
+        _ => rouille::Response::empty_404()
+    }
+}
+
 fn myrun(pool : mysql::Pool) {
     rouille::start_server("0.0.0.0:8080", move |request| {
         rouille::log(&request, io::stdout(), || {
@@ -134,6 +165,7 @@ fn myrun(pool : mysql::Pool) {
                     "countries" => encode_other(get_1_n_with_parse(&request, &pool, "Country", filter), format),
                     "codecs" => encode_other(get_1_n_with_parse(&request, &pool, "Codec", filter), format),
                     "stations" => encode_stations(get_stations(&pool, filter), format),
+                    "servers" => dns_resolve(format),
                     _ => rouille::Response::empty_404()
                 };
                 result
