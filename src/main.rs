@@ -131,8 +131,7 @@ fn dns_resolve(format : &str) -> rouille::Response {
     let mut list: Vec<ServerEntry> = Vec::new();
     for ip in ips {
         let ip_str : String = format!("{}",ip);
-        let reverse = lookup_addr(&ip).unwrap();
-        let name : String = format!("{}",reverse);
+        let name : String = lookup_addr(&ip).unwrap();
         let item = ServerEntry{ip: ip_str, name};
         list.push(item);
     }
