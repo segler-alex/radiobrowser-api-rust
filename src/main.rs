@@ -125,6 +125,12 @@ fn encode_stations(list : Vec<Station>, format : &str) -> rouille::Response {
     }
 }
 
+fn add_cors(result : rouille::Response) -> rouille::Response {
+    result.with_unique_header("Access-Control-Allow-Origin", "*")
+        .with_unique_header("Access-Control-Allow-Headers", "origin, x-requested-with, content-type")
+        .with_unique_header("Access-Control-Allow-Methods", "GET,POST")
+}
+
 fn dns_resolve(format : &str) -> rouille::Response {
     let hostname = "api.radio-browser.info";
     let ips: Vec<std::net::IpAddr> = lookup_host(hostname).unwrap();
@@ -135,11 +141,13 @@ fn dns_resolve(format : &str) -> rouille::Response {
         let item = ServerEntry{ip: ip_str, name};
         list.push(item);
     }
-    
+
     match format {
         "json" => {
             let j = serde_json::to_string(&list).unwrap();
-            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+            rouille::Response::text(j)
+                .with_no_cache()
+                .with_unique_header("Content-Type","application/json")
         },
         _ => rouille::Response::empty_404()
     }
@@ -160,11 +168,11 @@ fn myrun(pool : mysql::Pool) {
 
                 let filter : Option<String> = if items.len() >= 4 {Some(String::from(items[3]))} else {None};
                 let result = match command {
-                    "languages" => encode_other(get_1_n_with_parse(&request, &pool, "Language", filter), format),
-                    "countries" => encode_other(get_1_n_with_parse(&request, &pool, "Country", filter), format),
-                    "codecs" => encode_other(get_1_n_with_parse(&request, &pool, "Codec", filter), format),
-                    "stations" => encode_stations(get_stations(&pool, filter), format),
-                    "servers" => dns_resolve(format),
+                    "languages" => add_cors(encode_other(get_1_n_with_parse(&request, &pool, "Language", filter), format)),
+                    "countries" => add_cors(encode_other(get_1_n_with_parse(&request, &pool, "Country", filter), format)),
+                    "codecs" => add_cors(encode_other(get_1_n_with_parse(&request, &pool, "Codec", filter), format)),
+                    "stations" => add_cors(encode_stations(get_stations(&pool, filter), format)),
+                    "servers" => add_cors(dns_resolve(format)),
                     _ => rouille::Response::empty_404()
                 };
                 result
