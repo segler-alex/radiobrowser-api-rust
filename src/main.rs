@@ -44,8 +44,10 @@ fn encode_stations(list : Vec<db::Station>, format : &str) -> rouille::Response 
     }
 }
 
-fn myrun(pool : mysql::Pool) {
-    rouille::start_server("0.0.0.0:8080", move |request| {
+fn myrun(pool : mysql::Pool, port : i32) {
+    let listen_str = format!("0.0.0.0:{}", port);
+    println!("Listen on {}", listen_str);
+    rouille::start_server(listen_str, move |request| {
         rouille::log(&request, io::stdout(), || {
             if request.method() != "POST" && request.method() != "GET" {
                 return rouille::Response::empty_404();
@@ -75,7 +77,7 @@ fn myrun(pool : mysql::Pool) {
 }
 
 fn main() {
-    println!("Listening on 8080");
+    let listen_port : i32 = env::var("PORT").unwrap_or(String::from("8080")).parse().expect("listen port is not number");
     let dbhost = env::var("DB_HOST").unwrap_or(String::from("localhost"));
     let dbport = env::var("DB_PORT").unwrap_or(String::from("3306"));
     let dbuser = env::var("DB_USER").expect("You have to set DB_USER env var");
@@ -89,7 +91,7 @@ fn main() {
         let pool = mysql::Pool::new(connection_string);
         match pool {
             Ok(v) => {
-                myrun(v);
+                myrun(v, listen_port);
                 break;
             },
             Err(_) => {
