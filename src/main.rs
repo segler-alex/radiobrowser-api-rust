@@ -1,6 +1,4 @@
-//#[macro_use]
 extern crate rouille;
-//#[macro_use]
 extern crate mysql;
 extern crate serde;
 extern crate serde_json;
@@ -13,16 +11,9 @@ extern crate dns_lookup;
 use std::io;
 use std::env;
 use std::{thread, time};
-use dns_lookup::lookup_host;
-use dns_lookup::lookup_addr;
 
 mod db;
-
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-struct ServerEntry {
-    ip: String,
-    name: String
-}
+mod api;
 
 fn get_1_n_with_parse(request: &rouille::Request, pool: &mysql::Pool, column: &str, filter_prev : Option<String>) -> Vec<db::Result1n>{
     let filter = request.get_param("filter").or(filter_prev);
@@ -53,34 +44,6 @@ fn encode_stations(list : Vec<db::Station>, format : &str) -> rouille::Response 
     }
 }
 
-fn add_cors(result : rouille::Response) -> rouille::Response {
-    result.with_unique_header("Access-Control-Allow-Origin", "*")
-        .with_unique_header("Access-Control-Allow-Headers", "origin, x-requested-with, content-type")
-        .with_unique_header("Access-Control-Allow-Methods", "GET,POST")
-}
-
-fn dns_resolve(format : &str) -> rouille::Response {
-    let hostname = "api.radio-browser.info";
-    let ips: Vec<std::net::IpAddr> = lookup_host(hostname).unwrap();
-    let mut list: Vec<ServerEntry> = Vec::new();
-    for ip in ips {
-        let ip_str : String = format!("{}",ip);
-        let name : String = lookup_addr(&ip).unwrap();
-        let item = ServerEntry{ip: ip_str, name};
-        list.push(item);
-    }
-
-    match format {
-        "json" => {
-            let j = serde_json::to_string(&list).unwrap();
-            rouille::Response::text(j)
-                .with_no_cache()
-                .with_unique_header("Content-Type","application/json")
-        },
-        _ => rouille::Response::empty_404()
-    }
-}
-
 fn myrun(pool : mysql::Pool) {
     rouille::start_server("0.0.0.0:8080", move |request| {
         rouille::log(&request, io::stdout(), || {
@@ -96,11 +59,11 @@ fn myrun(pool : mysql::Pool) {
 
                 let filter : Option<String> = if items.len() >= 4 {Some(String::from(items[3]))} else {None};
                 let result = match command {
-                    "languages" => add_cors(encode_other(get_1_n_with_parse(&request, &pool, "Language", filter), format)),
-                    "countries" => add_cors(encode_other(get_1_n_with_parse(&request, &pool, "Country", filter), format)),
-                    "codecs" => add_cors(encode_other(get_1_n_with_parse(&request, &pool, "Codec", filter), format)),
-                    "stations" => add_cors(encode_stations(db::get_stations(&pool, filter), format)),
-                    "servers" => add_cors(dns_resolve(format)),
+                    "languages" => api::add_cors(encode_other(get_1_n_with_parse(&request, &pool, "Language", filter), format)),
+                    "countries" => api::add_cors(encode_other(get_1_n_with_parse(&request, &pool, "Country", filter), format)),
+                    "codecs" => api::add_cors(encode_other(get_1_n_with_parse(&request, &pool, "Codec", filter), format)),
+                    "stations" => api::add_cors(encode_stations(db::get_stations(&pool, filter), format)),
+                    "servers" => api::add_cors(api::dns_resolve(format)),
                     _ => rouille::Response::empty_404()
                 };
                 result
