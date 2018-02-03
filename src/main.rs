@@ -11,26 +11,12 @@ extern crate serde_derive;
 extern crate dns_lookup;
 
 use std::io;
-use mysql as my;
 use std::env;
 use std::{thread, time};
 use dns_lookup::lookup_host;
 use dns_lookup::lookup_addr;
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-struct Station {
-    station_id: i32,
-    name: String,
-    url: String,
-    homepage: String,
-}
-
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-struct Result1n {
-    name: String,
-    value: String,
-    stationcount: u32,
-}
+mod db;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 struct ServerEntry {
@@ -38,74 +24,16 @@ struct ServerEntry {
     name: String
 }
 
-fn get_stations(pool: &mysql::Pool, search: Option<String>) -> Vec<Station>{
-    let query : String;
-    match search{
-        Some(value) => {
-            query = format!("SELECT StationID,Name,Url,Homepage from Station WHERE Name LIKE '%{search}%' ORDER BY Name", search = value);
-        },
-        None => {
-            query = format!("SELECT StationID,Name,Url,Homepage from Station ORDER BY Name");
-        }
-    }
-    println!("{}",query);
-
-    let stations: Vec<Station> =
-    pool.prep_exec(query, ())
-    .map(|result| {
-        result.map(|x| x.unwrap()).map(|row| {
-            let (station_id, name, url, homepage) = my::from_row(row);
-            Station {
-                station_id: station_id,
-                name: name,
-                url: url,
-                homepage: homepage,
-            }
-        }).collect() // Collect payments so now `QueryResult` is mapped to `Vec<Payment>`
-    }).unwrap(); // Unwrap `Vec<Payment>`
-
-    stations
-}
-
-fn get_1_n_with_parse(request: &rouille::Request, pool: &mysql::Pool, column: &str, filter_prev : Option<String>) -> Vec<Result1n>{
+fn get_1_n_with_parse(request: &rouille::Request, pool: &mysql::Pool, column: &str, filter_prev : Option<String>) -> Vec<db::Result1n>{
     let filter = request.get_param("filter").or(filter_prev);
     let order : String = request.get_param("order").unwrap_or(String::from("value"));
     let reverse : bool = request.get_param("reverse").unwrap_or(String::from("false")) == "true";
     let hidebroken : bool = request.get_param("hidebroken").unwrap_or(String::from("false")) == "true";
-    let stations = get_1_n(&pool, column, filter, order, reverse, hidebroken);
+    let stations = db::get_1_n(&pool, column, filter, order, reverse, hidebroken);
     stations
 }
 
-fn get_1_n(pool: &mysql::Pool, column: &str, search: Option<String>, order : String, reverse : bool, hidebroken : bool) -> Vec<Result1n>{
-    let query : String;
-    let reverse_string = if reverse { "DESC" } else { "ASC" };
-    let hidebroken_string = if hidebroken { " AND LastCheckOK=TRUE" } else { "" };
-    match search{
-        Some(value) => {
-            query = format!("SELECT {column} AS value,{column},COUNT(*) AS stationcount FROM Station WHERE {column} LIKE '%{search}%' AND {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, search = value, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
-        },
-        None => {
-            query = format!("SELECT {column} AS value,{column},COUNT(*) AS stationcount FROM Station WHERE {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
-        }
-    }
-
-    let stations: Vec<Result1n> =
-    pool.prep_exec(query, ())
-    .map(|result| {
-        result.map(|x| x.unwrap()).map(|row| {
-            let (name, value, stationcount) = my::from_row(row);
-            Result1n {
-                name: name,
-                value: value,
-                stationcount: stationcount,
-            }
-        }).collect() // Collect payments so now `QueryResult` is mapped to `Vec<Payment>`
-    }).unwrap(); // Unwrap `Vec<Payment>`
-
-    stations
-}
-
-fn encode_other(list : Vec<Result1n>, format : &str) -> rouille::Response {
+fn encode_other(list : Vec<db::Result1n>, format : &str) -> rouille::Response {
     match format {
         "json" => {
             let j = serde_json::to_string(&list).unwrap();
@@ -115,7 +43,7 @@ fn encode_other(list : Vec<Result1n>, format : &str) -> rouille::Response {
     }
 }
 
-fn encode_stations(list : Vec<Station>, format : &str) -> rouille::Response {
+fn encode_stations(list : Vec<db::Station>, format : &str) -> rouille::Response {
     match format {
         "json" => {
             let j = serde_json::to_string(&list).unwrap();
@@ -171,7 +99,7 @@ fn myrun(pool : mysql::Pool) {
                     "languages" => add_cors(encode_other(get_1_n_with_parse(&request, &pool, "Language", filter), format)),
                     "countries" => add_cors(encode_other(get_1_n_with_parse(&request, &pool, "Country", filter), format)),
                     "codecs" => add_cors(encode_other(get_1_n_with_parse(&request, &pool, "Codec", filter), format)),
-                    "stations" => add_cors(encode_stations(get_stations(&pool, filter), format)),
+                    "stations" => add_cors(encode_stations(db::get_stations(&pool, filter), format)),
                     "servers" => add_cors(dns_resolve(format)),
                     _ => rouille::Response::empty_404()
                 };
@@ -195,7 +123,7 @@ fn main() {
     loop {
         let connection_string = format!("mysql://{}:{}@{}:{}/{}",dbuser,dbpass,dbhost,dbport,dbname);
         println!("Connection string: {}", connection_string);
-        let pool = my::Pool::new(connection_string);
+        let pool = mysql::Pool::new(connection_string);
         match pool {
             Ok(v) => {
                 myrun(v);
