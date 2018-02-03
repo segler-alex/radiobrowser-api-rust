@@ -95,8 +95,7 @@ impl Connection {
                 query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY Name");
             }
         }
-        println!("{}",query);
-
+        
         let stations: Vec<Station> =
         self.pool.prep_exec(query, ())
         .map(|result| {
