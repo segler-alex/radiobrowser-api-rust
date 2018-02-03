@@ -77,6 +77,10 @@ fn encode_stations(list : Vec<db::Station>, format : &str) -> rouille::Response 
             let j = serde_json::to_string(&list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
         },
+        "xml" => {
+            let j = db::serialize_station_list(list).unwrap();
+            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
+        },
         _ => rouille::Response::empty_404()
     }
 }
