@@ -1,75 +1,10 @@
-extern crate rouille;
-extern crate serde;
-extern crate serde_json;
-
 #[macro_use]
 extern crate serde_derive;
 
-use std::{io, env, thread, time};
+use std::{env, thread, time};
 
 mod db;
 mod api;
-
-fn get_1_n_with_parse(request: &rouille::Request, connection: &db::Connection, column: &str, filter_prev : Option<String>) -> Vec<db::Result1n>{
-    let filter = request.get_param("filter").or(filter_prev);
-    let order : String = request.get_param("order").unwrap_or(String::from("value"));
-    let reverse : bool = request.get_param("reverse").unwrap_or(String::from("false")) == "true";
-    let hidebroken : bool = request.get_param("hidebroken").unwrap_or(String::from("false")) == "true";
-    let stations = connection.get_1_n(column, filter, order, reverse, hidebroken);
-    stations
-}
-
-fn encode_other(list : Vec<db::Result1n>, format : &str) -> rouille::Response {
-    match format {
-        "json" => {
-            let j = serde_json::to_string(&list).unwrap();
-            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
-        },
-        _ => rouille::Response::empty_404()
-    }
-}
-
-fn encode_stations(list : Vec<db::Station>, format : &str) -> rouille::Response {
-    match format {
-        "json" => {
-            let j = serde_json::to_string(&list).unwrap();
-            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
-        },
-        _ => rouille::Response::empty_404()
-    }
-}
-
-fn myrun(pool: db::Connection, host : String, port : i32) {
-    let listen_str = format!("{}:{}", host, port);
-    println!("Listen on {}", listen_str);
-    rouille::start_server(listen_str, move |request| {
-        rouille::log(&request, io::stdout(), || {
-            if request.method() != "POST" && request.method() != "GET" {
-                return rouille::Response::empty_404();
-            }
-            let items : Vec<&str> = request.raw_url().split('/').collect();
-            // println!("method: {} - {} - {} len={}",request.method(), request.raw_url(), items[1], items.len());
-
-            if items.len() >= 3 && items.len() <= 4 {
-                let format = items[1];
-                let command = items[2];
-
-                let filter : Option<String> = if items.len() >= 4 {Some(String::from(items[3]))} else {None};
-                let result = match command {
-                    "languages" => api::add_cors(encode_other(get_1_n_with_parse(&request, &pool, "Language", filter), format)),
-                    "countries" => api::add_cors(encode_other(get_1_n_with_parse(&request, &pool, "Country", filter), format)),
-                    "codecs" => api::add_cors(encode_other(get_1_n_with_parse(&request, &pool, "Codec", filter), format)),
-                    "stations" => api::add_cors(encode_stations(pool.get_stations(filter), format)),
-                    "servers" => api::add_cors(api::dns_resolve(format)),
-                    _ => rouille::Response::empty_404()
-                };
-                result
-            } else {
-                rouille::Response::empty_404()
-            }
-        })
-    });
-}
 
 fn main() {
     let listen_host : String = env::var("HOST").unwrap_or(String::from("127.0.0.1"));
@@ -85,7 +20,7 @@ fn main() {
         let connection = db::new(&dbhost, dbport, &dbname, &dbuser, &dbpass);
         match connection {
             Ok(v) => {
-                myrun(v, listen_host, listen_port);
+                api::run(v, listen_host, listen_port);
                 break;
             },
             Err(e) => {
