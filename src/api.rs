@@ -53,11 +53,19 @@ fn get_1_n_with_parse(request: &rouille::Request, connection: &db::Connection, c
     stations
 }
 
-fn encode_other(list : Vec<db::Result1n>, format : &str) -> rouille::Response {
+/*fn encode_result1n_xml_single(entry: db::Result1n) -> String{
+    encode_result1n_xml
+}*/
+
+fn encode_result1n(type_str: &str, list : Vec<db::Result1n>, format : &str) -> rouille::Response {
     match format {
         "json" => {
             let j = serde_json::to_string(&list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+        },
+        "xml" => {
+            let j = db::serialize_result1n_list(type_str, list).unwrap();
+            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
         },
         _ => rouille::Response::empty_404()
     }
@@ -96,9 +104,9 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
 
         let filter : Option<String> = if items.len() >= 4 {Some(String::from(items[3]))} else {None};
         let result = match command {
-            "languages" => add_cors(encode_other(get_1_n_with_parse(&request, &connection, "Language", filter), format)),
-            "countries" => add_cors(encode_other(get_1_n_with_parse(&request, &connection, "Country", filter), format)),
-            "codecs" => add_cors(encode_other(get_1_n_with_parse(&request, &connection, "Codec", filter), format)),
+            "languages" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Language", filter), format)),
+            "countries" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Country", filter), format)),
+            "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", filter), format)),
             "stations" => add_cors(encode_stations(connection.get_stations(filter), format)),
             "servers" => add_cors(dns_resolve(format)),
             _ => rouille::Response::empty_404()

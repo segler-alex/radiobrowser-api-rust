@@ -1,4 +1,5 @@
 extern crate mysql;
+extern crate xml_writer;
 
 use std;
 
@@ -19,6 +20,23 @@ pub struct Result1n {
     name: String,
     value: String,
     stationcount: u32,
+}
+
+pub fn serialize_result1n_list(type_str: &str, entries: Vec<Result1n>) -> std::io::Result<String> {
+    let mut xml = xml_writer::XmlWriter::new(Vec::new());
+    xml.begin_elem("result")?;
+    for entry in entries{
+        xml.begin_elem(type_str)?;
+            xml.attr_esc("name", &entry.name)?;
+            xml.attr_esc("value", &entry.value)?;
+            let count_str = format!("{}", entry.stationcount);
+            xml.attr_esc("stationcount", &count_str)?;
+        xml.end_elem()?;
+    }
+    xml.end_elem()?;
+    xml.close()?;
+    xml.flush()?;
+    Ok(String::from_utf8(xml.into_inner()).unwrap())
 }
 
 impl Connection {
@@ -76,7 +94,6 @@ impl Connection {
                 }
             }).collect() // Collect payments so now `QueryResult` is mapped to `Vec<Payment>`
         }).unwrap(); // Unwrap `Vec<Payment>`
-
         stations
     }
 }
