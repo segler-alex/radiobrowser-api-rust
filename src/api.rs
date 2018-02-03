@@ -2,10 +2,11 @@ extern crate rouille;
 
 extern crate serde;
 extern crate serde_json;
+extern crate dns_lookup;
 
 use std;
-use dns_lookup::lookup_host;
-use dns_lookup::lookup_addr;
+use self::dns_lookup::lookup_host;
+use self::dns_lookup::lookup_addr;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServerEntry {

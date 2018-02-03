@@ -1,26 +1,21 @@
 extern crate rouille;
-extern crate mysql;
 extern crate serde;
 extern crate serde_json;
 
 #[macro_use]
 extern crate serde_derive;
 
-extern crate dns_lookup;
-
-use std::io;
-use std::env;
-use std::{thread, time};
+use std::{io, env, thread, time};
 
 mod db;
 mod api;
 
-fn get_1_n_with_parse(request: &rouille::Request, pool: &mysql::Pool, column: &str, filter_prev : Option<String>) -> Vec<db::Result1n>{
+fn get_1_n_with_parse(request: &rouille::Request, connection: &db::Connection, column: &str, filter_prev : Option<String>) -> Vec<db::Result1n>{
     let filter = request.get_param("filter").or(filter_prev);
     let order : String = request.get_param("order").unwrap_or(String::from("value"));
     let reverse : bool = request.get_param("reverse").unwrap_or(String::from("false")) == "true";
     let hidebroken : bool = request.get_param("hidebroken").unwrap_or(String::from("false")) == "true";
-    let stations = db::get_1_n(&pool, column, filter, order, reverse, hidebroken);
+    let stations = connection.get_1_n(column, filter, order, reverse, hidebroken);
     stations
 }
 
@@ -44,7 +39,7 @@ fn encode_stations(list : Vec<db::Station>, format : &str) -> rouille::Response 
     }
 }
 
-fn myrun(pool : mysql::Pool, port : i32) {
+fn myrun(pool: db::Connection, port : i32) {
     let listen_str = format!("0.0.0.0:{}", port);
     println!("Listen on {}", listen_str);
     rouille::start_server(listen_str, move |request| {
@@ -64,7 +59,7 @@ fn myrun(pool : mysql::Pool, port : i32) {
                     "languages" => api::add_cors(encode_other(get_1_n_with_parse(&request, &pool, "Language", filter), format)),
                     "countries" => api::add_cors(encode_other(get_1_n_with_parse(&request, &pool, "Country", filter), format)),
                     "codecs" => api::add_cors(encode_other(get_1_n_with_parse(&request, &pool, "Codec", filter), format)),
-                    "stations" => api::add_cors(encode_stations(db::get_stations(&pool, filter), format)),
+                    "stations" => api::add_cors(encode_stations(pool.get_stations(filter), format)),
                     "servers" => api::add_cors(api::dns_resolve(format)),
                     _ => rouille::Response::empty_404()
                 };
@@ -79,22 +74,21 @@ fn myrun(pool : mysql::Pool, port : i32) {
 fn main() {
     let listen_port : i32 = env::var("PORT").unwrap_or(String::from("8080")).parse().expect("listen port is not number");
     let dbhost = env::var("DB_HOST").unwrap_or(String::from("localhost"));
-    let dbport = env::var("DB_PORT").unwrap_or(String::from("3306"));
+    let dbport : i32 = env::var("DB_PORT").unwrap_or(String::from("3306")).parse().expect("db port is not a number");
     let dbuser = env::var("DB_USER").expect("You have to set DB_USER env var");
     let dbpass = env::var("DB_PASS").expect("You have to set DB_PASS env var");
     let dbname = env::var("DB_NAME").expect("You have to set DB_NAME env var");
     
     let mut counter : i32 = 0;
     loop {
-        let connection_string = format!("mysql://{}:{}@{}:{}/{}",dbuser,dbpass,dbhost,dbport,dbname);
-        println!("Connection string: {}", connection_string);
-        let pool = mysql::Pool::new(connection_string);
-        match pool {
+        let connection = db::new(&dbhost, dbport, &dbname, &dbuser, &dbpass);
+        match connection {
             Ok(v) => {
                 myrun(v, listen_port);
                 break;
             },
-            Err(_) => {
+            Err(e) => {
+                println!("{}", e);
                 counter = counter + 1;
                 if counter < 10 {
                     thread::sleep(time::Duration::from_millis(1000));
