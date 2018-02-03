@@ -39,8 +39,8 @@ fn encode_stations(list : Vec<db::Station>, format : &str) -> rouille::Response 
     }
 }
 
-fn myrun(pool: db::Connection, port : i32) {
-    let listen_str = format!("0.0.0.0:{}", port);
+fn myrun(pool: db::Connection, host : String, port : i32) {
+    let listen_str = format!("{}:{}", host, port);
     println!("Listen on {}", listen_str);
     rouille::start_server(listen_str, move |request| {
         rouille::log(&request, io::stdout(), || {
@@ -72,6 +72,7 @@ fn myrun(pool: db::Connection, port : i32) {
 }
 
 fn main() {
+    let listen_host : String = env::var("HOST").unwrap_or(String::from("127.0.0.1"));
     let listen_port : i32 = env::var("PORT").unwrap_or(String::from("8080")).parse().expect("listen port is not number");
     let dbhost = env::var("DB_HOST").unwrap_or(String::from("localhost"));
     let dbport : i32 = env::var("DB_PORT").unwrap_or(String::from("3306")).parse().expect("db port is not a number");
@@ -84,7 +85,7 @@ fn main() {
         let connection = db::new(&dbhost, dbport, &dbname, &dbuser, &dbpass);
         match connection {
             Ok(v) => {
-                myrun(v, listen_port);
+                myrun(v, listen_host, listen_port);
                 break;
             },
             Err(e) => {

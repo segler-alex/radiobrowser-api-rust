@@ -8,7 +8,7 @@ use std;
 use self::dns_lookup::lookup_host;
 use self::dns_lookup::lookup_addr;
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct ServerEntry {
     ip: String,
     name: String
