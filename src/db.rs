@@ -115,6 +115,18 @@ impl Connection {
         self.get_stations(query)
     }
 
+    pub fn get_stations_lastclick(&self) -> Vec<Station> {
+        let query : String;
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY ClickTimestamp DESC");
+        self.get_stations(query)
+    }
+
+    pub fn get_stations_lastchange(&self) -> Vec<Station> {
+        let query : String;
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY Creation DESC");
+        self.get_stations(query)
+    }
+
     fn get_stations(&self, query: String) -> Vec<Station> {
         let stations: Vec<Station> =
         self.pool.prep_exec(query, ())

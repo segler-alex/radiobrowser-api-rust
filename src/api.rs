@@ -127,6 +127,8 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
                 match parameter {
                     "topvote" => add_cors(encode_stations(connection.get_stations_topvote(), format)),
                     "topclick" => add_cors(encode_stations(connection.get_stations_topclick(), format)),
+                    "lastclick" => add_cors(encode_stations(connection.get_stations_lastclick(), format)),
+                    "lastchange" => add_cors(encode_stations(connection.get_stations_lastchange(), format)),
                     _ => rouille::Response::empty_404()
                 }
             },
