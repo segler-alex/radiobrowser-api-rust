@@ -2,13 +2,14 @@ extern crate mysql;
 extern crate xml_writer;
 extern crate chrono;
 
+use db::mysql::Value;
 use std;
 
 pub struct Connection {
     pool: mysql::Pool
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct Station {
     station_id: i32,
     changeuuid: String,
@@ -27,10 +28,18 @@ pub struct Station {
     ip: String
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct Result1n {
     name: String,
     value: String,
+    stationcount: u32,
+}
+
+#[derive(PartialEq, Eq, Serialize, Deserialize)]
+pub struct State {
+    name: String,
+    value: String,
+    country: String,
     stationcount: u32,
 }
 
@@ -41,6 +50,24 @@ pub fn serialize_result1n_list(type_str: &str, entries: Vec<Result1n>) -> std::i
         xml.begin_elem(type_str)?;
             xml.attr_esc("name", &entry.name)?;
             xml.attr_esc("value", &entry.value)?;
+            let count_str = format!("{}", entry.stationcount);
+            xml.attr_esc("stationcount", &count_str)?;
+        xml.end_elem()?;
+    }
+    xml.end_elem()?;
+    xml.close()?;
+    xml.flush()?;
+    Ok(String::from_utf8(xml.into_inner()).unwrap())
+}
+
+pub fn serialize_state_list(entries: Vec<State>) -> std::io::Result<String> {
+    let mut xml = xml_writer::XmlWriter::new(Vec::new());
+    xml.begin_elem("result")?;
+    for entry in entries{
+        xml.begin_elem("state")?;
+            xml.attr_esc("name", &entry.name)?;
+            xml.attr_esc("value", &entry.value)?;
+            xml.attr_esc("country", &entry.country)?;
             let count_str = format!("{}", entry.stationcount);
             xml.attr_esc("stationcount", &count_str)?;
         xml.end_elem()?;
@@ -181,6 +208,43 @@ impl Connection {
             }).collect() // Collect payments so now `QueryResult` is mapped to `Vec<Payment>`
         }).unwrap(); // Unwrap `Vec<Payment>`
         stations
+    }
+
+    pub fn get_states(&self, country: Option<String>, search: Option<String>, order : String, reverse : bool, hidebroken : bool) -> Vec<State>{
+        let mut params: Vec<Value> = Vec::with_capacity(1);
+        let reverse_string = if reverse { "DESC" } else { "ASC" };
+        let hidebroken_string = if hidebroken { " AND LastCheckOK=TRUE" } else { "" };
+        let country_string = match country {
+            Some(c) => {
+                params.push(c.into());
+                format!(" AND Country=?")
+            },
+            None => "".to_string()
+        };
+        let search_string = match search {
+            Some(c) => {
+                params.push((format!("%{}%",c)).into());
+                format!(" AND Subcountry LIKE ?")
+            },
+            None => "".to_string()
+        };
+        
+        let mut my_stmt = self.pool.prepare(format!(r"SELECT Subcountry AS value,Subcountry,Country,COUNT(*) AS stationcount FROM Station WHERE Subcountry <> '' {country} {search} {hidebroken} GROUP BY Subcountry, Country ORDER BY {order} {reverse}",hidebroken = hidebroken_string, order = order, country = country_string, reverse = reverse_string, search = search_string)).unwrap();
+        let my_results = my_stmt.execute(params);
+        let mut states: Vec<State> = vec![];
+
+        for my_result in my_results {
+            for my_row in my_result {
+                let mut row_unwrapped = my_row.unwrap();
+                states.push(State{
+                    name: row_unwrapped.take(0).unwrap_or("".into()),
+                    value: row_unwrapped.take(1).unwrap_or("".into()),
+                    country: row_unwrapped.take(2).unwrap_or("".into()),
+                    stationcount: row_unwrapped.take(3).unwrap_or(0)
+                });
+            }
+        };
+        states
     }
 }
 pub enum DBError{

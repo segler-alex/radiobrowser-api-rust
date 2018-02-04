@@ -53,6 +53,15 @@ fn get_1_n_with_parse(request: &rouille::Request, connection: &db::Connection, c
     stations
 }
 
+fn get_states_with_parse(request: &rouille::Request, connection: &db::Connection, country: Option<String>, filter_prev : Option<String>) -> Vec<db::State>{
+    let filter = request.get_param("filter").or(filter_prev);
+    let order : String = request.get_param("order").unwrap_or(String::from("value"));
+    let reverse : bool = request.get_param("reverse").unwrap_or(String::from("false")) == "true";
+    let hidebroken : bool = request.get_param("hidebroken").unwrap_or(String::from("false")) == "true";
+    let stations = connection.get_states(country, filter, order, reverse, hidebroken);
+    stations
+}
+
 /*fn encode_result1n_xml_single(entry: db::Result1n) -> String{
     encode_result1n_xml
 }*/
@@ -85,6 +94,20 @@ fn encode_stations(list : Vec<db::Station>, format : &str) -> rouille::Response 
     }
 }
 
+fn encode_states(list : Vec<db::State>, format : &str) -> rouille::Response {
+    match format {
+        "json" => {
+            let j = serde_json::to_string(&list).unwrap();
+            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+        },
+        "xml" => {
+            let j = db::serialize_state_list(list).unwrap();
+            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
+        },
+        _ => rouille::Response::empty_404()
+    }
+}
+
 pub fn run(connection: db::Connection, host : String, port : i32, threads : usize) {
     let listen_str = format!("{}:{}", host, port);
     println!("Listen on {} with {} threads", listen_str, threads);
@@ -111,6 +134,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
         match command {
             "languages" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Language", filter), format)),
             "countries" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Country", filter), format)),
+            "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, filter), format)),
             "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", filter), format)),
             "stations" => add_cors(encode_stations(connection.get_stations_by_all(), format)),
             "servers" => add_cors(dns_resolve(format)),
@@ -125,6 +149,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
             "languages" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Language", Some(String::from(parameter))), format)),
             "countries" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Country", Some(String::from(parameter))), format)),
             "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", Some(String::from(parameter))), format)),
+            "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, Some(String::from(parameter))), format)),
             "stations" => {
                 match parameter {
                     "topvote" => add_cors(encode_stations(connection.get_stations_topvote(), format)),
@@ -143,6 +168,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
         let search = items[4];
 
         match command {
+            "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, Some(String::from(parameter)), Some(String::from(search))), format)),
             "stations" => {
                 match parameter {
                     "byname" => add_cors(encode_stations(connection.get_stations_by_name(search.to_string()), format)),
