@@ -14,13 +14,14 @@ fn main() {
     let dbuser = env::var("DB_USER").expect("You have to set DB_USER env var");
     let dbpass = env::var("DB_PASS").expect("You have to set DB_PASS env var");
     let dbname = env::var("DB_NAME").expect("You have to set DB_NAME env var");
+    let threads : usize = env::var("THREADS").unwrap_or(String::from("50")).parse().expect("threads is not number");
     
     let mut counter : i32 = 0;
     loop {
         let connection = db::new(&dbhost, dbport, &dbname, &dbuser, &dbpass);
         match connection {
             Ok(v) => {
-                api::run(v, listen_host, listen_port);
+                api::run(v, listen_host, listen_port, threads);
                 break;
             },
             Err(e) => {

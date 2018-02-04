@@ -85,13 +85,15 @@ fn encode_stations(list : Vec<db::Station>, format : &str) -> rouille::Response 
     }
 }
 
-pub fn run(connection: db::Connection, host : String, port : i32) {
+pub fn run(connection: db::Connection, host : String, port : i32, threads : usize) {
     let listen_str = format!("{}:{}", host, port);
-    println!("Listen on {}", listen_str);
-    rouille::start_server(listen_str, move |request| {
-        rouille::log(&request, std::io::stdout(), || {
+    println!("Listen on {} with {} threads", listen_str, threads);
+    let x : Option<usize> = Some(threads);
+    rouille::start_server_with_pool(listen_str, x, move |request| {
+    //rouille::start_server(listen_str, move |request| {
+        //rouille::log(&request, std::io::stdout(), || {
             handle_connection(&connection, request)
-        })
+        //})
     });
 }
 
