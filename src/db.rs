@@ -85,17 +85,37 @@ pub fn serialize_station_list(entries: Vec<Station>) -> std::io::Result<String> 
 
 
 impl Connection {
-    pub fn get_stations(&self, search: Option<String>) -> Vec<Station>{
+    pub fn get_stations_by_all(&self) -> Vec<Station> {
         let query : String;
-        match search{
-            Some(value) => {
-                query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station WHERE Name LIKE '%{search}%' ORDER BY Name", search = value);
-            },
-            None => {
-                query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY Name");
-            }
-        }
-        
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY Name");
+        self.get_stations(query)
+    }
+
+    pub fn get_stations_by_name(&self, search: String) -> Vec<Station> {
+        let query : String;
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station WHERE Name LIKE '%{search}%' ORDER BY Name", search = search);
+        self.get_stations(query)
+    }
+
+    pub fn get_stations_by_id(&self, id: i32) -> Vec<Station> {
+        let query : String;
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station WHERE StationID='{id}' ORDER BY Name", id = id);
+        self.get_stations(query)
+    }
+
+    pub fn get_stations_topvote(&self) -> Vec<Station> {
+        let query : String;
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY Votes DESC");
+        self.get_stations(query)
+    }
+
+    pub fn get_stations_topclick(&self) -> Vec<Station> {
+        let query : String;
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY clickcount DESC");
+        self.get_stations(query)
+    }
+
+    fn get_stations(&self, query: String) -> Vec<Station> {
         let stations: Vec<Station> =
         self.pool.prep_exec(query, ())
         .map(|result| {

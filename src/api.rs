@@ -100,22 +100,60 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
         return rouille::Response::empty_404();
     }
     let items : Vec<&str> = request.raw_url().split('/').collect();
-    // println!("method: {} - {} - {} len={}",request.method(), request.raw_url(), items[1], items.len());
 
-    if items.len() >= 3 && items.len() <= 4 {
+    if items.len() == 3 {
         let format = items[1];
         let command = items[2];
+        let filter : Option<String> = None;
 
-        let filter : Option<String> = if items.len() >= 4 {Some(String::from(items[3]))} else {None};
-        let result = match command {
+        match command {
             "languages" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Language", filter), format)),
             "countries" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Country", filter), format)),
             "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", filter), format)),
-            "stations" => add_cors(encode_stations(connection.get_stations(filter), format)),
+            "stations" => add_cors(encode_stations(connection.get_stations_by_all(), format)),
             "servers" => add_cors(dns_resolve(format)),
             _ => rouille::Response::empty_404()
-        };
-        result
+        }
+    } else if items.len() == 4 {
+        let format = items[1];
+        let command = items[2];
+        let parameter = items[3];
+
+        match command {
+            "languages" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Language", Some(String::from(parameter))), format)),
+            "countries" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Country", Some(String::from(parameter))), format)),
+            "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", Some(String::from(parameter))), format)),
+            "stations" => {
+                match parameter {
+                    "topvote" => add_cors(encode_stations(connection.get_stations_topvote(), format)),
+                    "topclick" => add_cors(encode_stations(connection.get_stations_topclick(), format)),
+                    _ => rouille::Response::empty_404()
+                }
+            },
+            _ => rouille::Response::empty_404()
+        }
+    } else if items.len() == 5 {
+        let format = items[1];
+        let command = items[2];
+        let parameter = items[3];
+        let search = items[4];
+
+        match command {
+            "stations" => {
+                match parameter {
+                    "byname" => add_cors(encode_stations(connection.get_stations_by_name(search.to_string()), format)),
+                    "byid" => {
+                        let id = search.parse();
+                        match id{
+                            Ok(i) => add_cors(encode_stations(connection.get_stations_by_id(i), format)),
+                            Err(_) => add_cors(rouille::Response::empty_400())
+                        }
+                    },
+                    _ => rouille::Response::empty_404()
+                }
+            },
+            _ => rouille::Response::empty_404()
+        }
     } else {
         rouille::Response::empty_404()
     }
