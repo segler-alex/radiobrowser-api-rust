@@ -43,6 +43,14 @@ pub struct State {
     stationcount: u32,
 }
 
+#[derive(PartialEq, Eq, Serialize, Deserialize)]
+pub struct Tag {
+    name: String,
+    value: String,
+    stationcount: u32,
+    stationcountworking: u32
+}
+
 pub fn serialize_result1n_list(type_str: &str, entries: Vec<Result1n>) -> std::io::Result<String> {
     let mut xml = xml_writer::XmlWriter::new(Vec::new());
     xml.begin_elem("result")?;
@@ -68,6 +76,23 @@ pub fn serialize_state_list(entries: Vec<State>) -> std::io::Result<String> {
             xml.attr_esc("name", &entry.name)?;
             xml.attr_esc("value", &entry.value)?;
             xml.attr_esc("country", &entry.country)?;
+            let count_str = format!("{}", entry.stationcount);
+            xml.attr_esc("stationcount", &count_str)?;
+        xml.end_elem()?;
+    }
+    xml.end_elem()?;
+    xml.close()?;
+    xml.flush()?;
+    Ok(String::from_utf8(xml.into_inner()).unwrap())
+}
+
+pub fn serialize_tag_list(entries: Vec<Tag>) -> std::io::Result<String> {
+    let mut xml = xml_writer::XmlWriter::new(Vec::new());
+    xml.begin_elem("result")?;
+    for entry in entries{
+        xml.begin_elem("state")?;
+            xml.attr_esc("name", &entry.name)?;
+            xml.attr_esc("value", &entry.value)?;
             let count_str = format!("{}", entry.stationcount);
             xml.attr_esc("stationcount", &count_str)?;
         xml.end_elem()?;
@@ -245,6 +270,43 @@ impl Connection {
             }
         };
         states
+    }
+
+    pub fn refresh_cache_tags(&self) {
+        self.pool.prep_exec(
+            "CREATE TABLE IF NOT EXISTS TagCache(TagName VARCHAR(100) COLLATE utf8_bin NOT NULL,
+            Primary Key (TagName),
+            StationCount INT DEFAULT 0,
+            StationCountWorking INT DEFAULT 0) CHARSET=utf8 COLLATE=utf8_bin",
+            ()).unwrap();
+    }
+
+    pub fn get_tags(&self, search: Option<String>, order : String, reverse : bool, hidebroken : bool) -> Vec<Tag>{
+        let mut params: Vec<Value> = Vec::with_capacity(1);
+        let mut tags = vec![];
+        let reverse_string = if reverse { "DESC" } else { "ASC" };
+        let hidebroken_string = if hidebroken { " AND LastCheckOK=TRUE" } else { "" };
+        let search_string = match search {
+            Some(c) => {
+                params.push((format!("%{}%",c)).into());
+                format!(" AND Subcountry LIKE ?")
+            },
+            None => "".to_string()
+        };
+        let mut stmt = self.pool.prepare(format!("SELECT TagName AS value, TagName, StationCount as stationcount, StationCountWorking FROM TagCache WHERE TagName <> '' {search} {hidebroken} ORDER BY {order} {reverse}",search = search_string, order = order, reverse = reverse_string, hidebroken = hidebroken_string)).unwrap();
+        let my_results = stmt.execute(params);
+        for my_result in my_results {
+            for my_row in my_result {
+                let mut row_unwrapped = my_row.unwrap();
+                tags.push(Tag{
+                    name: row_unwrapped.take(0).unwrap_or("".into()),
+                    value: row_unwrapped.take(1).unwrap_or("".into()),
+                    stationcount: row_unwrapped.take(2).unwrap_or(0),
+                    stationcountworking: row_unwrapped.take(3).unwrap_or(0)
+                });
+            }
+        }
+        tags
     }
 }
 pub enum DBError{
