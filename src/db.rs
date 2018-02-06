@@ -338,7 +338,7 @@ impl Connection {
 
     fn insert_tags(&self, tags: Vec<&String>){
         let mut query = String::from("INSERT INTO TagCache(TagName) VALUES");
-        for i in 0..tags.len() {
+        for _ in 0..tags.len() {
             query.push_str("(?),");
         }
         let mut my_stmt = self.pool.prepare(query.trim_matches(',')).unwrap();
@@ -386,7 +386,7 @@ impl Connection {
         let search_string = match search {
             Some(c) => {
                 params.push((format!("%{}%",c)).into());
-                format!(" AND Subcountry LIKE ?")
+                format!(" AND TagName LIKE ?")
             },
             None => "".to_string()
         };
