@@ -2,6 +2,7 @@ extern crate mysql;
 extern crate xml_writer;
 extern crate chrono;
 
+use std::collections::HashSet;
 use db::mysql::Value;
 use std;
 
@@ -272,13 +273,109 @@ impl Connection {
         states
     }
 
-    pub fn refresh_cache_tags(&self) {
-        self.pool.prep_exec(
-            "CREATE TABLE IF NOT EXISTS TagCache(TagName VARCHAR(100) COLLATE utf8_bin NOT NULL,
+    pub fn init_tables(&self) {
+        let result = self.pool.prep_exec(
+            "CREATE OR REPLACE TABLE TagCache(TagName VARCHAR(100) COLLATE utf8_bin NOT NULL,
             Primary Key (TagName),
             StationCount INT DEFAULT 0,
             StationCountWorking INT DEFAULT 0) CHARSET=utf8 COLLATE=utf8_bin",
-            ()).unwrap();
+            ());
+        match result {
+            Ok(_) => {},
+            Err(err) => {println!("{}",err);}
+        }
+    }
+
+    fn get_cached_tags(&self) -> HashSet<String>{
+        let mut tags = HashSet::new();
+        let mut my_stmt = self.pool.prepare("SELECT TagName FROM TagCache").unwrap();
+        let my_results = my_stmt.execute(());
+
+        for my_result in my_results {
+            for my_row in my_result {
+                let mut row_unwrapped = my_row.unwrap();
+                let item : String = row_unwrapped.take(0).unwrap_or("".into());
+                let lower = item.to_lowercase();
+                tags.insert(lower);
+            }
+        };
+        tags
+    }
+
+    fn get_stations_tags(&self) -> HashSet<String>{
+        let mut tags = HashSet::new();
+        let mut my_stmt = self.pool.prepare("SELECT Tags FROM Station").unwrap();
+        let my_results = my_stmt.execute(());
+
+        for my_result in my_results {
+            for my_row in my_result {
+                let mut row_unwrapped = my_row.unwrap();
+                let tags_str : String = row_unwrapped.take(0).unwrap_or("".into());
+                let tags_arr = tags_str.split(',');
+                for single_tag in tags_arr {
+                    let single_tag_trimmed = single_tag.trim().to_lowercase();
+                    if single_tag_trimmed != "" {
+                        if !tags.contains(&single_tag_trimmed) {
+                            tags.insert(single_tag_trimmed);
+                        }
+                    }
+                }
+            }
+        };
+        tags
+    }
+
+    fn insert_tag(&self, tag: &String){
+        let mut my_stmt = self.pool.prepare(r"INSERT INTO TagCache(TagName) VALUES(?)").unwrap();
+        let mut params = vec![];
+        params.push(tag);
+        let result = my_stmt.execute(params);
+        match result {
+            Ok(_) => {},
+            Err(err) => {println!("{}",err);}
+        }
+    }
+
+    fn insert_tags(&self, tags: Vec<&String>){
+        let mut query = String::from("INSERT INTO TagCache(TagName) VALUES");
+        for i in 0..tags.len() {
+            query.push_str("(?),");
+        }
+        let mut my_stmt = self.pool.prepare(query.trim_matches(',')).unwrap();
+        let result = my_stmt.execute(tags);
+        match result {
+            Ok(_) => {},
+            Err(err) => {println!("{}",err);}
+        }
+    }
+
+    fn remove_tag(&self, tag: &String){
+        let mut my_stmt = self.pool.prepare(r"DELETE FROM TagCache WHERE TagName=?").unwrap();
+        let mut params = vec![];
+        params.push(tag);
+        let result = my_stmt.execute(params);
+        match result {
+            Ok(_) => {},
+            Err(err) => {println!("{}",err);}
+        }
+    }
+
+    pub fn refresh_cache_tags(&self){
+        let tags_cached = self.get_cached_tags();
+        let tags_stations = self.get_stations_tags();
+        println!("cached tags: {}", tags_cached.len());
+        println!("used tags: {}", tags_stations.len());
+
+        let to_add = tags_stations.difference(&tags_cached);
+        /*for item_to_add in to_add {
+            self.insert_tag(item_to_add);
+        }*/
+        let x = to_add.collect::<Vec<&String>>();
+        self.insert_tags(x);
+        let to_delete = tags_cached.difference(&tags_stations);
+        for item_to_delete in to_delete {
+            self.remove_tag(item_to_delete);
+        }
     }
 
     pub fn get_tags(&self, search: Option<String>, order : String, reverse : bool, hidebroken : bool) -> Vec<Tag>{
