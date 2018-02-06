@@ -91,7 +91,7 @@ pub fn serialize_tag_list(entries: Vec<Tag>) -> std::io::Result<String> {
     let mut xml = xml_writer::XmlWriter::new(Vec::new());
     xml.begin_elem("result")?;
     for entry in entries{
-        xml.begin_elem("state")?;
+        xml.begin_elem("tag")?;
             xml.attr_esc("name", &entry.name)?;
             xml.attr_esc("value", &entry.value)?;
             let count_str = format!("{}", entry.stationcount);
