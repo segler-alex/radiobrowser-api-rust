@@ -28,6 +28,7 @@ services:
     volumes:
       - ./radio.sql.gz:/docker-entrypoint-initdb.d/radio.sql.gz
       - ./dbdata:/var/lib/mysql
+    command: ["mysqld","--character-set-server=utf8mb4","--collation-server=utf8mb4_unicode_ci"]
 networks:
   mynet:
     driver: "overlay"
