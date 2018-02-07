@@ -1,4 +1,3 @@
-
 extern crate rouille;
 
 extern crate serde;
@@ -147,8 +146,9 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
     if request.method() != "POST" && request.method() != "GET" {
         return rouille::Response::empty_404();
     }
-    let items : Vec<&str> = request.raw_url().split('/').collect();
 
+    let parts : Vec<&str> = request.raw_url().split('?').collect();
+    let items : Vec<&str> = parts[0].split('/').collect();
     if items.len() == 3 {
         let format = items[1];
         let command = items[2];
