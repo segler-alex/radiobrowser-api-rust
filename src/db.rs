@@ -325,16 +325,6 @@ impl Connection {
         tags
     }
 
-    fn insert_tag(&self, tag: &String, count: u32){
-        let mut my_stmt = self.pool.prepare(r"INSERT INTO TagCache(TagName,StationCount) VALUES(?,?)").unwrap();
-        let params = (tag,count);
-        let result = my_stmt.execute(params);
-        match result {
-            Ok(_) => {},
-            Err(err) => {println!("{}",err);}
-        }
-    }
-
     fn update_tag(&self, tag: &String, count: u32){
         let mut my_stmt = self.pool.prepare(r"UPDATE TagCache SET StationCount=? WHERE TagName=?").unwrap();
         let params = (count,tag);
@@ -354,17 +344,6 @@ impl Connection {
                 Ok(_) => {},
                 Err(err) => {println!("{}",err);}
             }
-        }
-    }
-
-    fn remove_tag(&self, tag: &String){
-        let mut my_stmt = self.pool.prepare(r"DELETE FROM TagCache WHERE TagName=?").unwrap();
-        let mut params = vec![];
-        params.push(tag);
-        let result = my_stmt.execute(params);
-        match result {
-            Ok(_) => {},
-            Err(err) => {println!("{}",err);}
         }
     }
 
