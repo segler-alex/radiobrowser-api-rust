@@ -21,8 +21,6 @@ fn main() {
         let connection = db::new(&dbhost, dbport, &dbname, &dbuser, &dbpass);
         match connection {
             Ok(v) => {
-                v.init_tables();
-                v.refresh_cache_tags();
                 api::run(v, listen_host, listen_port, threads);
                 break;
             },
