@@ -206,6 +206,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
                     "topclick" => add_cors(encode_stations(connection.get_stations_topclick(), format)),
                     "lastclick" => add_cors(encode_stations(connection.get_stations_lastclick(), format)),
                     "lastchange" => add_cors(encode_stations(connection.get_stations_lastchange(), format)),
+                    "changed" => add_cors(encode_stations(connection.get_changes(), format)),
                     _ => rouille::Response::empty_404()
                 }
             },
