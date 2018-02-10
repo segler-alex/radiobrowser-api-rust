@@ -167,7 +167,6 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
         return rouille::Response::empty_404();
     }
 
-    println!("{}", request.raw_url());
     let parts : Vec<&str> = request.raw_url().split('?').collect();
     let items : Vec<&str> = parts[0].split('/').collect();
     if items.len() == 2 {
@@ -176,7 +175,6 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
         let format = items[1];
         let command = items[2];
         let filter : Option<String> = None;
-        println!("command:'{}'", command);
 
         match command {
             "languages" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Language", filter), format)),

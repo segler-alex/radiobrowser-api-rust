@@ -188,29 +188,31 @@ impl Connection {
     }
 
     fn get_stations(&self, query: String) -> Vec<Station> {
-        let stations: Vec<Station> =
-        self.pool.prep_exec(query, ())
-        .map(|result| {
-            result.map(|x| x.unwrap()).map(|mut row| {
-                Station {
+        let mut stations: Vec<Station> = vec![];
+        let results = self.pool.prep_exec(query, ());
+        for result in results {
+            for row_ in result {
+                let mut row = row_.unwrap();
+                let s = Station {
                     station_id: row.take("StationID").unwrap(),
-                    changeuuid: row.take("ChangeUuid").unwrap(),
-                    stationuuid: row.take("StationUuid").unwrap(),
-                    name: row.take("Name").unwrap(),
-                    url: row.take("Url").unwrap(),
-                    homepage: row.take("Homepage").unwrap(),
-                    favicon: row.take("Favicon").unwrap(),
-                    tags: row.take("Tags").unwrap(),
-                    country: row.take("Country").unwrap(),
-                    state: row.take("Subcountry").unwrap(),
-                    language: row.take("Language").unwrap(),
-                    votes: row.take("Votes").unwrap(),
-                    negativevotes: row.take("NegativeVotes").unwrap(),
+                    changeuuid: row.take("ChangeUuid").unwrap_or("".to_string()),
+                    stationuuid: row.take("StationUuid").unwrap_or("".to_string()),
+                    name: row.take("Name").unwrap_or("".to_string()),
+                    url: row.take("Url").unwrap_or("".to_string()),
+                    homepage: row.take_opt("Homepage").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    favicon: row.take_opt("Favicon").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    tags: row.take_opt("Tags").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    country: row.take_opt("Country").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    state: row.take_opt("Subcountry").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    language: row.take_opt("Language").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    votes: row.take("Votes").unwrap_or(0),
+                    negativevotes: row.take("NegativeVotes").unwrap_or(0),
                     lastchangetime: row.take("Creation").unwrap(),
-                    ip: row.take("Ip").unwrap()
-                }
-            }).collect() // Collect payments so now `QueryResult` is mapped to `Vec<Payment>`
-        }).unwrap(); // Unwrap `Vec<Payment>`
+                    ip: row.take_opt("Ip").unwrap_or(Ok("".to_string())).unwrap_or("".to_string())
+                };
+                stations.push(s);
+            }
+        }
 
         stations
     }
