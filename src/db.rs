@@ -442,9 +442,27 @@ pub fn refresh_cache_tags(pool: &mysql::Pool){
     }*/
 }
 
+fn start_refresh_worker(connection_string: String){
+    thread::spawn(move || {
+        loop{
+            let pool = mysql::Pool::new(&connection_string);
+            match pool {
+                Ok(p) => {
+                    println!("REFRESH START");
+                    refresh_cache_tags(&p);
+                    println!("REFRESH END");
+                },
+                Err(e) => println!("{}",e)
+            }
+            
+            thread::sleep(::std::time::Duration::new(10,0));
+        }
+    });
+}
+
 pub fn new(host: &String,port : i32, name: &String, user: &String, password: &String) -> Result<Connection, DBError> {
     let connection_string = format!("mysql://{}:{}@{}:{}/{}",user,password,host,port,name);
-    let connection_string2 = format!("mysql://{}:{}@{}:{}/{}",user,password,host,port,name);
+    let connection_string2 = connection_string.clone();
     println!("Connection string: {}", connection_string);
     
     let pool = mysql::Pool::new(connection_string);
@@ -453,21 +471,7 @@ pub fn new(host: &String,port : i32, name: &String, user: &String, password: &St
             let c = Connection{pool: p};
             c.init_tables();
 
-            thread::spawn(move || {
-                loop{
-                    let pool = mysql::Pool::new(&connection_string2);
-                    match pool {
-                        Ok(p) => {
-                            println!("REFRESH START");
-                            refresh_cache_tags(&p);
-                            println!("REFRESH END");
-                        },
-                        Err(e) => println!("{}",e)
-                    }
-                    
-                    thread::sleep(::std::time::Duration::new(10,0));
-                }
-            });
+            start_refresh_worker(connection_string2);
 
             Ok(c)
             },
