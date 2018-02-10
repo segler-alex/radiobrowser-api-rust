@@ -181,9 +181,10 @@ impl Connection {
         self.get_stations(query)
     }
 
-    pub fn get_changes(&self) -> Vec<Station> {
+    pub fn get_changes(&self, uuid: Option<String>, seconds: u32) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from StationHistory ORDER BY Creation DESC");
+        let seconds_str: String = if seconds > 0 { format!(" AND TIME_TO_SEC(TIMEDIFF(Now(),Creation))<{}",seconds) } else { "".to_string() };
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from StationHistory WHERE 1=1 {seconds} ORDER BY Creation DESC", seconds = seconds_str);
         self.get_stations(query)
     }
 

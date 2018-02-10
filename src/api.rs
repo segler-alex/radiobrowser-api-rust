@@ -48,6 +48,12 @@ fn dns_resolve(format : &str) -> rouille::Response {
     }
 }
 
+fn get_changes(request: &rouille::Request, connection: &db::Connection, station_id : Option<String>) -> Vec<db::Station>{
+    let seconds: u32 = request.get_param("seconds").unwrap_or(String::from("0")).parse().unwrap_or(0);
+    let stations = connection.get_changes(station_id, seconds);
+    stations
+}
+
 fn get_1_n_with_parse(request: &rouille::Request, connection: &db::Connection, column: &str, filter_prev : Option<String>) -> Vec<db::Result1n>{
     let filter = request.get_param("filter").or(filter_prev);
     let order : String = request.get_param("order").unwrap_or(String::from("value"));
@@ -204,7 +210,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
                     "topclick" => add_cors(encode_stations(connection.get_stations_topclick(), format)),
                     "lastclick" => add_cors(encode_stations(connection.get_stations_lastclick(), format)),
                     "lastchange" => add_cors(encode_stations(connection.get_stations_lastchange(), format)),
-                    "changed" => add_cors(encode_stations(connection.get_changes(), format)),
+                    "changed" => add_cors(encode_stations(get_changes(&request, &connection, None), format)),
                     _ => rouille::Response::empty_404()
                 }
             },
@@ -215,7 +221,6 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
         let command = items[2];
         let parameter = items[3];
         let search = items[4];
-
         match command {
             "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, Some(String::from(parameter)), Some(String::from(search))), format)),
             "stations" => {
@@ -228,6 +233,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
                             Err(_) => add_cors(rouille::Response::empty_400())
                         }
                     },
+                    "changed" => add_cors(encode_stations(get_changes(&request, &connection, Some(search.to_string())), format)),
                     _ => rouille::Response::empty_404()
                 }
             },
