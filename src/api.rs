@@ -15,6 +15,11 @@ pub struct ServerEntry {
     name: String
 }
 
+#[derive(Serialize, Deserialize)]
+struct Status {
+    status: String
+}
+
 fn add_cors(result : rouille::Response) -> rouille::Response {
     result.with_unique_header("Access-Control-Allow-Origin", "*")
         .with_unique_header("Access-Control-Allow-Headers", "origin, x-requested-with, content-type")
@@ -84,7 +89,7 @@ fn encode_result1n(type_str: &str, list : Vec<db::Result1n>, format : &str) -> r
             let j = db::serialize_result1n_list(type_str, list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
         },
-        _ => rouille::Response::empty_404()
+        _ => rouille::Response::empty_406()
     }
 }
 
@@ -98,7 +103,7 @@ fn encode_stations(list : Vec<db::Station>, format : &str) -> rouille::Response 
             let j = db::serialize_station_list(list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
         },
-        _ => rouille::Response::empty_404()
+        _ => rouille::Response::empty_406()
     }
 }
 
@@ -112,7 +117,7 @@ fn encode_states(list : Vec<db::State>, format : &str) -> rouille::Response {
             let j = db::serialize_state_list(list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
         },
-        _ => rouille::Response::empty_404()
+        _ => rouille::Response::empty_406()
     }
 }
 
@@ -126,7 +131,18 @@ fn encode_tags(list : Vec<db::Tag>, format : &str) -> rouille::Response {
             let j = db::serialize_tag_list(list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
         },
-        _ => rouille::Response::empty_404()
+        _ => rouille::Response::empty_406()
+    }
+}
+
+fn encode_status(status: Status, format : &str) -> rouille::Response {
+    println!("status");
+    match format {
+        "json" => {
+            let j = serde_json::to_string(&status).unwrap();
+            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+        },
+        _ => rouille::Response::empty_406()
     }
 }
 
@@ -142,17 +158,25 @@ pub fn run(connection: db::Connection, host : String, port : i32, threads : usiz
     });
 }
 
+fn get_status() -> Status {
+    Status{status: "OK".to_string()}
+}
+
 fn handle_connection(connection: &db::Connection, request: &rouille::Request) -> rouille::Response {
     if request.method() != "POST" && request.method() != "GET" {
         return rouille::Response::empty_404();
     }
 
+    println!("{}", request.raw_url());
     let parts : Vec<&str> = request.raw_url().split('?').collect();
     let items : Vec<&str> = parts[0].split('/').collect();
-    if items.len() == 3 {
+    if items.len() == 2 {
+        add_cors(encode_status(get_status(), "json"))
+    } else if items.len() == 3 {
         let format = items[1];
         let command = items[2];
         let filter : Option<String> = None;
+        println!("command:'{}'", command);
 
         match command {
             "languages" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Language", filter), format)),
@@ -162,6 +186,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
             "tags" => add_cors(encode_tags(get_tags_with_parse(&request, &connection, filter), format)),
             "stations" => add_cors(encode_stations(connection.get_stations_by_all(), format)),
             "servers" => add_cors(dns_resolve(format)),
+            "" => add_cors(encode_status(get_status(), "json")),
             _ => rouille::Response::empty_404()
         }
     } else if items.len() == 4 {
