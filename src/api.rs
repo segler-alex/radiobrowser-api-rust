@@ -206,10 +206,10 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
             "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, Some(String::from(parameter))), format)),
             "stations" => {
                 match parameter {
-                    "topvote" => add_cors(encode_stations(connection.get_stations_topvote(), format)),
-                    "topclick" => add_cors(encode_stations(connection.get_stations_topclick(), format)),
-                    "lastclick" => add_cors(encode_stations(connection.get_stations_lastclick(), format)),
-                    "lastchange" => add_cors(encode_stations(connection.get_stations_lastchange(), format)),
+                    "topvote" => add_cors(encode_stations(connection.get_stations_topvote(999999), format)),
+                    "topclick" => add_cors(encode_stations(connection.get_stations_topclick(999999), format)),
+                    "lastclick" => add_cors(encode_stations(connection.get_stations_lastclick(999999), format)),
+                    "lastchange" => add_cors(encode_stations(connection.get_stations_lastchange(999999), format)),
                     "changed" => add_cors(encode_stations(get_changes(&request, &connection, None), format)),
                     _ => rouille::Response::empty_404()
                 }
@@ -225,6 +225,10 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
             "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, Some(String::from(parameter)), Some(String::from(search))), format)),
             "stations" => {
                 match parameter {
+                    "topvote" => add_cors(encode_stations(connection.get_stations_topvote(search.parse().unwrap_or(0)), format)),
+                    "topclick" => add_cors(encode_stations(connection.get_stations_topclick(search.parse().unwrap_or(0)), format)),
+                    "lastclick" => add_cors(encode_stations(connection.get_stations_lastclick(search.parse().unwrap_or(0)), format)),
+                    "lastchange" => add_cors(encode_stations(connection.get_stations_lastchange(search.parse().unwrap_or(0)), format)),
                     "byname" => add_cors(encode_stations(connection.get_stations_by_name(search.to_string()), format)),
                     "byid" => {
                         let id = search.parse();

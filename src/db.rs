@@ -157,27 +157,27 @@ impl Connection {
         self.get_stations(query)
     }
 
-    pub fn get_stations_topvote(&self) -> Vec<Station> {
+    pub fn get_stations_topvote(&self, limit: u32) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY Votes DESC");
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY Votes DESC LIMIT {limit}", limit = limit);
         self.get_stations(query)
     }
 
-    pub fn get_stations_topclick(&self) -> Vec<Station> {
+    pub fn get_stations_topclick(&self, limit: u32) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY clickcount DESC");
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY clickcount DESC LIMIT {limit}", limit = limit);
         self.get_stations(query)
     }
 
-    pub fn get_stations_lastclick(&self) -> Vec<Station> {
+    pub fn get_stations_lastclick(&self, limit: u32) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY ClickTimestamp DESC");
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY ClickTimestamp DESC LIMIT {limit}", limit = limit);
         self.get_stations(query)
     }
 
-    pub fn get_stations_lastchange(&self) -> Vec<Station> {
+    pub fn get_stations_lastchange(&self, limit: u32) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY Creation DESC");
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY Creation DESC LIMIT {limit}", limit = limit);
         self.get_stations(query)
     }
 
