@@ -13,7 +13,7 @@ pub struct Connection {
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct Station {
-    station_id: i32,
+    id: i32,
     changeuuid: String,
     stationuuid: String,
     name: String,
@@ -110,7 +110,7 @@ pub fn serialize_station_list(entries: Vec<Station>) -> std::io::Result<String> 
     xml.begin_elem("result")?;
     for entry in entries{
         xml.begin_elem("station")?;
-            let station_id_str = format!("{}", entry.station_id);
+            let station_id_str = format!("{}", entry.id);
             xml.attr_esc("id", &station_id_str)?;
             xml.attr_esc("changeuuid", &entry.changeuuid)?;
             xml.attr_esc("stationuuid", &entry.stationuuid)?;
@@ -195,7 +195,7 @@ impl Connection {
             for row_ in result {
                 let mut row = row_.unwrap();
                 let s = Station {
-                    station_id: row.take("StationID").unwrap(),
+                    id: row.take("StationID").unwrap(),
                     changeuuid: row.take("ChangeUuid").unwrap_or("".to_string()),
                     stationuuid: row.take("StationUuid").unwrap_or("".to_string()),
                     name: row.take("Name").unwrap_or("".to_string()),
