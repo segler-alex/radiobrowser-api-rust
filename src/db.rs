@@ -129,6 +129,15 @@ pub fn serialize_station_list(entries: Vec<Station>) -> std::io::Result<String> 
             let station_lastchangetime_str = format!("{}", entry.lastchangetime);
             xml.attr_esc("lastchangetime", &station_lastchangetime_str)?;
             xml.attr_esc("ip", &entry.ip)?;
+            xml.attr_esc("codec", "MP3")?;
+            xml.attr_esc("bitrate", "0")?;
+            xml.attr_esc("hls", "0")?;
+            xml.attr_esc("lastcheckok", "1")?;
+            xml.attr_esc("lastchecktime", "2018-02-16 02:20:30")?;
+            xml.attr_esc("lastcheckoktime", "2018-02-16 02:20:30")?;
+            xml.attr_esc("clicktimestamp", "2018-02-16 02:20:30")?;
+            xml.attr_esc("clickcount", "0")?;
+            xml.attr_esc("clicktrend", "0")?;
         xml.end_elem()?;
     }
     xml.end_elem()?;
