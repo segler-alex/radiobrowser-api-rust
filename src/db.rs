@@ -27,6 +27,34 @@ pub struct Station {
     votes: i32,
     negativevotes: i32,
     lastchangetime: chrono::NaiveDateTime,
+    ip: String,
+    codec: String,
+    bitrate: u32,
+    hls: i8,
+    lastcheckok: i8,
+    lastchecktime: chrono::NaiveDateTime,
+    lastcheckoktime: chrono::NaiveDateTime,
+    clicktimestamp: chrono::NaiveDateTime,
+    clickcount: u32,
+    clicktrend: i32
+}
+
+#[derive(PartialEq, Eq, Serialize, Deserialize)]
+pub struct StationHistory {
+    id: i32,
+    changeuuid: String,
+    stationuuid: String,
+    name: String,
+    url: String,
+    homepage: String,
+    favicon: String,
+    tags: String,
+    country: String,
+    state: String,
+    language: String,
+    votes: i32,
+    negativevotes: i32,
+    lastchangetime: chrono::NaiveDateTime,
     ip: String
 }
 
@@ -129,15 +157,23 @@ pub fn serialize_station_list(entries: Vec<Station>) -> std::io::Result<String> 
             let station_lastchangetime_str = format!("{}", entry.lastchangetime);
             xml.attr_esc("lastchangetime", &station_lastchangetime_str)?;
             xml.attr_esc("ip", &entry.ip)?;
-            xml.attr_esc("codec", "MP3")?;
-            xml.attr_esc("bitrate", "0")?;
-            xml.attr_esc("hls", "0")?;
-            xml.attr_esc("lastcheckok", "1")?;
-            xml.attr_esc("lastchecktime", "2018-02-16 02:20:30")?;
-            xml.attr_esc("lastcheckoktime", "2018-02-16 02:20:30")?;
-            xml.attr_esc("clicktimestamp", "2018-02-16 02:20:30")?;
-            xml.attr_esc("clickcount", "0")?;
-            xml.attr_esc("clicktrend", "0")?;
+            xml.attr_esc("codec", &entry.codec)?;
+            let station_bitrate = format!("{}", entry.bitrate);
+            xml.attr_esc("bitrate", &station_bitrate)?;
+            let station_hls = format!("{}", entry.hls);
+            xml.attr_esc("hls", &station_hls)?;
+            let station_lastcheckok = format!("{}", entry.lastcheckok);
+            xml.attr_esc("lastcheckok", &station_lastcheckok)?;
+            let station_lastchecktime_str = format!("{}", entry.lastchecktime);
+            xml.attr_esc("lastchecktime", &station_lastchecktime_str)?;
+            let station_lastcheckoktime_str = format!("{}", entry.lastcheckoktime);
+            xml.attr_esc("lastcheckoktime", &station_lastcheckoktime_str)?;
+            let station_clicktimestamp_str = format!("{}", entry.clicktimestamp);
+            xml.attr_esc("clicktimestamp", &station_clicktimestamp_str)?;
+            let station_clickcount = format!("{}", entry.clickcount);
+            xml.attr_esc("clickcount", &station_clickcount)?;
+            let station_clicktrend = format!("{}", entry.clicktrend);
+            xml.attr_esc("clicktrend", &station_clicktrend)?;
         xml.end_elem()?;
     }
     xml.end_elem()?;
@@ -146,55 +182,86 @@ pub fn serialize_station_list(entries: Vec<Station>) -> std::io::Result<String> 
     Ok(String::from_utf8(xml.into_inner()).unwrap())
 }
 
+pub fn serialize_changes_list(entries: Vec<StationHistory>) -> std::io::Result<String> {
+    let mut xml = xml_writer::XmlWriter::new(Vec::new());
+    xml.begin_elem("result")?;
+    for entry in entries{
+        xml.begin_elem("station")?;
+            let station_id_str = format!("{}", entry.id);
+            xml.attr_esc("id", &station_id_str)?;
+            xml.attr_esc("changeuuid", &entry.changeuuid)?;
+            xml.attr_esc("stationuuid", &entry.stationuuid)?;
+            xml.attr_esc("name", &entry.name)?;
+            xml.attr_esc("url", &entry.url)?;
+            xml.attr_esc("homepage", &entry.homepage)?;
+            xml.attr_esc("favicon", &entry.favicon)?;
+            xml.attr_esc("tags", &entry.tags)?;
+            xml.attr_esc("country", &entry.country)?;
+            xml.attr_esc("state", &entry.state)?;
+            xml.attr_esc("language", &entry.language)?;
+            let station_votes_str = format!("{}", entry.votes);
+            xml.attr_esc("votes", &station_votes_str)?;
+            let station_negativevotes_str = format!("{}", entry.negativevotes);
+            xml.attr_esc("negativevotes", &station_negativevotes_str)?;
+            let station_lastchangetime_str = format!("{}", entry.lastchangetime);
+            xml.attr_esc("lastchangetime", &station_lastchangetime_str)?;
+            xml.attr_esc("ip", &entry.ip)?;
+        xml.end_elem()?;
+    }
+    xml.end_elem()?;
+    xml.close()?;
+    xml.flush()?;
+    Ok(String::from_utf8(xml.into_inner()).unwrap())
+}
 
 impl Connection {
     pub fn get_stations_by_all(&self) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY Name");
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip,Codec,Bitrate,Hls,LastCheckOK,LastCheckTime,LastCheckOkTime,ClickTimestamp,clickcount,ClickTrend from Station ORDER BY Name");
         self.get_stations(query)
     }
 
     pub fn get_stations_by_name(&self, search: String) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station WHERE Name LIKE '%{search}%' ORDER BY Name", search = search);
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip,Codec,Bitrate,Hls,LastCheckOK,LastCheckTime,LastCheckOkTime,ClickTimestamp,clickcount,ClickTrend from Station WHERE Name LIKE '%{search}%' ORDER BY Name", search = search);
         self.get_stations(query)
     }
 
     pub fn get_stations_by_id(&self, id: i32) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station WHERE StationID='{id}' ORDER BY Name", id = id);
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip,Codec,Bitrate,Hls,LastCheckOK,LastCheckTime,LastCheckOkTime,ClickTimestamp,clickcount,ClickTrend from Station WHERE StationID='{id}' ORDER BY Name", id = id);
         self.get_stations(query)
     }
 
     pub fn get_stations_topvote(&self, limit: u32) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY Votes DESC LIMIT {limit}", limit = limit);
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip,Codec,Bitrate,Hls,LastCheckOK,LastCheckTime,LastCheckOkTime,ClickTimestamp,clickcount,ClickTrend from Station ORDER BY Votes DESC LIMIT {limit}", limit = limit);
         self.get_stations(query)
     }
 
     pub fn get_stations_topclick(&self, limit: u32) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY clickcount DESC LIMIT {limit}", limit = limit);
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip,Codec,Bitrate,Hls,LastCheckOK,LastCheckTime,LastCheckOkTime,ClickTimestamp,clickcount,ClickTrend from Station ORDER BY clickcount DESC LIMIT {limit}", limit = limit);
         self.get_stations(query)
     }
 
     pub fn get_stations_lastclick(&self, limit: u32) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY ClickTimestamp DESC LIMIT {limit}", limit = limit);
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip,Codec,Bitrate,Hls,LastCheckOK,LastCheckTime,LastCheckOkTime,ClickTimestamp,clickcount,ClickTrend from Station ORDER BY ClickTimestamp DESC LIMIT {limit}", limit = limit);
         self.get_stations(query)
     }
 
     pub fn get_stations_lastchange(&self, limit: u32) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from Station ORDER BY Creation DESC LIMIT {limit}", limit = limit);
+        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip,Codec,Bitrate,Hls,LastCheckOK,LastCheckTime,LastCheckOkTime,ClickTimestamp,clickcount,ClickTrend from Station ORDER BY Creation DESC LIMIT {limit}", limit = limit);
         self.get_stations(query)
     }
 
-    pub fn get_changes(&self, uuid: Option<String>, seconds: u32) -> Vec<Station> {
+    pub fn get_changes(&self, uuid: Option<String>, seconds: u32) -> Vec<StationHistory> {
         let query : String;
         let seconds_str: String = if seconds > 0 { format!(" AND TIME_TO_SEC(TIMEDIFF(Now(),Creation))<{}",seconds) } else { "".to_string() };
         query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from StationHistory WHERE 1=1 {seconds} ORDER BY Creation DESC", seconds = seconds_str);
-        self.get_stations(query)
+        self.get_stations_history(query)
     }
 
     fn get_stations(&self, query: String) -> Vec<Station> {
@@ -218,13 +285,52 @@ impl Connection {
                     votes: row.take("Votes").unwrap_or(0),
                     negativevotes: row.take("NegativeVotes").unwrap_or(0),
                     lastchangetime: row.take("Creation").unwrap(),
-                    ip: row.take_opt("Ip").unwrap_or(Ok("".to_string())).unwrap_or("".to_string())
+                    ip: row.take_opt("Ip").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    codec: row.take_opt("Codec").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    bitrate: row.take("Bitrate").unwrap_or(0),
+                    hls: row.take("Hls").unwrap_or(0),
+                    lastcheckok: row.take("LastCheckOK").unwrap_or(0),
+                    lastchecktime: row.take("LastCheckTime").unwrap(),
+                    lastcheckoktime: row.take("LastCheckOkTime").unwrap(),
+                    clicktimestamp: row.take("ClickTimestamp").unwrap(),
+                    clickcount: row.take("clickcount").unwrap_or(0),
+                    clicktrend: row.take("ClickTrend").unwrap_or(0)
                 };
                 stations.push(s);
             }
         }
 
         stations
+    }
+
+    fn get_stations_history(&self, query: String) -> Vec<StationHistory> {
+        let mut changes: Vec<StationHistory> = vec![];
+        let results = self.pool.prep_exec(query, ());
+        for result in results {
+            for row_ in result {
+                let mut row = row_.unwrap();
+                let s = StationHistory {
+                    id: row.take("StationID").unwrap(),
+                    changeuuid: row.take("ChangeUuid").unwrap_or("".to_string()),
+                    stationuuid: row.take("StationUuid").unwrap_or("".to_string()),
+                    name: row.take("Name").unwrap_or("".to_string()),
+                    url: row.take("Url").unwrap_or("".to_string()),
+                    homepage: row.take_opt("Homepage").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    favicon: row.take_opt("Favicon").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    tags: row.take_opt("Tags").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    country: row.take_opt("Country").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    state: row.take_opt("Subcountry").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    language: row.take_opt("Language").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    votes: row.take("Votes").unwrap_or(0),
+                    negativevotes: row.take("NegativeVotes").unwrap_or(0),
+                    lastchangetime: row.take("Creation").unwrap(),
+                    ip: row.take_opt("Ip").unwrap_or(Ok("".to_string())).unwrap_or("".to_string())
+                };
+                changes.push(s);
+            }
+        }
+
+        changes
     }
 
     pub fn get_1_n(&self, column: &str, search: Option<String>, order : String, reverse : bool, hidebroken : bool) -> Vec<Result1n>{
