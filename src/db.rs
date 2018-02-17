@@ -26,15 +26,15 @@ pub struct Station {
     language: String,
     votes: i32,
     negativevotes: i32,
-    lastchangetime: chrono::NaiveDateTime,
+    lastchangetime: String,
     ip: String,
     codec: String,
     bitrate: u32,
     hls: i8,
     lastcheckok: i8,
-    lastchecktime: chrono::NaiveDateTime,
-    lastcheckoktime: chrono::NaiveDateTime,
-    clicktimestamp: chrono::NaiveDateTime,
+    lastchecktime: String,
+    lastcheckoktime: String,
+    clicktimestamp: String,
     clickcount: u32,
     clicktrend: i32
 }
@@ -54,7 +54,7 @@ pub struct StationHistory {
     language: String,
     votes: i32,
     negativevotes: i32,
-    lastchangetime: chrono::NaiveDateTime,
+    lastchangetime: String,
     ip: String
 }
 
@@ -215,45 +215,57 @@ pub fn serialize_changes_list(entries: Vec<StationHistory>) -> std::io::Result<S
 }
 
 impl Connection {
+    const COLUMNS: &'static str = "StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,
+    Tags,Country,Subcountry,Language,Votes,NegativeVotes,
+    Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated,
+    Ip,Codec,Bitrate,Hls,LastCheckOK,
+    LastCheckTime,
+    Date_Format(LastCheckTime,'%Y-%m-%d %H:%i:%s') AS LastCheckTimeFormated,
+    LastCheckOkTime,
+    Date_Format(LastCheckOkTime,'%Y-%m-%d %H:%i:%s') AS LastCheckOkTimeFormated,
+    ClickTimestamp,
+    Date_Format(ClickTimestamp,'%Y-%m-%d %H:%i:%s') AS ClickTimestampFormated,
+    clickcount,ClickTrend";
+
     pub fn get_stations_by_all(&self) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip,Codec,Bitrate,Hls,LastCheckOK,LastCheckTime,LastCheckOkTime,ClickTimestamp,clickcount,ClickTrend from Station ORDER BY Name");
+        query = format!("SELECT {columns} from Station ORDER BY Name", columns = Connection::COLUMNS);
         self.get_stations(query)
     }
 
     pub fn get_stations_by_name(&self, search: String) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip,Codec,Bitrate,Hls,LastCheckOK,LastCheckTime,LastCheckOkTime,ClickTimestamp,clickcount,ClickTrend from Station WHERE Name LIKE '%{search}%' ORDER BY Name", search = search);
+        query = format!("SELECT {columns} from Station WHERE Name LIKE '%{search}%' ORDER BY Name", columns = Connection::COLUMNS, search = search);
         self.get_stations(query)
     }
 
     pub fn get_stations_by_id(&self, id: i32) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip,Codec,Bitrate,Hls,LastCheckOK,LastCheckTime,LastCheckOkTime,ClickTimestamp,clickcount,ClickTrend from Station WHERE StationID='{id}' ORDER BY Name", id = id);
+        query = format!("SELECT {columns} from Station WHERE StationID='{id}' ORDER BY Name", columns = Connection::COLUMNS, id = id);
         self.get_stations(query)
     }
 
     pub fn get_stations_topvote(&self, limit: u32) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip,Codec,Bitrate,Hls,LastCheckOK,LastCheckTime,LastCheckOkTime,ClickTimestamp,clickcount,ClickTrend from Station ORDER BY Votes DESC LIMIT {limit}", limit = limit);
+        query = format!("SELECT {columns} from Station ORDER BY Votes DESC LIMIT {limit}", columns = Connection::COLUMNS, limit = limit);
         self.get_stations(query)
     }
 
     pub fn get_stations_topclick(&self, limit: u32) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip,Codec,Bitrate,Hls,LastCheckOK,LastCheckTime,LastCheckOkTime,ClickTimestamp,clickcount,ClickTrend from Station ORDER BY clickcount DESC LIMIT {limit}", limit = limit);
+        query = format!("SELECT {columns} from Station ORDER BY clickcount DESC LIMIT {limit}", columns = Connection::COLUMNS, limit = limit);
         self.get_stations(query)
     }
 
     pub fn get_stations_lastclick(&self, limit: u32) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip,Codec,Bitrate,Hls,LastCheckOK,LastCheckTime,LastCheckOkTime,ClickTimestamp,clickcount,ClickTrend from Station ORDER BY ClickTimestamp DESC LIMIT {limit}", limit = limit);
+        query = format!("SELECT {columns} from Station ORDER BY ClickTimestamp DESC LIMIT {limit}", columns = Connection::COLUMNS, limit = limit);
         self.get_stations(query)
     }
 
     pub fn get_stations_lastchange(&self, limit: u32) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip,Codec,Bitrate,Hls,LastCheckOK,LastCheckTime,LastCheckOkTime,ClickTimestamp,clickcount,ClickTrend from Station ORDER BY Creation DESC LIMIT {limit}", limit = limit);
+        query = format!("SELECT {columns} from Station ORDER BY Creation DESC LIMIT {limit}", columns = Connection::COLUMNS, limit = limit);
         self.get_stations(query)
     }
 
@@ -271,30 +283,30 @@ impl Connection {
             for row_ in result {
                 let mut row = row_.unwrap();
                 let s = Station {
-                    id: row.take("StationID").unwrap(),
-                    changeuuid: row.take("ChangeUuid").unwrap_or("".to_string()),
-                    stationuuid: row.take("StationUuid").unwrap_or("".to_string()),
-                    name: row.take("Name").unwrap_or("".to_string()),
-                    url: row.take("Url").unwrap_or("".to_string()),
-                    homepage: row.take_opt("Homepage").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    favicon: row.take_opt("Favicon").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    tags: row.take_opt("Tags").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    country: row.take_opt("Country").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    state: row.take_opt("Subcountry").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    language: row.take_opt("Language").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    votes: row.take("Votes").unwrap_or(0),
-                    negativevotes: row.take("NegativeVotes").unwrap_or(0),
-                    lastchangetime: row.take("Creation").unwrap(),
-                    ip: row.take_opt("Ip").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    codec: row.take_opt("Codec").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    bitrate: row.take("Bitrate").unwrap_or(0),
-                    hls: row.take("Hls").unwrap_or(0),
-                    lastcheckok: row.take("LastCheckOK").unwrap_or(0),
-                    lastchecktime: row.take("LastCheckTime").unwrap(),
-                    lastcheckoktime: row.take("LastCheckOkTime").unwrap(),
-                    clicktimestamp: row.take("ClickTimestamp").unwrap(),
-                    clickcount: row.take("clickcount").unwrap_or(0),
-                    clicktrend: row.take("ClickTrend").unwrap_or(0)
+                    id:              row.take("StationID").unwrap(),
+                    changeuuid:      row.take("ChangeUuid").unwrap_or("".to_string()),
+                    stationuuid:     row.take("StationUuid").unwrap_or("".to_string()),
+                    name:            row.take("Name").unwrap_or("".to_string()),
+                    url:             row.take("Url").unwrap_or("".to_string()),
+                    homepage:        row.take_opt("Homepage").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    favicon:         row.take_opt("Favicon").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    tags:            row.take_opt("Tags").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    country:         row.take_opt("Country").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    state:           row.take_opt("Subcountry").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    language:        row.take_opt("Language").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    votes:           row.take_opt("Votes").unwrap_or(Ok(0)).unwrap_or(0),
+                    negativevotes:   row.take_opt("NegativeVotes").unwrap_or(Ok(0)).unwrap_or(0),
+                    lastchangetime:  row.take_opt("CreationFormated").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    ip:              row.take_opt("Ip").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    codec:           row.take_opt("Codec").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    bitrate:         row.take_opt("Bitrate").unwrap_or(Ok(0)).unwrap_or(0),
+                    hls:             row.take_opt("Hls").unwrap_or(Ok(0)).unwrap_or(0),
+                    lastcheckok:     row.take_opt("LastCheckOK").unwrap_or(Ok(0)).unwrap_or(0),
+                    lastchecktime:   row.take_opt("LastCheckTimeFormated").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    lastcheckoktime: row.take_opt("LastCheckOkTimeFormated").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    clicktimestamp:  row.take_opt("ClickTimestampFormated").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    clickcount:      row.take_opt("clickcount").unwrap_or(Ok(0)).unwrap_or(0),
+                    clicktrend:      row.take_opt("ClickTrend").unwrap_or(Ok(0)).unwrap_or(0)
                 };
                 stations.push(s);
             }
@@ -310,21 +322,21 @@ impl Connection {
             for row_ in result {
                 let mut row = row_.unwrap();
                 let s = StationHistory {
-                    id: row.take("StationID").unwrap(),
-                    changeuuid: row.take("ChangeUuid").unwrap_or("".to_string()),
-                    stationuuid: row.take("StationUuid").unwrap_or("".to_string()),
-                    name: row.take("Name").unwrap_or("".to_string()),
-                    url: row.take("Url").unwrap_or("".to_string()),
-                    homepage: row.take_opt("Homepage").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    favicon: row.take_opt("Favicon").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    tags: row.take_opt("Tags").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    country: row.take_opt("Country").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    state: row.take_opt("Subcountry").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    language: row.take_opt("Language").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    votes: row.take("Votes").unwrap_or(0),
-                    negativevotes: row.take("NegativeVotes").unwrap_or(0),
-                    lastchangetime: row.take("Creation").unwrap(),
-                    ip: row.take_opt("Ip").unwrap_or(Ok("".to_string())).unwrap_or("".to_string())
+                    id:              row.take("StationID").unwrap(),
+                    changeuuid:      row.take("ChangeUuid").unwrap_or("".to_string()),
+                    stationuuid:     row.take("StationUuid").unwrap_or("".to_string()),
+                    name:            row.take("Name").unwrap_or("".to_string()),
+                    url:             row.take("Url").unwrap_or("".to_string()),
+                    homepage:        row.take_opt("Homepage").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    favicon:         row.take_opt("Favicon").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    tags:            row.take_opt("Tags").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    country:         row.take_opt("Country").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    state:           row.take_opt("Subcountry").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    language:        row.take_opt("Language").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    votes:           row.take_opt("Votes").unwrap_or(Ok(0)).unwrap_or(0),
+                    negativevotes:   row.take_opt("NegativeVotes").unwrap_or(Ok(0)).unwrap_or(0),
+                    lastchangetime:  row.take_opt("Creation").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    ip:              row.take_opt("Ip").unwrap_or(Ok("".to_string())).unwrap_or("".to_string())
                 };
                 changes.push(s);
             }
