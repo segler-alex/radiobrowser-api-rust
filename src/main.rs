@@ -16,7 +16,6 @@ fn main() {
     let dbname = env::var("DB_NAME").expect("You have to set DB_NAME env var");
     let threads : usize = env::var("THREADS").unwrap_or(String::from("50")).parse().expect("threads is not number");
     
-    let mut counter : i32 = 0;
     loop {
         let connection = db::new(&dbhost, dbport, &dbname, &dbuser, &dbpass);
         match connection {
@@ -26,12 +25,7 @@ fn main() {
             },
             Err(e) => {
                 println!("{}", e);
-                counter = counter + 1;
-                if counter < 10 {
-                    thread::sleep(time::Duration::from_millis(1000));
-                }else{
-                    break;
-                }
+                thread::sleep(time::Duration::from_millis(1000));
             }
         }
     }
