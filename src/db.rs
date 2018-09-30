@@ -269,7 +269,7 @@ impl Connection {
         self.get_stations(query)
     }
 
-    pub fn get_changes(&self, uuid: Option<String>, seconds: u32) -> Vec<StationHistory> {
+    pub fn get_changes(&self, _uuid: Option<String>, seconds: u32) -> Vec<StationHistory> {
         let query : String;
         let seconds_str: String = if seconds > 0 { format!(" AND TIME_TO_SEC(TIMEDIFF(Now(),Creation))<{}",seconds) } else { "".to_string() };
         query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from StationHistory WHERE 1=1 {seconds} ORDER BY Creation DESC", seconds = seconds_str);
@@ -596,8 +596,7 @@ fn start_refresh_worker(connection_string: String){
     });
 }
 
-pub fn new(host: &String,port : i32, name: &String, user: &String, password: &String) -> Result<Connection, DBError> {
-    let connection_string = format!("mysql://{}:{}@{}:{}/{}",user,password,host,port,name);
+pub fn new(connection_string: &String) -> Result<Connection, DBError> {
     let connection_string2 = connection_string.clone();
     println!("Connection string: {}", connection_string);
     

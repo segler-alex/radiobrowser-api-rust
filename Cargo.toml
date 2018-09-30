@@ -5,6 +5,7 @@ authors = ["segler_alex"]
 
 [dependencies]
 rouille = "*"
+clap = "*"
 mysql = "*"
 serde = "*"
 serde_json = "*"
