@@ -9,6 +9,13 @@ use db;
 use self::dns_lookup::lookup_host;
 use self::dns_lookup::lookup_addr;
 
+use std::fs::File;
+use self::serde_json::value::{Map};
+
+use handlebars::{
+    to_json, Context, Handlebars, Helper, JsonRender, Output, RenderContext, RenderError,
+};
+
 #[derive(Serialize, Deserialize)]
 pub struct ServerEntry {
     ip: String,
@@ -155,12 +162,25 @@ fn encode_tags(list : Vec<db::Tag>, format : &str) -> rouille::Response {
     }
 }
 
+
+
 fn encode_status(status: Status, format : &str) -> rouille::Response {
-    println!("status");
     match format {
         "json" => {
             let j = serde_json::to_string(&status).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+        },
+        "html" => {
+            let mut handlebars = Handlebars::new();
+            let y = handlebars.register_template_file("template.html", "templates/template.html");
+            if y.is_ok(){
+                let mut data = Map::new();
+                data.insert(String::from("status"), to_json(status.status));
+                let x = handlebars.render("template.html", &data).unwrap();
+                rouille::Response::html(x).with_no_cache()
+            }else{
+                rouille::Response::text("").with_status_code(500)
+            }
         },
         _ => rouille::Response::empty_406()
     }
@@ -182,6 +202,14 @@ fn get_status() -> Status {
     Status{status: "OK".to_string()}
 }
 
+fn send_file(path: &str) -> rouille::Response {
+    let file = File::open(path);
+    match file {
+        Ok(file) => {add_cors(rouille::Response::from_file("image/png", file))},
+        _ => add_cors(rouille::Response::text("").with_status_code(500))
+    }
+}
+
 fn handle_connection(connection: &db::Connection, request: &rouille::Request) -> rouille::Response {
     if request.method() != "POST" && request.method() != "GET" {
         return rouille::Response::empty_404();
@@ -190,7 +218,11 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
     let parts : Vec<&str> = request.raw_url().split('?').collect();
     let items : Vec<&str> = parts[0].split('/').collect();
     if items.len() == 2 {
-        add_cors(encode_status(get_status(), "json"))
+        let file_name = items[1];
+        match file_name {
+            "favicon.ico" => send_file("images/favicon.ico"),
+            _ => add_cors(encode_status(get_status(), "html"))
+        }
     } else if items.len() == 3 {
         let format = items[1];
         let command = items[2];
@@ -204,7 +236,8 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
             "tags" => add_cors(encode_tags(get_tags_with_parse(&request, &connection, filter), format)),
             "stations" => add_cors(encode_stations(connection.get_stations_by_all(), format)),
             "servers" => add_cors(dns_resolve(format)),
-            "" => add_cors(encode_status(get_status(), "json")),
+            "status" => add_cors(encode_status(get_status(), format)),
+            "" => add_cors(encode_status(get_status(), format)),
             _ => rouille::Response::empty_404()
         }
     } else if items.len() == 4 {

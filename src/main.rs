@@ -3,6 +3,8 @@ extern crate serde_derive;
 #[macro_use]
 extern crate clap;
 
+extern crate handlebars;
+
 use clap::{App, Arg};
 
 use std::{thread, time};
