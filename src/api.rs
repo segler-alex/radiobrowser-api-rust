@@ -23,7 +23,7 @@ pub struct ServerEntry {
 }
 
 #[derive(Serialize, Deserialize)]
-struct Status {
+pub struct Status {
     status: String
 }
 
@@ -162,7 +162,20 @@ fn encode_tags(list : Vec<db::Tag>, format : &str) -> rouille::Response {
     }
 }
 
-
+pub fn serialize_status(status: &Status) -> std::io::Result<String> {
+    let mut xml = xml_writer::XmlWriter::new(Vec::new());
+    xml.begin_elem("result")?;
+    {
+        xml.begin_elem("status")?;
+        let s = status.status.clone();
+            xml.attr_esc("value", &s)?;
+        xml.end_elem()?;
+    }
+    xml.end_elem()?;
+    xml.close()?;
+    xml.flush()?;
+    Ok(String::from_utf8(xml.into_inner()).unwrap())
+}
 
 fn encode_status(status: Status, format : &str) -> rouille::Response {
     match format {
@@ -170,6 +183,13 @@ fn encode_status(status: Status, format : &str) -> rouille::Response {
             let j = serde_json::to_string(&status);
             match j {
                 Ok(j) => rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json"),
+                _ => rouille::Response::text("").with_status_code(500)
+            }
+        },
+        "xml" => {
+            let j = serialize_status(&status);
+            match j {
+                Ok(j) => rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml"),
                 _ => rouille::Response::text("").with_status_code(500)
             }
         },
