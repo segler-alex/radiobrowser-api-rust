@@ -13,7 +13,7 @@ use std::fs::File;
 use self::serde_json::value::{Map};
 
 use handlebars::{
-    to_json, Context, Handlebars, Helper, JsonRender, Output, RenderContext, RenderError,
+    to_json, Handlebars,
 };
 
 #[derive(Serialize, Deserialize)]
@@ -167,17 +167,23 @@ fn encode_tags(list : Vec<db::Tag>, format : &str) -> rouille::Response {
 fn encode_status(status: Status, format : &str) -> rouille::Response {
     match format {
         "json" => {
-            let j = serde_json::to_string(&status).unwrap();
-            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+            let j = serde_json::to_string(&status);
+            match j {
+                Ok(j) => rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json"),
+                _ => rouille::Response::text("").with_status_code(500)
+            }
         },
         "html" => {
             let mut handlebars = Handlebars::new();
             let y = handlebars.register_template_file("template.html", "templates/template.html");
             if y.is_ok(){
                 let mut data = Map::new();
-                data.insert(String::from("status"), to_json(status.status));
-                let x = handlebars.render("template.html", &data).unwrap();
-                rouille::Response::html(x).with_no_cache()
+                data.insert(String::from("status"), to_json(status));
+                let rendered = handlebars.render("template.html", &data);
+                match rendered {
+                    Ok(rendered) => rouille::Response::html(rendered).with_no_cache(),
+                    _ => rouille::Response::text("").with_status_code(500)
+                }
             }else{
                 rouille::Response::text("").with_status_code(500)
             }
@@ -206,7 +212,7 @@ fn send_file(path: &str) -> rouille::Response {
     let file = File::open(path);
     match file {
         Ok(file) => {add_cors(rouille::Response::from_file("image/png", file))},
-        _ => add_cors(rouille::Response::text("").with_status_code(500))
+        _ => add_cors(rouille::Response::empty_404())
     }
 }
 
