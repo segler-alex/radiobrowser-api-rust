@@ -74,7 +74,7 @@ pub struct State {
 }
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
-pub struct Tag {
+pub struct ExtraInfo {
     name: String,
     value: String,
     stationcount: u32,
@@ -116,11 +116,11 @@ pub fn serialize_state_list(entries: Vec<State>) -> std::io::Result<String> {
     Ok(String::from_utf8(xml.into_inner()).unwrap())
 }
 
-pub fn serialize_tag_list(entries: Vec<Tag>) -> std::io::Result<String> {
+pub fn serialize_extra_list(entries: Vec<ExtraInfo>, tag_name: &str) -> std::io::Result<String> {
     let mut xml = xml_writer::XmlWriter::new(Vec::new());
     xml.begin_elem("result")?;
     for entry in entries{
-        xml.begin_elem("tag")?;
+        xml.begin_elem(tag_name)?;
             xml.attr_esc("name", &entry.name)?;
             xml.attr_esc("value", &entry.value)?;
             let count_str = format!("{}", entry.stationcount);
@@ -423,24 +423,24 @@ impl Connection {
         }
     }
 
-    pub fn get_tags(&self, search: Option<String>, order : String, reverse : bool, hidebroken : bool) -> Vec<Tag>{
+    pub fn get_extra(&self, table_name: &str, column_name: &str, search: Option<String>, order : String, reverse : bool, hidebroken : bool) -> Vec<ExtraInfo>{
         let mut params: Vec<Value> = Vec::with_capacity(1);
-        let mut tags = vec![];
+        let mut items = vec![];
         let reverse_string = if reverse { "DESC" } else { "ASC" };
         let hidebroken_string = if hidebroken { " AND LastCheckOK=TRUE" } else { "" };
         let search_string = match search {
             Some(c) => {
                 params.push((format!("%{}%",c)).into());
-                format!(" AND TagName LIKE ?")
+                format!(" AND {} LIKE ?", column_name)
             },
             None => "".to_string()
         };
-        let mut stmt = self.pool.prepare(format!("SELECT TagName AS value, TagName, StationCount as stationcount, StationCountWorking FROM TagCache WHERE TagName <> '' {search} {hidebroken} ORDER BY {order} {reverse}",search = search_string, order = order, reverse = reverse_string, hidebroken = hidebroken_string)).unwrap();
+        let mut stmt = self.pool.prepare(format!("SELECT {column_name} AS value, {column_name}, StationCount as stationcount, StationCountWorking FROM {table_name} WHERE {column_name} <> '' {search} {hidebroken} ORDER BY {order} {reverse}",search = search_string, order = order, reverse = reverse_string, hidebroken = hidebroken_string, table_name = table_name, column_name = column_name)).unwrap();
         let my_results = stmt.execute(params);
         for my_result in my_results {
             for my_row in my_result {
                 let mut row_unwrapped = my_row.unwrap();
-                tags.push(Tag{
+                items.push(ExtraInfo{
                     name: row_unwrapped.take(0).unwrap_or("".into()),
                     value: row_unwrapped.take(1).unwrap_or("".into()),
                     stationcount: row_unwrapped.take(2).unwrap_or(0),
@@ -448,7 +448,7 @@ impl Connection {
                 });
             }
         }
-        tags
+        items
     }
 }
 pub enum DBError{

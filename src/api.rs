@@ -79,13 +79,22 @@ fn get_states_with_parse(request: &rouille::Request, connection: &db::Connection
     stations
 }
 
-fn get_tags_with_parse(request: &rouille::Request, connection: &db::Connection, filter_prev : Option<String>) -> Vec<db::Tag>{
+fn get_tags_with_parse(request: &rouille::Request, connection: &db::Connection, filter_prev : Option<String>) -> Vec<db::ExtraInfo>{
     let filter = request.get_param("filter").or(filter_prev);
     let order : String = request.get_param("order").unwrap_or(String::from("value"));
     let reverse : bool = request.get_param("reverse").unwrap_or(String::from("false")) == "true";
     let hidebroken : bool = request.get_param("hidebroken").unwrap_or(String::from("false")) == "true";
-    let tags = connection.get_tags(filter, order, reverse, hidebroken);
+    let tags = connection.get_extra("TagCache", "TagName", filter, order, reverse, hidebroken);
     tags
+}
+
+fn get_languages_with_parse(request: &rouille::Request, connection: &db::Connection, filter_prev : Option<String>) -> Vec<db::ExtraInfo>{
+    let filter = request.get_param("filter").or(filter_prev);
+    let order : String = request.get_param("order").unwrap_or(String::from("value"));
+    let reverse : bool = request.get_param("reverse").unwrap_or(String::from("false")) == "true";
+    let hidebroken : bool = request.get_param("hidebroken").unwrap_or(String::from("false")) == "true";
+    let languages = connection.get_extra("LanguageCache", "LanguageName", filter, order, reverse, hidebroken);
+    languages
 }
 
 /*fn encode_result1n_xml_single(entry: db::Result1n) -> String{
@@ -148,14 +157,14 @@ fn encode_states(list : Vec<db::State>, format : &str) -> rouille::Response {
     }
 }
 
-fn encode_tags(list : Vec<db::Tag>, format : &str) -> rouille::Response {
+fn encode_extra(list : Vec<db::ExtraInfo>, format : &str, tag_name: &str) -> rouille::Response {
     match format {
         "json" => {
             let j = serde_json::to_string(&list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
         },
         "xml" => {
-            let j = db::serialize_tag_list(list).unwrap();
+            let j = db::serialize_extra_list(list, tag_name).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
         },
         _ => rouille::Response::empty_406()
@@ -255,11 +264,11 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
         let filter : Option<String> = None;
 
         match command {
-            "languages" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Language", filter), format)),
+            "languages" => add_cors(encode_extra(get_languages_with_parse(&request, &connection, filter), format, "language")),
             "countries" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Country", filter), format)),
             "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, filter), format)),
             "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", filter), format)),
-            "tags" => add_cors(encode_tags(get_tags_with_parse(&request, &connection, filter), format)),
+            "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, filter), format, "tag")),
             "stations" => add_cors(encode_stations(connection.get_stations_by_all(), format)),
             "servers" => add_cors(dns_resolve(format)),
             "status" => add_cors(encode_status(get_status(), format)),
@@ -272,10 +281,10 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
         let parameter = items[3];
 
         match command {
-            "languages" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Language", Some(String::from(parameter))), format)),
+            "languages" => add_cors(encode_extra(get_languages_with_parse(&request, &connection, Some(String::from(parameter))), format, "language")),
             "countries" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Country", Some(String::from(parameter))), format)),
             "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", Some(String::from(parameter))), format)),
-            "tags" => add_cors(encode_tags(get_tags_with_parse(&request, &connection, Some(String::from(parameter))), format)),
+            "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, Some(String::from(parameter))), format, "tag")),
             "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, Some(String::from(parameter))), format)),
             "stations" => {
                 match parameter {
