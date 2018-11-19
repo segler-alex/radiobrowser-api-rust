@@ -333,6 +333,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
                     "bycountryexact" => add_cors(encode_stations(connection.get_stations_by_column("Country", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
                     "bystate" => add_cors(encode_stations(connection.get_stations_by_column("Subcountry", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
                     "bystateexact" => add_cors(encode_stations(connection.get_stations_by_column("Subcountry", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
+                    "byuuid" => add_cors(encode_stations(connection.get_stations_by_column("StationUuid", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
                     "byid" => {
                         let id = search.parse();
                         match id{
