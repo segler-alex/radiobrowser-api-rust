@@ -325,8 +325,10 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
                     "topclick" => add_cors(encode_stations(connection.get_stations_topclick(search.parse().unwrap_or(0)), format)),
                     "lastclick" => add_cors(encode_stations(connection.get_stations_lastclick(search.parse().unwrap_or(0)), format)),
                     "lastchange" => add_cors(encode_stations(connection.get_stations_lastchange(search.parse().unwrap_or(0)), format)),
-                    "byname" => add_cors(encode_stations(connection.get_stations_by_name(search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
-                    "bynameexact" => add_cors(encode_stations(connection.get_stations_by_name(search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
+                    "byname" => add_cors(encode_stations(connection.get_stations_by_column("Name", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
+                    "bynameexact" => add_cors(encode_stations(connection.get_stations_by_column("Name", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
+                    "bycodec" => add_cors(encode_stations(connection.get_stations_by_column("Codec", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
+                    "bycodecexact" => add_cors(encode_stations(connection.get_stations_by_column("Codec", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
                     "byid" => {
                         let id = search.parse();
                         match id{
