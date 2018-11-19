@@ -465,10 +465,10 @@ impl Connection {
 
     pub fn init_tables(&self) {
         let result = self.pool.prep_exec(
-            "CREATE OR REPLACE TABLE TagCache(TagName VARCHAR(100) COLLATE utf8_bin NOT NULL,
+            r#"CREATE OR REPLACE TABLE TagCache(TagName VARCHAR(100) COLLATE utf8_bin NOT NULL,
             Primary Key (TagName),
             StationCount INT DEFAULT 0,
-            StationCountWorking INT DEFAULT 0) CHARSET=utf8 COLLATE=utf8_bin",
+            StationCountWorking INT DEFAULT 0) CHARSET=utf8 COLLATE=utf8_bin"#,
             ());
         match result {
             Ok(_) => {},
@@ -516,9 +516,9 @@ impl std::fmt::Display for DBError{
     }
 }
 
-fn get_cached_tags(pool: &mysql::Pool) -> HashMap<String,u32>{
-    let mut tags = HashMap::new();
-    let mut my_stmt = pool.prepare("SELECT TagName,StationCount FROM TagCache").unwrap();
+fn get_cached_items(pool: &mysql::Pool, table_name: &str, column_name: &str) -> HashMap<String,u32>{
+    let mut items = HashMap::new();
+    let mut my_stmt = pool.prepare(format!("SELECT {column_name},StationCount FROM {table_name}", table_name = table_name, column_name = column_name)).unwrap();
     let my_results = my_stmt.execute(());
 
     for my_result in my_results {
@@ -527,15 +527,15 @@ fn get_cached_tags(pool: &mysql::Pool) -> HashMap<String,u32>{
             let key : String = row_unwrapped.take(0).unwrap_or("".into());
             let value : u32 = row_unwrapped.take(1).unwrap_or(0);
             let lower = key.to_lowercase();
-            tags.insert(lower,value);
+            items.insert(lower,value);
         }
     };
-    tags
+    items
 }
 
-fn get_stations_tags(pool: &mysql::Pool) -> HashMap<String,u32>{
-    let mut tags = HashMap::new();
-    let mut my_stmt = pool.prepare("SELECT Tags FROM Station").unwrap();
+fn get_stations_multi_items(pool: &mysql::Pool, column_name: &str) -> HashMap<String,u32>{
+    let mut items = HashMap::new();
+    let mut my_stmt = pool.prepare(format!("SELECT {column_name} FROM Station",column_name = column_name)).unwrap();
     let my_results = my_stmt.execute(());
 
     for my_result in my_results {
@@ -546,17 +546,17 @@ fn get_stations_tags(pool: &mysql::Pool) -> HashMap<String,u32>{
             for single_tag in tags_arr {
                 let single_tag_trimmed = single_tag.trim().to_lowercase();
                 if single_tag_trimmed != "" {
-                    let counter = tags.entry(single_tag_trimmed).or_insert(0);
+                    let counter = items.entry(single_tag_trimmed).or_insert(0);
                     *counter += 1;
                 }
             }
         }
     };
-    tags
+    items
 }
 
-fn update_tag(pool: &mysql::Pool, tag: &String, count: u32){
-    let mut my_stmt = pool.prepare(r"UPDATE TagCache SET StationCount=? WHERE TagName=?").unwrap();
+fn update_cache_item(pool: &mysql::Pool, tag: &String, count: u32, table_name: &str, column_name: &str){
+    let mut my_stmt = pool.prepare(format!(r"UPDATE {table_name} SET StationCount=? WHERE {column_name}=?",table_name = table_name, column_name = column_name)).unwrap();
     let params = (count,tag);
     let result = my_stmt.execute(params);
     match result {
@@ -565,8 +565,8 @@ fn update_tag(pool: &mysql::Pool, tag: &String, count: u32){
     }
 }
 
-fn insert_tags(pool: &mysql::Pool, tags: HashMap<&String, u32>){
-    let query = String::from("INSERT INTO TagCache(TagName,StationCount) VALUES(?,?)");
+fn insert_to_cache(pool: &mysql::Pool, tags: HashMap<&String, u32>, table_name: &str, column_name: &str){
+    let query = format!("INSERT INTO {table_name}({column_name},StationCount) VALUES(?,?)", table_name = table_name, column_name = column_name);
     let mut my_stmt = pool.prepare(query.trim_matches(',')).unwrap();
     for item in tags.iter() {
         let result = my_stmt.execute((item.0,item.1));
@@ -577,10 +577,12 @@ fn insert_tags(pool: &mysql::Pool, tags: HashMap<&String, u32>){
     }
 }
 
-fn remove_tags(pool: &mysql::Pool, tags: Vec<&String>){
-    let mut query = String::from("DELETE FROM TagCache WHERE TagName=''");
+fn remove_from_cache(pool: &mysql::Pool, tags: Vec<&String>, table_name: &str, column_name: &str){
+    let mut query = format!("DELETE FROM {table_name} WHERE {column_name}=''", table_name = table_name, column_name = column_name);
     for _ in 0..tags.len() {
-        query.push_str(" OR TagName=?");
+        query.push_str(" OR ");
+        query.push_str(column_name);
+        query.push_str("=?");
     }
     let mut my_stmt = pool.prepare(query).unwrap();
     let result = my_stmt.execute(tags);
@@ -590,35 +592,35 @@ fn remove_tags(pool: &mysql::Pool, tags: Vec<&String>){
     }
 }
 
-pub fn refresh_cache_tags(pool: &mysql::Pool){
-    let tags_cached = get_cached_tags(pool);
-    let tags_current = get_stations_tags(pool);
+pub fn refresh_cache_items(pool: &mysql::Pool, cache_table_name: &str, cache_column_name: &str, station_column_name: &str){
+    let items_cached = get_cached_items(pool, cache_table_name, cache_column_name);
+    let items_current = get_stations_multi_items(pool, station_column_name);
     let mut changed = 0;
 
     let mut to_delete = vec![];
-    for tag_cached in tags_cached.keys() {
-        if ! tags_current.contains_key(tag_cached){
-            to_delete.push(tag_cached);
+    for item_cached in items_cached.keys() {
+        if ! items_current.contains_key(item_cached){
+            to_delete.push(item_cached);
         }
     }
-    remove_tags(pool, to_delete);
+    remove_from_cache(pool, to_delete, cache_table_name, cache_column_name);
 
     let mut to_insert: HashMap<&String,u32> = HashMap::new();
-    for tag_current in tags_current.keys() {
-        if ! tags_cached.contains_key(tag_current){
+    for item_current in items_current.keys() {
+        if ! items_cached.contains_key(item_current){
             //self.insert_tag(tag_current, *tags_current.get(tag_current).unwrap_or(&0));
-            to_insert.insert(tag_current, *tags_current.get(tag_current).unwrap_or(&0));
+            to_insert.insert(item_current, *items_current.get(item_current).unwrap_or(&0));
         } else {
-            let value_new = *tags_current.get(tag_current).unwrap_or(&0);
-            let value_old = *tags_cached.get(tag_current).unwrap_or(&0);
+            let value_new = *items_current.get(item_current).unwrap_or(&0);
+            let value_old = *items_cached.get(item_current).unwrap_or(&0);
             if value_old != value_new {
-                update_tag(pool, tag_current, value_new);
+                update_cache_item(pool, item_current, value_new, cache_table_name, cache_column_name);
                 changed = changed + 1;
             }
         }
     }
-    insert_tags(pool, to_insert);
-    println!("Tags: {} -> {}, Changed: {}", tags_cached.len(), tags_current.len(), changed);
+    insert_to_cache(pool, to_insert, cache_table_name, cache_column_name);
+    println!("{}: {} -> {}, Changed: {}", station_column_name, items_cached.len(), items_current.len(), changed);
     //let to_add = tags_stations.difference(&tags_cached);
     /*for item_to_add in to_add {
         self.insert_tag(item_to_add);
@@ -638,7 +640,8 @@ fn start_refresh_worker(connection_string: String){
             match pool {
                 Ok(p) => {
                     //println!("REFRESH START");
-                    refresh_cache_tags(&p);
+                    refresh_cache_items(&p, "TagCache", "TagName", "Tags");
+                    refresh_cache_items(&p, "LanguageCache", "LanguageName", "Language");
                     //println!("REFRESH END");
                 },
                 Err(e) => println!("{}",e)
