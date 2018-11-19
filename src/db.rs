@@ -257,14 +257,14 @@ impl Connection {
         }
     }
 
-    pub fn get_stations_by_name(&self, search: String, exact: bool, order: &str, reverse: bool, hidebroken: bool) -> Vec<Station> {
+    pub fn get_stations_by_name(&self, search: String, exact: bool, order: &str, reverse: bool, hidebroken: bool, offset: u32, limit: u32) -> Vec<Station> {
         let order = self.filter_order(order);
         let reverse_string = if reverse { "DESC" } else { "ASC" };
         let hidebroken_string = if hidebroken { " AND LastCheckOK=TRUE" } else { "" };
         let query: String = if exact {
-            format!("SELECT {columns} from Station WHERE Name=? {hidebroken} ORDER BY {order} {reverse}", columns = Connection::COLUMNS, order = order, reverse = reverse_string, hidebroken = hidebroken_string)
+            format!("SELECT {columns} from Station WHERE Name=? {hidebroken} ORDER BY {order} {reverse} LIMIT {offset},{limit}", columns = Connection::COLUMNS, order = order, reverse = reverse_string, hidebroken = hidebroken_string, offset = offset, limit = limit)
         }else{
-            format!("SELECT {columns} from Station WHERE Name LIKE CONCAT('%',?,'%') {hidebroken} ORDER BY {order} {reverse}", columns = Connection::COLUMNS, order = order, reverse = reverse_string, hidebroken = hidebroken_string)
+            format!("SELECT {columns} from Station WHERE Name LIKE CONCAT('%',?,'%') {hidebroken} ORDER BY {order} {reverse} LIMIT {offset},{limit}", columns = Connection::COLUMNS, order = order, reverse = reverse_string, hidebroken = hidebroken_string, offset = offset, limit = limit)
         };
         let results = self.pool.prep_exec(query, (search,));
         self.get_stations(results)

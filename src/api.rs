@@ -261,6 +261,8 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
     let order : String = request.get_param("order").unwrap_or(String::from("value"));
     let reverse : bool = request.get_param("reverse").unwrap_or(String::from("false")) == "true";
     let hidebroken : bool = request.get_param("hidebroken").unwrap_or(String::from("false")) == "true";
+    let offset : u32 = request.get_param("offset").unwrap_or(String::from("0")).parse().unwrap_or(0);
+    let limit : u32 = request.get_param("limit").unwrap_or(String::from("999999")).parse().unwrap_or(999999);
 
     let parts : Vec<&str> = request.raw_url().split('?').collect();
     let items : Vec<&str> = parts[0].split('/').collect();
@@ -323,8 +325,8 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
                     "topclick" => add_cors(encode_stations(connection.get_stations_topclick(search.parse().unwrap_or(0)), format)),
                     "lastclick" => add_cors(encode_stations(connection.get_stations_lastclick(search.parse().unwrap_or(0)), format)),
                     "lastchange" => add_cors(encode_stations(connection.get_stations_lastchange(search.parse().unwrap_or(0)), format)),
-                    "byname" => add_cors(encode_stations(connection.get_stations_by_name(search.to_string(),false,&order,reverse,hidebroken), format)),
-                    "bynameexact" => add_cors(encode_stations(connection.get_stations_by_name(search.to_string(),true,&order,reverse,hidebroken), format)),
+                    "byname" => add_cors(encode_stations(connection.get_stations_by_name(search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
+                    "bynameexact" => add_cors(encode_stations(connection.get_stations_by_name(search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
                     "byid" => {
                         let id = search.parse();
                         match id{
