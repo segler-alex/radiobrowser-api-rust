@@ -234,12 +234,38 @@ impl Connection {
         self.get_stations_query(query)
     }
 
-    pub fn get_stations_by_name(&self, search: String, exact: bool) -> Vec<Station> {
-        let query : String;
+    pub fn decode_order(&self, order: &str) -> &str {
+        match order {
+            "name" => "Name",
+            "url" => "Url",
+            "homepage" => "Homepage",
+            "favicon" => "Favicon",
+            "tags" => "Tags",
+            "country" => "Country",
+            "state" => "Subcountry",
+            "language" => "Language",
+            "votes" => "Votes",
+            "negativevotes" => "NegativeVotes",
+            "codec" => "Codec",
+            "bitrate" => "Bitrate",
+            "lastcheckok" => "LastCheckOK",
+            "lastchecktime" => "LastCheckTime",
+            "clicktimestamp" => "ClickTimestamp",
+            "clickcount" => "clickcount",
+            "clicktrend" => "ClickTrend",
+
+
+            _ => "Name",
+        }
+    }
+
+    pub fn get_stations_by_name(&self, search: String, exact: bool, order: &str) -> Vec<Station> {
+        let query: String;
+        let order = self.decode_order(order);
         if exact {
-            query = format!("SELECT {columns} from Station WHERE Name=? ORDER BY Name", columns = Connection::COLUMNS);
+            query = format!("SELECT {columns} from Station WHERE Name=? ORDER BY {order}", columns = Connection::COLUMNS, order = order);
         }else{
-            query = format!("SELECT {columns} from Station WHERE Name LIKE CONCAT('%',?,'%') ORDER BY Name", columns = Connection::COLUMNS);
+            query = format!("SELECT {columns} from Station WHERE Name LIKE CONCAT('%',?,'%') ORDER BY {order}", columns = Connection::COLUMNS, order = order);
         }
         let results = self.pool.prep_exec(query, (search,));
         self.get_stations(results)
@@ -359,18 +385,19 @@ impl Connection {
         let query : String;
         let reverse_string = if reverse { "DESC" } else { "ASC" };
         let hidebroken_string = if hidebroken { " AND LastCheckOK=TRUE" } else { "" };
-        match search{
+        let result = match search{
             Some(value) => {
-                query = format!("SELECT {column} AS value,{column},COUNT(*) AS stationcount FROM Station WHERE {column} LIKE '%{search}%' AND {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, search = value, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
+                query = format!("SELECT {column} AS value,{column},COUNT(*) AS stationcount FROM Station WHERE {column} LIKE CONCAT('%',?,'%') AND {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
+                self.pool.prep_exec(query, (value,))
             },
             None => {
                 query = format!("SELECT {column} AS value,{column},COUNT(*) AS stationcount FROM Station WHERE {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
+                self.pool.prep_exec(query, ())
             }
-        }
+        };
 
         let stations: Vec<Result1n> =
-        self.pool.prep_exec(query, ())
-        .map(|result| {
+        result.map(|result| {
             result.map(|x| x.unwrap()).map(|row| {
                 let (name, value, stationcount) = mysql::from_row(row);
                 Result1n {
@@ -594,9 +621,9 @@ fn start_refresh_worker(connection_string: String){
             let pool = mysql::Pool::new(&connection_string);
             match pool {
                 Ok(p) => {
-                    println!("REFRESH START");
+                    //println!("REFRESH START");
                     refresh_cache_tags(&p);
-                    println!("REFRESH END");
+                    //println!("REFRESH END");
                 },
                 Err(e) => println!("{}",e)
             }
