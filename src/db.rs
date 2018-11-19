@@ -4,6 +4,7 @@ extern crate chrono;
 
 use std::collections::HashMap;
 use db::mysql::Value;
+use db::mysql::QueryResult;
 use std;
 use thread;
 
@@ -230,43 +231,48 @@ impl Connection {
     pub fn get_stations_by_all(&self) -> Vec<Station> {
         let query : String;
         query = format!("SELECT {columns} from Station ORDER BY Name", columns = Connection::COLUMNS);
-        self.get_stations(query)
+        self.get_stations_query(query)
     }
 
-    pub fn get_stations_by_name(&self, search: String) -> Vec<Station> {
+    pub fn get_stations_by_name(&self, search: String, exact: bool) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT {columns} from Station WHERE Name LIKE '%{search}%' ORDER BY Name", columns = Connection::COLUMNS, search = search);
-        self.get_stations(query)
+        if exact {
+            query = format!("SELECT {columns} from Station WHERE Name=? ORDER BY Name", columns = Connection::COLUMNS);
+        }else{
+            query = format!("SELECT {columns} from Station WHERE Name LIKE CONCAT('%',?,'%') ORDER BY Name", columns = Connection::COLUMNS);
+        }
+        let results = self.pool.prep_exec(query, (search,));
+        self.get_stations(results)
     }
 
     pub fn get_stations_by_id(&self, id: i32) -> Vec<Station> {
         let query : String;
         query = format!("SELECT {columns} from Station WHERE StationID='{id}' ORDER BY Name", columns = Connection::COLUMNS, id = id);
-        self.get_stations(query)
+        self.get_stations_query(query)
     }
 
     pub fn get_stations_topvote(&self, limit: u32) -> Vec<Station> {
         let query : String;
         query = format!("SELECT {columns} from Station ORDER BY Votes DESC LIMIT {limit}", columns = Connection::COLUMNS, limit = limit);
-        self.get_stations(query)
+        self.get_stations_query(query)
     }
 
     pub fn get_stations_topclick(&self, limit: u32) -> Vec<Station> {
         let query : String;
         query = format!("SELECT {columns} from Station ORDER BY clickcount DESC LIMIT {limit}", columns = Connection::COLUMNS, limit = limit);
-        self.get_stations(query)
+        self.get_stations_query(query)
     }
 
     pub fn get_stations_lastclick(&self, limit: u32) -> Vec<Station> {
         let query : String;
         query = format!("SELECT {columns} from Station ORDER BY ClickTimestamp DESC LIMIT {limit}", columns = Connection::COLUMNS, limit = limit);
-        self.get_stations(query)
+        self.get_stations_query(query)
     }
 
     pub fn get_stations_lastchange(&self, limit: u32) -> Vec<Station> {
         let query : String;
         query = format!("SELECT {columns} from Station ORDER BY Creation DESC LIMIT {limit}", columns = Connection::COLUMNS, limit = limit);
-        self.get_stations(query)
+        self.get_stations_query(query)
     }
 
     pub fn get_changes(&self, _uuid: Option<String>, seconds: u32) -> Vec<StationHistory> {
@@ -276,9 +282,13 @@ impl Connection {
         self.get_stations_history(query)
     }
 
-    fn get_stations(&self, query: String) -> Vec<Station> {
-        let mut stations: Vec<Station> = vec![];
+    fn get_stations_query(&self, query: String) -> Vec<Station> {
         let results = self.pool.prep_exec(query, ());
+        self.get_stations(results)
+    }
+
+    fn get_stations(&self, results: self::mysql::Result<QueryResult<'static>>) -> Vec<Station> {
+        let mut stations: Vec<Station> = vec![];
         for result in results {
             for row_ in result {
                 let mut row = row_.unwrap();
