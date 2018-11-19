@@ -633,7 +633,7 @@ pub fn refresh_cache_items(pool: &mysql::Pool, cache_table_name: &str, cache_col
     }*/
 }
 
-fn start_refresh_worker(connection_string: String){
+fn start_refresh_worker(connection_string: String, update_caches_interval: u64){
     thread::spawn(move || {
         loop{
             let pool = mysql::Pool::new(&connection_string);
@@ -647,12 +647,12 @@ fn start_refresh_worker(connection_string: String){
                 Err(e) => println!("{}",e)
             }
             
-            thread::sleep(::std::time::Duration::new(10,0));
+            thread::sleep(::std::time::Duration::new(update_caches_interval,0));
         }
     });
 }
 
-pub fn new(connection_string: &String, update_caches: bool) -> Result<Connection, DBError> {
+pub fn new(connection_string: &String, update_caches_interval: u64) -> Result<Connection, DBError> {
     let connection_string2 = connection_string.clone();
     println!("Connection string: {}", connection_string);
     
@@ -662,8 +662,8 @@ pub fn new(connection_string: &String, update_caches: bool) -> Result<Connection
             let c = Connection{pool: p};
             c.init_tables();
 
-            if update_caches {
-                start_refresh_worker(connection_string2);
+            if update_caches_interval > 0 {
+                start_refresh_worker(connection_string2, update_caches_interval);
             }
 
             Ok(c)

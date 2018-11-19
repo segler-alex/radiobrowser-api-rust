@@ -54,23 +54,24 @@ fn main() {
                 .default_value("1")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("update-caches")
+            Arg::with_name("update-caches-interval")
                 .short("u")
-                .long("update-caches")
-                .value_name("UPDATE_CACHES")
-                .help("update caches regularly")
-                .env("UPDATE_CACHES")
-                .takes_value(false),
+                .long("update-caches-interval")
+                .value_name("UPDATE_CACHES_INTERVAL")
+                .help("update caches at an interval in seconds")
+                .env("UPDATE_CACHES_INTERVAL")
+                .default_value("0")
+                .takes_value(true),
         ).get_matches();
 
     let connection_string: String = matches.value_of("database").unwrap().parse().expect("database is not string");
     let listen_host: String = matches.value_of("listen_host").unwrap().parse().expect("listen_host is not string");
     let listen_port: i32 = matches.value_of("listen_port").unwrap().parse().expect("listen_port is not u32");
     let threads: usize = matches.value_of("threads").unwrap().parse().expect("threads is not usize");
-    let update_caches: bool = matches.occurrences_of("update-caches") > 0;
+    let update_caches_interval: u64 = matches.value_of("update-caches-interval").unwrap().parse().expect("update-caches-interval is not u64");
 
     loop {
-        let connection = db::new(&connection_string, update_caches);
+        let connection = db::new(&connection_string, update_caches_interval);
         match connection {
             Ok(v) => {
                 api::run(v, listen_host, listen_port, threads);
