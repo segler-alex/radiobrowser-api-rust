@@ -652,7 +652,7 @@ fn start_refresh_worker(connection_string: String){
     });
 }
 
-pub fn new(connection_string: &String) -> Result<Connection, DBError> {
+pub fn new(connection_string: &String, update_caches: bool) -> Result<Connection, DBError> {
     let connection_string2 = connection_string.clone();
     println!("Connection string: {}", connection_string);
     
@@ -662,7 +662,9 @@ pub fn new(connection_string: &String) -> Result<Connection, DBError> {
             let c = Connection{pool: p};
             c.init_tables();
 
-            start_refresh_worker(connection_string2);
+            if update_caches {
+                start_refresh_worker(connection_string2);
+            }
 
             Ok(c)
             },
