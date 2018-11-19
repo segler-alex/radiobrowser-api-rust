@@ -14,3 +14,4 @@ dns-lookup = "*"
 xml_writer = "*"
 chrono = { version = "0.4", features = ["serde"] }
 handlebars = "*"
+url = "*"

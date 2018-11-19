@@ -2,7 +2,7 @@
 extern crate serde_derive;
 #[macro_use]
 extern crate clap;
-
+extern crate url;
 extern crate handlebars;
 
 use clap::{App, Arg};
