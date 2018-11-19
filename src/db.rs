@@ -234,7 +234,7 @@ impl Connection {
         self.get_stations_query(query)
     }
 
-    pub fn decode_order(&self, order: &str) -> &str {
+    pub fn filter_order(&self, order: &str) -> &str {
         match order {
             "name" => "Name",
             "url" => "Url",
@@ -253,20 +253,19 @@ impl Connection {
             "clicktimestamp" => "ClickTimestamp",
             "clickcount" => "clickcount",
             "clicktrend" => "ClickTrend",
-
-
             _ => "Name",
         }
     }
 
-    pub fn get_stations_by_name(&self, search: String, exact: bool, order: &str) -> Vec<Station> {
-        let query: String;
-        let order = self.decode_order(order);
-        if exact {
-            query = format!("SELECT {columns} from Station WHERE Name=? ORDER BY {order}", columns = Connection::COLUMNS, order = order);
+    pub fn get_stations_by_name(&self, search: String, exact: bool, order: &str, reverse: bool, hidebroken: bool) -> Vec<Station> {
+        let order = self.filter_order(order);
+        let reverse_string = if reverse { "DESC" } else { "ASC" };
+        let hidebroken_string = if hidebroken { " AND LastCheckOK=TRUE" } else { "" };
+        let query: String = if exact {
+            format!("SELECT {columns} from Station WHERE Name=? {hidebroken} ORDER BY {order} {reverse}", columns = Connection::COLUMNS, order = order, reverse = reverse_string, hidebroken = hidebroken_string)
         }else{
-            query = format!("SELECT {columns} from Station WHERE Name LIKE CONCAT('%',?,'%') ORDER BY {order}", columns = Connection::COLUMNS, order = order);
-        }
+            format!("SELECT {columns} from Station WHERE Name LIKE CONCAT('%',?,'%') {hidebroken} ORDER BY {order} {reverse}", columns = Connection::COLUMNS, order = order, reverse = reverse_string, hidebroken = hidebroken_string)
+        };
         let results = self.pool.prep_exec(query, (search,));
         self.get_stations(results)
     }
