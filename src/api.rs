@@ -204,7 +204,7 @@ fn encode_status(status: Status, format : &str) -> rouille::Response {
         },
         "html" => {
             let mut handlebars = Handlebars::new();
-            let y = handlebars.register_template_file("template.html", "templates/template.html");
+            let y = handlebars.register_template_file("template.html", "static/template.html");
             if y.is_ok(){
                 let mut data = Map::new();
                 data.insert(String::from("status"), to_json(status));
@@ -240,6 +240,14 @@ fn get_status() -> Status {
 fn send_file(path: &str) -> rouille::Response {
     let file = File::open(path);
     match file {
+        Ok(file) => {add_cors(rouille::Response::from_file("text/html", file))},
+        _ => add_cors(rouille::Response::empty_404())
+    }
+}
+
+fn send_image(path: &str) -> rouille::Response {
+    let file = File::open(path);
+    match file {
         Ok(file) => {add_cors(rouille::Response::from_file("image/png", file))},
         _ => add_cors(rouille::Response::empty_404())
     }
@@ -255,8 +263,9 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
     if items.len() == 2 {
         let file_name = items[1];
         match file_name {
-            "favicon.ico" => send_file("images/favicon.ico"),
-            _ => add_cors(encode_status(get_status(), "html"))
+            "favicon.ico" => send_image("static/favicon.ico"),
+            "" => send_file("static/docs.html"),
+            _ => rouille::Response::empty_404(),
         }
     } else if items.len() == 3 {
         let format = items[1];
@@ -272,7 +281,6 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
             "stations" => add_cors(encode_stations(connection.get_stations_by_all(), format)),
             "servers" => add_cors(dns_resolve(format)),
             "status" => add_cors(encode_status(get_status(), format)),
-            "" => add_cors(encode_status(get_status(), format)),
             _ => rouille::Response::empty_404()
         }
     } else if items.len() == 4 {

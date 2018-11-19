@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Radio Browser API</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
+  <link href='https://fonts.googleapis.com/css?family=VT323|Cutive+Mono|Nova+Mono' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="main.css">
+</head>
+
+<body data-spy="scroll" data-target=".navbar" data-offset="100">
+  <div class="container">
+    <nav class="navbar navbar-light bg-light sticky-top shadow rounded-bottom">
+      <ul class="nav nav-pills">
+        <li class="nav-item">
+          <a class="nav-link" href="#General">General</a>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link navbar-light dropdown-toggle" href="" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Lists</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#List_of_countries">List of countries</a></li>
+            <li><a class="dropdown-item" href="#List_of_codecs">List of codecs</a></li>
+            <li><a class="dropdown-item" href="#List_of_states">List of states</a></li>
+            <li><a class="dropdown-item" href="#List_of_languages">List of languages</a></li>
+            <li><a class="dropdown-item" href="#List_of_tags">List of tags</a></li>
+            <li><a class="dropdown-item" href="#List_of_radio_stations">List of radio stations</a></li>
+            <li><a class="dropdown-item" href="#List_of_all_radio_stations">List of all radio stations</a></li>
+            <li><a class="dropdown-item" href="#Get_a_list_of_station_check_results">Get a list of station check results</a></li>
+            <li>
+              <div role="separator" class="dropdown-divider"></div>
+            </li>
+            <li><a class="dropdown-item" href="#Playable_station_url">Playable station url</a></li>
+            <li><a class="dropdown-item" href="#Advanced_station_search">Advanced station search</a></li>
+            <li><a class="dropdown-item" href="#Search_radio_stations_by_url">Search radio stations by url</a></li>
+            <li>
+              <div role="separator" class="dropdown-divider"></div>
+            </li>
+            <li><a class="dropdown-item" href="#Server_stats">Server stats</a></li>
+          </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link navbar-light dropdown-toggle" href="#" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="true">Stations</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#Stations_by_clicks">Stations by clicks</a></li>
+            <li><a class="dropdown-item" href="#Stations_by_votes">Stations by votes</a></li>
+            <li><a class="dropdown-item" href="#Stations_by_recent_click">Stations by recent click</a></li>
+            <li><a class="dropdown-item" href="#Stations_by_recently_changed">Stations by recently changed</a></li>
+            <li><a class="dropdown-item" href="#Stations_that_got_deleted">Stations that got deleted</a></li>
+            <li><a class="dropdown-item" href="#Old_versions_of_stations">Old versions of stations</a></li>
+            <li><a class="dropdown-item" href="#Stations_that_need_improvement">Stations that need improvement</a></li>
+            <li><a class="dropdown-item" href="#Broken_stations">Broken stations</a></li>
+          </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link navbar-light dropdown-toggle" href="" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="true">Modify</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#Vote_for_station">Vote for station</a></li>
+            <li><a class="dropdown-item" href="#Delete_a_station">Delete a station</a></li>
+            <li><a class="dropdown-item" href="#UnDelete_a_station">UnDelete a station</a></li>
+            <li><a class="dropdown-item" href="#Revert_a_station">Revert a station</a></li>
+            <li><a class="dropdown-item" href="#Add_radio_station">Add radio station</a></li>
+            <li><a class="dropdown-item" href="#Edit_a_radio_station">Edit a radio station</a></li>
+          </ul>
+        </li>
+      </ul>
+      <a class="navbar-brand" href="http://www.radio-browser.info" target="_blank">Homepage</a>
+    </nav>
+    <div class="card mt-2 shadow p-3 mb-5" id="General">
+      <div class="card-body">
+        <h1 class="card-title">Community Radiostation Index</h1>
+        <h2 class="card-subtitle mb-2 text-muted">General</h2>
+        <p class="card-text ">This webservice can be used freely but without guarantee to work. I am keeping it online since more than 2 years now. But downtimes are possible and i am not always home to fix it :) Please do not hesitate to send me ideas to improve the service!
+          <a href="segler_alex@web.de">segler_alex AT web DOT de</a> PLEASE
+          <br/>Send a <span class="text-danger">descriptive User-Agent</span> in your HTTP requests. This makes it easier for me to get in touch with developers to help with the usage of the API. Something like <span class="text-info">"appname/appversion"</span>          so for example<span class="text-info"> "Cool Radio App/1.2".</span> This also helps me to know which apps are using this service that I can keep the list of apps up to date, so that I can tell people in which ways they can use this service.<br/>          If you know an app that is using this service which is not listed on <a class="badge badge-info" href="http://www.radio-browser.info">www.radio-browser.info</a> please drop me a note.<br/>Thank you! At the moment this service checks radio stations
+          by connecting to them at least every day and marks them accordingly. (LastCheckOK=0/1)<br/> If you do not find here what you were looking for, please create a feature request on Github or if you are a programmer fork it and make a pull request.
+          Thanks for your help! Recent changes can be found in the Changelog.</p>
+        <hr class="my-4">
+        <section class="row">
+          <div class="mx-auto">
+            <a href="https://github.com/segler-alex/radiobrowser" target="_blank" class="btn btn-primary mr-3">Fork on Github</a>
+            <a href="changelog.html" target="_blank" class="btn btn-info ml-3 mr-3">Changelog</a>
+          </div>
+        </section>
+      </div>
+    </div>
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_countries">
+      <div class="container">
+        <h1 class="display-4">List of countries</h1>
+        <p class="lead">Will get a JSON encoded list of all countries in the database. If a filter is given, it will only only return the ones that contain the filter as substring, supported output formats: JSON, XML</p>
+        <hr class="my-4">
+        <div class="h5">Syntax:</div>
+        <div class="syntax">
+          <ul class="list-unstyled ml-4">
+            <li class="ml-3">http://www.radio-browser.info/webservice/json/countries</li>
+            <li class="ml-3">http://www.radio-browser.info/webservice/json/countries/&lt;filter&gt;</li>
+            <li class="ml-3">http://www.radio-browser.info/webservice/xml/countries</li>
+            <li class="ml-3">http://www.radio-browser.info/webservice/xml/countries/&lt;filter&gt;</li>
+          </ul>
+          <div class="h5">Parameter:</div>
+          This parameters can be added by using a HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request. The parameters can also be sent with encoding "application/json" that is used for example by Angular.js
+          <table class="table mt-2 table-striped">
+            <thead class="thead-dark">
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Default value</th>
+                <th scope="col">Possible values</th>
+                <th scope="col">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>order</td>
+                <td>value</td>
+                <td>value, stationcount</td>
+                <td>name of the attribute the result list will be sorted by</td>
+              </tr>
+              <tr>
+                <td>reverse</td>
+                <td>false</td>
+                <td>true, false</td>
+                <td>rerverses the result list if set to true</td>
+              </tr>
+              <tr>
+                <td>hidebroken</td>
+                <td>false</td>
+                <td>true, false</td>
+                <td>do not count broken stations</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="h5">Result JSON:</div>
+          <div class="well well-sm bg-light border border-secondary rounded">
+            <pre class="mt-4">
+                [
+                {
+                  &quot;value&quot;: &quot;Albania&quot;,
+                  &quot;stationcount&quot;: &quot;1&quot;
+                },
+                {
+                  &quot;value&quot;: &quot;Argentina&quot;,
+                  &quot;stationcount&quot;: &quot;5&quot;
+                },
+                ..
+                ]
+                </pre>
+          </div>
+          <div class="h5 mt-3">Result XML:</div>
+          <div class="well well-sm bg-light border border-secondary rounded">
+            <pre class="mt-4">
+                &lt;result&gt;
+                &lt;country value=&quot;Albania&quot; stationcount=&quot;1&quot;/&gt;
+                &lt;country value=&quot;Argentina&quot; stationcount=&quot;5&quot;/&gt;
+                ..
+                &lt;/result&gt;
+                </pre>
+          </div>
+          <div class="h5 mt-3">Example:</div>
+          <ul class="list-unstyled ml-4">
+            <li><a href="http://www.radio-browser.info/webservice/json/countries" target="_blank">http://www.radio-browser.info/webservice/json/countries</a></li>
+            <li><a href="http://www.radio-browser.info/webservice/xml/countries/aus" target="_blank">http://www.radio-browser.info/webservice/xml/countries/aus</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_codecs">
+      <div class="container">
+        <h1 class="display-4">List of codecs</h1>
+        <p class="lead">Will get a JSON encoded list of all codecs in the database. If a filter is given, it will only only return the ones that contain the filter as substring, Supported output formats: JSON, XML</p>
+        <hr class="my-4">
+        <div class="h5">Syntax:</div>
+        <div class="syntax">
+          <ul class="list-unstyled mt-2 ml-4">
+            <li>http://www.radio-browser.info/webservice/json/codecs</li>
+            <li>http://www.radio-browser.info/webservice/json/codecs/&lt;filter&gt;</li>
+            <li>http://www.radio-browser.info/webservice/xml/codecs</li>
+            <li>http://www.radio-browser.info/webservice/xml/codecs/&lt;filter&gt;</li>
+          </ul>
+        </div>
+        <div class="h5 mt-2">Parameter:</div>
+        This parameters can be added by using a HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request. The parameters can also be sent with encoding "application/json" that is used for example by Angular.js
+        <table class="table mt-2 table-striped">
+          <thead class="thead-dark">
+            <tr>
+              <th scope="row">Name</th>
+              <th scope="row">Default value</th>
+              <th scope="row">Possible values</th>
+              <th scope="row">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>order</td>
+              <td>value</td>
+              <td>value, stationcount</td>
+              <td>name of the attribute the result list will be sorted by</td>
+            </tr>
+            <tr>
+              <td>reverse</td>
+              <td>false</td>
+              <td>true, false</td>
+              <td>rerverses the result list if set to true</td>
+            </tr>
+            <tr>
+              <td>hidebroken</td>
+              <td>false</td>
+              <td>true, false</td>
+              <td>do not count broken stations</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="h5">Result JSON:</div>
+        <div class="well well-sm bg-light border border-secondary rounded">
+          <pre class="mt-4">
+            [
+                {
+                    &quot;value&quot;: &quot;AAC&quot;,
+                    &quot;stationcount&quot;: &quot;34&quot;
+                },
+                {
+                    &quot;value&quot;: &quot;AAC+&quot;,
+                    &quot;stationcount&quot;: &quot;367&quot;
+                },
+                ..
+            ]
+                </pre>
+        </div>
+        <div class="h5 mt-2">Result XML:</div>
+        <div class="well well-sm bg-light border border-secondary rounded">
+          <pre class="mt-4">
+                  <code>
+                    &lt;result&gt;
+                      &lt;codec value=&quot;AAC&quot; stationcount=&quot;34&quot;/&gt;
+                      &lt;codec value=&quot;AAC+&quot; stationcount=&quot;367&quot;/&gt;
+                      ..
+                    &lt;/result&gt;
+                  </code>
+                </pre>
+        </div>
+        <div class="h5 mt-2">Example:</div>
+        <ul class="list-unstyled ml-4">
+          <li><a href="http://www.radio-browser.info/webservice/json/codecs" target="_blank">http://www.radio-browser.info/webservice/json/codecs</a></li>
+          <li><a href="http://www.radio-browser.info/webservice/xml/codecs/aac" target="_blank">http://www.radio-browser.info/webservice/xml/codecs/aac</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_states">
+      <div class="container">
+        <h1 class="display-4">List of states</h1>
+        <p class="lead">Will get a JSON encoded list of all states in the database. Countries are divided into states. If a filter is given, it will only only return the ones that contain the filter as substring. If a country is given, it will only display states in
+          this country, supported output formats: JSON, XML</p>
+        <hr class="my-4">
+        <div class="h5">Syntax:</div>
+        <div class="syntax">
+          <ul class="list-unstyled ml-4">
+            <li>http://www.radio-browser.info/webservice/json/states</li>
+            <li>http://www.radio-browser.info/webservice/json/states/&lt;filter&gt;</li>
+            <li>http://www.radio-browser.info/webservice/json/states/&lt;country&gt;/&lt;filter&gt;</li>
+            <li>http://www.radio-browser.info/webservice/xml/states</li>
+            <li>http://www.radio-browser.info/webservice/xml/states/&lt;filter&gt;</li>
+            <li>http://www.radio-browser.info/webservice/xml/states/&lt;country&gt;/&lt;filter&gt;</li>
+          </ul>
+        </div>
+        <div class="h5">Parameter:</div>
+        This parameters can be added by using a HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request. The parameters can also be sent with encoding "application/json" that is used for example by Angular.js
+        <table class="table table-striped mt-2">
+          <thead class="thead-dark">
+            <tr>
+              <th scope="row">Name</th>
+              <th scope="row">Default value</th>
+              <th scope="row">Possible values</th>
+              <th scope="row">Dataescription</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>order</td>
+              <td>value</td>
+              <td>value, stationcount</td>
+              <td>name of the attribute the result list will be sorted by</td>
+            </tr>
+            <tr>
+              <td>reverse</td>
+              <td>false</td>
+              <td>true, false</td>
+              <td>rerverses the result list if set to true</td>
+            </tr>
+            <tr>
+              <td>hidebroken</td>
+              <td>false</td>
+              <td>true, false</td>
+              <td>do not count broken stations</td>
+            </tr>
+            <tr>
+              <td>country</td>
+              <td></td>
+              <td>STRING</td>
+              <td>OPTIONAL, filter states by country name</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="h5">Result JSON:</div>
+        <div class="well well-sm bg-light border border-secondary rounded">
+          <pre class="mt-4">
+                [
+                    {
+                        &quot;value&quot;: &quot;Alabama&quot;,
+                        &quot;country&quot;: &quot;United States of America&quot;,
+                        &quot;stationcount&quot;: &quot;6&quot;
+                    },
+                    {
+                        &quot;value&quot;: &quot;Alberta&quot;,
+                        &quot;country&quot;: &quot;Canada&quot;,
+                        &quot;stationcount&quot;: &quot;2&quot;
+                    },
+                    ..
+                ]
+                    </pre>
+        </div>
+        <div class="h5 mt-2">Result XML:</div>
+        <div class="well well-sm bg-light border border-secondary rounded">
+          <pre class="mt-4">
+                &lt;result&gt;
+                  &lt;state value=&quot;Alabama&quot; country=&quot;United States of America&quot; stationcount=&quot;6&quot;/&gt;
+                  &lt;state value=&quot;Alberta&quot; country=&quot;Canada&quot; stationcount=&quot;2&quot;/&gt;
+                  ..
+                &lt;/result&gt;
+                    </pre>
+        </div>
+
+        <div class="h5 mt-2">Example:</div>
+        <ul class="list-unstyled ml-4">
+          <li><a href="http://www.radio-browser.info/webservice/json/states" target="_blank">http://www.radio-browser.info/webservice/json/states</a></li>
+          <li><a href="http://www.radio-browser.info/webservice/xml/states/ber" target="_blank">http://www.radio-browser.info/webservice/xml/states/ber</a></li>
+          <li><a href="http://www.radio-browser.info/webservice/json/states/Germany/ber" target="_blank">http://www.radio-browser.info/webservice/json/states/Germany/ber</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_languages">
+      <h1 class="display-4">List of languages</h1>
+      <p class="lead">Will get a JSON encoded list of all languages in the database. If a filter is given, it will only only return the ones that contain the filter as substring, supported output formats: json, xml</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/json/languages</li>
+          <li>http://www.radio-browser.info/webservice/json/languages/&lt;filter&gt;</li>
+          <li>http://www.radio-browser.info/webservice/xml/languages</li>
+          <li>http://www.radio-browser.info/webservice/xml/languages/&lt;filter&gt;</li>
+        </ul>
+      </div>
+      <div class="h5">Parameter:</div>
+      This parameters can be added by using a HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request. The parameters can also be sent with encoding "application/json" that is used for example by Angular.js
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Default value</th>
+            <th scope="row">Possible values</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>order</td>
+            <td>value</td>
+            <td>value, stationcount</td>
+            <td>name of the attribute the result list will be sorted by</td>
+          </tr>
+          <tr>
+            <td>reverse</td>
+            <td>false</td>
+            <td>true, false</td>
+            <td>reverses the result list if set to true</td>
+          </tr>
+          <tr>
+            <td>hidebroken</td>
+            <td>false</td>
+            <td>true, false</td>
+            <td>do not count broken stations</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="h5">Result JSON:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+          [
+              {
+                  &quot;value&quot;: &quot;Albanian&quot;,
+                  &quot;stationcount&quot;: &quot;1&quot;
+              },
+              {
+                  &quot;value&quot;: &quot;Arabic&quot;,
+                  &quot;stationcount&quot;: &quot;8&quot;
+              },
+              ..
+          ]
+              </pre>
+      </div>
+
+      <div class="h5 mt-2">Result XML:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+          &lt;result&gt;
+            &lt;language value=&quot;Albanian&quot; stationcount=&quot;1&quot;/&gt;
+            &lt;language value=&quot;Arabic&quot; stationcount=&quot;8&quot;/&gt;
+            ..
+          &lt;/result&gt;
+              </pre>
+      </div>
+      <div class="h5 mt-2">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/json/languages" target="_blank">http://www.radio-browser.info/webservice/json/languages</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/xml/languages/ger" target="_blank">http://www.radio-browser.info/webservice/xml/languages/ger</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_tags">
+      <h1 class="display-4">List of tags</h1>
+      <p class="lead">Will get a JSON encoded list of all tags in the database. If a filter is given, it will only only return the ones that contain the filter as substring, supported output formats: JSON, XML </p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax"> http://www.radio-browser.info/webservice/xml/tags
+        <br /> http://www.radio-browser.info/webservice/xml/tags/&lt;filter&gt;
+        <br/>http://www.radio-browser.info/webservice/json/tags
+        <br /> http://www.radio-browser.info/webservice/json/tags/&lt;filter&gt;
+        <br />
+      </div>
+      <div class="h5 mt-2">Parameter:</div>
+      This parameters can be added by using a HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request. The parameters can also be sent with encoding "application/json" that is used for example by Angular.js
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Default value</th>
+            <th scope="row">Possible values</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>order</td>
+            <td>value</td>
+            <td>value, stationcount</td>
+            <td>name of the attribute the result list will be sorted by</td>
+          </tr>
+          <tr>
+            <td>reverse</td>
+            <td>false</td>
+            <td>true, false</td>
+            <td>rerverses the result list if set to true</td>
+          </tr>
+          <tr>
+            <td>hidebroken</td>
+            <td>false</td>
+            <td>true, false</td>
+            <td>do not count broken stations</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="h5">Result JSON:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+          [
+              {
+                  &quot;value&quot;: &quot;00s&quot;,
+                  &quot;stationcount&quot;: &quot;3&quot;
+              },
+              {
+                  &quot;value&quot;: &quot;10s&quot;,
+                  &quot;stationcount&quot;: &quot;1&quot;
+              },
+              ..
+          ]
+              </pre>
+      </div>
+
+      <div class="h5 mt-2">Result XML:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+          &lt;result&gt;
+            &lt;tag value=&quot;00s&quot; stationcount=&quot;3&quot;/&gt;
+            &lt;tag value=&quot;10s&quot; stationcount=&quot;1&quot;/&gt;
+            ..
+          &lt;/result&gt;
+              </pre>
+      </div>
+
+      <div class="h5 mt-2">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/json/tags" target="_blank">http://www.radio-browser.info/webservice/json/tags</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/xml/tags/jazz" target="_blank">http://www.radio-browser.info/webservice/xml/tags/jazz</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_radio_stations">
+      <h1 class="display-4">List of radio stations</h1>
+      <p class="lead">Will get a list of radio stations that match the search. The variants with "exact" will only search for perfect matches. The others will match if the station attribute contains the searchterm.<br/> Please use <a href="#Playable_station_url">Playable station url</a>        API call to get the real station url and also let the click be counted, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/<span class="format">{format}</span>/stations/byid/<span class="searchTerm">{searchterm}</span></li>
+          <li>http://www.radio-browser.info/webservice/<span class="format">{format}</span>/stations/byuuid/<span class="searchTerm">{searchterm}</span></li>
+          <li>http://www.radio-browser.info/webservice/<span class="format">{format}</span>/stations/byname/<span class="searchTerm">{searchterm}</span></li>
+          <li>http://www.radio-browser.info/webservice/<span class="format">{format}</span>/stations/bynameexact/<span class="searchTerm">{searchterm}</span></li>
+          <li>http://www.radio-browser.info/webservice/<span class="format">{format}</span>/stations/bycodec/<span class="searchTerm">{searchterm}</span></li>
+          <li>http://www.radio-browser.info/webservice/<span class="format">{format}</span>/stations/bycodecexact/<span class="searchTerm">{searchterm}</span></li>
+          <li>http://www.radio-browser.info/webservice/<span class="format">{format}</span>/stations/bycountry/<span class="searchTerm">{searchterm}</span></li>
+          <li>http://www.radio-browser.info/webservice/<span class="format">{format}</span>/stations/bycountryexact/<span class="searchTerm">{searchterm}</span></li>
+          <li>http://www.radio-browser.info/webservice/<span class="format">{format}</span>/stations/bystate/<span class="searchTerm">{searchterm}</span></li>
+          <li>http://www.radio-browser.info/webservice/<span class="format">{format}</span>/stations/bystateexact/<span class="searchTerm">{searchterm}</span></li>
+          <li>http://www.radio-browser.info/webservice/<span class="format">{format}</span>/stations/bylanguage/<span class="searchTerm">{searchterm}</span></li>
+          <li>http://www.radio-browser.info/webservice/<span class="format">{format}</span>/stations/bylanguageexact/<span class="searchTerm">{searchterm}</span></li>
+          <li>http://www.radio-browser.info/webservice/<span class="format">{format}</span>/stations/bytag/<span class="searchTerm">{searchterm}</span></li>
+          <li>http://www.radio-browser.info/webservice/<span class="format">{format}</span>/stations/bytagexact/<span class="searchTerm">{searchterm}</span></li>
+        </ul>
+      </div>
+      <div class="h5">Parameter:</div>
+      This parameters can be added by using a HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request. The parameters can also be sent with encoding "application/json" that is used for example by Angular.js
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Default value</th>
+            <th scope="row">Possible values</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>order</td>
+            <td>name</td>
+            <td>
+              name, url, homepage, favicon, tags, country, state, language, votes, negativevotes, codec, bitrate, lastcheckok, lastchecktime, clicktimestamp, clickcount, clicktrend
+            </td>
+            <td>name of the attribute the result list will be sorted by</td>
+          </tr>
+          <tr>
+            <td>reverse</td>
+            <td>false</td>
+            <td>true, false</td>
+            <td>rerverses the result list if set to true</td>
+          </tr>
+          <tr>
+            <td>offset</td>
+            <td>0</td>
+            <td>0,1,2,3,4,..</td>
+            <td>starting value of the result list from the database, for example if you want to do paging on the serverside</td>
+          </tr>
+          <tr>
+            <td>limit</td>
+            <td>100000</td>
+            <td>0,1,2,....</td>
+            <td>number of returned datarows (stations) starting with offset</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="h5">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/json/stations/byname/jazz" target="_blank">http://www.radio-browser.info/webservice/json/stations/byname/jazz</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/xml/stations/bycountry/austria" target="_blank">http://www.radio-browser.info/webservice/xml/stations/bycountry/austria</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/xml/stations/bycountryexact/austria" target="_blank">http://www.radio-browser.info/webservice/xml/stations/bycountryexact/austria</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/m3u/stations/bytagexact/320kbps" target="_blank">http://www.radio-browser.info/webservice/m3u/stations/bytagexact/320kbps</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/pls/stations/bytagexact/320kbps" target="_blank">http://www.radio-browser.info/webservice/pls/stations/bytagexact/320kbps</a></li>
+      </ul>
+    </div>
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_all_radio_stations">
+      <h1 class="display-4">List of all radio stations</h1>
+      <p class="lead">Will get a list of all radio stations. Please use <a href="#Playable_station_url">Playable station url</a> API call to get the real station url and also let the click be counted, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/xml/stations</li>
+          <li>http://www.radio-browser.info/webservice/json/stations</li>
+        </ul>
+      </div>
+      <div class="h5 mt-2">Parameter:</div>
+      This parameters can be added by using a HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request. The parameters can also be sent with encoding "application/json" that is used for example by Angular.js
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Default value</th>
+            <th scope="row">Possible values</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>order</td>
+            <td>name</td>
+            <td>
+              name, url, homepage, favicon, tags, country, state, language, votes, negativevotes, codec, bitrate, lastcheckok, lastchecktime, clicktimestamp, clickcount, clicktrend
+            </td>
+            <td>name of the attribute the result list will be sorted by</td>
+          </tr>
+          <tr>
+            <td>reverse</td>
+            <td>false</td>
+            <td>true, false</td>
+            <td>rerverses the result list if set to true</td>
+          </tr>
+          <tr>
+            <td>offset</td>
+            <td>0</td>
+            <td>0,1,2,3,4,..</td>
+            <td>starting value of the result list from the database, for example if you want to do paging on the serverside</td>
+          </tr>
+          <tr>
+            <td>limit</td>
+            <td>100000</td>
+            <td>0,1,2,....</td>
+            <td>number of returned datarows (stations) starting with offset</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="h5">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/xml/stations" target="_blank">http://www.radio-browser.info/webservice/xml/stations</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/json/stations" target="_blank">http://www.radio-browser.info/webservice/json/stations</a></li>
+      </ul>
+    </div>
+
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Get_a_list_of_station_check_results">
+      <h1 class="display-4">Get a list of station check results</h1>
+      <p class="lead">Get a list of station check results, supported output formats: JSON, XML</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/xml/checks</li>
+          <li>http://www.radio-browser.info/webservice/json/checks/stationuuid</li>
+        </ul>
+      </div>
+      <div class="h5">Parameter:</div>
+      This parameters can be added by using a HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request. The parameters can also be sent with encoding "application/json" that is used for example by Angular.js
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Default value</th>
+            <th scope="row">Possible values</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>stationuuid</td>
+            <td></td>
+            <td>UUID</td>
+            <td>If set, list only checks for the matching station.</td>
+          </tr>
+          <tr>
+            <td>seconds</td>
+            <td>0</td>
+            <td>positive integer values</td>
+            <td>if >0 then it will only return history entries from the last 'seconds' seconds</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="h5">Result JSON:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+          [
+          {
+            "stationuuid":"96156a3e-0601-11e8-ae97-52543be04c81",
+            "checkuuid":"26c1d404-14f4-11e8-ab0e-298319f1705b",
+            "source":"www.radio-browser.info",
+            "codec":"MP3",
+            "bitrate":"128",
+            "hls":"0",
+            "ok":"1",
+            "timestamp":"2018-02-18 22:39:08"
+          },
+          ..
+          ]
+          </pre>
+      </div>
+
+      <div class="h5 mt-2">Result XML:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+          &lt;result&gt;
+            &lt;check
+            stationuuid=&quot;96156a3e-0601-11e8-ae97-52543be04c81&quot;
+            checkuuid=&quot;26c1d404-14f4-11e8-ab0e-298319f1705b&quot;
+            source=&quot;www.radio-browser.info&quot;
+            codec=&quot;MP3&quot;
+            bitrate=&quot;128&quot;
+            hls=&quot;0&quot;
+            ok=&quot;1&quot;
+            timestamp=&quot;2018-02-18 22:39:08&quot;/&gt;
+          &lt;/result&gt;
+        </pre>
+      </div>
+
+      <div class="h5 mt-2">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/json/checks" target="_blank">http://www.radio-browser.info/webservice/json/checks</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/xml/checks" target="_blank">http://www.radio-browser.info/webservice/xml/checks</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="station_url" id="Playable_station_url">
+      <h1 class="display-4">Playable station url</h1>
+      <p class="lead">Returns the playable url for the station. Any Playlist (PLS, ASX, M3U) decoding will be done for you. This API call will count as a click on the station, supported output formats: JSON, XML ,PLS ,M3U</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/v2/xml/url/stationid</li>
+          <li>http://www.radio-browser.info/webservice/v2/json/url/stationid</li>
+          <li>http://www.radio-browser.info/webservice/v2/pls/url/stationid</li>
+          <li>http://www.radio-browser.info/webservice/v2/m3u/url/stationid</li>
+        </ul>
+      </div>
+      <div class="h5">Result JSON:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+          {
+            "ok": "true",
+            "message": "retrieved station url",
+            "id": "123",
+            "name": "Station name",
+            "url": "http://this.is.an.url"
+          }
+              </pre>
+      </div>
+
+      <div class="h5 mt-2">Result XML:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+          &lt;result&gt;
+            &lt;status ok=&quot;true&quot; message=&quot;retrieved station url&quot; id=&quot;123&quot; name=&quot;Station name&quot; message=&quot;http://this.is.an.url&quot;/&gt;
+          &lt;/result&gt;
+              </pre>
+      </div>
+      <div class="h5 mt-2">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/v2/xml/url/123" target="_blank">http://www.radio-browser.info/webservice/v2/xml/url/123</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/v2/json/url/123" target="_blank">http://www.radio-browser.info/webservice/v2/json/url/123</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/v2/pls/url/123" target="_blank">http://www.radio-browser.info/webservice/v2/pls/url/123</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/v2/m3u/url/123" target="_blank">http://www.radio-browser.info/webservice/v2/m3u/url/123</a></li>
+      </ul>
+    </div>
+
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Advanced_station_search">
+      <h1 class="display-4">Advanced station search</h1>
+      <p class="lead">Will get a list of radio stations that match the search. It will match if the station attribute contains the searchterm. Please use <a href="#Playable_station_url">Playable station url</a> API call to get the real station url and also let the click
+        be counted, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/xml/stations/search</li>
+          <li>http://www.radio-browser.info/webservice/json/stations/search</li>
+        </ul>
+      </div>
+      <div class="h5 mt-2">Parameter:</div>
+      This parameters can be added by using a HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request. The parameters can also be sent with encoding "application/json" that is used for example by Angular.js
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Default value</th>
+            <th scope="row">Possible values</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>name</td>
+            <td></td>
+            <td>STRING</td>
+            <td>OPTIONAL, name of the station</td>
+          </tr>
+          <tr>
+            <td>nameExact</td>
+            <td>false</td>
+            <td>true, false</td>
+            <td>OPTIONAL. True: only exact matches, otherwise all matches.</td>
+          </tr>
+          <tr>
+            <td>country</td>
+            <td></td>
+            <td>STRING</td>
+            <td>OPTIONAL, country of the station</td>
+          </tr>
+          <tr>
+            <td>countryExact</td>
+            <td>false</td>
+            <td>true, false</td>
+            <td>OPTIONAL. True: only exact matches, otherwise all matches.</td>
+          </tr>
+          <tr>
+            <td>state</td>
+            <td></td>
+            <td>STRING</td>
+            <td>OPTIONAL, state of the station</td>
+          </tr>
+          <tr>
+            <td>stateExact</td>
+            <td>false</td>
+            <td>true, false</td>
+            <td>OPTIONAL. True: only exact matches, otherwise all matches.</td>
+          </tr>
+          <tr>
+            <td>language</td>
+            <td></td>
+            <td>STRING</td>
+            <td>OPTIONAL, language of the station</td>
+          </tr>
+          <tr>
+            <td>languageExact</td>
+            <td>false</td>
+            <td>true, false</td>
+            <td>OPTIONAL. True: only exact matches, otherwise all matches.</td>
+          </tr>
+          <tr>
+            <td>tag</td>
+            <td></td>
+            <td>STRING</td>
+            <td>OPTIONAL, a tag of the station</td>
+          </tr>
+          <tr>
+            <td>tagExact</td>
+            <td>false</td>
+            <td>true, false</td>
+            <td>OPTIONAL. True: only exact matches, otherwise all matches.</td>
+          </tr>
+          <tr>
+            <td>tagList</td>
+            <td></td>
+            <td>STRING, STRING, ...</td>
+            <td>OPTIONAL. , a comma separated list of tag. It can also be an array of string in json HTTP POST parameters</td>
+          </tr>
+          <tr>
+            <td>bitrateMin</td>
+            <td>0</td>
+            <td>POSITIVE INTEGER</td>
+            <td>OPTIONAL, minimum of kbps for Bitrate field of stations in result</td>
+          </tr>
+          <tr>
+            <td>bitrateMax</td>
+            <td>1000000</td>
+            <td>POSITIVE INTEGER</td>
+            <td>OPTIONAL, maximum of kbps for Bitrate field of stations in result</td>
+          </tr>
+          <tr>
+            <td>order</td>
+            <td>name</td>
+            <td>
+              name, url, homepage, favicon, tags, country, state, language, votes, negativevotes, codec, bitrate, lastcheckok, lastchecktime, clicktimestamp, clickcount, clicktrend
+            </td>
+            <td>OPTIONAL, name of the attribute the result list will be sorted by</td>
+          </tr>
+          <tr>
+            <td>reverse</td>
+            <td>false</td>
+            <td>true, false</td>
+            <td>OPTIONAL, rerverses the result list if set to true</td>
+          </tr>
+          <tr>
+            <td>offset</td>
+            <td>0</td>
+            <td>POSITIVE INTEGER</td>
+            <td>OPTIONAL, starting value of the result list from the database, for example if you want to do paging on the serverside</td>
+          </tr>
+          <tr>
+            <td>limit</td>
+            <td>100000</td>
+            <td>0,1,2,....</td>
+            <td>OPTIONAL, number of returned datarows (stations) starting with offset</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="h5">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/json/stations/search" target="_blank">http://www.radio-browser.info/webservice/json/stations/search</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Search_radio_stations_by_url">
+      <h1 class="display-4">Search radio stations by url</h1>
+      <p class="lead">Will get a list of radio stations that have an exact url match, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">http://www.radio-browser.info/webservice/xml/stations/byurl
+        <br /> http://www.radio-browser.info/webservice/json/stations/byurl
+      </div>
+      <div class="h5">Parameter:</div>
+      This parameters can be added by using a HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request. The parameters can also be sent with encoding "application/json" that is used for example by Angular.js
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Example values</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>url</td>
+            <td>http://this.is.a.link/test.mp3</td>
+            <td>MANDATORY, url of the station</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="h5">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/json/stations/byurl" target="_blank">http://www.radio-browser.info/webservice/json/stations/byurl</a></li>
+      </ul>
+    </div>
+
+
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Stations_by_clicks">
+      <h1 class="display-4">Stations by clicks</h1>
+      <p class="lead">Returns a list of the stations that are clicked the most. You can add a parameter with the number of wanted stations, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/xml/stations/topclick</li>
+          <li>http://www.radio-browser.info/webservice/xml/stations/topclick/rowcount</li>
+          <li>http://www.radio-browser.info/webservice/json/stations/topclick</li>
+          <li>http://www.radio-browser.info/webservice/json/stations/topclick/rowcount</li>
+        </ul>
+      </div>
+      <div class="h5">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/xml/stations/topclick" target="_blank">http://www.radio-browser.info/webservice/xml/stations/topclick</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/json/stations/topclick/5" target="_blank">http://www.radio-browser.info/webservice/json/stations/topclick/5</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5">
+      <h1 class="display-4" id="Stations_by_votes">Stations by votes</h1>
+      <p class="lead">Returns a list of the highest voted stations. You can add a parameter with the number of wanted stations, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/xml/stations/topvote</li>
+          <li>http://www.radio-browser.info/webservice/xml/stations/topvote/rowcount</li>
+          <li>http://www.radio-browser.info/webservice/json/stations/topvote</li>
+          <li>http://www.radio-browser.info/webservice/json/stations/topvote/rowcount</li>
+        </ul>
+      </div>
+      <div class="h5">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/xml/stations/topvote" target="_blank">http://www.radio-browser.info/webservice/xml/stations/topvote</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/json/stations/topvote/5" target="_blank">http://www.radio-browser.info/webservice/json/stations/topvote/5</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/m3u/stations/topvote/5" target="_blank">http://www.radio-browser.info/webservice/m3u/stations/topvote/5</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Stations_by_recent_click">
+      <h1 class="display-4">Stations by recent click</h1>
+      <p class="lead">Returns a list of stations that got clicked recently, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL </p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/xml/stations/lastclick</li>
+          <li>http://www.radio-browser.info/webservice/xml/stations/lastclick/rowcount</li>
+          <li>http://www.radio-browser.info/webservice/json/stations/lastclick</li>
+          <li>http://www.radio-browser.info/webservice/json/stations/lastclick/rowcount</li>
+        </ul>
+      </div>
+      <div class="h5">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/xml/stations/lastclick" target="_blank">http://www.radio-browser.info/webservice/xml/stations/lastclick</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/json/stations/lastclick/5" target="_blank">http://www.radio-browser.info/webservice/json/stations/lastclick/5</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Stations_by_recently_changed">
+      <h1 class="display-4">Stations by recently changed/added</h1>
+      <p class="lead">Returns a list of stations that got added or changed recently, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL </p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/xml/stations/lastchange</li>
+          <li>http://www.radio-browser.info/webservice/xml/stations/lastchange/rowcount</li>
+          <li>http://www.radio-browser.info/webservice/json/stations/lastchange</li>
+          <li>http://www.radio-browser.info/webservice/json/stations/lastchange/rowcount</li>
+        </ul>
+      </div>
+      <div class="h5">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/xml/stations/lastchange" target="_blank">http://www.radio-browser.info/webservice/xml/stations/lastchange</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/json/stations/lastchange/5" target="_blank">http://www.radio-browser.info/webservice/json/stations/lastchange/5</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Stations_that_got_deleted">
+      <h1 class="display-4">Stations that got deleted</h1>
+      <p class="lead">Returns a list of stations that got deleted in the last 30 days. Also a single station can be retrieved by id. They are not visible through any other API calls. If you want to undelete a station call <a class="font-weight-bold" href="#UnDelete_a_station">Undelete Station</a>,
+        supported output formats: JSON, XML</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/json/stations/deleted</li>
+          <li>http://www.radio-browser.info/webservice/json/stations/deleted/stationid</li>
+          <li>http://www.radio-browser.info/webservice/xml/stations/deleted</li>
+          <li>http://www.radio-browser.info/webservice/xml/stations/deleted/stationid</li>
+        </ul>
+      </div>
+      <div class="h5">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/xml/stations/deleted" target="_blank">http://www.radio-browser.info/webservice/xml/stations/deleted</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/json/stations/deleted/123" target="_blank">http://www.radio-browser.info/webservice/json/stations/deleted/123</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Old_versions_of_stations">
+      <h1 class="display-4">Old versions of stations</h1>
+      <p class="lead">Returns a list of old versions of stations from the last 30 days. Also the history of a single station can be retrieved by id. They are not visible through any other API calls. If you want to revert a station call <a class="font-weight-bold" href="#Revert_a_station">Revert Station</a>.
+        stationid can be an id or an stationuuid, supported output formats: JSON, XML</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/json/stations/changed</li>
+          <li>http://www.radio-browser.info/webservice/json/stations/changed/stationid</li>
+          <li>http://www.radio-browser.info/webservice/xml/stations/changed</li>
+          <li>http://www.radio-browser.info/webservice/xml/stations/changed/stationid</li>
+        </ul>
+      </div>
+      <div class="h5">Parameter:</div>
+      This parameters can be added by using a HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request. The parameters can also be sent with encoding "application/json" that is used for example by Angular.js
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Default value</th>
+            <th scope="row">Possible values</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>seconds</td>
+            <td>0</td>
+            <td>positive integer values</td>
+            <td>if >0 then it will only return history entries from the last 'seconds' seconds</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="h5">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/xml/stations/changed?seconds=3600" target="_blank">http://www.radio-browser.info/webservice/xml/stations/changed?seconds=3600</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/json/stations/changed/123" target="_blank">http://www.radio-browser.info/webservice/json/stations/changed/123</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Stations_that_need_improvement">
+      <h1 class="display-4">Stations that need improvement</h1>
+      <p class="lead">Returns a list of the stations that need improvement, which means they do not have e.g.: tags, country, state,.. information, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/xml/stations/improvable</li>
+          <li>http://www.radio-browser.info/webservice/xml/stations/improvable/rowcount</li>
+          <li>http://www.radio-browser.info/webservice/json/stations/improvable</li>
+          <li>http://www.radio-browser.info/webservice/json/stations/improvable/rowcount</li>
+        </ul>
+      </div>
+      <div class="h5">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/xml/stations/improvable" target="_blank">http://www.radio-browser.info/webservice/xml/stations/improvable</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/json/stations/improvable/5" target="_blank">http://www.radio-browser.info/webservice/json/stations/improvable/5</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Broken_stations">
+      <h1 class="display-4">Broken stations</h1>
+      <p class="lead">Returns a list of the stations that did not pass the connection test, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/xml/stations/broken</li>
+          <li>http://www.radio-browser.info/webservice/xml/stations/broken/rowcount</li>
+          <li>http://www.radio-browser.info/webservice/json/stations/broken</li>
+          <li>http://www.radio-browser.info/webservice/json/stations/broken/rowcount</li>
+        </ul>
+      </div>
+      <div class="h5 mt-2">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/xml/stations/broken" target="_blank">http://www.radio-browser.info/webservice/xml/stations/broken</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/json/stations/broken/5" target="_blank">http://www.radio-browser.info/webservice/json/stations/broken/5</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Vote_for_station">
+      <h1 class="display-4">Vote for station</h1>
+      <p class="lead">Increase the vote count for the station by one. Can only be done by the same ip adress for one station every 10 minutes. Returns the changed station as result if it worked, supported output formats: JSON, XML</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/xml/vote/stationid</li>
+          <li>http://www.radio-browser.info/webservice/json/vote/stationid</li>
+        </ul>
+
+      </div>
+      <div class="h5">Result JSON:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+            {
+              "ok": "true",
+              "message": "voted for station successfully"
+            }
+                </pre>
+      </div>
+      <div class="h5 mt-2">Result XML:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+            &lt;result&gt;
+              &lt;status ok=&quot;true&quot; message=&quot;voted for station successfully&quot;/&gt;
+            &lt;/result&gt;
+                </pre>
+      </div>
+      <div class="h5 mt-2">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/json/vote/123" target="_blank">http://www.radio-browser.info/webservice/json/vote/123</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Delete_a_station">
+      <h1 class="display-4">Delete a station</h1>
+      <p class="lead">The station will be deleted from the public list and moved to a deleted list. It will stay there for 30 days and then removed from the system. As long as it is in the deleted list it can be undeleted at any time, supported output formats: JSON,
+        XML
+      </p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/xml/delete/stationid</li>
+          <li>http://www.radio-browser.info/webservice/json/delete/stationid</li>
+        </ul>
+      </div>
+      <div class="h5">Result JSON:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+              {
+                "ok": "true",
+                "message": "station was deleted"
+              }
+              </pre>
+      </div>
+
+      <div class="h5 mt-2">Result XML:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+              &lt;result&gt;
+                &lt;status ok=&quot;true&quot; message=&quot;station was deleted&quot;/&gt;
+              &lt;/result&gt;
+              </pre>
+      </div>
+      <div class="h5 mt-2">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/json/delete/123" target="_blank">http://www.radio-browser.info/webservice/json/delete/123</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="UnDelete_a_station">
+      <h1 class="display-4">UnDelete a station</h1>
+      <p class="lead">Undeletes a station which was deleted in the last 30 days, supported output formats: JSON, XML</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/xml/undelete/stationid</li>
+          <li>http://www.radio-browser.info/webservice/json/undelete/stationid</li>
+        </ul>
+
+        <br/>
+      </div>
+      <div class="h5">Result JSON:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+                {
+                  "ok": "true",
+                  "message": "station was undeleted"
+                }
+                </pre>
+      </div>
+      <div class="h5 mt-2">Result XML:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+                  &lt;result&gt;
+                    &lt;status ok=&quot;true&quot; message=&quot;station was undeleted&quot;/&gt;
+                  &lt;/result&gt;
+                </pre>
+      </div>
+      <div class="h5 mt-2">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/json/undelete/123" target="_blank">http://www.radio-browser.info/webservice/json/undelete/123</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Revert_a_station">
+      <h1 class="display-4">Revert a station</h1>
+      <p class="lead">Reverts a change to a station that was done in the last 30 days, supported output formats: JSON, XML</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/xml/revert/stationid/changeid</li>
+          <li>http://www.radio-browser.info/webservice/json/revert/stationid/changeid</li>
+        </ul>
+      </div>
+      <div class="h5">Result JSON:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+                {
+                  "ok": "true",
+                  "message": "station was reverted"
+                }
+              </pre>
+      </div>
+
+      <div class="h5 mt-2">Result XML:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+              &lt;result&gt;
+                &lt;status ok=&quot;true&quot; message=&quot;station was reverted&quot;/&gt;
+              &lt;/result&gt;
+              </pre>
+      </div>
+
+      <div class="h5 mt-2">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/json/revert/123/456" target="_blank">http://www.radio-browser.info/webservice/json/revert/123/456</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/xml/revert/123/456" target="_blank">http://www.radio-browser.info/webservice/xml/revert/123/456</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Add_radio_station">
+      <h1 class="display-4">Add radio station</h1>
+      <p class="lead">Add a radio station to the database, supported output formats: JSON, XML</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/xml/add</li>
+          <li>http://www.radio-browser.info/webservice/json/add</li>
+        </ul>
+      </div>
+      <div class="h5">Parameter:</div>
+      This parameters can be added by using a HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request. The parameters can also be sent with encoding "application/json" that is used for example by Angular.js
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Example values</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>name</td>
+            <td>Station Name</td>
+            <td>MANDATORY, the name of the radio station. Max 400 chars.</td>
+          </tr>
+          <tr>
+            <td>url</td>
+            <td>
+              <nobr>http://this.is.an.url/stream.mp3</nobr>
+            </td>
+            <td>MANDATORY, the url of the station</td>
+          </tr>
+          <tr>
+            <td>homepage</td>
+            <td>http://this.is.an.url/</td>
+            <td>the homepage url of the station</td>
+          </tr>
+          <tr>
+            <td>favicon</td>
+            <td>
+              <nobr>http://this.is.an.url/favicon.ico</nobr>
+            </td>
+            <td>the url of an image file (jpg or png)</td>
+          </tr>
+          <tr>
+            <td>country</td>
+            <td>Austria</td>
+            <td>The name of the country where the radio station is located</td>
+          </tr>
+          <tr>
+            <td>state</td>
+            <td>Vienna</td>
+            <td>The name of the part of the country where the station is located</td>
+          </tr>
+          <tr>
+            <td>language</td>
+            <td>English</td>
+            <td>The main language which is used in spoken text parts of the radio station.</td>
+          </tr>
+          <tr>
+            <td>tags</td>
+            <td>pop,rock</td>
+            <td>A list of tags separated by commas, which describe the station.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="h5">Result JSON:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+          {
+            "ok": "true",
+            "message": "station was added",
+            "id": "123",
+            "stream_check_ok": "true",
+            "stream_check_bitrate": "128",
+            "stream_check_codec": "MP3",
+            "favicon_check_done": "true",
+            "favicon_check_ok": "true",
+            "favicon_check_url": "http://url.to.image/image.png"
+          }
+              </pre>
+      </div>
+
+      <div class="h5 mt-2">Result XML:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+              &lt;result&gt;
+              &lt;status ok=&quot;true&quot;
+              message=&quot;station was added&quot;
+              id=&quot;123&quot;
+              stream_check_ok=&quot;true&quot;
+              stream_check_bitrate=&quot;128&quot;
+              stream_check_codec=&quot;MP3&quot;
+              favicon_check_done=&quot;true&quot;
+              favicon_check_ok=&quot;true&quot;
+              favicon_check_url=&quot;http://url.to.image/image.png&quot;/&gt;
+              &lt;/result&gt;
+              </pre>
+      </div>
+
+      <div class="h5 mt-2">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/json/add" target="_blank">http://www.radio-browser.info/webservice/json/add</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/xml/add" target="_blank">http://www.radio-browser.info/webservice/xml/add</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Edit_a_radio_station">
+      <h1 class="display-4">Edit a radio station</h1>
+      <p class="lead ">Edit a radio station. You can only change some of the values, even only one value, by sending just the parameter you want to change. The rest of the information of the edited station will stay the same. The Station is not saved, if the given url
+        is not working, supported output formats: JSON, XML</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/xml/edit/stationid</li>
+          <li>http://www.radio-browser.info/webservice/json/edit/stationid</li>
+        </ul>
+      </div>
+      <div class="h5">Parameter:</div>
+      This parameters can be added by using a HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request. The parameters can also be sent with encoding "application/json" that is used for example by Angular.js
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Example values</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>name</td>
+            <td>Station Name</td>
+            <td>MANDATORY, the name of the radio station. Max 400 chars.</td>
+          </tr>
+          <tr>
+            <td>url</td>
+            <td>
+              <nobr>http://this.is.an.url/stream.mp3</nobr>
+            </td>
+            <td>MANDATORY, the url of the station. Online check needs to turn out ok.</td>
+          </tr>
+          <tr>
+            <td>homepage</td>
+            <td>http://this.is.an.url/</td>
+            <td>the homepage url of the station</td>
+          </tr>
+          <tr>
+            <td>favicon</td>
+            <td>
+              <nobr>http://this.is.an.url/favicon.ico</nobr>
+            </td>
+            <td>the url of an image file (jpg or png)</td>
+          </tr>
+          <tr>
+            <td>country</td>
+            <td>Austria</td>
+            <td>The name of the country where the radio station is located</td>
+          </tr>
+          <tr>
+            <td>state</td>
+            <td>Vienna</td>
+            <td>The name of the part of the country where the station is located</td>
+          </tr>
+          <tr>
+            <td>language</td>
+            <td>English</td>
+            <td>The main language which is used in spoken text parts of the radio station.</td>
+          </tr>
+          <tr>
+            <td>tags</td>
+            <td>pop,rock</td>
+            <td>A list of tags separated by commas, which describe the station.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="h5">Result JSON:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+          {
+            "ok": "true",
+            "message": "station was added",
+            "id": "123",
+            "stream_check_ok": "true",
+            "stream_check_bitrate": "128",
+            "stream_check_codec": "MP3",
+            "favicon_check_done": "true",
+            "favicon_check_ok": "true",
+            "favicon_check_url": "http://url.to.image/image.png"
+          }
+              </pre>
+      </div>
+
+      <div class="h5 mt-2">Result XML:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+          &lt;result&gt;
+            &lt;status ok=&quot;true&quot;
+              message=&quot;station was added&quot;
+              id=&quot;123&quot;
+              stream_check_ok=&quot;true&quot;
+              stream_check_bitrate=&quot;128&quot;
+              stream_check_codec=&quot;MP3&quot;
+              favicon_check_done=&quot;true&quot;
+              favicon_check_ok=&quot;true&quot;
+              favicon_check_url=&quot;http://url.to.image/image.png&quot;/&gt;
+          &lt;/result&gt;
+              </pre>
+      </div>
+
+      <div class="h5 mt-2">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/json/edit/123" target="_blank">http://www.radio-browser.info/webservice/json/edit/123</a></li>
+        <li><a href="http://www.radio-browser.info/webservice/xml/edit/123" target="_blank">http://www.radio-browser.info/webservice/xml/edit/123</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Server_stats">
+      <h1 class="display-4">Server stats</h1>
+      <p class="lead ">Webservice stats, supported output formats: JSON, XML</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>http://www.radio-browser.info/webservice/xml/stats</li>
+          <li>http://www.radio-browser.info/webservice/json/stats</li>
+        </ul>
+      </div>
+      <div class="h5">Result JSON:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+          {
+              &quot;stations&quot;: &quot;4047&quot;,
+              &quot;stations_broken&quot;: &quot;45&quot;,
+              &quot;tags&quot;: &quot;677&quot;,
+              &quot;clicks_last_hour&quot;: &quot;65&quot;,
+              &quot;clicks_last_day&quot;: &quot;1822&quot;,
+              &quot;languages&quot;: &quot;59&quot;,
+              &quot;countries&quot;: &quot;81&quot;
+          }
+              </pre>
+      </div>
+
+      <div class="h5 mt-2">Result XML:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+          &lt;result&gt;
+            &lt;stats stations=&quot;4047&quot;
+              stations_broken=&quot;45&quot;
+              tags=&quot;677&quot;
+              clicks_last_hour=&quot;66&quot;
+              clicks_last_day=&quot;1824&quot;
+              languages=&quot;59&quot;
+              countries=&quot;81&quot;/&gt;
+          &lt;/result&gt;
+              </pre>
+      </div>
+
+      <div class="h5 mt-2">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="http://www.radio-browser.info/webservice/xml/stats" target="_blank">http://www.radio-browser.info/webservice/xml/stats</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
+
+</body>
+
+</html>
