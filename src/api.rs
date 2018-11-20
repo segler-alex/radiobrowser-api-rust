@@ -146,6 +146,10 @@ fn encode_stations(list : Vec<db::Station>, format : &str) -> rouille::Response 
             let j = db::serialize_to_m3u(list);
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/mpegurl")
         },
+        "pls" => {
+            let j = db::serialize_to_pls(list);
+            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/x-scpls")
+        },
         _ => rouille::Response::empty_406()
     }
 }

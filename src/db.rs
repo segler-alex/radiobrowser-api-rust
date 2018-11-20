@@ -84,13 +84,34 @@ pub struct ExtraInfo {
 
 pub fn serialize_to_m3u(list: Vec<Station>) -> String {
     let mut j = String::with_capacity(200 * list.len());
-    j.push_str("#EXTM3U\n");
+    j.push_str("#EXTM3U\r\n");
     for item in list {
         j.push_str("#EXTINF:1,");
         j.push_str(&item.name);
-        j.push_str("\n");
+        j.push_str("\r\n");
         j.push_str(&item.url);
-        j.push_str("\n\n");
+        j.push_str("\r\n\r\n");
+    }
+    j
+}
+
+pub fn serialize_to_pls(list: Vec<Station>) -> String {
+    let mut j = String::with_capacity(200 * list.len());
+    j.push_str("[playlist]\r\n");
+    let mut i = 1;
+    for item in list {
+        let i_str = format!("{}",i);
+        j.push_str("File");
+        j.push_str(&i_str);
+        j.push_str("=");
+        j.push_str(&item.name);
+        j.push_str("\r\n");
+        j.push_str("Title");
+        j.push_str(&i_str);
+        j.push_str("=");
+        j.push_str(&item.url);
+        j.push_str("\r\n\r\n");
+        i += 1;
     }
     j
 }
