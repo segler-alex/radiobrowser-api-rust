@@ -491,6 +491,33 @@ impl Connection {
         }
     }
 
+    pub fn get_stations_broken(&self, limit: u32) -> Vec<Station> {
+        self.get_stations_query(format!("SELECT {columns} from Station WHERE LastCheckOK=FALSE ORDER BY rand() LIMIT {limit}",columns = Connection::COLUMNS, limit = limit))
+    }
+
+    pub fn get_stations_improvable(&self, limit: u32) -> Vec<Station> {
+        self.get_stations_query(format!(r#"SELECT {columns} from Station WHERE LastCheckOK=TRUE AND (Tags="" OR Country="") ORDER BY RAND() LIMIT {limit}"#,columns = Connection::COLUMNS, limit = limit))
+    }
+
+    pub fn get_stations_deleted(&self, limit: u32, id_str: &str) -> Vec<Station> {
+        let id = id_str.parse::<u32>();
+        let results = match id {
+            Ok(id_number) => {
+                let query = format!("SELECT {columns} FROM Station st RIGHT JOIN StationHistory sth ON st.StationID=sth.StationID WHERE st.StationID IS NULL AND sth.StationID=? ORDER BY sth.Creation DESC' {limit}",columns = Connection::COLUMNS, limit = limit);
+                self.pool.prep_exec(query, (id_number,))
+            },
+            _ => {
+                let query = format!("SELECT {columns} FROM Station st RIGHT JOIN StationHistory sth ON st.StationID=sth.StationID WHERE st.StationID IS NULL AND sth.StationUuid=? ORDER BY sth.Creation DESC' {limit}",columns = Connection::COLUMNS, limit = limit);
+                self.pool.prep_exec(query, (id_str,))
+            }
+        };
+        self.get_stations(results)
+    }
+
+    pub fn get_stations_deleted_all(&self, limit: u32) -> Vec<Station> {
+        self.get_stations_query(format!("SELECT {columns} FROM Station st RIGHT JOIN StationHistory sth ON st.StationID=sth.StationID WHERE st.StationID IS NULL ORDER BY sth.Creation DESC' {limit}",columns = Connection::COLUMNS, limit = limit))
+    }
+
     pub fn get_stations_by_column(&self, column_name: &str, search: String, exact: bool, order: &str, reverse: bool, hidebroken: bool, offset: u32, limit: u32) -> Vec<Station> {
         let order = self.filter_order(order);
         let reverse_string = if reverse { "DESC" } else { "ASC" };
