@@ -298,6 +298,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
     let mut limit : u32 = request.get_param("limit").unwrap_or(String::from("999999")).parse().unwrap_or(999999);
 
     let mut seconds: u32 = request.get_param("seconds").unwrap_or(String::from("0")).parse().unwrap_or(0);
+    let mut param_url: String = String::from("");
     
     let content_type: &str = request.header("Content-Type").unwrap_or("nothing");
     if request.method() == "POST" {
@@ -309,12 +310,13 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
                     Ok(_) => {
                         let iter = form_urlencoded::parse(&buf);
                         for (key,val) in iter {
-                            if key == "order" { order = val.parse().unwrap_or(order); }
+                            if key == "order" { order = val.into(); }
                             else if key == "reverse" { reverse = val.parse().unwrap_or(reverse); }
                             else if key == "hidebroken" { hidebroken = val.parse().unwrap_or(hidebroken); }
                             else if key == "offset" { offset = val.parse().unwrap_or(offset); }
                             else if key == "limit" { limit = val.parse().unwrap_or(limit); }
                             else if key == "seconds" { seconds = val.parse().unwrap_or(seconds); }
+                            else if key == "url" { param_url = val.into(); }
                         }
                     },
                     Err(err) => {
@@ -330,6 +332,9 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
                         let v: self::serde_json::Value = serde_json::from_slice(&buf).unwrap();
                         if v["order"].is_string() {
                             order = v["order"].as_str().unwrap().to_string();
+                        }
+                        if v["url"].is_string() {
+                            param_url = v["url"].as_str().unwrap().to_string();
                         }
                         if v["reverse"].is_string() {
                             reverse = v["reverse"].as_str().unwrap() == "true";
@@ -401,6 +406,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
                     "lastclick" => add_cors(encode_stations(connection.get_stations_lastclick(999999), format)),
                     "lastchange" => add_cors(encode_stations(connection.get_stations_lastchange(999999), format)),
                     "changed" => add_cors(encode_changes(get_changes(&request, &connection, None), format)),
+                    "byurl" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Url", param_url,true,&order,reverse,hidebroken,offset,limit), format)),
                     _ => rouille::Response::empty_404()
                 }
             },
