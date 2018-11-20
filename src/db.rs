@@ -82,6 +82,19 @@ pub struct ExtraInfo {
     stationcountworking: u32
 }
 
+pub fn serialize_to_m3u(list: Vec<Station>) -> String {
+    let mut j = String::with_capacity(200 * list.len());
+    j.push_str("#EXTM3U\n");
+    for item in list {
+        j.push_str("#EXTINF:1,");
+        j.push_str(&item.name);
+        j.push_str("\n");
+        j.push_str(&item.url);
+        j.push_str("\n\n");
+    }
+    j
+}
+
 pub fn serialize_result1n_list(type_str: &str, entries: Vec<Result1n>) -> std::io::Result<String> {
     let mut xml = xml_writer::XmlWriter::new(Vec::new());
     xml.begin_elem("result")?;

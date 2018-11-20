@@ -142,6 +142,10 @@ fn encode_stations(list : Vec<db::Station>, format : &str) -> rouille::Response 
             let j = db::serialize_station_list(list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
         },
+        "m3u" => {
+            let j = db::serialize_to_m3u(list);
+            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/mpegurl")
+        },
         _ => rouille::Response::empty_406()
     }
 }
@@ -268,56 +272,58 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
     let mut limit : u32 = request.get_param("limit").unwrap_or(String::from("999999")).parse().unwrap_or(999999);
     
     let content_type: &str = request.header("Content-Type").unwrap_or("nothing");
-    match content_type {
-        "application/x-www-form-urlencoded" => {
-            let mut data = request.data().unwrap();
-            let mut buf = Vec::new();
-            match data.read_to_end(&mut buf) {
-                Ok(_) => {
-                    let iter = form_urlencoded::parse(&buf);
-                    for (key,val) in iter {
-                        if key == "order" { order = val.parse().unwrap_or(order); }
-                        else if key == "reverse" { reverse = val.parse().unwrap_or(reverse); }
-                        else if key == "hidebroken" { hidebroken = val.parse().unwrap_or(hidebroken); }
-                        else if key == "offset" { offset = val.parse().unwrap_or(offset); }
-                        else if key == "limit" { limit = val.parse().unwrap_or(limit); }
+    if request.method() == "POST" {
+        match content_type {
+            "application/x-www-form-urlencoded" => {
+                let mut data = request.data().unwrap();
+                let mut buf = Vec::new();
+                match data.read_to_end(&mut buf) {
+                    Ok(_) => {
+                        let iter = form_urlencoded::parse(&buf);
+                        for (key,val) in iter {
+                            if key == "order" { order = val.parse().unwrap_or(order); }
+                            else if key == "reverse" { reverse = val.parse().unwrap_or(reverse); }
+                            else if key == "hidebroken" { hidebroken = val.parse().unwrap_or(hidebroken); }
+                            else if key == "offset" { offset = val.parse().unwrap_or(offset); }
+                            else if key == "limit" { limit = val.parse().unwrap_or(limit); }
+                        }
+                    },
+                    Err(err) => {
+                        println!("err {}",err);
                     }
-                },
-                Err(err) => {
-                    println!("err {}",err);
                 }
-            }
-        },
-        "application/json" => {
-            let mut data = request.data().unwrap();
-            let mut buf = Vec::new();
-            match data.read_to_end(&mut buf) {
-                Ok(_) => {
-                    let v: self::serde_json::Value = serde_json::from_slice(&buf).unwrap();
-                    if v["order"].is_string() {
-                        order = v["order"].as_str().unwrap().to_string();
+            },
+            "application/json" => {
+                let mut data = request.data().unwrap();
+                let mut buf = Vec::new();
+                match data.read_to_end(&mut buf) {
+                    Ok(_) => {
+                        let v: self::serde_json::Value = serde_json::from_slice(&buf).unwrap();
+                        if v["order"].is_string() {
+                            order = v["order"].as_str().unwrap().to_string();
+                        }
+                        if v["reverse"].is_string() {
+                            reverse = v["reverse"].as_str().unwrap() == "true";
+                        }
+                        if v["reverse"].is_boolean() {
+                            reverse = v["reverse"].as_bool().unwrap();
+                        }
+                        if v["hidebroken"].is_string() {
+                            hidebroken = v["hidebroken"].as_str().unwrap() == "true";
+                        }
+                        if v["hidebroken"].is_boolean() {
+                            hidebroken = v["hidebroken"].as_bool().unwrap();
+                        }
+                        offset = v["offset"].as_u64().unwrap_or(offset.into()) as u32;
+                        limit = v["limit"].as_u64().unwrap_or(limit.into()) as u32;
+                    },
+                    Err(err) => {
+                        println!("err {}",err);
                     }
-                    if v["reverse"].is_string() {
-                        reverse = v["reverse"].as_str().unwrap() == "true";
-                    }
-                    if v["reverse"].is_boolean() {
-                        reverse = v["reverse"].as_bool().unwrap();
-                    }
-                    if v["hidebroken"].is_string() {
-                        hidebroken = v["hidebroken"].as_str().unwrap() == "true";
-                    }
-                    if v["hidebroken"].is_boolean() {
-                        hidebroken = v["hidebroken"].as_bool().unwrap();
-                    }
-                    offset = v["offset"].as_u64().unwrap_or(offset.into()) as u32;
-                    limit = v["limit"].as_u64().unwrap_or(limit.into()) as u32;
-                },
-                Err(err) => {
-                    println!("err {}",err);
                 }
+            },
+            _ => {
             }
-        },
-        _ => {
         }
     }
 
