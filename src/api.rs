@@ -190,6 +190,20 @@ fn encode_extra(list : Vec<db::ExtraInfo>, format : &str, tag_name: &str) -> rou
     }
 }
 
+fn encode_checks(list: Vec<db::StationCheck>, format: &str) -> rouille::Response {
+    match format {
+        "json" => {
+            let j = serde_json::to_string(&list).unwrap();
+            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+        },
+        "xml" => {
+            let j = db::serialize_station_checks(list).unwrap();
+            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
+        },
+        _ => rouille::Response::empty_406()
+    }
+}
+
 pub fn serialize_status(status: &Status) -> std::io::Result<String> {
     let mut xml = xml_writer::XmlWriter::new(Vec::new());
     xml.begin_elem("result")?;
@@ -282,6 +296,8 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
     let mut hidebroken : bool = request.get_param("hidebroken").unwrap_or(String::from("false")) == "true";
     let mut offset : u32 = request.get_param("offset").unwrap_or(String::from("0")).parse().unwrap_or(0);
     let mut limit : u32 = request.get_param("limit").unwrap_or(String::from("999999")).parse().unwrap_or(999999);
+
+    let mut seconds: u32 = request.get_param("seconds").unwrap_or(String::from("0")).parse().unwrap_or(0);
     
     let content_type: &str = request.header("Content-Type").unwrap_or("nothing");
     if request.method() == "POST" {
@@ -298,6 +314,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
                             else if key == "hidebroken" { hidebroken = val.parse().unwrap_or(hidebroken); }
                             else if key == "offset" { offset = val.parse().unwrap_or(offset); }
                             else if key == "limit" { limit = val.parse().unwrap_or(limit); }
+                            else if key == "seconds" { seconds = val.parse().unwrap_or(seconds); }
                         }
                     },
                     Err(err) => {
@@ -328,6 +345,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
                         }
                         offset = v["offset"].as_u64().unwrap_or(offset.into()) as u32;
                         limit = v["limit"].as_u64().unwrap_or(limit.into()) as u32;
+                        seconds = v["seconds"].as_u64().unwrap_or(seconds.into()) as u32;
                     },
                     Err(err) => {
                         println!("err {}",err);
@@ -362,6 +380,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
             "stations" => add_cors(encode_stations(connection.get_stations_by_all(&order, reverse, hidebroken, offset, limit), format)),
             "servers" => add_cors(dns_resolve(format)),
             "status" => add_cors(encode_status(get_status(), format)),
+            "checks" => add_cors(encode_checks(connection.get_checks(None, seconds),format)),
             _ => rouille::Response::empty_404()
         }
     } else if items.len() == 4 {
@@ -385,6 +404,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
                     _ => rouille::Response::empty_404()
                 }
             },
+            "checks" => add_cors(encode_checks(connection.get_checks(Some(parameter.to_string()), seconds), format)),
             _ => rouille::Response::empty_404()
         }
     } else if items.len() == 5 {

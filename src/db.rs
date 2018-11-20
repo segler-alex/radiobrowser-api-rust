@@ -60,6 +60,20 @@ pub struct StationHistory {
 }
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
+pub struct StationCheck {
+    id: i32,
+    stationuuid: String,
+    checkuuid: String,
+    source: String,
+    codec: String,
+    bitrate: u32,
+    hls: u8,
+    ok: u8,
+    timestamp: String,
+    urlcache: String,
+}
+
+#[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct Result1n {
     name: String,
     value: String,
@@ -130,6 +144,27 @@ pub fn serialize_to_xspf(entries: Vec<Station>) -> std::io::Result<String> {
         xml.end_elem()?;
     }
     xml.end_elem()?;
+    xml.end_elem()?;
+    xml.close()?;
+    xml.flush()?;
+    Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
+}
+
+pub fn serialize_station_checks(entries: Vec<StationCheck>) -> std::io::Result<String> {
+    let mut xml = xml_writer::XmlWriter::new(Vec::new());
+    xml.begin_elem("result")?;
+    for entry in entries{
+        xml.begin_elem("check")?;
+            xml.attr_esc("stationuuid", &entry.stationuuid)?;
+            xml.attr_esc("checkuuid", &entry.checkuuid)?;
+            xml.attr_esc("source", &entry.source)?;
+            xml.attr_esc("codec", &entry.codec)?;
+            xml.attr_esc("bitrate", &entry.bitrate.to_string())?;
+            xml.attr_esc("hls", &entry.hls.to_string())?;
+            xml.attr_esc("ok", &entry.ok.to_string())?;
+            xml.attr_esc("timestamp", &entry.timestamp)?;
+        xml.end_elem()?;
+    }
     xml.end_elem()?;
     xml.close()?;
     xml.flush()?;
@@ -264,8 +299,7 @@ pub fn serialize_result1n_list(type_str: &str, entries: Vec<Result1n>) -> std::i
         xml.begin_elem(type_str)?;
             xml.attr_esc("name", &entry.name)?;
             xml.attr_esc("value", &entry.value)?;
-            let count_str = format!("{}", entry.stationcount);
-            xml.attr_esc("stationcount", &count_str)?;
+            xml.attr_esc("stationcount", &entry.stationcount.to_string())?;
         xml.end_elem()?;
     }
     xml.end_elem()?;
@@ -282,8 +316,7 @@ pub fn serialize_state_list(entries: Vec<State>) -> std::io::Result<String> {
             xml.attr_esc("name", &entry.name)?;
             xml.attr_esc("value", &entry.value)?;
             xml.attr_esc("country", &entry.country)?;
-            let count_str = format!("{}", entry.stationcount);
-            xml.attr_esc("stationcount", &count_str)?;
+            xml.attr_esc("stationcount", &entry.stationcount.to_string())?;
         xml.end_elem()?;
     }
     xml.end_elem()?;
@@ -299,8 +332,7 @@ pub fn serialize_extra_list(entries: Vec<ExtraInfo>, tag_name: &str) -> std::io:
         xml.begin_elem(tag_name)?;
             xml.attr_esc("name", &entry.name)?;
             xml.attr_esc("value", &entry.value)?;
-            let count_str = format!("{}", entry.stationcount);
-            xml.attr_esc("stationcount", &count_str)?;
+            xml.attr_esc("stationcount", &entry.stationcount.to_string())?;
         xml.end_elem()?;
     }
     xml.end_elem()?;
@@ -402,6 +434,27 @@ impl Connection {
     ClickTimestamp,
     Date_Format(ClickTimestamp,'%Y-%m-%d %H:%i:%s') AS ClickTimestampFormated,
     clickcount,ClickTrend";
+
+    const COLUMNS_CHECK: &'static str = "CheckID, StationUuid, CheckUuid, Source, Codec, Bitrate, Hls, CheckOK,
+    CheckTime,
+    Date_Format(CheckTime,'%Y-%m-%d %H:%i:%s') AS CheckTimeFormated,
+    UrlCache";
+
+    pub fn get_checks(&self, stationuuid: Option<String>, seconds: u32) -> Vec<StationCheck> {
+        let where_seconds = if seconds > 0 {format!("TIME_TO_SEC(TIMEDIFF(Now(),CheckTime))<{seconds}",seconds = seconds) } else { String::from("") };
+        let results = match stationuuid {
+            Some(uuid) => {
+                let query = format!("SELECT {columns} from StationCheck WHERE StationUuid=? {where_seconds} ORDER BY CheckTime", columns = Connection::COLUMNS_CHECK, where_seconds = where_seconds);
+                self.pool.prep_exec(query, (uuid,))
+            }
+            None => {
+                let query = format!("SELECT {columns} from StationCheck WHERE 1=1 {where_seconds} ORDER BY CheckTime", columns = Connection::COLUMNS_CHECK, where_seconds = where_seconds);
+                self.pool.prep_exec(query, ())
+            }
+        };
+        
+        self.get_checks_internal(results)
+    }
 
     pub fn get_stations_by_all(&self, order: &str, reverse: bool, hidebroken: bool, offset: u32, limit: u32) -> Vec<Station> {
         let order = self.filter_order(order);
@@ -576,6 +629,30 @@ impl Connection {
         }
 
         changes
+    }
+
+    fn get_checks_internal(&self, results: self::mysql::Result<QueryResult<'static>>) -> Vec<StationCheck> {
+        let mut checks: Vec<StationCheck> = vec![];
+        for result in results {
+            for row_ in result {
+                let mut row = row_.unwrap();
+                let s = StationCheck {
+                    id:              row.take("CheckID").unwrap(),
+                    stationuuid:     row.take("StationUuid").unwrap_or("".to_string()),
+                    checkuuid:       row.take("CheckUuid").unwrap_or("".to_string()),
+                    source:          row.take("Source").unwrap_or("".to_string()),
+                    codec:           row.take_opt("Codec").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    bitrate:         row.take_opt("Bitrate").unwrap_or(Ok(0)).unwrap_or(0),
+                    hls:             row.take_opt("Hls").unwrap_or(Ok(0)).unwrap_or(0),
+                    ok:              row.take_opt("CheckOK").unwrap_or(Ok(0)).unwrap_or(0),
+                    timestamp:       row.take_opt("CheckTimeFormated").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                    urlcache:        row.take_opt("UrlCache").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+                };
+                checks.push(s);
+            }
+        }
+
+        checks
     }
 
     pub fn get_1_n(&self, column: &str, search: Option<String>, order : String, reverse : bool, hidebroken : bool) -> Vec<Result1n>{
