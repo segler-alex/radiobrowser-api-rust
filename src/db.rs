@@ -136,6 +136,126 @@ pub fn serialize_to_xspf(entries: Vec<Station>) -> std::io::Result<String> {
     Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
 }
 
+fn serialize_to_ttl_single(station: Station) -> String {
+  format!(r#"<http://radio-browser.info/radio/{id}>
+  rdf:type schema:RadioStation ;
+  dcterms:identifier "{id}" ;
+  schema:PropertyValue [
+    schema:name "changeuuid" ;
+    schema:value "{changeuuid}"
+  ] ;
+  schema:PropertyValue [
+    schema:name "stationuuid" ;
+    schema:value "{stationuuid}"
+  ] ;
+  schema:name "{name}" ;
+  schema:url <{url}> ;
+  schema:sameAs <{homepage}> ;
+  schema:logo <{favicon}> ;
+  schema:Country [
+    schema:name "{country}" ;
+  ] ;
+  schema:State [
+    schema:name "{state}" ;
+  ] ;
+  schema:Language [
+    schema:name "{language}" ;
+  ] ;
+  schema:PropertyValue [
+    schema:name "votes" ;
+    schema:value "{votes}"
+  ] ;
+  schema:PropertyValue [
+    schema:name "negativevotes" ;
+    schema:value "{negativevotes}"
+  ] ;
+  schema:PropertyValue [
+    schema:name "lastchangetime" ;
+    schema:value "{lastchangetime}"
+  ] ;
+  schema:PropertyValue [
+    schema:name "ip" ;
+    schema:value "{ip}"
+  ] ;
+  schema:PropertyValue [
+    schema:name "codec" ;
+    schema:value "{codec}"
+  ] ;
+  schema:PropertyValue [
+    schema:name "bitrate" ;
+    schema:value "{bitrate}"
+  ] ;
+  schema:PropertyValue [
+    schema:name "hls" ;
+    schema:value "{hls}"
+  ] ;
+  schema:PropertyValue [
+    schema:name "lastcheckok" ;
+    schema:value "{lastcheckok}"
+  ] ;
+  schema:PropertyValue [
+    schema:name "lastchecktime" ;
+    schema:value "{lastchecktime}"
+  ] ;
+  schema:PropertyValue [
+    schema:name "lastcheckoktime" ;
+    schema:value "{lastcheckoktime}"
+  ] ;
+  schema:PropertyValue [
+    schema:name "clicktimestamp" ;
+    schema:value "{clicktimestamp}"
+  ] ;
+  schema:PropertyValue [
+    schema:name "clickcount" ;
+    schema:value "{clickcount}"
+  ] ;
+  schema:PropertyValue [
+    schema:name "clicktrend" ;
+    schema:value "{clicktrend}"
+  ] ;
+  .{newline}"#,id = station.id,
+  stationuuid = station.stationuuid,
+  changeuuid = station.changeuuid,
+  name = station.name,
+  url = station.url,
+  lastchangetime = station.lastchecktime,
+  lastchecktime = station.lastchecktime,
+  lastcheckoktime = station.lastcheckoktime,
+  clicktimestamp = station.clicktimestamp,
+  homepage = station.homepage,
+  favicon = station.favicon,
+  country = station.country,
+  state = station.state,
+  language = station.language,
+  votes = station.votes,
+  negativevotes = station.negativevotes,
+  ip = station.ip,
+  codec = station.codec,
+  bitrate = station.bitrate,
+  hls = station.hls,
+  lastcheckok = station.lastcheckok,
+  clickcount = station.clickcount,
+  clicktrend = station.clicktrend,
+  newline = "\r\n\r\n")
+}
+
+pub fn serialize_to_ttl(list: Vec<Station>) -> String {
+    let mut j = String::with_capacity(200 * list.len());
+
+    j.push_str(r#"@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix schema: <http://schema.org/> .
+@prefix wdrs: <https://www.w3.org/2007/05/powder-s#> .
+"#);
+
+    for entry in list {
+        let x = serialize_to_ttl_single(entry);
+        j.push_str(&x);
+    }
+
+    j
+}
+
 pub fn serialize_result1n_list(type_str: &str, entries: Vec<Result1n>) -> std::io::Result<String> {
     let mut xml = xml_writer::XmlWriter::new(Vec::new());
     xml.begin_elem("result")?;
@@ -560,14 +680,12 @@ impl Connection {
 }
 pub enum DBError{
     ConnectionError (String),
-    EncodeError (String),
 }
 
 impl std::fmt::Display for DBError{
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result{
         match *self{
             DBError::ConnectionError(ref v) => write!(f, "{}", v),
-            DBError::EncodeError(ref v) => write!(f, "{}", v),
         }
     }
 }

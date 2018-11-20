@@ -154,6 +154,10 @@ fn encode_stations(list : Vec<db::Station>, format : &str) -> rouille::Response 
             let j = db::serialize_to_xspf(list).unwrap();
             rouille::Response::text(j).with_unique_header("Content-Type","application/xspf+xml").with_unique_header("Content-Disposition", r#"inline; filename="playlist.xspf""#)
         },
+        "ttl" => {
+            let j = db::serialize_to_ttl(list);
+            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/turtle")
+        },
         _ => rouille::Response::empty_406()
     }
 }
