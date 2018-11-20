@@ -100,7 +100,7 @@ pub fn serialize_to_pls(list: Vec<Station>) -> String {
     j.push_str("[playlist]\r\n");
     let mut i = 1;
     for item in list {
-        let i_str = format!("{}",i);
+        let i_str = i.to_string();
         j.push_str("File");
         j.push_str(&i_str);
         j.push_str("=");
@@ -114,6 +114,26 @@ pub fn serialize_to_pls(list: Vec<Station>) -> String {
         i += 1;
     }
     j
+}
+
+pub fn serialize_to_xspf(entries: Vec<Station>) -> std::io::Result<String> {
+    let mut xml = xml_writer::XmlWriter::new(Vec::new());
+    xml.dtd("UTF-8")?;
+    xml.begin_elem("playlist")?;
+    xml.attr_esc("version", "1")?;
+    xml.attr_esc("xmlns", "http://xspf.org/ns/0/")?;
+    xml.begin_elem("trackList")?;
+    for entry in entries{
+        xml.begin_elem("track")?;
+            xml.elem_text("title", &entry.name)?;
+            xml.elem_text("location", &entry.url)?;
+        xml.end_elem()?;
+    }
+    xml.end_elem()?;
+    xml.end_elem()?;
+    xml.close()?;
+    xml.flush()?;
+    Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
 }
 
 pub fn serialize_result1n_list(type_str: &str, entries: Vec<Result1n>) -> std::io::Result<String> {
@@ -130,7 +150,7 @@ pub fn serialize_result1n_list(type_str: &str, entries: Vec<Result1n>) -> std::i
     xml.end_elem()?;
     xml.close()?;
     xml.flush()?;
-    Ok(String::from_utf8(xml.into_inner()).unwrap())
+    Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
 }
 
 pub fn serialize_state_list(entries: Vec<State>) -> std::io::Result<String> {
@@ -148,7 +168,7 @@ pub fn serialize_state_list(entries: Vec<State>) -> std::io::Result<String> {
     xml.end_elem()?;
     xml.close()?;
     xml.flush()?;
-    Ok(String::from_utf8(xml.into_inner()).unwrap())
+    Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
 }
 
 pub fn serialize_extra_list(entries: Vec<ExtraInfo>, tag_name: &str) -> std::io::Result<String> {
@@ -165,7 +185,7 @@ pub fn serialize_extra_list(entries: Vec<ExtraInfo>, tag_name: &str) -> std::io:
     xml.end_elem()?;
     xml.close()?;
     xml.flush()?;
-    Ok(String::from_utf8(xml.into_inner()).unwrap())
+    Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
 }
 
 pub fn serialize_station_list(entries: Vec<Station>) -> std::io::Result<String> {
@@ -214,7 +234,7 @@ pub fn serialize_station_list(entries: Vec<Station>) -> std::io::Result<String> 
     xml.end_elem()?;
     xml.close()?;
     xml.flush()?;
-    Ok(String::from_utf8(xml.into_inner()).unwrap())
+    Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
 }
 
 pub fn serialize_changes_list(entries: Vec<StationHistory>) -> std::io::Result<String> {
@@ -246,7 +266,7 @@ pub fn serialize_changes_list(entries: Vec<StationHistory>) -> std::io::Result<S
     xml.end_elem()?;
     xml.close()?;
     xml.flush()?;
-    Ok(String::from_utf8(xml.into_inner()).unwrap())
+    Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
 }
 
 impl Connection {
@@ -539,13 +559,15 @@ impl Connection {
     }
 }
 pub enum DBError{
-    ConnectionError (String)
+    ConnectionError (String),
+    EncodeError (String),
 }
 
 impl std::fmt::Display for DBError{
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result{
         match *self{
-            DBError::ConnectionError(ref v) => write!(f, "{}", v)
+            DBError::ConnectionError(ref v) => write!(f, "{}", v),
+            DBError::EncodeError(ref v) => write!(f, "{}", v),
         }
     }
 }

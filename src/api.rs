@@ -144,11 +144,15 @@ fn encode_stations(list : Vec<db::Station>, format : &str) -> rouille::Response 
         },
         "m3u" => {
             let j = db::serialize_to_m3u(list);
-            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/mpegurl")
+            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/mpegurl").with_unique_header("Content-Disposition", r#"inline; filename="playlist.m3u""#)
         },
         "pls" => {
             let j = db::serialize_to_pls(list);
-            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/x-scpls")
+            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/x-scpls").with_unique_header("Content-Disposition", r#"inline; filename="playlist.pls""#)
+        },
+        "xspf" => {
+            let j = db::serialize_to_xspf(list).unwrap();
+            rouille::Response::text(j).with_unique_header("Content-Type","application/xspf+xml").with_unique_header("Content-Disposition", r#"inline; filename="playlist.xspf""#)
         },
         _ => rouille::Response::empty_406()
     }
