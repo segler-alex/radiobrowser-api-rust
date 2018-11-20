@@ -359,7 +359,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
             "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, filter), format)),
             "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", filter), format)),
             "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, filter), format, "tag")),
-            "stations" => add_cors(encode_stations(connection.get_stations_by_all(), format)),
+            "stations" => add_cors(encode_stations(connection.get_stations_by_all(&order, reverse, hidebroken, offset, limit), format)),
             "servers" => add_cors(dns_resolve(format)),
             "status" => add_cors(encode_status(get_status(), format)),
             _ => rouille::Response::empty_404()

@@ -136,6 +136,7 @@ pub fn serialize_to_xspf(entries: Vec<Station>) -> std::io::Result<String> {
     Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
 }
 
+// Syntax checked with http://ttl.summerofcode.be/
 fn serialize_to_ttl_single(station: Station) -> String {
   format!(r#"<http://radio-browser.info/radio/{id}>
   rdf:type schema:RadioStation ;
@@ -402,10 +403,16 @@ impl Connection {
     Date_Format(ClickTimestamp,'%Y-%m-%d %H:%i:%s') AS ClickTimestampFormated,
     clickcount,ClickTrend";
 
-    pub fn get_stations_by_all(&self) -> Vec<Station> {
-        let query : String;
-        query = format!("SELECT {columns} from Station ORDER BY Name", columns = Connection::COLUMNS);
-        self.get_stations_query(query)
+    pub fn get_stations_by_all(&self, order: &str, reverse: bool, hidebroken: bool, offset: u32, limit: u32) -> Vec<Station> {
+        let order = self.filter_order(order);
+        let reverse_string = if reverse { "DESC" } else { "ASC" };
+        let hidebroken_string = if hidebroken { " WHERE LastCheckOK=TRUE" } else { "" };
+
+        let query: String = format!("SELECT {columns} from Station {hidebroken} ORDER BY {order} {reverse} LIMIT {offset},{limit}",
+            columns = Connection::COLUMNS, order = order, reverse = reverse_string,
+            hidebroken = hidebroken_string, offset = offset, limit = limit);
+        let results = self.pool.prep_exec(query, ());
+        self.get_stations(results)
     }
 
     pub fn filter_order(&self, order: &str) -> &str {
