@@ -143,11 +143,11 @@ fn encode_stations(list : Vec<db::Station>, format : &str) -> rouille::Response 
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
         },
         "m3u" => {
-            let j = db::serialize_to_m3u(list);
+            let j = db::serialize_to_m3u(list, false);
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/mpegurl").with_unique_header("Content-Disposition", r#"inline; filename="playlist.m3u""#)
         },
         "pls" => {
-            let j = db::serialize_to_pls(list);
+            let j = db::serialize_to_pls(list, false);
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/x-scpls").with_unique_header("Content-Disposition", r#"inline; filename="playlist.pls""#)
         },
         "xspf" => {
@@ -159,6 +159,37 @@ fn encode_stations(list : Vec<db::Station>, format : &str) -> rouille::Response 
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/turtle")
         },
         _ => rouille::Response::empty_406()
+    }
+}
+
+fn encode_station_url(station: Option<db::Station>, format : &str) -> rouille::Response {
+    match station {
+        Some(station) => {
+            match format {
+                "json" => {
+                    let s = db::extract_cached_info(station, "retrieved station url");
+                    let j = serde_json::to_string(&s).unwrap();
+                    rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+                },
+                "xml" => {
+                    let s = db::extract_cached_info(station, "retrieved station url");
+                    let j = db::serialize_cached_info(s).unwrap();
+                    rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
+                },
+                "m3u" => {
+                    let list = vec![station];
+                    let j = db::serialize_to_m3u(list, true);
+                    rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/mpegurl").with_unique_header("Content-Disposition", r#"inline; filename="playlist.m3u""#)
+                },
+                "pls" => {
+                    let list = vec![station];
+                    let j = db::serialize_to_pls(list, true);
+                    rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/x-scpls").with_unique_header("Content-Disposition", r#"inline; filename="playlist.pls""#)
+                },
+                _ => rouille::Response::empty_406()
+            }
+        },
+        _ => rouille::Response::empty_404()
     }
 }
 
@@ -399,6 +430,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
             "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", Some(String::from(parameter))), format)),
             "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, Some(String::from(parameter))), format, "tag")),
             "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, Some(String::from(parameter))), format)),
+            "url" => add_cors(encode_station_url(connection.get_station_by_id_or_uuid(parameter), format)),
             "stations" => {
                 match parameter {
                     "topvote" => add_cors(encode_stations(connection.get_stations_topvote(999999), format)),
@@ -421,42 +453,53 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
         let command = items[2];
         let parameter = items[3];
         let search = items[4];
-        match command {
-            "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, Some(String::from(parameter)), Some(String::from(search))), format)),
-            "stations" => {
-                match parameter {
-                    "topvote" => add_cors(encode_stations(connection.get_stations_topvote(search.parse().unwrap_or(0)), format)),
-                    "topclick" => add_cors(encode_stations(connection.get_stations_topclick(search.parse().unwrap_or(0)), format)),
-                    "lastclick" => add_cors(encode_stations(connection.get_stations_lastclick(search.parse().unwrap_or(0)), format)),
-                    "lastchange" => add_cors(encode_stations(connection.get_stations_lastchange(search.parse().unwrap_or(0)), format)),
-                    "broken" => add_cors(encode_stations(connection.get_stations_broken(search.parse().unwrap_or(0)), format)),
-                    "improvable" => add_cors(encode_stations(connection.get_stations_improvable(search.parse().unwrap_or(0)), format)),
-                    "deleted" => add_cors(encode_stations(connection.get_stations_deleted(limit, search), format)),
-                    "byname" => add_cors(encode_stations(connection.get_stations_by_column("Name", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
-                    "bynameexact" => add_cors(encode_stations(connection.get_stations_by_column("Name", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
-                    "bycodec" => add_cors(encode_stations(connection.get_stations_by_column("Codec", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
-                    "bycodecexact" => add_cors(encode_stations(connection.get_stations_by_column("Codec", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
-                    "bycountry" => add_cors(encode_stations(connection.get_stations_by_column("Country", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
-                    "bycountryexact" => add_cors(encode_stations(connection.get_stations_by_column("Country", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
-                    "bystate" => add_cors(encode_stations(connection.get_stations_by_column("Subcountry", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
-                    "bystateexact" => add_cors(encode_stations(connection.get_stations_by_column("Subcountry", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
-                    "bytag" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Tags", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
-                    "bytagexact" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Tags", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
-                    "bylanguage" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Language", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
-                    "bylanguageexact" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Language", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
-                    "byuuid" => add_cors(encode_stations(connection.get_stations_by_column("StationUuid", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
-                    "byid" => {
-                        let id = search.parse();
-                        match id{
-                            Ok(i) => add_cors(encode_stations(connection.get_stations_by_id(i), format)),
-                            Err(_) => add_cors(rouille::Response::empty_400())
-                        }
-                    },
-                    "changed" => add_cors(encode_changes(get_changes(&request, &connection, Some(search.to_string())), format)),
-                    _ => rouille::Response::empty_404()
-                }
-            },
-            _ => rouille::Response::empty_404()
+        if format == "v2" {
+            // deprecated
+            let format = command;
+            let command = parameter;
+            match command {
+                "url" => add_cors(encode_station_url(connection.get_station_by_id_or_uuid(search), format)),
+                _ => rouille::Response::empty_404(),
+            }
+        }else{
+            match command {
+                "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, Some(String::from(parameter)), Some(String::from(search))), format)),
+                
+                "stations" => {
+                    match parameter {
+                        "topvote" => add_cors(encode_stations(connection.get_stations_topvote(search.parse().unwrap_or(0)), format)),
+                        "topclick" => add_cors(encode_stations(connection.get_stations_topclick(search.parse().unwrap_or(0)), format)),
+                        "lastclick" => add_cors(encode_stations(connection.get_stations_lastclick(search.parse().unwrap_or(0)), format)),
+                        "lastchange" => add_cors(encode_stations(connection.get_stations_lastchange(search.parse().unwrap_or(0)), format)),
+                        "broken" => add_cors(encode_stations(connection.get_stations_broken(search.parse().unwrap_or(0)), format)),
+                        "improvable" => add_cors(encode_stations(connection.get_stations_improvable(search.parse().unwrap_or(0)), format)),
+                        "deleted" => add_cors(encode_stations(connection.get_stations_deleted(limit, search), format)),
+                        "byname" => add_cors(encode_stations(connection.get_stations_by_column("Name", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
+                        "bynameexact" => add_cors(encode_stations(connection.get_stations_by_column("Name", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
+                        "bycodec" => add_cors(encode_stations(connection.get_stations_by_column("Codec", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
+                        "bycodecexact" => add_cors(encode_stations(connection.get_stations_by_column("Codec", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
+                        "bycountry" => add_cors(encode_stations(connection.get_stations_by_column("Country", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
+                        "bycountryexact" => add_cors(encode_stations(connection.get_stations_by_column("Country", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
+                        "bystate" => add_cors(encode_stations(connection.get_stations_by_column("Subcountry", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
+                        "bystateexact" => add_cors(encode_stations(connection.get_stations_by_column("Subcountry", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
+                        "bytag" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Tags", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
+                        "bytagexact" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Tags", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
+                        "bylanguage" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Language", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
+                        "bylanguageexact" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Language", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
+                        "byuuid" => add_cors(encode_stations(connection.get_stations_by_column("StationUuid", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
+                        "byid" => {
+                            let id = search.parse();
+                            match id{
+                                Ok(i) => add_cors(encode_stations(connection.get_stations_by_id(i), format)),
+                                Err(_) => add_cors(rouille::Response::empty_400())
+                            }
+                        },
+                        "changed" => add_cors(encode_changes(get_changes(&request, &connection, Some(search.to_string())), format)),
+                        _ => rouille::Response::empty_404()
+                    }
+                },
+                _ => rouille::Response::empty_404()
+            }
         }
     } else {
         rouille::Response::empty_404()

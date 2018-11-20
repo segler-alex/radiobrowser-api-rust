@@ -19,6 +19,8 @@ pub struct Station {
     stationuuid: String,
     name: String,
     url: String,
+    #[serde(skip_serializing)]
+    urlcache: String,
     homepage: String,
     favicon: String,
     tags: String,
@@ -41,6 +43,16 @@ pub struct Station {
 }
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
+pub struct StationCachedInfo {
+    ok: bool,
+    message: String,
+    id: i32,
+    stationuuid: String,
+    name: String,
+    url: String,
+}
+
+#[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct StationHistory {
     id: i32,
     changeuuid: String,
@@ -57,6 +69,17 @@ pub struct StationHistory {
     negativevotes: i32,
     lastchangetime: String,
     ip: String
+}
+
+pub fn extract_cached_info(station: Station, message: &str) -> StationCachedInfo {
+    return StationCachedInfo{
+        ok: station.lastcheckok == 1,
+        message: message.to_string(),
+        id: station.id,
+        stationuuid: station.stationuuid,
+        name: station.name,
+        url: station.urlcache,
+    };
 }
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
@@ -96,20 +119,24 @@ pub struct ExtraInfo {
     stationcountworking: u32
 }
 
-pub fn serialize_to_m3u(list: Vec<Station>) -> String {
+pub fn serialize_to_m3u(list: Vec<Station>, use_cached_url: bool) -> String {
     let mut j = String::with_capacity(200 * list.len());
     j.push_str("#EXTM3U\r\n");
     for item in list {
         j.push_str("#EXTINF:1,");
         j.push_str(&item.name);
         j.push_str("\r\n");
-        j.push_str(&item.url);
+        if use_cached_url {
+            j.push_str(&item.urlcache);
+        }else{
+            j.push_str(&item.url);
+        }
         j.push_str("\r\n\r\n");
     }
     j
 }
 
-pub fn serialize_to_pls(list: Vec<Station>) -> String {
+pub fn serialize_to_pls(list: Vec<Station>, use_cached_url: bool) -> String {
     let mut j = String::with_capacity(200 * list.len());
     j.push_str("[playlist]\r\n");
     let mut i = 1;
@@ -123,7 +150,11 @@ pub fn serialize_to_pls(list: Vec<Station>) -> String {
         j.push_str("Title");
         j.push_str(&i_str);
         j.push_str("=");
-        j.push_str(&item.url);
+        if use_cached_url {
+            j.push_str(&item.urlcache);
+        }else{
+            j.push_str(&item.url);
+        }
         j.push_str("\r\n\r\n");
         i += 1;
     }
@@ -308,6 +339,23 @@ pub fn serialize_result1n_list(type_str: &str, entries: Vec<Result1n>) -> std::i
     Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
 }
 
+pub fn serialize_cached_info(station: StationCachedInfo) -> std::io::Result<String> {
+    let mut xml = xml_writer::XmlWriter::new(Vec::new());
+    xml.begin_elem("result")?;
+        xml.begin_elem("status")?;
+            xml.attr_esc("ok", &station.ok.to_string())?;
+            xml.attr_esc("message", &station.message)?;
+            xml.attr_esc("id", &station.id.to_string())?;
+            xml.attr_esc("stationuuid", &station.stationuuid)?;
+            xml.attr_esc("name", &station.name)?;
+            xml.attr_esc("url", &station.url)?;
+        xml.end_elem()?;
+    xml.end_elem()?;
+    xml.close()?;
+    xml.flush()?;
+    Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
+}
+
 pub fn serialize_state_list(entries: Vec<State>) -> std::io::Result<String> {
     let mut xml = xml_writer::XmlWriter::new(Vec::new());
     xml.begin_elem("result")?;
@@ -423,7 +471,7 @@ pub fn serialize_changes_list(entries: Vec<StationHistory>) -> std::io::Result<S
 }
 
 impl Connection {
-    const COLUMNS: &'static str = "StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,
+    const COLUMNS: &'static str = "StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,UrlCache,
     Tags,Country,Subcountry,Language,Votes,NegativeVotes,
     Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated,
     Ip,Codec,Bitrate,Hls,LastCheckOK,
@@ -548,9 +596,29 @@ impl Connection {
         self.get_stations(results)
     }
 
+    pub fn get_station_by_id_or_uuid(&self, id_str: &str) -> Option<Station> {
+        let id = id_str.parse::<u32>();
+        let results = match id {
+            Ok(id_number) => {
+                let query = format!("SELECT {columns} from Station WHERE StationID=? ORDER BY Name", columns = Connection::COLUMNS);
+                self.pool.prep_exec(query, (id_number,))
+            },
+            _ => {
+                let query = format!("SELECT {columns} from Station WHERE StationUuid=? ORDER BY Name", columns = Connection::COLUMNS);
+                self.pool.prep_exec(query, (id_str,))
+            }
+        };
+        let mut stations = self.get_stations(results);
+        if stations.len() == 1 {
+            Some(stations.pop().unwrap())
+        }else{
+            None
+        }
+    }
+
     pub fn get_stations_by_id(&self, id: i32) -> Vec<Station> {
         let query : String;
-        query = format!("SELECT {columns} from Station WHERE StationID='{id}' ORDER BY Name", columns = Connection::COLUMNS, id = id);
+        query = format!("SELECT {columns} from Station WHERE StationID={id} ORDER BY Name", columns = Connection::COLUMNS, id = id);
         self.get_stations_query(query)
     }
 
@@ -601,6 +669,7 @@ impl Connection {
                     stationuuid:     row.take("StationUuid").unwrap_or("".to_string()),
                     name:            row.take("Name").unwrap_or("".to_string()),
                     url:             row.take("Url").unwrap_or("".to_string()),
+                    urlcache:        row.take("UrlCache").unwrap_or("".to_string()),
                     homepage:        row.take_opt("Homepage").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
                     favicon:         row.take_opt("Favicon").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
                     tags:            row.take_opt("Tags").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
