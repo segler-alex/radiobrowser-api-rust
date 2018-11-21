@@ -162,9 +162,11 @@ fn encode_stations(list : Vec<db::Station>, format : &str) -> rouille::Response 
     }
 }
 
-fn encode_station_url(station: Option<db::Station>, format : &str) -> rouille::Response {
+fn encode_station_url(connection: &db::Connection, station: Option<db::Station>, ip: &str, format : &str) -> rouille::Response {
     match station {
         Some(station) => {
+            connection.increase_clicks(&ip, &station);
+
             match format {
                 "json" => {
                     let s = db::extract_cached_info(station, "retrieved station url");
@@ -330,6 +332,8 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
 
     let mut seconds: u32 = request.get_param("seconds").unwrap_or(String::from("0")).parse().unwrap_or(0);
     let mut param_url: String = String::from("");
+
+    let ip = request.remote_addr().ip().to_string();
     
     let content_type: &str = request.header("Content-Type").unwrap_or("nothing");
     if request.method() == "POST" {
@@ -430,7 +434,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
             "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", Some(String::from(parameter))), format)),
             "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, Some(String::from(parameter))), format, "tag")),
             "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, Some(String::from(parameter))), format)),
-            "url" => add_cors(encode_station_url(connection.get_station_by_id_or_uuid(parameter), format)),
+            "url" => add_cors(encode_station_url(connection, connection.get_station_by_id_or_uuid(parameter), &ip, format)),
             "stations" => {
                 match parameter {
                     "topvote" => add_cors(encode_stations(connection.get_stations_topvote(999999), format)),
@@ -458,7 +462,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
             let format = command;
             let command = parameter;
             match command {
-                "url" => add_cors(encode_station_url(connection.get_station_by_id_or_uuid(search), format)),
+                "url" => add_cors(encode_station_url(connection, connection.get_station_by_id_or_uuid(search), &ip, format)),
                 _ => rouille::Response::empty_404(),
             }
         }else{

@@ -562,6 +562,29 @@ impl Connection {
         self.get_stations(results)
     }
 
+    pub fn increase_clicks(&self, ip: &str, station: &Station) -> bool {
+        let query = format!(r#"SELECT * FROM StationClick WHERE StationID={id} AND IP="{ip}" AND TIME_TO_SEC(TIMEDIFF(Now(),ClickTimestamp))<24*60*60"#, id = station.id, ip = ip);
+        let result = self.pool.prep_exec(query, ()).unwrap();
+
+        for resultsingle in result {
+            for _ in resultsingle {
+                return false;
+            }
+        }
+
+        let query2 = format!(r#"INSERT INTO StationClick(StationID,IP) VALUES({id},"{ip}")"#, id = station.id, ip = ip);
+        let result2 = self.pool.prep_exec(query2, ()).unwrap();
+
+        let query3 = format!("UPDATE Station SET ClickTimestamp=NOW() WHERE StationID={id}", id = station.id);
+        let result3 = self.pool.prep_exec(query3, ()).unwrap();
+
+        if result2.affected_rows() == 1 && result3.affected_rows() == 1 {
+            true
+        }else {
+            false
+        }
+    }
+
     pub fn get_stations_deleted_all(&self, limit: u32) -> Vec<Station> {
         self.get_stations_query(format!("SELECT {columns} FROM Station st RIGHT JOIN StationHistory sth ON st.StationID=sth.StationID WHERE st.StationID IS NULL ORDER BY sth.Creation DESC' {limit}",columns = Connection::COLUMNS, limit = limit))
     }
