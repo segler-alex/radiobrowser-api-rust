@@ -311,7 +311,7 @@ fn encode_status(status: Status, format : &str) -> rouille::Response {
             if y.is_ok(){
                 let mut data = Map::new();
                 data.insert(String::from("status"), to_json(status));
-                let rendered = handlebars.render("template.html", &data);
+                let rendered = handlebars.render("template.hbs", &data);
                 match rendered {
                     Ok(rendered) => rouille::Response::html(rendered).with_no_cache(),
                     _ => rouille::Response::text("").with_status_code(500)
@@ -324,14 +324,15 @@ fn encode_status(status: Status, format : &str) -> rouille::Response {
     }
 }
 
-pub fn run(connection: db::Connection, host : String, port : i32, threads : usize) {
+pub fn run(connection: db::Connection, host : String, port : i32, threads : usize, server_name: &str) {
     let listen_str = format!("{}:{}", host, port);
     println!("Listen on {} with {} threads", listen_str, threads);
     let x : Option<usize> = Some(threads);
+    let y = String::from(server_name);
     rouille::start_server_with_pool(listen_str, x, move |request| {
     //rouille::start_server(listen_str, move |request| {
         //rouille::log(&request, std::io::stdout(), || {
-            handle_connection(&connection, request)
+            handle_connection(&connection, request, &y)
         //})
     });
 }
@@ -356,7 +357,7 @@ fn send_image(path: &str) -> rouille::Response {
     }
 }
 
-fn handle_connection(connection: &db::Connection, request: &rouille::Request) -> rouille::Response {
+fn handle_connection(connection: &db::Connection, request: &rouille::Request, server_name: &str) -> rouille::Response {
     if request.method() != "POST" && request.method() != "GET" {
         return rouille::Response::empty_404();
     }
@@ -438,9 +439,19 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request) ->
     let items : Vec<&str> = parts[0].split('/').collect();
     if items.len() == 2 {
         let file_name = items[1];
+        let mut handlebars = Handlebars::new();
+        let y = handlebars.register_template_file("docs.hbs", "static/docs.hbs");
         match file_name {
             "favicon.ico" => send_image("static/favicon.ico"),
-            "" => send_file("static/docs.html"),
+            "" => {
+                let mut data = Map::new();
+                data.insert(String::from("API_SERVER"), to_json(server_name));
+                let rendered = handlebars.render("docs.hbs", &data);
+                match rendered {
+                    Ok(rendered) => rouille::Response::html(rendered).with_no_cache(),
+                    _ => rouille::Response::text("").with_status_code(500)
+                }
+            }
             _ => rouille::Response::empty_404(),
         }
     } else if items.len() == 3 {

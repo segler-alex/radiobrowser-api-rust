@@ -36,12 +36,22 @@ fn main() {
                 .default_value("127.0.0.1")
                 .takes_value(true),
         ).arg(
+            Arg::with_name("server_url")
+                .short("s")
+                .long("server_url")
+                .value_name("SERVER_URL")
+                .help("full server url that should be used in docs")
+                .env("SERVER_URL")
+                .default_value("http://localhost:8080")
+                .takes_value(true),
+        ).arg(
             Arg::with_name("listen_port")
                 .short("p")
                 .long("port")
                 .value_name("PORT")
                 .help("listening port")
                 .env("PORT")
+                .default_value("8080")
                 .required(true)
                 .takes_value(true),
         ).arg(
@@ -67,6 +77,7 @@ fn main() {
     let connection_string: String = matches.value_of("database").unwrap().parse().expect("database is not string");
     let listen_host: String = matches.value_of("listen_host").unwrap().parse().expect("listen_host is not string");
     let listen_port: i32 = matches.value_of("listen_port").unwrap().parse().expect("listen_port is not u32");
+    let server_url: String = matches.value_of("server_url").unwrap().parse().expect("server_url is not string");
     let threads: usize = matches.value_of("threads").unwrap().parse().expect("threads is not usize");
     let update_caches_interval: u64 = matches.value_of("update-caches-interval").unwrap().parse().expect("update-caches-interval is not u64");
 
@@ -74,7 +85,7 @@ fn main() {
         let connection = db::new(&connection_string, update_caches_interval);
         match connection {
             Ok(v) => {
-                api::run(v, listen_host, listen_port, threads);
+                api::run(v, listen_host, listen_port, threads, &server_url);
                 break;
             }
             Err(e) => {
