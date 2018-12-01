@@ -341,6 +341,7 @@ fn get_status() -> Status {
     Status{status: "OK".to_string()}
 }
 
+/*
 fn send_file(path: &str) -> rouille::Response {
     let file = File::open(path);
     match file {
@@ -348,6 +349,7 @@ fn send_file(path: &str) -> rouille::Response {
         _ => add_cors(rouille::Response::empty_404())
     }
 }
+*/
 
 fn send_image(path: &str) -> rouille::Response {
     let file = File::open(path);
@@ -362,13 +364,26 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request, se
         return rouille::Response::empty_404();
     }
 
-    let mut order : String = request.get_param("order").unwrap_or(String::from("value"));
-    let mut reverse : bool = request.get_param("reverse").unwrap_or(String::from("false")) == "true";
-    let mut hidebroken : bool = request.get_param("hidebroken").unwrap_or(String::from("false")) == "true";
-    let mut offset : u32 = request.get_param("offset").unwrap_or(String::from("0")).parse().unwrap_or(0);
-    let mut limit : u32 = request.get_param("limit").unwrap_or(String::from("999999")).parse().unwrap_or(999999);
+    let mut param_name: Option<String> = request.get_param("name");
+    let mut param_name_exact: bool = request.get_param("nameExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
+    let mut param_country: Option<String> = request.get_param("country");
+    let mut param_country_exact: bool = request.get_param("countryExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
+    let mut param_state: Option<String> = request.get_param("state");
+    let mut param_state_exact: bool = request.get_param("stateExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
+    let mut param_language: Option<String> = request.get_param("language");
+    let mut param_language_exact: bool = request.get_param("languageExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
+    let mut param_tag: Option<String> = request.get_param("tag");
+    let mut param_tag_exact: bool = request.get_param("tagExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
 
-    let mut seconds: u32 = request.get_param("seconds").unwrap_or(String::from("0")).parse().unwrap_or(0);
+    let mut param_bitrate_min : u32 = request.get_param("bitrateMin").unwrap_or(String::from("0")).parse().unwrap_or(0);
+    let mut param_bitrate_max : u32 = request.get_param("bitrateMax").unwrap_or(String::from("1000000")).parse().unwrap_or(1000000);
+    let mut param_order : String = request.get_param("order").unwrap_or(String::from("value"));
+    let mut param_reverse : bool = request.get_param("reverse").unwrap_or(String::from("false")) == "true";
+    let mut param_hidebroken : bool = request.get_param("hidebroken").unwrap_or(String::from("false")) == "true";
+    let mut param_offset : u32 = request.get_param("offset").unwrap_or(String::from("0")).parse().unwrap_or(0);
+    let mut param_limit : u32 = request.get_param("limit").unwrap_or(String::from("999999")).parse().unwrap_or(999999);
+
+    let mut param_seconds: u32 = request.get_param("seconds").unwrap_or(String::from("0")).parse().unwrap_or(0);
     let mut param_url: String = String::from("");
 
     let ip = request.remote_addr().ip().to_string();
@@ -383,12 +398,24 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request, se
                     Ok(_) => {
                         let iter = form_urlencoded::parse(&buf);
                         for (key,val) in iter {
-                            if key == "order" { order = val.into(); }
-                            else if key == "reverse" { reverse = val.parse().unwrap_or(reverse); }
-                            else if key == "hidebroken" { hidebroken = val.parse().unwrap_or(hidebroken); }
-                            else if key == "offset" { offset = val.parse().unwrap_or(offset); }
-                            else if key == "limit" { limit = val.parse().unwrap_or(limit); }
-                            else if key == "seconds" { seconds = val.parse().unwrap_or(seconds); }
+                            if key == "order" { param_order = val.into(); }
+                            else if key == "name" { param_name = Some(val.into()); }
+                            else if key == "nameExact" { param_name_exact = val.parse().unwrap_or(param_name_exact); }
+                            else if key == "country" { param_country = Some(val.into()); }
+                            else if key == "countryExact" { param_country_exact = val.parse().unwrap_or(param_country_exact); }
+                            else if key == "state" { param_state = Some(val.into()); }
+                            else if key == "stateExact" { param_state_exact = val.parse().unwrap_or(param_state_exact); }
+                            else if key == "language" { param_language = Some(val.into()); }
+                            else if key == "languageExact" { param_language_exact = val.parse().unwrap_or(param_language_exact); }
+                            else if key == "tag" { param_tag = Some(val.into()); }
+                            else if key == "tagExact" { param_tag_exact = val.parse().unwrap_or(param_tag_exact); }
+                            else if key == "reverse" { param_reverse = val.parse().unwrap_or(param_reverse); }
+                            else if key == "hidebroken" { param_hidebroken = val.parse().unwrap_or(param_hidebroken); }
+                            else if key == "bitrateMin" { param_bitrate_min = val.parse().unwrap_or(param_bitrate_min); }
+                            else if key == "bitrateMax" { param_bitrate_max = val.parse().unwrap_or(param_bitrate_max); }
+                            else if key == "offset" { param_offset = val.parse().unwrap_or(param_offset); }
+                            else if key == "limit" { param_limit = val.parse().unwrap_or(param_limit); }
+                            else if key == "seconds" { param_seconds = val.parse().unwrap_or(param_seconds); }
                             else if key == "url" { param_url = val.into(); }
                         }
                     },
@@ -403,27 +430,80 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request, se
                 match data.read_to_end(&mut buf) {
                     Ok(_) => {
                         let v: self::serde_json::Value = serde_json::from_slice(&buf).unwrap();
+                        // name
+                        if v["name"].is_string() {
+                            param_name = Some(v["name"].as_str().unwrap().to_string());
+                        }
+                        if v["nameExact"].is_boolean() {
+                            param_name_exact = v["nameExact"].as_bool().unwrap();
+                        }
+                        if v["nameExact"].is_string() {
+                            param_name_exact = v["nameExact"].as_str().unwrap().parse().unwrap_or(param_name_exact);
+                        }
+                        // country
+                        if v["country"].is_string() {
+                            param_country = Some(v["country"].as_str().unwrap().to_string());
+                        }
+                        if v["countryExact"].is_boolean() {
+                            param_country_exact = v["countryExact"].as_bool().unwrap();
+                        }
+                        if v["countryExact"].is_string() {
+                            param_country_exact = v["countryExact"].as_str().unwrap().parse().unwrap_or(param_country_exact);
+                        }
+                        // state
+                        if v["state"].is_string() {
+                            param_state = Some(v["state"].as_str().unwrap().to_string());
+                        }
+                        if v["stateExact"].is_boolean() {
+                            param_state_exact = v["stateExact"].as_bool().unwrap();
+                        }
+                        if v["stateExact"].is_string() {
+                            param_state_exact = v["stateExact"].as_str().unwrap().parse().unwrap_or(param_state_exact);
+                        }
+                        // language
+                        if v["language"].is_string() {
+                            param_language = Some(v["language"].as_str().unwrap().to_string());
+                        }
+                        if v["languageExact"].is_boolean() {
+                            param_language_exact = v["languageExact"].as_bool().unwrap();
+                        }
+                        if v["nameExact"].is_string() {
+                            param_language_exact = v["languageExact"].as_str().unwrap().parse().unwrap_or(param_language_exact);
+                        }
+                        // tag
+                        if v["tag"].is_string() {
+                            param_tag = Some(v["tag"].as_str().unwrap().to_string());
+                        }
+                        if v["tagExact"].is_boolean() {
+                            param_tag_exact = v["tagExact"].as_bool().unwrap();
+                        }
+                        if v["tagExact"].is_string() {
+                            param_tag_exact = v["tagExact"].as_str().unwrap().parse().unwrap_or(param_tag_exact);
+                        }
+                        // other
                         if v["order"].is_string() {
-                            order = v["order"].as_str().unwrap().to_string();
+                            param_order = v["order"].as_str().unwrap().to_string();
                         }
                         if v["url"].is_string() {
                             param_url = v["url"].as_str().unwrap().to_string();
                         }
                         if v["reverse"].is_string() {
-                            reverse = v["reverse"].as_str().unwrap() == "true";
+                            param_reverse = v["reverse"].as_str().unwrap().parse().unwrap_or(param_reverse);
                         }
                         if v["reverse"].is_boolean() {
-                            reverse = v["reverse"].as_bool().unwrap();
+                            param_reverse = v["reverse"].as_bool().unwrap();
                         }
                         if v["hidebroken"].is_string() {
-                            hidebroken = v["hidebroken"].as_str().unwrap() == "true";
+                            param_hidebroken = v["hidebroken"].as_str().unwrap() == "true";
                         }
                         if v["hidebroken"].is_boolean() {
-                            hidebroken = v["hidebroken"].as_bool().unwrap();
+                            param_hidebroken = v["hidebroken"].as_bool().unwrap();
                         }
-                        offset = v["offset"].as_u64().unwrap_or(offset.into()) as u32;
-                        limit = v["limit"].as_u64().unwrap_or(limit.into()) as u32;
-                        seconds = v["seconds"].as_u64().unwrap_or(seconds.into()) as u32;
+                        param_offset = v["offset"].as_u64().unwrap_or(param_offset.into()) as u32;
+                        param_limit = v["limit"].as_u64().unwrap_or(param_limit.into()) as u32;
+                        param_bitrate_min = v["bitrateMin"].as_u64().unwrap_or(param_bitrate_min.into()) as u32;
+                        param_bitrate_max = v["bitrateMax"].as_u64().unwrap_or(param_bitrate_max.into()) as u32;
+                        param_seconds = v["seconds"].as_u64().unwrap_or(param_seconds.into()) as u32;
                     },
                     Err(err) => {
                         println!("err {}",err);
@@ -439,17 +519,21 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request, se
     let items : Vec<&str> = parts[0].split('/').collect();
     if items.len() == 2 {
         let file_name = items[1];
-        let mut handlebars = Handlebars::new();
-        let y = handlebars.register_template_file("docs.hbs", "static/docs.hbs");
         match file_name {
             "favicon.ico" => send_image("static/favicon.ico"),
             "" => {
-                let mut data = Map::new();
-                data.insert(String::from("API_SERVER"), to_json(server_name));
-                let rendered = handlebars.render("docs.hbs", &data);
-                match rendered {
-                    Ok(rendered) => rouille::Response::html(rendered).with_no_cache(),
-                    _ => rouille::Response::text("").with_status_code(500)
+                let mut handlebars = Handlebars::new();
+                let y = handlebars.register_template_file("docs.hbs", "static/docs.hbs");
+                if y.is_ok() {
+                    let mut data = Map::new();
+                    data.insert(String::from("API_SERVER"), to_json(server_name));
+                    let rendered = handlebars.render("docs.hbs", &data);
+                    match rendered {
+                        Ok(rendered) => rouille::Response::html(rendered).with_no_cache(),
+                        _ => rouille::Response::text("").with_status_code(500)
+                    }
+                }else{
+                    rouille::Response::text("").with_status_code(500)
                 }
             }
             _ => rouille::Response::empty_404(),
@@ -465,10 +549,10 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request, se
             "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, filter), format)),
             "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", filter), format)),
             "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, filter), format, "tag")),
-            "stations" => add_cors(encode_stations(connection.get_stations_by_all(&order, reverse, hidebroken, offset, limit), format)),
+            "stations" => add_cors(encode_stations(connection.get_stations_by_all(&param_order, param_reverse, param_hidebroken, param_offset, param_limit), format)),
             "servers" => add_cors(dns_resolve(format)),
             "status" => add_cors(encode_status(get_status(), format)),
-            "checks" => add_cors(encode_checks(connection.get_checks(None, seconds),format)),
+            "checks" => add_cors(encode_checks(connection.get_checks(None, param_seconds),format)),
             _ => rouille::Response::empty_404()
         }
     } else if items.len() == 4 {
@@ -492,13 +576,14 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request, se
                     "lastchange" => add_cors(encode_stations(connection.get_stations_lastchange(999999), format)),
                     "broken" => add_cors(encode_stations(connection.get_stations_broken(999999), format)),
                     "improvable" => add_cors(encode_stations(connection.get_stations_improvable(999999), format)),
-                    "deleted" => add_cors(encode_stations(connection.get_stations_deleted_all(limit), format)),
+                    "deleted" => add_cors(encode_stations(connection.get_stations_deleted_all(param_limit), format)),
                     "changed" => add_cors(encode_changes(get_changes(&request, &connection, None), format)),
-                    "byurl" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Url", param_url,true,&order,reverse,hidebroken,offset,limit), format)),
+                    "byurl" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Url", param_url,true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
+                    "search" => add_cors(encode_stations(connection.get_stations_advanced(param_name, param_name_exact, param_country, param_country_exact, param_state, param_state_exact, param_language, param_language_exact, param_tag, param_tag_exact, param_bitrate_min, param_bitrate_max, &param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
                     _ => rouille::Response::empty_404()
                 }
             },
-            "checks" => add_cors(encode_checks(connection.get_checks(Some(parameter.to_string()), seconds), format)),
+            "checks" => add_cors(encode_checks(connection.get_checks(Some(parameter.to_string()), param_seconds), format)),
             _ => rouille::Response::empty_404()
         }
     } else if items.len() == 5 {
@@ -526,20 +611,20 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request, se
                         "lastchange" => add_cors(encode_stations(connection.get_stations_lastchange(search.parse().unwrap_or(0)), format)),
                         "broken" => add_cors(encode_stations(connection.get_stations_broken(search.parse().unwrap_or(0)), format)),
                         "improvable" => add_cors(encode_stations(connection.get_stations_improvable(search.parse().unwrap_or(0)), format)),
-                        "deleted" => add_cors(encode_stations(connection.get_stations_deleted(limit, search), format)),
-                        "byname" => add_cors(encode_stations(connection.get_stations_by_column("Name", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
-                        "bynameexact" => add_cors(encode_stations(connection.get_stations_by_column("Name", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
-                        "bycodec" => add_cors(encode_stations(connection.get_stations_by_column("Codec", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
-                        "bycodecexact" => add_cors(encode_stations(connection.get_stations_by_column("Codec", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
-                        "bycountry" => add_cors(encode_stations(connection.get_stations_by_column("Country", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
-                        "bycountryexact" => add_cors(encode_stations(connection.get_stations_by_column("Country", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
-                        "bystate" => add_cors(encode_stations(connection.get_stations_by_column("Subcountry", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
-                        "bystateexact" => add_cors(encode_stations(connection.get_stations_by_column("Subcountry", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
-                        "bytag" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Tags", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
-                        "bytagexact" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Tags", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
-                        "bylanguage" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Language", search.to_string(),false,&order,reverse,hidebroken,offset,limit), format)),
-                        "bylanguageexact" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Language", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
-                        "byuuid" => add_cors(encode_stations(connection.get_stations_by_column("StationUuid", search.to_string(),true,&order,reverse,hidebroken,offset,limit), format)),
+                        "deleted" => add_cors(encode_stations(connection.get_stations_deleted(param_limit, search), format)),
+                        "byname" => add_cors(encode_stations(connection.get_stations_by_column("Name", search.to_string(),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
+                        "bynameexact" => add_cors(encode_stations(connection.get_stations_by_column("Name", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
+                        "bycodec" => add_cors(encode_stations(connection.get_stations_by_column("Codec", search.to_string(),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
+                        "bycodecexact" => add_cors(encode_stations(connection.get_stations_by_column("Codec", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
+                        "bycountry" => add_cors(encode_stations(connection.get_stations_by_column("Country", search.to_string(),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
+                        "bycountryexact" => add_cors(encode_stations(connection.get_stations_by_column("Country", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
+                        "bystate" => add_cors(encode_stations(connection.get_stations_by_column("Subcountry", search.to_string(),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
+                        "bystateexact" => add_cors(encode_stations(connection.get_stations_by_column("Subcountry", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
+                        "bytag" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Tags", search.to_string(),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
+                        "bytagexact" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Tags", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
+                        "bylanguage" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Language", search.to_string(),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
+                        "bylanguageexact" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Language", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
+                        "byuuid" => add_cors(encode_stations(connection.get_stations_by_column("StationUuid", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
                         "byid" => {
                             let id = search.parse();
                             match id{

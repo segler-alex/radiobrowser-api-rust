@@ -5,6 +5,9 @@ extern crate clap;
 extern crate url;
 extern crate handlebars;
 
+#[macro_use]
+extern crate mysql;
+
 use clap::{App, Arg};
 
 use std::{thread, time};
