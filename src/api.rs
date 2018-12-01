@@ -359,6 +359,18 @@ fn send_image(path: &str) -> rouille::Response {
     }
 }
 
+fn str_to_arr(string: &str) -> Vec<String> {
+    let mut list: Vec<String> = vec![];
+    let parts = string.split(",");
+    for part in parts {
+        let part_trimmed = part.trim().to_string();
+        if part_trimmed != "" {
+            list.push(part_trimmed);
+        }
+    }
+    list
+}
+
 fn handle_connection(connection: &db::Connection, request: &rouille::Request, server_name: &str) -> rouille::Response {
     if request.method() != "POST" && request.method() != "GET" {
         return rouille::Response::empty_404();
@@ -374,6 +386,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request, se
     let mut param_language_exact: bool = request.get_param("languageExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
     let mut param_tag: Option<String> = request.get_param("tag");
     let mut param_tag_exact: bool = request.get_param("tagExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
+    let mut param_tag_list: Vec<String> = str_to_arr(&request.get_param("tagList").unwrap_or(String::from("")));
 
     let mut param_bitrate_min : u32 = request.get_param("bitrateMin").unwrap_or(String::from("0")).parse().unwrap_or(0);
     let mut param_bitrate_max : u32 = request.get_param("bitrateMax").unwrap_or(String::from("1000000")).parse().unwrap_or(1000000);
@@ -409,6 +422,10 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request, se
                             else if key == "languageExact" { param_language_exact = val.parse().unwrap_or(param_language_exact); }
                             else if key == "tag" { param_tag = Some(val.into()); }
                             else if key == "tagExact" { param_tag_exact = val.parse().unwrap_or(param_tag_exact); }
+                            else if key == "tagList" { 
+                                let x: String = val.into();
+                                param_tag_list = str_to_arr(&x);
+                            }
                             else if key == "reverse" { param_reverse = val.parse().unwrap_or(param_reverse); }
                             else if key == "hidebroken" { param_hidebroken = val.parse().unwrap_or(param_hidebroken); }
                             else if key == "bitrateMin" { param_bitrate_min = val.parse().unwrap_or(param_bitrate_min); }
@@ -479,6 +496,21 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request, se
                         }
                         if v["tagExact"].is_string() {
                             param_tag_exact = v["tagExact"].as_str().unwrap().parse().unwrap_or(param_tag_exact);
+                        }
+                        if v["tagList"].is_array() {
+                            let x = v["tagList"].as_array().unwrap();
+                            param_tag_list = x.into_iter().map(|item| {
+                                if item.is_string(){
+                                    item.as_str().unwrap().trim().to_string()
+                                }else{
+                                    String::from("")
+                                }
+                            }).filter(|item| {
+                                item != ""
+                            }).collect();
+                        }
+                        if v["tagList"].is_string() {
+                            param_tag_list = str_to_arr(v["tagList"].as_str().unwrap());
                         }
                         // other
                         if v["order"].is_string() {
@@ -579,7 +611,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request, se
                     "deleted" => add_cors(encode_stations(connection.get_stations_deleted_all(param_limit), format)),
                     "changed" => add_cors(encode_changes(get_changes(&request, &connection, None), format)),
                     "byurl" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Url", param_url,true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
-                    "search" => add_cors(encode_stations(connection.get_stations_advanced(param_name, param_name_exact, param_country, param_country_exact, param_state, param_state_exact, param_language, param_language_exact, param_tag, param_tag_exact, param_bitrate_min, param_bitrate_max, &param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
+                    "search" => add_cors(encode_stations(connection.get_stations_advanced(param_name, param_name_exact, param_country, param_country_exact, param_state, param_state_exact, param_language, param_language_exact, param_tag, param_tag_exact, param_tag_list, param_bitrate_min, param_bitrate_max, &param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
                     _ => rouille::Response::empty_404()
                 }
             },

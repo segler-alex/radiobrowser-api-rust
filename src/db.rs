@@ -681,6 +681,7 @@ impl Connection {
         language_exact: bool,
         tag: Option<String>,
         tag_exact: bool,
+        tag_list: Vec<String>,
         bitrate_min: u32,
         bitrate_max: u32,
         order: &str,
@@ -736,6 +737,25 @@ impl Connection {
                 query.push_str(" AND Tags LIKE CONCAT('%',:tag,'%')");
             }
         }
+        let mut params = params!{
+            "name" => name.unwrap_or_default(),
+            "country" => country.unwrap_or_default(),
+            "state" => state.unwrap_or_default(),
+            "language" => language.unwrap_or_default(),
+            "tag" => tag.unwrap_or_default(),
+            "bitrate_min" => bitrate_min,
+            "bitrate_max" => bitrate_max,
+        };
+        let mut i = 0;
+        for tag in tag_list {
+            if tag_exact {
+                query.push_str(&format!(" AND ( Tags=:tag{i} OR Tags LIKE CONCAT('%,',:tag{i},',%') OR Tags LIKE CONCAT('%,',:tag{i}) OR Tags LIKE CONCAT(:tag{i},',%'))",i=i));
+            } else {
+                query.push_str(&format!(" AND Tags LIKE CONCAT('%',:tag{i},'%')",i=i));
+            }
+            params.push((format!("tag{i}",i=i), Value::from(tag)));
+            i += 1;
+        }
         query.push_str(&format!(
             " {hidebroken} ORDER BY {order} {reverse} LIMIT {offset},{limit}",
             order = order,
@@ -744,17 +764,10 @@ impl Connection {
             offset = offset,
             limit = limit
         ));
+        
         let results = self.pool.prep_exec(
             query,
-            params!{
-                "name" => name.unwrap_or_default(),
-                "country" => country.unwrap_or_default(),
-                "state" => state.unwrap_or_default(),
-                "language" => language.unwrap_or_default(),
-                "tag" => tag.unwrap_or_default(),
-                "bitrate_min" => bitrate_min,
-                "bitrate_max" => bitrate_max,
-            },
+            params,
         );
         self.get_stations(results)
     }
