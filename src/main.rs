@@ -45,7 +45,7 @@ fn main() {
                 .value_name("SERVER_URL")
                 .help("full server url that should be used in docs")
                 .env("SERVER_URL")
-                .default_value("http://localhost:8080")
+                .default_value("localhost:8080")
                 .takes_value(true),
         ).arg(
             Arg::with_name("listen_port")

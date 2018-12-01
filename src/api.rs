@@ -375,6 +375,10 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request, se
     if request.method() != "POST" && request.method() != "GET" {
         return rouille::Response::empty_404();
     }
+    let header_host: &str = request.header("Host").unwrap_or(server_name);
+    let content_type: &str = request.header("Content-Type").unwrap_or("nothing");
+
+
 
     let mut param_name: Option<String> = request.get_param("name");
     let mut param_name_exact: bool = request.get_param("nameExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
@@ -401,7 +405,6 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request, se
 
     let ip = request.remote_addr().ip().to_string();
     
-    let content_type: &str = request.header("Content-Type").unwrap_or("nothing");
     if request.method() == "POST" {
         match content_type {
             "application/x-www-form-urlencoded" => {
@@ -558,7 +561,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request, se
                 let y = handlebars.register_template_file("docs.hbs", "static/docs.hbs");
                 if y.is_ok() {
                     let mut data = Map::new();
-                    data.insert(String::from("API_SERVER"), to_json(server_name));
+                    data.insert(String::from("API_SERVER"), to_json(format!("http://{name}",name = header_host)));
                     let rendered = handlebars.render("docs.hbs", &data);
                     match rendered {
                         Ok(rendered) => rouille::Response::html(rendered).with_no_cache(),
