@@ -1,0 +1,23 @@
+/*
+    #558C89 dark
+    #74AFAD light
+    #D9853B orange
+    #ECECEA grey
+j*/
+
+body {
+  background-color: #ede7df;
+  font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+}
+.syntax {
+  line-height: 1.4;
+}
+.dropdown-item:hover{
+  background-color: #007bff;
+  color: white;
+}
+.format, .searchTerm{
+  font-style: italic;
+  font-weight: bold;
+  color: rgb(116, 116, 116);
+}

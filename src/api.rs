@@ -365,20 +365,10 @@ fn get_status(connection: &db::Connection) -> Status {
     }
 }
 
-/*
-fn send_file(path: &str) -> rouille::Response {
+fn send_file(path: &str, content_type: &'static str) -> rouille::Response {
     let file = File::open(path);
     match file {
-        Ok(file) => {add_cors(rouille::Response::from_file("text/html", file))},
-        _ => add_cors(rouille::Response::empty_404())
-    }
-}
-*/
-
-fn send_image(path: &str) -> rouille::Response {
-    let file = File::open(path);
-    match file {
-        Ok(file) => {add_cors(rouille::Response::from_file("image/png", file))},
+        Ok(file) => {add_cors(rouille::Response::from_file(content_type, file))},
         _ => add_cors(rouille::Response::empty_404())
     }
 }
@@ -584,7 +574,8 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
     if items.len() == 2 {
         let file_name = items[1];
         match file_name {
-            "favicon.ico" => send_image("static/favicon.ico"),
+            "favicon.ico" => send_file("static/favicon.ico", "image/png"),
+            "main.css" => send_file("static/main.css","text/css"),
             "" => {
                 let mut handlebars = Handlebars::new();
                 let y = handlebars.register_template_file("docs.hbs", "static/docs.hbs");
