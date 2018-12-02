@@ -9,6 +9,7 @@ use db;
 use self::dns_lookup::lookup_host;
 use self::dns_lookup::lookup_addr;
 use std::io::Read;
+use std::io;
 
 use url::form_urlencoded;
 
@@ -395,9 +396,16 @@ fn str_to_arr(string: &str) -> Vec<String> {
 }
 
 fn handle_connection(connection: &db::Connection, request: &rouille::Request, server_name: &str) -> rouille::Response {
+    rouille::log(request, io::stdout(), || {
+        handle_connection_internal(connection, request, server_name)
+    })
+}
+
+fn handle_connection_internal(connection: &db::Connection, request: &rouille::Request, server_name: &str) -> rouille::Response {
     if request.method() != "POST" && request.method() != "GET" {
         return rouille::Response::empty_404();
     }
+
     let header_host: &str = request.header("Host").unwrap_or(server_name);
     let content_type: &str = request.header("Content-Type").unwrap_or("nothing");
 
