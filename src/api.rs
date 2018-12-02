@@ -406,10 +406,10 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
         return rouille::Response::empty_404();
     }
 
-    let header_host: &str = request.header("Host").unwrap_or(server_name);
+    let header_host: &str = request.header("X-Forwarded-Host").unwrap_or(request.header("Host").unwrap_or(server_name));
     let content_type: &str = request.header("Content-Type").unwrap_or("nothing");
 
-
+    let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
 
     let mut param_name: Option<String> = request.get_param("name");
     let mut param_name_exact: bool = request.get_param("nameExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
@@ -433,8 +433,6 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
 
     let mut param_seconds: u32 = request.get_param("seconds").unwrap_or(String::from("0")).parse().unwrap_or(0);
     let mut param_url: String = String::from("");
-
-    let ip = request.remote_addr().ip().to_string();
     
     if request.method() == "POST" {
         match content_type {
@@ -632,8 +630,8 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
             "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", Some(String::from(parameter))), format)),
             "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, Some(String::from(parameter))), format, "tag")),
             "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, Some(String::from(parameter))), format)),
-            "vote" => add_cors(encode_message(connection.vote_for_station(&ip, connection.get_station_by_id_or_uuid(parameter)), format)),
-            "url" => add_cors(encode_station_url(connection, connection.get_station_by_id_or_uuid(parameter), &ip, format)),
+            "vote" => add_cors(encode_message(connection.vote_for_station(&remote_ip, connection.get_station_by_id_or_uuid(parameter)), format)),
+            "url" => add_cors(encode_station_url(connection, connection.get_station_by_id_or_uuid(parameter), &remote_ip, format)),
             "stations" => {
                 match parameter {
                     "topvote" => add_cors(encode_stations(connection.get_stations_topvote(999999), format)),
@@ -662,7 +660,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
             let format = command;
             let command = parameter;
             match command {
-                "url" => add_cors(encode_station_url(connection, connection.get_station_by_id_or_uuid(search), &ip, format)),
+                "url" => add_cors(encode_station_url(connection, connection.get_station_by_id_or_uuid(search), &remote_ip, format)),
                 _ => rouille::Response::empty_404(),
             }
         }else{
