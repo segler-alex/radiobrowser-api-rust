@@ -27,7 +27,14 @@ pub struct ServerEntry {
 
 #[derive(Serialize, Deserialize)]
 pub struct Status {
-    status: String
+    status: String,
+    stations: u64,
+    stations_broken: u64,
+    tags: u64,
+    clicks_last_hour: u64,
+    clicks_last_day: u64,
+    languages: u64,
+    countries: u64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -278,9 +285,16 @@ pub fn serialize_status(status: &Status) -> std::io::Result<String> {
     let mut xml = xml_writer::XmlWriter::new(Vec::new());
     xml.begin_elem("result")?;
     {
-        xml.begin_elem("status")?;
+        xml.begin_elem("stats")?;
         let s = status.status.clone();
-            xml.attr_esc("value", &s)?;
+            xml.attr_esc("status", &s)?;
+            xml.attr_esc("stations", &status.stations.to_string())?;
+            xml.attr_esc("stations_broken", &status.stations_broken.to_string())?;
+            xml.attr_esc("tags", &status.tags.to_string())?;
+            xml.attr_esc("clicks_last_hour", &status.clicks_last_hour.to_string())?;
+            xml.attr_esc("clicks_last_day", &status.clicks_last_day.to_string())?;
+            xml.attr_esc("languages", &status.languages.to_string())?;
+            xml.attr_esc("countries", &status.countries.to_string())?;
         xml.end_elem()?;
     }
     xml.end_elem()?;
@@ -337,8 +351,17 @@ pub fn run(connection: db::Connection, host : String, port : i32, threads : usiz
     });
 }
 
-fn get_status() -> Status {
-    Status{status: "OK".to_string()}
+fn get_status(connection: &db::Connection) -> Status {
+    Status{
+        status: "OK".to_string(),
+        stations: connection.get_station_count(),
+        stations_broken: connection.get_broken_station_count(),
+        tags: connection.get_tag_count(),
+        clicks_last_hour: connection.get_click_count_last_hour(),
+        clicks_last_day: connection.get_click_count_last_day(),
+        languages: connection.get_language_count(),
+        countries: connection.get_country_count(),
+    }
 }
 
 /*
@@ -586,7 +609,7 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request, se
             "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, filter), format, "tag")),
             "stations" => add_cors(encode_stations(connection.get_stations_by_all(&param_order, param_reverse, param_hidebroken, param_offset, param_limit), format)),
             "servers" => add_cors(dns_resolve(format)),
-            "status" => add_cors(encode_status(get_status(), format)),
+            "stats" => add_cors(encode_status(get_status(connection), format)),
             "checks" => add_cors(encode_checks(connection.get_checks(None, param_seconds),format)),
             _ => rouille::Response::empty_404()
         }

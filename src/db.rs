@@ -494,6 +494,53 @@ impl Connection {
     Date_Format(CheckTime,'%Y-%m-%d %H:%i:%s') AS CheckTimeFormated,
     UrlCache";
 
+    pub fn get_single_column_number(&self, query: &str) -> u64 {
+        let results = self.pool.prep_exec(query, ());
+        match results {
+            Ok(results) => {
+                for resultsingle in results {
+                    for mut result_row in resultsingle {
+                        let count: u64 = result_row.take(0).unwrap_or(0);
+                        return count;
+                    }
+                }
+                0
+            },
+            Err(err) => {
+                println!("{}", err);
+                0
+            }
+        }
+    }
+
+    pub fn get_station_count(&self) -> u64 {
+        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM Station WHERE LastCheckOK=True"#)
+    }
+
+    pub fn get_broken_station_count(&self) -> u64 {
+        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM Station WHERE LastCheckOK=False"#)
+    }
+
+    pub fn get_tag_count(&self) -> u64 {
+        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM TagCache"#)
+    }
+
+    pub fn get_country_count(&self) -> u64 {
+        self.get_single_column_number(r#"SELECT COUNT(DISTINCT(Country)) AS StationCount FROM Station"#)
+    }
+
+    pub fn get_language_count(&self) -> u64 {
+        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM LanguageCache"#)
+    }
+
+    pub fn get_click_count_last_hour(&self) -> u64 {
+        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMEstampDIFF(MINUTE,ClickTimestamp,now())<=60;"#)
+    }
+
+    pub fn get_click_count_last_day(&self) -> u64 {
+        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMEstampDIFF(HOUR,ClickTimestamp,now())<=24;"#)
+    }
+
     pub fn get_checks(&self, stationuuid: Option<String>, seconds: u32) -> Vec<StationCheck> {
         let where_seconds = if seconds > 0 {
             format!(
