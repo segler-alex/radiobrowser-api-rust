@@ -534,17 +534,17 @@ impl Connection {
     }
 
     pub fn get_click_count_last_hour(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMEstampDIFF(MINUTE,ClickTimestamp,now())<=60;"#)
+        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(MINUTE,ClickTimestamp,now())<=60;"#)
     }
 
     pub fn get_click_count_last_day(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMEstampDIFF(HOUR,ClickTimestamp,now())<=24;"#)
+        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(HOUR,ClickTimestamp,now())<=24;"#)
     }
 
     pub fn get_checks(&self, stationuuid: Option<String>, seconds: u32) -> Vec<StationCheck> {
         let where_seconds = if seconds > 0 {
             format!(
-                "TIME_TO_SEC(TIMEDIFF(Now(),CheckTime))<{seconds}",
+                "TIMESTAMPDIFF(SECOND,CheckTime,now())<{seconds}",
                 seconds = seconds
             )
         } else {
