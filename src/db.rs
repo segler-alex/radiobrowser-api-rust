@@ -6,6 +6,54 @@ use mysql::Value;
 use std;
 use std::collections::HashMap;
 use thread;
+extern crate uuid;
+use self::uuid::Uuid;
+
+#[derive(Serialize, Deserialize)]
+pub struct StationAddResult {
+    ok: bool,
+    message: String,
+    id: u64,
+    uuid: String,
+    stream_check_ok: bool,
+    stream_check_bitrate: u32,
+    stream_check_codec: String,
+    favicon_check_done: bool,
+    favicon_check_ok: bool,
+    favicon_check_url: String,
+}
+
+impl StationAddResult {
+    fn new_ok(id: u64, stationuuid: String) -> StationAddResult {
+        StationAddResult{
+            ok: true,
+            message: "added station successfully".to_string(),
+            id: id,
+            uuid: stationuuid,
+            stream_check_ok: false,
+            stream_check_bitrate: 0,
+            stream_check_codec: "".to_string(),
+            favicon_check_done: false,
+            favicon_check_ok: false,
+            favicon_check_url: "".to_string(),
+        }
+    }
+
+    fn new_err(err: &str) -> StationAddResult {
+        StationAddResult{
+            ok: false,
+            message: err.to_string(),
+            id: 0,
+            uuid: "".to_string(),
+            stream_check_ok: false,
+            stream_check_bitrate: 0,
+            stream_check_codec: "".to_string(),
+            favicon_check_done: false,
+            favicon_check_ok: false,
+            favicon_check_url: "".to_string(),
+        }
+    }
+}
 
 pub struct Connection {
     pool: mysql::Pool,
@@ -173,6 +221,27 @@ pub fn serialize_to_xspf(entries: Vec<Station>) -> std::io::Result<String> {
         xml.elem_text("location", &entry.url)?;
         xml.end_elem()?;
     }
+    xml.end_elem()?;
+    xml.end_elem()?;
+    xml.close()?;
+    xml.flush()?;
+    Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
+}
+
+pub fn serialize_station_add(station_add: StationAddResult) -> std::io::Result<String> {
+    let mut xml = xml_writer::XmlWriter::new(Vec::new());
+    xml.begin_elem("result")?;
+    xml.begin_elem("status")?;
+    xml.attr_esc("ok", &station_add.ok.to_string())?;
+    xml.attr_esc("message", &station_add.ok.to_string())?;
+    xml.attr_esc("id", &station_add.id.to_string())?;
+    xml.attr_esc("uuid", &station_add.uuid)?;
+    xml.attr_esc("stream_check_ok", &station_add.stream_check_ok.to_string())?;
+    xml.attr_esc("stream_check_bitrate", &station_add.stream_check_bitrate.to_string())?;
+    xml.attr_esc("stream_check_codec", &station_add.stream_check_codec)?;
+    xml.attr_esc("favicon_check_done", &station_add.favicon_check_done.to_string())?;
+    xml.attr_esc("favicon_check_ok", &station_add.favicon_check_ok.to_string())?;
+    xml.attr_esc("favicon_check_url", &station_add.favicon_check_url.to_string())?;
     xml.end_elem()?;
     xml.end_elem()?;
     xml.close()?;
@@ -541,6 +610,43 @@ impl Connection {
         self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(HOUR,ClickTimestamp,now())<=24;"#)
     }
 
+    pub fn add_station(&self, name: Option<String>, url: Option<String>, homepage: Option<String>, favicon: Option<String>,
+                        country: Option<String>, state: Option<String>, language: Option<String>, tags: Option<String>) -> StationAddResult{
+        let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache) 
+                                VALUES(:name, :url, :homepage, :favicon, :country, :state, :language, :tags, :changeuuid, :stationuuid, '')");
+        
+        if name.is_none(){
+            return StationAddResult::new_err("name is empty");
+        }
+        if url.is_none(){
+            return StationAddResult::new_err("url is empty");
+        }
+
+        let stationuuid = Uuid::new_v4().hyphenated().to_string();
+        let changeuuid = Uuid::new_v4().hyphenated().to_string();
+        let params = params!{
+            "name" => name.unwrap(),
+            "url" => url.unwrap(),
+            "homepage" => homepage.unwrap_or_default(),
+            "favicon" => favicon.unwrap_or_default(),
+            "country" => country.unwrap_or_default(),
+            "state" => state.unwrap_or_default(),
+            "language" => language.unwrap_or_default(),
+            "tags" => tags.unwrap_or_default(),
+            "changeuuid" => changeuuid,
+            "stationuuid" => stationuuid.clone(),
+        };
+
+        let results = self.pool.prep_exec(query, params);
+        match results {
+            Ok(results) => {
+                let id = results.last_insert_id();
+                StationAddResult::new_ok(id, stationuuid)
+            },
+            Err(err)=>StationAddResult::new_err(&err.to_string())
+        }
+    }
+
     pub fn get_checks(&self, stationuuid: Option<String>, seconds: u32) -> Vec<StationCheck> {
         let where_seconds = if seconds > 0 {
             format!(
@@ -853,7 +959,7 @@ impl Connection {
     pub fn get_stations_by_column_multiple(
         &self,
         column_name: &str,
-        search: String,
+        search: Option<String>,
         exact: bool,
         order: &str,
         reverse: bool,
