@@ -622,8 +622,8 @@ impl Connection {
             return StationAddResult::new_err("url is empty");
         }
 
-        let stationuuid = Uuid::new_v4().hyphenated().to_string();
-        let changeuuid = Uuid::new_v4().hyphenated().to_string();
+        let stationuuid = Uuid::new_v4().to_hyphenated().to_string();
+        let changeuuid = Uuid::new_v4().to_hyphenated().to_string();
         let params = params!{
             "name" => name.unwrap(),
             "url" => url.unwrap(),
