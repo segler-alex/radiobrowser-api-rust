@@ -4,12 +4,13 @@ extern crate serde;
 extern crate serde_json;
 extern crate dns_lookup;
 
+use api::rouille::Response;
+use api::rouille::Request;
 use std;
 use db;
 use self::dns_lookup::lookup_host;
 use self::dns_lookup::lookup_addr;
 use std::io::Read;
-use std::io;
 
 use url::form_urlencoded;
 
@@ -400,7 +401,18 @@ fn str_to_arr(string: &str) -> Vec<String> {
 }
 
 fn handle_connection(connection: &db::Connection, request: &rouille::Request, server_name: &str) -> rouille::Response {
-    rouille::log(request, io::stdout(), || {
+    let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
+    let referer: String = request.header("Referer").unwrap_or(&"-".to_string()).to_string();
+    let user_agent: String = request.header("User-agent").unwrap_or(&"-".to_string()).to_string();
+
+    let now = chrono::Utc::now().format("%d/%m/%Y:%H:%M:%S%.6f");
+    let log_ok = |req: &Request, resp: &Response, _elap: std::time::Duration| {
+        println!(r#"{} - - [{}] "{} {}" {} {} "{}" "{}""#, remote_ip, now, req.method(), req.raw_url(), resp.status_code, 0, referer, user_agent);
+    };
+    let log_err = |req: &Request, _elap: std::time::Duration| {
+        println!("{} {} Handler panicked: {} {}", remote_ip, now, req.method(), req.raw_url());
+    };
+    rouille::log_custom(request, log_ok, log_err, || {
         handle_connection_internal(connection, request, server_name)
     })
 }
