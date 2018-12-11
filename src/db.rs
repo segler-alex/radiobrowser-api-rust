@@ -621,11 +621,15 @@ impl Connection {
         if url.is_none(){
             return StationAddResult::new_err("url is empty");
         }
+        let name = name.unwrap();
+        if name.len() > 400{
+            return StationAddResult::new_err("name is longer than 400 chars");
+        }
 
         let stationuuid = Uuid::new_v4().to_hyphenated().to_string();
         let changeuuid = Uuid::new_v4().to_hyphenated().to_string();
         let params = params!{
-            "name" => name.unwrap(),
+            "name" => name,
             "url" => url.unwrap(),
             "homepage" => homepage.unwrap_or_default(),
             "favicon" => favicon.unwrap_or_default(),
@@ -641,10 +645,26 @@ impl Connection {
         match results {
             Ok(results) => {
                 let id = results.last_insert_id();
-                StationAddResult::new_ok(id, stationuuid)
+                let backup_result = self.backup_station_by_id(id);
+                match backup_result {
+                    Ok(_) => StationAddResult::new_ok(id, stationuuid),
+                    Err(err) => StationAddResult::new_err(&err.to_string())
+                }
             },
             Err(err)=>StationAddResult::new_err(&err.to_string())
         }
+    }
+
+    fn backup_station_by_id(&self, stationid: u64) -> Result<(),Box<std::error::Error>>{
+        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid)
+                                SELECT StationID,Name,Url,Homepage,Favicon,Country,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid FROM Station WHERE StationID=:id");
+        let params = params!{
+            "id" => stationid,
+        };
+
+        self.pool.prep_exec(query, params)?;
+        
+        Ok(())
     }
 
     pub fn get_checks(&self, stationuuid: Option<String>, seconds: u32) -> Vec<StationCheck> {
