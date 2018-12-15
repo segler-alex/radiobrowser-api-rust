@@ -617,6 +617,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
         let file_name = items[1];
         match file_name {
             "favicon.ico" => send_file("static/favicon.ico", "image/png"),
+            "robots.txt" => send_file("static/robots.txt", "text/plain"),
             "main.css" => send_file("static/main.css","text/css"),
             "" => {
                 let mut handlebars = Handlebars::new();
