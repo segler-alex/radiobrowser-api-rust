@@ -75,9 +75,19 @@ fn main() {
                 .env("UPDATE_CACHES_INTERVAL")
                 .default_value("0")
                 .takes_value(true),
+        ).arg(
+            Arg::with_name("static-files-dir")
+                .short("u")
+                .long("static-files-dir")
+                .value_name("STATIC_FILES_DIR")
+                .help("directory that contains the static files")
+                .env("STATIC_FILES_DIR")
+                .default_value("./static/")
+                .takes_value(true),
         ).get_matches();
 
     let connection_string: String = matches.value_of("database").unwrap().to_string();
+    let static_files_dir: String = matches.value_of("static-files-dir").unwrap().to_string();
     let listen_host: String = matches.value_of("listen_host").unwrap().parse().expect("listen_host is not string");
     let listen_port: i32 = matches.value_of("listen_port").unwrap().parse().expect("listen_port is not u32");
     let server_url: &str = matches.value_of("server_url").unwrap();
@@ -88,7 +98,7 @@ fn main() {
         let connection = db::new(&connection_string, update_caches_interval);
         match connection {
             Ok(v) => {
-                api::run(v, listen_host, listen_port, threads, server_url);
+                api::run(v, listen_host, listen_port, threads, server_url, &static_files_dir);
                 break;
             }
             Err(e) => {

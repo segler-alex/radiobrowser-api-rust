@@ -319,7 +319,7 @@ pub fn serialize_status(status: &Status) -> std::io::Result<String> {
     Ok(String::from_utf8(xml.into_inner()).unwrap())
 }
 
-fn encode_status(status: Status, format : &str) -> rouille::Response {
+fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Response {
     match format {
         "json" => {
             let j = serde_json::to_string(&status);
@@ -337,7 +337,7 @@ fn encode_status(status: Status, format : &str) -> rouille::Response {
         },
         "html" => {
             let mut handlebars = Handlebars::new();
-            let y = handlebars.register_template_file("template.html", "static/template.html");
+            let y = handlebars.register_template_file("template.html", &format!("{}/{}",static_dir,"template.html"));
             if y.is_ok(){
                 let mut data = Map::new();
                 data.insert(String::from("status"), to_json(status));
@@ -354,15 +354,16 @@ fn encode_status(status: Status, format : &str) -> rouille::Response {
     }
 }
 
-pub fn run(connection: db::Connection, host : String, port : i32, threads : usize, server_name: &str) {
+pub fn run(connection: db::Connection, host : String, port : i32, threads : usize, server_name: &str, static_dir: &str) {
     let listen_str = format!("{}:{}", host, port);
     println!("Listen on {} with {} threads", listen_str, threads);
     let x : Option<usize> = Some(threads);
     let y = String::from(server_name);
+    let static_dir = static_dir.to_string();
     rouille::start_server_with_pool(listen_str, x, move |request| {
     //rouille::start_server(listen_str, move |request| {
         //rouille::log(&request, std::io::stdout(), || {
-            handle_connection(&connection, request, &y)
+            handle_connection(&connection, request, &y, &static_dir)
         //})
     });
 }
@@ -400,7 +401,7 @@ fn str_to_arr(string: &str) -> Vec<String> {
     list
 }
 
-fn handle_connection(connection: &db::Connection, request: &rouille::Request, server_name: &str) -> rouille::Response {
+fn handle_connection(connection: &db::Connection, request: &rouille::Request, server_name: &str, static_dir: &str) -> rouille::Response {
     let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
     let referer: String = request.header("Referer").unwrap_or(&"-".to_string()).to_string();
     let user_agent: String = request.header("User-agent").unwrap_or(&"-".to_string()).to_string();
@@ -413,11 +414,11 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request, se
         println!("{} {} Handler panicked: {} {}", remote_ip, now, req.method(), req.raw_url());
     };
     rouille::log_custom(request, log_ok, log_err, || {
-        handle_connection_internal(connection, request, server_name)
+        handle_connection_internal(connection, request, server_name, static_dir)
     })
 }
 
-fn handle_connection_internal(connection: &db::Connection, request: &rouille::Request, server_name: &str) -> rouille::Response {
+fn handle_connection_internal(connection: &db::Connection, request: &rouille::Request, server_name: &str, static_dir: &str) -> rouille::Response {
     if request.method() != "POST" && request.method() != "GET" {
         return rouille::Response::empty_404();
     }
@@ -616,12 +617,12 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
     if items.len() == 2 {
         let file_name = items[1];
         match file_name {
-            "favicon.ico" => send_file("static/favicon.ico", "image/png"),
-            "robots.txt" => send_file("static/robots.txt", "text/plain"),
-            "main.css" => send_file("static/main.css","text/css"),
+            "favicon.ico" => send_file(&format!("{}/{}",static_dir,"favicon.ico"), "image/png"),
+            "robots.txt" => send_file(&format!("{}/{}",static_dir,"robots.txt"), "text/plain"),
+            "main.css" => send_file(&format!("{}/{}",static_dir,"main.css"),"text/css"),
             "" => {
                 let mut handlebars = Handlebars::new();
-                let y = handlebars.register_template_file("docs.hbs", "static/docs.hbs");
+                let y = handlebars.register_template_file("docs.hbs", &format!("{}/{}",static_dir,"docs.hbs"));
                 if y.is_ok() {
                     let mut data = Map::new();
                     data.insert(String::from("API_SERVER"), to_json(format!("http://{name}",name = header_host)));
@@ -649,7 +650,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
             "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, filter), format, "tag")),
             "stations" => add_cors(encode_stations(connection.get_stations_by_all(&param_order, param_reverse, param_hidebroken, param_offset, param_limit), format)),
             "servers" => add_cors(dns_resolve(format)),
-            "stats" => add_cors(encode_status(get_status(connection), format)),
+            "stats" => add_cors(encode_status(get_status(connection), format, server_name)),
             "checks" => add_cors(encode_checks(connection.get_checks(None, param_seconds),format)),
             "add" => add_cors(encode_add(connection.add_station(param_name, param_url, param_homepage, param_favicon, param_country, param_state, param_language, param_tags), format)),
             _ => rouille::Response::empty_404()

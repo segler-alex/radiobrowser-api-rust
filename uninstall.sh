@@ -6,3 +6,4 @@ sudo groupdel radiobrowser
 
 sudo rm /etc/systemd/system/radiobrowser.service
 sudo systemctl daemon-reload
+sudo rm -rf /usr/local/share/radiobrowser

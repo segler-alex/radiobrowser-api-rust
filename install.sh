@@ -1,9 +1,11 @@
 #!/bin/bash
 cargo build --release
 sudo mkdir -p /usr/local/bin
+sudo mkdir -p /usr/local/share/radiobrowser
 
 sudo cp target/release/radiobrowser-api-rust /usr/local/bin/radiobrowser.bin
 sudo cp init/radiobrowser.service /etc/systemd/system
+sudo cp static/* /usr/local/share/radiobrowser/
 
 cat <<EOF | sudo tee /usr/local/bin/radiobrowser
 #!/bin/bash
@@ -14,6 +16,7 @@ export SERVER_URL
 export THREADS
 export UPDATE_CACHES_INTERVAL
 export DATABASE_URL
+export STATIC_FILES_DIR
 radiobrowser.bin
 EOF
 
@@ -32,6 +35,8 @@ THREADS=5
 UPDATE_CACHES_INTERVAL=30
 # database connection string (mysql, mariadb)
 DATABASE_URL=mysql://radiouser:password@localhost/radio
+# Directory for static and template files
+STATIC_FILES_DIR=/usr/local/share/radiobrowser
 EOF
 fi
 
