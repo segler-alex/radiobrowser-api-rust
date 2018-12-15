@@ -1,0 +1,33 @@
+[Unit]
+Description=RadioBrowserAPI
+After=network.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+
+##############################################################################
+## Core requirements
+##
+
+Type=simple
+
+##############################################################################
+## Package maintainers
+##
+
+User=radiobrowser
+Group=radiobrowser
+
+# Prevent writes to /usr, /boot, and /etc
+ProtectSystem=full
+
+# Prevent accessing /home, /root and /run/user
+ProtectHome=true
+
+# Start main service
+ExecStart=/usr/local/bin/radiobrowser
+
+Restart=always
+RestartSec=5s
