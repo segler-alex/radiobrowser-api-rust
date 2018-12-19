@@ -1097,15 +1097,30 @@ impl Connection {
         self.get_stations_query(query)
     }
 
-    pub fn get_changes(&self, _uuid: Option<String>, seconds: u32) -> Vec<StationHistory> {
-        let query: String;
+    pub fn get_changes(&self, stationuuid: Option<String>, seconds: u32) -> Vec<StationHistory> {
         let seconds_str: String = if seconds > 0 {
             format!(" AND TIME_TO_SEC(TIMEDIFF(Now(),Creation))<{}", seconds)
         } else {
             "".to_string()
         };
-        query = format!("SELECT StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,Tags,Country,Subcountry,Language,Votes,NegativeVotes,Creation,Ip from StationHistory WHERE 1=1 {seconds} ORDER BY Creation DESC", seconds = seconds_str);
-        self.get_stations_history(query)
+
+        let stationuuid_str = if stationuuid.is_some() {
+            " AND StationUuid=:stationuuid"
+        }else{
+            ""
+        };
+        
+        let query: String = format!("SELECT StationID,ChangeUuid,
+                StationUuid,Name,
+                Url,Homepage,
+                Favicon,Tags,
+                Country,Subcountry,
+                Language,Votes,
+                NegativeVotes,Creation,Ip from StationHistory WHERE 1=1 {seconds} {stationuuid} ORDER BY Creation DESC", seconds = seconds_str, stationuuid = stationuuid_str);
+        let results = self.pool.prep_exec(query, params! {
+            "stationuuid" => stationuuid.unwrap_or(String::from(""))
+        });
+        self.get_stations_history(results)
     }
 
     fn get_stations_query(&self, query: String) -> Vec<Station> {
@@ -1188,9 +1203,8 @@ impl Connection {
         stations
     }
 
-    fn get_stations_history(&self, query: String) -> Vec<StationHistory> {
+    fn get_stations_history(&self, results: ::mysql::Result<QueryResult<'static>>) -> Vec<StationHistory> {
         let mut changes: Vec<StationHistory> = vec![];
-        let results = self.pool.prep_exec(query, ());
         for result in results {
             for row_ in result {
                 let mut row = row_.unwrap();
