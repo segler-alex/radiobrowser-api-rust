@@ -1117,7 +1117,6 @@ impl Connection {
                 Country,Subcountry,
                 Language,Votes,
                 NegativeVotes,Creation,Ip from StationHistory WHERE 1=1 {changeuuid_str} {stationuuid} ORDER BY Creation DESC", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str);
-            println!("{}", query);
         let results = self.pool.prep_exec(query, params! {
             "stationuuid" => stationuuid.unwrap_or(String::from("")),
             "changeuuid" => changeuuid.unwrap_or(String::from(""))
