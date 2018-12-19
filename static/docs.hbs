@@ -1028,9 +1028,9 @@
       <div class="syntax">
         <ul class="list-unstyled ml-4">
           <li>{{ API_SERVER }}/json/stations/changed</li>
-          <li>{{ API_SERVER }}/json/stations/changed/stationid</li>
+          <li>{{ API_SERVER }}/json/stations/changed/stationuuid</li>
           <li>{{ API_SERVER }}/xml/stations/changed</li>
-          <li>{{ API_SERVER }}/xml/stations/changed/stationid</li>
+          <li>{{ API_SERVER }}/xml/stations/changed/stationuuid</li>
         </ul>
       </div>
       <div class="h5">Parameter:</div>
@@ -1046,10 +1046,10 @@
         </thead>
         <tbody>
           <tr>
-            <td>seconds</td>
-            <td>0</td>
-            <td>positive integer values</td>
-            <td>if >0 then it will only return history entries from the last 'seconds' seconds</td>
+            <td>lastchangeuuid</td>
+            <td></td>
+            <td>valid uuid</td>
+            <td>If defined then show only changes that happened after the change with this uuid</td>
           </tr>
         </tbody>
       </table>

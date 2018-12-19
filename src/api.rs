@@ -73,12 +73,6 @@ fn dns_resolve(format : &str) -> rouille::Response {
     }
 }
 
-fn get_changes(request: &rouille::Request, connection: &db::Connection, station_id : Option<String>) -> Vec<db::StationHistory>{
-    let seconds: u32 = request.get_param("seconds").unwrap_or(String::from("0")).parse().unwrap_or(0);
-    let stations = connection.get_changes(station_id, seconds);
-    stations
-}
-
 fn get_1_n_with_parse(request: &rouille::Request, connection: &db::Connection, column: &str, filter_prev : Option<String>) -> Vec<db::Result1n>{
     let filter = request.get_param("filter").or(filter_prev);
     let order : String = request.get_param("order").unwrap_or(String::from("value"));
@@ -432,6 +426,8 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
     let mut param_homepage: Option<String> = request.get_param("homepage");
     let mut param_favicon: Option<String> = request.get_param("favicon");
 
+    let mut param_last_changeuuid: Option<String> = request.get_param("lastchangeuuid");
+
     let mut param_name: Option<String> = request.get_param("name");
     let mut param_name_exact: bool = request.get_param("nameExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
     let mut param_country: Option<String> = request.get_param("country");
@@ -465,6 +461,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
                         let iter = form_urlencoded::parse(&buf);
                         for (key,val) in iter {
                             if key == "order" { param_order = val.into(); }
+                            else if key == "lastchangeuuid" { param_last_changeuuid = Some(val.into()); }
                             else if key == "name" { param_name = Some(val.into()); }
                             else if key == "nameExact" { param_name_exact = val.parse().unwrap_or(param_name_exact); }
                             else if key == "country" { param_country = Some(val.into()); }
@@ -569,6 +566,9 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
                             param_tag_list = str_to_arr(v["tagList"].as_str().unwrap());
                         }
                         // other
+                        if v["lastchangeuuid"].is_string() {
+                            param_last_changeuuid = Some(v["lastchangeuuid"].as_str().unwrap().to_string());
+                        }
                         if v["homepage"].is_string() {
                             param_homepage = Some(v["homepage"].as_str().unwrap().to_string());
                         }
@@ -677,7 +677,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
                     "broken" => add_cors(encode_stations(connection.get_stations_broken(999999), format)),
                     "improvable" => add_cors(encode_stations(connection.get_stations_improvable(999999), format)),
                     "deleted" => add_cors(encode_stations(connection.get_stations_deleted_all(param_limit), format)),
-                    "changed" => add_cors(encode_changes(get_changes(&request, &connection, None), format)),
+                    "changed" => add_cors(encode_changes(connection.get_changes(None, param_last_changeuuid), format)),
                     "byurl" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Url", param_url,true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
                     "search" => add_cors(encode_stations(connection.get_stations_advanced(param_name, param_name_exact, param_country, param_country_exact, param_state, param_state_exact, param_language, param_language_exact, param_tag, param_tag_exact, param_tag_list, param_bitrate_min, param_bitrate_max, &param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
                     _ => rouille::Response::empty_404()
@@ -732,7 +732,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
                                 Err(_) => add_cors(rouille::Response::empty_400())
                             }
                         },
-                        "changed" => add_cors(encode_changes(get_changes(&request, &connection, Some(search.to_string())), format)),
+                        "changed" => add_cors(encode_changes(connection.get_changes(Some(search.to_string()),param_last_changeuuid), format)),
                         _ => rouille::Response::empty_404()
                     }
                 },

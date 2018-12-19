@@ -1097,11 +1097,11 @@ impl Connection {
         self.get_stations_query(query)
     }
 
-    pub fn get_changes(&self, stationuuid: Option<String>, seconds: u32) -> Vec<StationHistory> {
-        let seconds_str: String = if seconds > 0 {
-            format!(" AND TIME_TO_SEC(TIMEDIFF(Now(),Creation))<{}", seconds)
+    pub fn get_changes(&self, stationuuid: Option<String>, changeuuid: Option<String>) -> Vec<StationHistory> {
+        let changeuuid_str = if changeuuid.is_some() {
+            " AND Creation>=(SELECT Creation FROM StationHistory WHERE ChangeUuid=:changeuuid) AND ChangeUuid<>:changeuuid"
         } else {
-            "".to_string()
+            ""
         };
 
         let stationuuid_str = if stationuuid.is_some() {
@@ -1116,9 +1116,11 @@ impl Connection {
                 Favicon,Tags,
                 Country,Subcountry,
                 Language,Votes,
-                NegativeVotes,Creation,Ip from StationHistory WHERE 1=1 {seconds} {stationuuid} ORDER BY Creation DESC", seconds = seconds_str, stationuuid = stationuuid_str);
+                NegativeVotes,Creation,Ip from StationHistory WHERE 1=1 {changeuuid_str} {stationuuid} ORDER BY Creation DESC", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str);
+            println!("{}", query);
         let results = self.pool.prep_exec(query, params! {
-            "stationuuid" => stationuuid.unwrap_or(String::from(""))
+            "stationuuid" => stationuuid.unwrap_or(String::from("")),
+            "changeuuid" => changeuuid.unwrap_or(String::from(""))
         });
         self.get_stations_history(results)
     }
