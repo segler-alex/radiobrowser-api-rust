@@ -1385,8 +1385,15 @@ impl Connection {
     }
 
     pub fn init_tables(&self) {
+        let result = self.pool.prep_exec(r#"DROP TABLE IF EXISTS TagCache"#,());
+        match result {
+            Ok(_) => {}
+            Err(err) => {
+                println!("{}", err);
+            }
+        }
         let result = self.pool.prep_exec(
-            r#"CREATE OR REPLACE TABLE TagCache(TagName VARCHAR(100) COLLATE utf8_bin NOT NULL,
+            r#"CREATE TABLE TagCache(TagName VARCHAR(100) COLLATE utf8_bin NOT NULL,
             Primary Key (TagName),
             StationCount INT DEFAULT 0,
             StationCountWorking INT DEFAULT 0) CHARSET=utf8 COLLATE=utf8_bin"#,
