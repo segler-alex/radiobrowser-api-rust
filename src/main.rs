@@ -84,8 +84,15 @@ fn main() {
                 .takes_value(false)
                 .help("ignore errors in migrations"),
         ).arg(
+            Arg::with_name("allow-database-downgrade")
+                .short("a")
+                .long("allow-database-downgrade")
+                .value_name("IGNORE_MIGRATION_ERRORS")
+                .takes_value(false)
+                .help("allows downgrade of database if tables were created with newer software version"),
+        ).arg(
             Arg::with_name("static-files-dir")
-                .short("u")
+                .short("g")
                 .long("static-files-dir")
                 .value_name("STATIC_FILES_DIR")
                 .help("directory that contains the static files")
@@ -102,9 +109,10 @@ fn main() {
     let threads: usize = matches.value_of("threads").unwrap().parse().expect("threads is not usize");
     let update_caches_interval: u64 = matches.value_of("update-caches-interval").unwrap().parse().expect("update-caches-interval is not u64");
     let ignore_migration_errors: bool = matches.occurrences_of("ignore-migration-errors") > 0;
+    let allow_database_downgrade: bool = matches.occurrences_of("allow-database-downgrade") > 0;
 
     loop {
-        let connection = db::new(&connection_string, update_caches_interval, ignore_migration_errors);
+        let connection = db::new(&connection_string, update_caches_interval, ignore_migration_errors, allow_database_downgrade);
         match connection {
             Ok(v) => {
                 api::run(v, listen_host, listen_port, threads, server_url, &static_files_dir);

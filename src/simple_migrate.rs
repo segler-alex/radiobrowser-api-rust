@@ -115,7 +115,7 @@ impl Migrations {
         self.delete_db_migration(&migration.name);
     }
 
-    pub fn do_migrations(&self, ignore_errors: bool) {
+    pub fn do_migrations(&self, ignore_errors: bool, allow_database_downgrade: bool) {
         self.ensure_tables();
 
         let migrations_applied = self.get_applied_migrations();
@@ -141,7 +141,11 @@ impl Migrations {
                 }
             }
             if !found {
-                self.unapply_migration(&wanted, ignore_errors);
+                if allow_database_downgrade {
+                    self.unapply_migration(&wanted, ignore_errors);
+                }else{
+                    panic!("Database downgrade would be neccessary! Please confirm if you really want to do that.")
+                }
             }
         }
     }
