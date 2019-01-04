@@ -14,6 +14,7 @@ use std::{thread, time};
 
 mod api;
 mod db;
+mod simple_migrate;
 
 fn main() {
     let matches = App::new("stream-check")
@@ -76,6 +77,13 @@ fn main() {
                 .default_value("0")
                 .takes_value(true),
         ).arg(
+            Arg::with_name("ignore-migration-errors")
+                .short("i")
+                .long("ignore-migration-errors")
+                .value_name("IGNORE_MIGRATION_ERRORS")
+                .takes_value(false)
+                .help("ignore errors in migrations"),
+        ).arg(
             Arg::with_name("static-files-dir")
                 .short("u")
                 .long("static-files-dir")
@@ -93,9 +101,10 @@ fn main() {
     let server_url: &str = matches.value_of("server_url").unwrap();
     let threads: usize = matches.value_of("threads").unwrap().parse().expect("threads is not usize");
     let update_caches_interval: u64 = matches.value_of("update-caches-interval").unwrap().parse().expect("update-caches-interval is not u64");
+    let ignore_migration_errors: bool = matches.occurrences_of("ignore-migration-errors") > 0;
 
     loop {
-        let connection = db::new(&connection_string, update_caches_interval);
+        let connection = db::new(&connection_string, update_caches_interval, ignore_migration_errors);
         match connection {
             Ok(v) => {
                 api::run(v, listen_host, listen_port, threads, server_url, &static_files_dir);

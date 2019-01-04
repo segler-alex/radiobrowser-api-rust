@@ -63,6 +63,17 @@ impl Migrations {
         .unwrap();
     }
 
+    fn delete_db_migration(&self, name: &str) {
+        let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone()).unwrap();
+        pool.prep_exec(
+            "DELETE FROM __migrations WHERE name=:name;",
+            params! {
+                "name" => name,
+            },
+        )
+        .unwrap();
+    }
+
     pub fn add_migration(&mut self, name: &str, up: &str, down: &str) {
         let m = Migration {
             name: name.to_string(),
@@ -71,24 +82,40 @@ impl Migrations {
         };
         self.migrations_wanted.push(m);
         self.migrations_wanted
-            .sort_unstable_by(|a, b| b.name.cmp(&a.name));
+            .sort_unstable_by(|a, b| a.name.cmp(&b.name));
     }
 
-    fn apply_migration(&self, migration: &Migration) {
+    fn apply_migration(&self, migration: &Migration, ignore_errors: bool) {
         let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone()).unwrap();
-        println!("APPLY UP '{}'", migration.up);
-        pool.prep_exec(&migration.up, ()).unwrap();
+        println!("APPLY UP '{}'", migration.name);
+        let result = pool.prep_exec(&migration.up, ());
+        match result {
+            Err(err) => {
+                if !ignore_errors {
+                    panic!(err.to_string());
+                }
+            },
+            _ => {}
+        };
         self.insert_db_migration(&migration.name, &migration.up, &migration.down);
     }
 
-    fn unapply_migration(&self, migration: &Migration) {
+    fn unapply_migration(&self, migration: &Migration, ignore_errors: bool) {
         let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone()).unwrap();
-        println!("APPLY DOWN'{}'", migration.down);
-        pool.prep_exec(&migration.down, ()).unwrap();
-        self.insert_db_migration(&migration.name, &migration.up, &migration.down);
+        println!("APPLY DOWN '{}'", migration.name);
+        let result = pool.prep_exec(&migration.down, ());
+        match result {
+            Err(err) => {
+                if !ignore_errors {
+                    panic!(err.to_string());
+                }
+            },
+            _ => {}
+        };
+        self.delete_db_migration(&migration.name);
     }
 
-    pub fn do_migrations(&self) {
+    pub fn do_migrations(&self, ignore_errors: bool) {
         self.ensure_tables();
 
         let migrations_applied = self.get_applied_migrations();
@@ -101,7 +128,7 @@ impl Migrations {
                 }
             }
             if !found {
-                self.apply_migration(&wanted);
+                self.apply_migration(&wanted, ignore_errors);
             }
         }
 
@@ -114,7 +141,7 @@ impl Migrations {
                 }
             }
             if !found {
-                self.unapply_migration(&wanted);
+                self.unapply_migration(&wanted, ignore_errors);
             }
         }
     }

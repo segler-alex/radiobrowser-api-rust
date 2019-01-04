@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use thread;
 extern crate uuid;
 use self::uuid::Uuid;
+use simple_migrate::Migrations;
 
 #[derive(Serialize, Deserialize)]
 pub struct StationAddResult {
@@ -1655,8 +1656,121 @@ fn start_refresh_worker(connection_string: String, update_caches_interval: u64) 
     });
 }
 
-pub fn new(connection_string: &String, update_caches_interval: u64) -> Result<Connection, DBError> {
+pub fn new(connection_string: &String, update_caches_interval: u64, ignore_migration_errors: bool) -> Result<Connection, DBError> {
     let connection_string2 = connection_string.clone();
+    let mut migrations = Migrations::new(connection_string);
+    migrations.add_migration("20190104_014300_CreateStation",
+r#"CREATE TABLE `Station` (
+  `StationID` int(11) NOT NULL AUTO_INCREMENT,
+  `Name` text,
+  `Url` text,
+  `Homepage` text,
+  `Favicon` text,
+  `Creation` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `Country` varchar(50) DEFAULT NULL,
+  `Language` varchar(50) DEFAULT NULL,
+  `Tags` text,
+  `Votes` int(11) DEFAULT '0',
+  `NegativeVotes` int(11) NOT NULL DEFAULT '0',
+  `Source` varchar(20) DEFAULT NULL,
+  `Subcountry` varchar(50) DEFAULT NULL,
+  `clickcount` int(11) DEFAULT '0',
+  `ClickTrend` int(11) DEFAULT '0',
+  `ClickTimestamp` datetime DEFAULT NULL,
+  `Codec` varchar(20) DEFAULT NULL,
+  `LastCheckOK` tinyint(1) NOT NULL DEFAULT '1',
+  `LastCheckTime` datetime DEFAULT NULL,
+  `Bitrate` int(11) NOT NULL DEFAULT '0',
+  `UrlCache` text NOT NULL,
+  `LastCheckOkTime` datetime DEFAULT NULL,
+  `Hls` tinyint(1) NOT NULL DEFAULT '0',
+  `IP` varchar(50) NOT NULL DEFAULT '',
+  `ChangeUuid` char(36) DEFAULT NULL,
+  `StationUuid` char(36) DEFAULT NULL,
+  PRIMARY KEY (`StationID`),
+  UNIQUE KEY `ChangeUuid` (`ChangeUuid`),
+  UNIQUE KEY `StationUuid` (`StationUuid`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;"#, "DROP TABLE Station;");
+
+    migrations.add_migration("20190104_014301_CreateIPVoteCheck",
+r#"CREATE TABLE `IPVoteCheck` (
+  `CheckID` int(11) NOT NULL AUTO_INCREMENT,
+  `IP` varchar(15) NOT NULL,
+  `StationID` int(11) NOT NULL,
+  `VoteTimestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`CheckID`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;"#,"DROP TABLE IPVoteCheck");
+
+    migrations.add_migration("20190104_014302_CreateLanguageCache",
+r#"CREATE TABLE `LanguageCache` (
+  `LanguageName` varchar(100) COLLATE utf8_bin NOT NULL,
+  `StationCount` int(11) DEFAULT '0',
+  `StationCountWorking` int(11) DEFAULT '0',
+  PRIMARY KEY (`LanguageName`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;"#,"DROP TABLE LanguageCache");
+
+    migrations.add_migration("20190104_014303_CreateTagCache",
+r#"CREATE TABLE `TagCache` (
+  `TagName` varchar(100) COLLATE utf8_bin NOT NULL,
+  `StationCount` int(11) DEFAULT '0',
+  `StationCountWorking` int(11) DEFAULT '0',
+  PRIMARY KEY (`TagName`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;"#,"DROP TABLE TagCache");
+
+    migrations.add_migration("20190104_014304_CreateStationCheck",
+r#"CREATE TABLE `StationCheck` (
+  `CheckID` int(11) NOT NULL AUTO_INCREMENT,
+  `StationUuid` char(36) NOT NULL,
+  `CheckUuid` char(36) NOT NULL,
+  `Source` varchar(100) NOT NULL,
+  `Codec` varchar(20) DEFAULT NULL,
+  `Bitrate` int(11) NOT NULL DEFAULT '0',
+  `Hls` tinyint(1) NOT NULL DEFAULT '0',
+  `CheckOK` tinyint(1) NOT NULL DEFAULT '1',
+  `CheckTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `UrlCache` text,
+  PRIMARY KEY (`CheckID`),
+  UNIQUE KEY `CheckUuid` (`CheckUuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"#,"DROP TABLE StationCheck");
+
+    migrations.add_migration("20190104_014305_CreateStationClick",
+r#"CREATE TABLE `StationClick` (
+  `ClickID` int(11) NOT NULL AUTO_INCREMENT,
+  `StationID` int(11) DEFAULT NULL,
+  `ClickTimestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `IP` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`ClickID`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;"#,"DROP TABLE StationClick");
+
+    migrations.add_migration("20190104_014306_CreateStationHistory",
+r#"CREATE TABLE `StationHistory` (
+  `StationChangeID` int(11) NOT NULL AUTO_INCREMENT,
+  `StationID` int(11) NOT NULL,
+  `Name` text,
+  `Url` text,
+  `Homepage` text,
+  `Favicon` text,
+  `Creation` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `Country` varchar(50) DEFAULT NULL,
+  `Subcountry` varchar(50) DEFAULT NULL,
+  `Language` varchar(50) DEFAULT NULL,
+  `Tags` text,
+  `Votes` int(11) DEFAULT '0',
+  `NegativeVotes` int(11) DEFAULT '0',
+  `IP` varchar(50) NOT NULL DEFAULT '',
+  `ChangeUuid` char(36) DEFAULT NULL,
+  `StationUuid` char(36) DEFAULT NULL,
+  PRIMARY KEY (`StationChangeID`),
+  UNIQUE KEY `ChangeUuid` (`ChangeUuid`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;"#,"DROP TABLE StationHistory");
+
+    migrations.add_migration("20190104_014307_CreatePullServers",
+r#"CREATE TABLE PullServers (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    name TEXT NOT NULL,
+    lastid TEXT NOT NULL
+);"#, "DROP TABLE PullServers;");
+    migrations.do_migrations(ignore_migration_errors);
     println!("Connection string: {}", connection_string);
 
     let pool = mysql::Pool::new(connection_string);
