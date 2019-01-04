@@ -1385,29 +1385,6 @@ impl Connection {
         states
     }
 
-    pub fn init_tables(&self) {
-        let result = self.pool.prep_exec(r#"DROP TABLE IF EXISTS TagCache"#,());
-        match result {
-            Ok(_) => {}
-            Err(err) => {
-                println!("{}", err);
-            }
-        }
-        let result = self.pool.prep_exec(
-            r#"CREATE TABLE TagCache(TagName VARCHAR(100) COLLATE utf8_bin NOT NULL,
-            Primary Key (TagName),
-            StationCount INT DEFAULT 0,
-            StationCountWorking INT DEFAULT 0) CHARSET=utf8 COLLATE=utf8_bin"#,
-            (),
-        );
-        match result {
-            Ok(_) => {}
-            Err(err) => {
-                println!("{}", err);
-            }
-        }
-    }
-
     pub fn get_extra(
         &self,
         table_name: &str,
@@ -1777,7 +1754,6 @@ r#"CREATE TABLE PullServers (
     match pool {
         Ok(p) => {
             let c = Connection { pool: p };
-            c.init_tables();
 
             if update_caches_interval > 0 {
                 start_refresh_worker(connection_string2, update_caches_interval);
