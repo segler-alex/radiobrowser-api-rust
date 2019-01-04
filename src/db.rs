@@ -1656,7 +1656,7 @@ fn start_refresh_worker(connection_string: String, update_caches_interval: u64) 
     });
 }
 
-pub fn new(connection_string: &String, update_caches_interval: u64, ignore_migration_errors: bool) -> Result<Connection, DBError> {
+pub fn new(connection_string: &String, update_caches_interval: u64, ignore_migration_errors: bool, allow_database_downgrade: bool) -> Result<Connection, DBError> {
     let connection_string2 = connection_string.clone();
     let mut migrations = Migrations::new(connection_string);
     migrations.add_migration("20190104_014300_CreateStation",
@@ -1770,7 +1770,7 @@ r#"CREATE TABLE PullServers (
     name TEXT NOT NULL,
     lastid TEXT NOT NULL
 );"#, "DROP TABLE PullServers;");
-    migrations.do_migrations(ignore_migration_errors);
+    migrations.do_migrations(ignore_migration_errors, allow_database_downgrade);
     println!("Connection string: {}", connection_string);
 
     let pool = mysql::Pool::new(connection_string);
