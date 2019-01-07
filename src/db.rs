@@ -9,6 +9,7 @@ use thread;
 extern crate uuid;
 use self::uuid::Uuid;
 use simple_migrate::Migrations;
+use api_error;
 
 #[derive(Serialize, Deserialize)]
 pub struct StationAddResult {
@@ -56,6 +57,7 @@ impl StationAddResult {
     }
 }
 
+#[derive(Clone)]
 pub struct Connection {
     pool: mysql::Pool,
 }
@@ -101,7 +103,26 @@ pub struct StationCachedInfo {
 }
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
-pub struct StationHistory {
+pub struct StationHistoryV0 {
+    id: String,
+    changeuuid: String,
+    stationuuid: String,
+    name: String,
+    url: String,
+    homepage: String,
+    favicon: String,
+    tags: String,
+    country: String,
+    state: String,
+    language: String,
+    votes: String,
+    negativevotes: String,
+    lastchangetime: String,
+    ip: String,
+}
+
+#[derive(PartialEq, Eq, Serialize, Deserialize)]
+pub struct StationHistoryCurrent {
     id: i32,
     changeuuid: String,
     stationuuid: String,
@@ -118,6 +139,51 @@ pub struct StationHistory {
     lastchangetime: String,
     ip: String,
 }
+
+impl From<StationHistoryV0> for StationHistoryCurrent {
+    fn from(item: StationHistoryV0) -> Self {
+        StationHistoryCurrent {
+            id: item.id.parse().unwrap(),
+            changeuuid: item.changeuuid,
+            stationuuid: item.stationuuid,
+            name: item.name,
+            url: item.url,
+            homepage: item.homepage,
+            favicon: item.favicon,
+            tags: item.tags,
+            country: item.country,
+            state: item.state,
+            language: item.language,
+            votes: item.votes.parse().unwrap(),
+            negativevotes: item.negativevotes.parse().unwrap(),
+            lastchangetime: item.lastchangetime,
+            ip: item.ip,
+        }
+    }
+}
+
+impl From<&StationHistoryV0> for StationHistoryCurrent {
+    fn from(item: &StationHistoryV0) -> Self {
+        StationHistoryCurrent {
+            id: item.id.parse().unwrap(),
+            changeuuid: item.changeuuid.clone(),
+            stationuuid: item.stationuuid.clone(),
+            name: item.name.clone(),
+            url: item.url.clone(),
+            homepage: item.homepage.clone(),
+            favicon: item.favicon.clone(),
+            tags: item.tags.clone(),
+            country: item.country.clone(),
+            state: item.state.clone(),
+            language: item.language.clone(),
+            votes: item.votes.parse().unwrap(),
+            negativevotes: item.negativevotes.parse().unwrap(),
+            lastchangetime: item.lastchangetime.clone(),
+            ip: item.ip.clone(),
+        }
+    }
+}
+
 
 pub fn extract_cached_info(station: Station, message: &str) -> StationCachedInfo {
     return StationCachedInfo {
@@ -512,7 +578,7 @@ pub fn serialize_station_list(entries: Vec<Station>) -> std::io::Result<String> 
     Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
 }
 
-pub fn serialize_changes_list(entries: Vec<StationHistory>) -> std::io::Result<String> {
+pub fn serialize_changes_list(entries: Vec<StationHistoryCurrent>) -> std::io::Result<String> {
     let mut xml = xml_writer::XmlWriter::new(Vec::new());
     xml.begin_elem("result")?;
     for entry in entries {
@@ -668,6 +734,26 @@ impl Connection {
         Ok(())
     }
 
+    pub fn insert_station_changes(&self, stations: &[StationHistoryCurrent]) -> Result<(),Box<std::error::Error>> {
+        let mut params = params!{
+            "x" => "x"
+        };
+        let mut query = format!("INSERT INTO StationHistory(Name,Url) VALUES"); // ,Homepage,Favicon,Country,SubCountry,Language,Tags,IP,StationUuid,ChangeUuid
+        let mut i = 0;
+        for station in stations {
+            if i > 0 {
+                query.push_str(",");
+            }
+            query.push_str(&format!("(:name{i},:url{i})",i=i));//,?,?,?,?,?,?,?,?,?
+            params.push((format!("name{i}",i=i), Value::from(station.name.clone())));
+            params.push((format!("url{i}",i=i), Value::from(station.url.clone())));
+
+            i = i+1;
+        }
+        self.pool.prep_exec(query, params)?;
+        Ok(())
+    }
+
     pub fn get_checks(&self, stationuuid: Option<String>, seconds: u32) -> Vec<StationCheck> {
         let where_seconds = if seconds > 0 {
             format!(
@@ -712,6 +798,39 @@ impl Connection {
             hidebroken = hidebroken_string, offset = offset, limit = limit);
         let results = self.pool.prep_exec(query, ());
         self.get_stations(results)
+    }
+
+    pub fn get_pull_server_lastid(&self, server: &str) -> Option<String> {
+        let query: String = format!("SELECT lastid FROM PullServers WHERE name=:name");
+        let results = self.pool.prep_exec(query, params!{
+            "name" => server
+        });
+        match results {
+            Ok(results) => {
+                for result in results {
+                    if let Ok(mut result) = result {
+                        let lastid: String = result.take("lastid").unwrap();
+                        return Some(lastid);
+                    }
+                };
+                None
+            },
+            _ => None
+        }
+    }
+
+    pub fn set_pull_server_lastid(&self, server: &str, lastid: &str) -> Result<(),Box<std::error::Error>> {
+        let params = params!{
+            "name" => server,
+            "lastid" => lastid,
+        };
+        let query_update: String = format!("UPDATE PullServers SET lastid=:lastid WHERE name=:name");
+        let results_update = self.pool.prep_exec(query_update, &params)?;
+        if results_update.affected_rows() == 0 {
+            let query_insert: String = format!("INSERT INTO PullServers(name, lastid) VALUES(:name,:lastid)");
+            self.pool.prep_exec(query_insert, &params)?;
+        }
+        Ok(())
     }
 
     pub fn filter_order(&self, order: &str) -> &str {
@@ -1098,7 +1217,7 @@ impl Connection {
         self.get_stations_query(query)
     }
 
-    pub fn get_changes(&self, stationuuid: Option<String>, changeuuid: Option<String>) -> Vec<StationHistory> {
+    pub fn get_changes(&self, stationuuid: Option<String>, changeuuid: Option<String>) -> Vec<StationHistoryCurrent> {
         let changeuuid_str = if changeuuid.is_some() {
             " AND Creation>=(SELECT Creation FROM StationHistory WHERE ChangeUuid=:changeuuid) AND ChangeUuid<>:changeuuid"
         } else {
@@ -1206,12 +1325,12 @@ impl Connection {
         stations
     }
 
-    fn get_stations_history(&self, results: ::mysql::Result<QueryResult<'static>>) -> Vec<StationHistory> {
-        let mut changes: Vec<StationHistory> = vec![];
+    fn get_stations_history(&self, results: ::mysql::Result<QueryResult<'static>>) -> Vec<StationHistoryCurrent> {
+        let mut changes: Vec<StationHistoryCurrent> = vec![];
         for result in results {
             for row_ in result {
                 let mut row = row_.unwrap();
-                let s = StationHistory {
+                let s = StationHistoryCurrent {
                     id: row.take("StationID").unwrap(),
                     changeuuid: row.take("ChangeUuid").unwrap_or("".to_string()),
                     stationuuid: row.take("StationUuid").unwrap_or("".to_string()),
@@ -1425,17 +1544,6 @@ impl Connection {
         items
     }
 }
-pub enum DBError {
-    ConnectionError(String),
-}
-
-impl std::fmt::Display for DBError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            DBError::ConnectionError(ref v) => write!(f, "{}", v),
-        }
-    }
-}
 
 fn get_cached_items(
     pool: &mysql::Pool,
@@ -1633,7 +1741,7 @@ fn start_refresh_worker(connection_string: String, update_caches_interval: u64) 
     });
 }
 
-pub fn new(connection_string: &String, update_caches_interval: u64, ignore_migration_errors: bool, allow_database_downgrade: bool) -> Result<Connection, DBError> {
+pub fn new(connection_string: &String, update_caches_interval: u64, ignore_migration_errors: bool, allow_database_downgrade: bool) -> Result<Connection, Box<std::error::Error>> {
     let connection_string2 = connection_string.clone();
     let mut migrations = Migrations::new(connection_string);
     migrations.add_migration("20190104_014300_CreateStation",
@@ -1761,6 +1869,6 @@ r#"CREATE TABLE PullServers (
 
             Ok(c)
         }
-        Err(e) => Err(DBError::ConnectionError(e.to_string())),
+        Err(e) => Err(Box::new(api_error::ApiError::ConnectionError(e.to_string()))),
     }
 }

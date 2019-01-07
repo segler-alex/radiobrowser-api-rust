@@ -17,6 +17,8 @@ use url::form_urlencoded;
 use std::fs::File;
 use self::serde_json::value::{Map};
 
+use pull_servers;
+
 use handlebars::{
     to_json, Handlebars,
 };
@@ -29,6 +31,7 @@ pub struct ServerEntry {
 
 #[derive(Serialize, Deserialize)]
 pub struct Status {
+    pub supported_version: u32,
     status: String,
     stations: u64,
     stations_broken: u64,
@@ -140,7 +143,7 @@ fn encode_result1n(type_str: &str, list : Vec<db::Result1n>, format : &str) -> r
     }
 }
 
-fn encode_changes(list : Vec<db::StationHistory>, format : &str) -> rouille::Response {
+fn encode_changes(list : Vec<db::StationHistoryCurrent>, format : &str) -> rouille::Response {
     match format {
         "json" => {
             let j = serde_json::to_string(&list).unwrap();
@@ -348,22 +351,23 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Re
     }
 }
 
-pub fn run(connection: db::Connection, host : String, port : i32, threads : usize, server_name: &str, static_dir: &str) {
+pub fn run(connection: db::Connection, host : String, port : i32, threads : usize, server_name: &str, static_dir: &str, mirrors: Vec<String>, mirror_pull_interval: u64) {
     let listen_str = format!("{}:{}", host, port);
     println!("Listen on {} with {} threads", listen_str, threads);
     let x : Option<usize> = Some(threads);
     let y = String::from(server_name);
     let static_dir = static_dir.to_string();
+    if mirrors.len() > 0{
+        pull_servers::run(connection.clone(), mirrors, mirror_pull_interval);
+    }
     rouille::start_server_with_pool(listen_str, x, move |request| {
-    //rouille::start_server(listen_str, move |request| {
-        //rouille::log(&request, std::io::stdout(), || {
-            handle_connection(&connection, request, &y, &static_dir)
-        //})
+        handle_connection(&connection, request, &y, &static_dir)
     });
 }
 
 fn get_status(connection: &db::Connection) -> Status {
     Status{
+        supported_version: 1,
         status: "OK".to_string(),
         stations: connection.get_station_count(),
         stations_broken: connection.get_broken_station_count(),

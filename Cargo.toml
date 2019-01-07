@@ -16,3 +16,4 @@ chrono = { version = "0.4", features = ["serde"] }
 handlebars = "*"
 url = "*"
 uuid = { version = "*", features = ["serde", "v4"] }
+reqwest = "*"

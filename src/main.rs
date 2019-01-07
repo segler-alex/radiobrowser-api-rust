@@ -15,6 +15,8 @@ use std::{thread, time};
 mod api;
 mod db;
 mod simple_migrate;
+mod pull_servers;
+mod api_error;
 
 fn main() {
     let matches = App::new("stream-check")
@@ -68,6 +70,14 @@ fn main() {
                 .default_value("1")
                 .takes_value(true),
         ).arg(
+            Arg::with_name("mirror")
+                .short("m")
+                .long("mirror")
+                .value_name("MIRROR")
+                .help("address of other radiobrowser server to pull updates from")
+                .multiple(true)
+                .takes_value(true),
+        ).arg(
             Arg::with_name("update-caches-interval")
                 .short("u")
                 .long("update-caches-interval")
@@ -75,6 +85,15 @@ fn main() {
                 .help("update caches at an interval in seconds")
                 .env("UPDATE_CACHES_INTERVAL")
                 .default_value("0")
+                .takes_value(true),
+        ).arg(
+            Arg::with_name("mirror-pull-interval")
+                .short("q")
+                .long("mirror-pull-interval")
+                .value_name("MIRROR_PULL_INTERVAL")
+                .help("pull from mirrors at an interval in seconds")
+                .env("MIRROR_PULL_INTERVAL")
+                .default_value("30")
                 .takes_value(true),
         ).arg(
             Arg::with_name("ignore-migration-errors")
@@ -108,14 +127,24 @@ fn main() {
     let server_url: &str = matches.value_of("server_url").unwrap();
     let threads: usize = matches.value_of("threads").unwrap().parse().expect("threads is not usize");
     let update_caches_interval: u64 = matches.value_of("update-caches-interval").unwrap().parse().expect("update-caches-interval is not u64");
+    let mirror_pull_interval: u64 = matches.value_of("mirror-pull-interval").unwrap().parse().expect("update-caches-interval is not u64");
     let ignore_migration_errors: bool = matches.occurrences_of("ignore-migration-errors") > 0;
     let allow_database_downgrade: bool = matches.occurrences_of("allow-database-downgrade") > 0;
+
+    let mut servers_pull = vec![];
+    let mirrors = matches.values_of("mirror");
+    if let Some(mirrors) = mirrors {
+        for mirror in mirrors {
+            println!("Will pull from '{}'", mirror);
+            servers_pull.push(mirror.to_string());
+        }
+    }
 
     loop {
         let connection = db::new(&connection_string, update_caches_interval, ignore_migration_errors, allow_database_downgrade);
         match connection {
             Ok(v) => {
-                api::run(v, listen_host, listen_port, threads, server_url, &static_files_dir);
+                api::run(v, listen_host, listen_port, threads, server_url, &static_files_dir, servers_pull, mirror_pull_interval);
                 break;
             }
             Err(e) => {
