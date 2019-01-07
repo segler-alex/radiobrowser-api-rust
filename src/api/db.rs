@@ -5,6 +5,7 @@ use api::data::StationAddResult;
 use api::data::Result1n;
 use api::data::ExtraInfo;
 use api::data::State;
+use api::data::StationCheck;
 use mysql::QueryResult;
 use mysql::Value;
 use std;
@@ -154,20 +155,6 @@ pub fn extract_cached_info(station: Station, message: &str) -> StationCachedInfo
     };
 }
 
-#[derive(PartialEq, Eq, Serialize, Deserialize)]
-pub struct StationCheck {
-    id: i32,
-    stationuuid: String,
-    checkuuid: String,
-    source: String,
-    codec: String,
-    bitrate: u32,
-    hls: u8,
-    ok: u8,
-    timestamp: String,
-    urlcache: String,
-}
-
 pub fn serialize_to_m3u(list: Vec<Station>, use_cached_url: bool) -> String {
     let mut j = String::with_capacity(200 * list.len());
     j.push_str("#EXTM3U\r\n");
@@ -224,27 +211,6 @@ pub fn serialize_to_xspf(entries: Vec<Station>) -> std::io::Result<String> {
         xml.end_elem()?;
     }
     xml.end_elem()?;
-    xml.end_elem()?;
-    xml.close()?;
-    xml.flush()?;
-    Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
-}
-
-pub fn serialize_station_checks(entries: Vec<StationCheck>) -> std::io::Result<String> {
-    let mut xml = xml_writer::XmlWriter::new(Vec::new());
-    xml.begin_elem("result")?;
-    for entry in entries {
-        xml.begin_elem("check")?;
-        xml.attr_esc("stationuuid", &entry.stationuuid)?;
-        xml.attr_esc("checkuuid", &entry.checkuuid)?;
-        xml.attr_esc("source", &entry.source)?;
-        xml.attr_esc("codec", &entry.codec)?;
-        xml.attr_esc("bitrate", &entry.bitrate.to_string())?;
-        xml.attr_esc("hls", &entry.hls.to_string())?;
-        xml.attr_esc("ok", &entry.ok.to_string())?;
-        xml.attr_esc("timestamp", &entry.timestamp)?;
-        xml.end_elem()?;
-    }
     xml.end_elem()?;
     xml.close()?;
     xml.flush()?;
@@ -1251,27 +1217,27 @@ impl Connection {
         for result in results {
             for row_ in result {
                 let mut row = row_.unwrap();
-                let s = StationCheck {
-                    id: row.take("CheckID").unwrap(),
-                    stationuuid: row.take("StationUuid").unwrap_or("".to_string()),
-                    checkuuid: row.take("CheckUuid").unwrap_or("".to_string()),
-                    source: row.take("Source").unwrap_or("".to_string()),
-                    codec: row
+                let s = StationCheck::new(
+                    row.take("CheckID").unwrap(),
+                    row.take("StationUuid").unwrap_or("".to_string()),
+                    row.take("CheckUuid").unwrap_or("".to_string()),
+                    row.take("Source").unwrap_or("".to_string()),
+                    row
                         .take_opt("Codec")
                         .unwrap_or(Ok("".to_string()))
                         .unwrap_or("".to_string()),
-                    bitrate: row.take_opt("Bitrate").unwrap_or(Ok(0)).unwrap_or(0),
-                    hls: row.take_opt("Hls").unwrap_or(Ok(0)).unwrap_or(0),
-                    ok: row.take_opt("CheckOK").unwrap_or(Ok(0)).unwrap_or(0),
-                    timestamp: row
+                    row.take_opt("Bitrate").unwrap_or(Ok(0)).unwrap_or(0),
+                    row.take_opt("Hls").unwrap_or(Ok(0)).unwrap_or(0),
+                    row.take_opt("CheckOK").unwrap_or(Ok(0)).unwrap_or(0),
+                    row
                         .take_opt("CheckTimeFormated")
                         .unwrap_or(Ok("".to_string()))
                         .unwrap_or("".to_string()),
-                    urlcache: row
+                    row
                         .take_opt("UrlCache")
                         .unwrap_or(Ok("".to_string()))
                         .unwrap_or("".to_string()),
-                };
+                );
                 checks.push(s);
             }
         }

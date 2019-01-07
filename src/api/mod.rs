@@ -14,6 +14,7 @@ use api::data::StationAddResult;
 use api::data::Result1n;
 use api::data::ExtraInfo;
 use api::data::State;
+use api::data::StationCheck;
 use api::rouille::Response;
 use api::rouille::Request;
 use std;
@@ -261,14 +262,14 @@ fn encode_extra(list : Vec<ExtraInfo>, format : &str, tag_name: &str) -> rouille
     }
 }
 
-fn encode_checks(list: Vec<db::StationCheck>, format: &str) -> rouille::Response {
+fn encode_checks(list: Vec<StationCheck>, format: &str) -> rouille::Response {
     match format {
         "json" => {
             let j = serde_json::to_string(&list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
         },
         "xml" => {
-            let j = db::serialize_station_checks(list).unwrap();
+            let j = StationCheck::serialize_station_checks(list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
         },
         _ => rouille::Response::empty_406()
