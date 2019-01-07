@@ -11,6 +11,8 @@ mod api_error;
 mod simple_migrate;
 
 use api::data::StationAddResult;
+use api::data::StationCachedInfo;
+use api::data::Station;
 use api::data::Result1n;
 use api::data::ExtraInfo;
 use api::data::State;
@@ -153,30 +155,30 @@ fn encode_changes(list : Vec<db::StationHistoryCurrent>, format : &str) -> rouil
     }
 }
 
-fn encode_stations(list : Vec<db::Station>, format : &str) -> rouille::Response {
+fn encode_stations(list : Vec<Station>, format : &str) -> rouille::Response {
     match format {
         "json" => {
             let j = serde_json::to_string(&list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
         },
         "xml" => {
-            let j = db::serialize_station_list(list).unwrap();
+            let j = Station::serialize_station_list(list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
         },
         "m3u" => {
-            let j = db::serialize_to_m3u(list, false);
+            let j = Station::serialize_to_m3u(list, false);
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/mpegurl").with_unique_header("Content-Disposition", r#"inline; filename="playlist.m3u""#)
         },
         "pls" => {
-            let j = db::serialize_to_pls(list, false);
+            let j = Station::serialize_to_pls(list, false);
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/x-scpls").with_unique_header("Content-Disposition", r#"inline; filename="playlist.pls""#)
         },
         "xspf" => {
-            let j = db::serialize_to_xspf(list).unwrap();
+            let j = Station::serialize_to_xspf(list).unwrap();
             rouille::Response::text(j).with_unique_header("Content-Type","application/xspf+xml").with_unique_header("Content-Disposition", r#"inline; filename="playlist.xspf""#)
         },
         "ttl" => {
-            let j = db::serialize_to_ttl(list);
+            let j = Station::serialize_to_ttl(list);
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/turtle")
         },
         _ => rouille::Response::empty_406()
@@ -201,30 +203,30 @@ fn encode_message(status: Result<String,String>, format : &str) -> rouille::Resp
     }
 }
 
-fn encode_station_url(connection: &db::Connection, station: Option<db::Station>, ip: &str, format : &str) -> rouille::Response {
+fn encode_station_url(connection: &db::Connection, station: Option<Station>, ip: &str, format : &str) -> rouille::Response {
     match station {
         Some(station) => {
             connection.increase_clicks(&ip, &station);
 
             match format {
                 "json" => {
-                    let s = db::extract_cached_info(station, "retrieved station url");
+                    let s = Station::extract_cached_info(station, "retrieved station url");
                     let j = serde_json::to_string(&s).unwrap();
                     rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
                 },
                 "xml" => {
-                    let s = db::extract_cached_info(station, "retrieved station url");
-                    let j = db::serialize_cached_info(s).unwrap();
+                    let s = Station::extract_cached_info(station, "retrieved station url");
+                    let j = StationCachedInfo::serialize_cached_info(s).unwrap();
                     rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
                 },
                 "m3u" => {
                     let list = vec![station];
-                    let j = db::serialize_to_m3u(list, true);
+                    let j = Station::serialize_to_m3u(list, true);
                     rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/mpegurl").with_unique_header("Content-Disposition", r#"inline; filename="playlist.m3u""#)
                 },
                 "pls" => {
                     let list = vec![station];
-                    let j = db::serialize_to_pls(list, true);
+                    let j = Station::serialize_to_pls(list, true);
                     rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/x-scpls").with_unique_header("Content-Disposition", r#"inline; filename="playlist.pls""#)
                 },
                 _ => rouille::Response::empty_406()
