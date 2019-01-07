@@ -13,6 +13,7 @@ mod simple_migrate;
 use api::data::StationAddResult;
 use api::data::Result1n;
 use api::data::ExtraInfo;
+use api::data::State;
 use api::rouille::Response;
 use api::rouille::Request;
 use std;
@@ -88,7 +89,7 @@ fn get_1_n_with_parse(request: &rouille::Request, connection: &db::Connection, c
     stations
 }
 
-fn get_states_with_parse(request: &rouille::Request, connection: &db::Connection, country: Option<String>, filter_prev : Option<String>, order: String, reverse: bool, hidebroken: bool) -> Vec<db::State>{
+fn get_states_with_parse(request: &rouille::Request, connection: &db::Connection, country: Option<String>, filter_prev : Option<String>, order: String, reverse: bool, hidebroken: bool) -> Vec<State>{
     let filter = request.get_param("filter").or(filter_prev);
     let stations = connection.get_states(country, filter, order, reverse, hidebroken);
     stations
@@ -232,14 +233,14 @@ fn encode_station_url(connection: &db::Connection, station: Option<db::Station>,
     }
 }
 
-fn encode_states(list : Vec<db::State>, format : &str) -> rouille::Response {
+fn encode_states(list : Vec<State>, format : &str) -> rouille::Response {
     match format {
         "json" => {
             let j = serde_json::to_string(&list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
         },
         "xml" => {
-            let j = db::serialize_state_list(list).unwrap();
+            let j = State::serialize_state_list(list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
         },
         _ => rouille::Response::empty_406()

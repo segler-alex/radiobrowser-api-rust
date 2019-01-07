@@ -3,6 +3,8 @@ extern crate xml_writer;
 
 use api::data::StationAddResult;
 use api::data::Result1n;
+use api::data::ExtraInfo;
+use api::data::State;
 use mysql::QueryResult;
 use mysql::Value;
 use std;
@@ -12,7 +14,6 @@ extern crate uuid;
 use self::uuid::Uuid;
 use api::simple_migrate::Migrations;
 use api::api_error;
-use api::data::ExtraInfo;
 
 #[derive(Clone)]
 pub struct Connection {
@@ -165,13 +166,6 @@ pub struct StationCheck {
     ok: u8,
     timestamp: String,
     urlcache: String,
-}
-
-#[derive(PartialEq, Eq, Serialize, Deserialize)]
-pub struct State {
-    name: String,
-    country: String,
-    stationcount: u32,
 }
 
 pub fn serialize_to_m3u(list: Vec<Station>, use_cached_url: bool) -> String {
@@ -394,22 +388,6 @@ pub fn serialize_cached_info(station: StationCachedInfo) -> std::io::Result<Stri
     xml.attr_esc("name", &station.name)?;
     xml.attr_esc("url", &station.url)?;
     xml.end_elem()?;
-    xml.end_elem()?;
-    xml.close()?;
-    xml.flush()?;
-    Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
-}
-
-pub fn serialize_state_list(entries: Vec<State>) -> std::io::Result<String> {
-    let mut xml = xml_writer::XmlWriter::new(Vec::new());
-    xml.begin_elem("result")?;
-    for entry in entries {
-        xml.begin_elem("state")?;
-        xml.attr_esc("name", &entry.name)?;
-        xml.attr_esc("country", &entry.country)?;
-        xml.attr_esc("stationcount", &entry.stationcount.to_string())?;
-        xml.end_elem()?;
-    }
     xml.end_elem()?;
     xml.close()?;
     xml.flush()?;
@@ -1376,11 +1354,11 @@ impl Connection {
         for my_result in my_results {
             for my_row in my_result {
                 let mut row_unwrapped = my_row.unwrap();
-                states.push(State {
-                    name: row_unwrapped.take(0).unwrap_or("".into()),
-                    country: row_unwrapped.take(1).unwrap_or("".into()),
-                    stationcount: row_unwrapped.take(2).unwrap_or(0),
-                });
+                states.push(State::new(
+                    row_unwrapped.take(0).unwrap_or("".into()),
+                    row_unwrapped.take(1).unwrap_or("".into()),
+                    row_unwrapped.take(2).unwrap_or(0),
+                ));
             }
         }
         states
