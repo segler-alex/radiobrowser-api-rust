@@ -1,6 +1,7 @@
 extern crate chrono;
 extern crate xml_writer;
 
+use api::data::Result1n;
 use mysql::QueryResult;
 use mysql::Value;
 use std;
@@ -209,12 +210,6 @@ pub struct StationCheck {
     ok: u8,
     timestamp: String,
     urlcache: String,
-}
-
-#[derive(PartialEq, Eq, Serialize, Deserialize)]
-pub struct Result1n {
-    name: String,
-    stationcount: u32,
 }
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
@@ -452,21 +447,6 @@ pub fn serialize_to_ttl(list: Vec<Station>) -> String {
     }
 
     j
-}
-
-pub fn serialize_result1n_list(type_str: &str, entries: Vec<Result1n>) -> std::io::Result<String> {
-    let mut xml = xml_writer::XmlWriter::new(Vec::new());
-    xml.begin_elem("result")?;
-    for entry in entries {
-        xml.begin_elem(type_str)?;
-        xml.attr_esc("name", &entry.name)?;
-        xml.attr_esc("stationcount", &entry.stationcount.to_string())?;
-        xml.end_elem()?;
-    }
-    xml.end_elem()?;
-    xml.close()?;
-    xml.flush()?;
-    Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
 }
 
 pub fn serialize_cached_info(station: StationCachedInfo) -> std::io::Result<String> {
@@ -1419,10 +1399,7 @@ impl Connection {
                     .map(|x| x.unwrap())
                     .map(|row| {
                         let (name, stationcount) = mysql::from_row(row);
-                        Result1n {
-                            name: name,
-                            stationcount: stationcount,
-                        }
+                        Result1n::new(name, stationcount)
                     }).collect() // Collect payments so now `QueryResult` is mapped to `Vec<Payment>`
             }).unwrap(); // Unwrap `Vec<Payment>`
         stations

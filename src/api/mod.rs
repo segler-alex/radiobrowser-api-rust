@@ -10,6 +10,7 @@ mod pull_servers;
 mod api_error;
 mod simple_migrate;
 
+use api::data::Result1n;
 use api::data::ExtraInfo;
 use api::rouille::Response;
 use api::rouille::Request;
@@ -80,7 +81,7 @@ fn dns_resolve(format : &str) -> rouille::Response {
     }
 }
 
-fn get_1_n_with_parse(request: &rouille::Request, connection: &db::Connection, column: &str, filter_prev : Option<String>, order: String, reverse: bool, hidebroken: bool) -> Vec<db::Result1n>{
+fn get_1_n_with_parse(request: &rouille::Request, connection: &db::Connection, column: &str, filter_prev : Option<String>, order: String, reverse: bool, hidebroken: bool) -> Vec<Result1n>{
     let filter = request.get_param("filter").or(filter_prev);
     let stations = connection.get_1_n(column, filter, order, reverse, hidebroken);
     stations
@@ -121,14 +122,14 @@ pub fn serialize_result_message(result: ResultMessage) -> std::io::Result<String
     Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
 }
 
-fn encode_result1n(type_str: &str, list : Vec<db::Result1n>, format : &str) -> rouille::Response {
+fn encode_result1n(type_str: &str, list : Vec<Result1n>, format : &str) -> rouille::Response {
     match format {
         "json" => {
             let j = serde_json::to_string(&list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
         },
         "xml" => {
-            let j = db::serialize_result1n_list(type_str, list).unwrap();
+            let j = Result1n::serialize_result1n_list(type_str, list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
         },
         _ => rouille::Response::empty_406()
