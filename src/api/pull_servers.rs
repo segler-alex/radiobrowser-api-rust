@@ -3,6 +3,8 @@ use time;
 use api;
 use api::db;
 use api::api_error;
+use api::data::StationHistoryCurrent;
+use api::data::StationHistoryV0;
 
 pub fn run(connection: db::Connection, mirrors: Vec<String>, pull_interval: u64){
     thread::spawn(move || {
@@ -29,7 +31,7 @@ fn get_remote_version(server: &str) -> Result<u32,Box<std::error::Error>> {
     Ok(status.supported_version)
 }
 
-fn pull_history(server: &str, api_version: u32, lastid: Option<String>) -> Result<Vec<db::StationHistoryCurrent>, Box<std::error::Error>> {
+fn pull_history(server: &str, api_version: u32, lastid: Option<String>) -> Result<Vec<StationHistoryCurrent>, Box<std::error::Error>> {
     println!("Pull from '{}' (API: {}) ..", server, api_version);
     let path = match lastid {
         Some(id) => format!("{}/json/stations/changed?lastchangeuuid={}",server, id),
@@ -38,12 +40,12 @@ fn pull_history(server: &str, api_version: u32, lastid: Option<String>) -> Resul
     let mut result = reqwest::get(&path)?;
     match api_version {
         0 => {
-            let list: Vec<db::StationHistoryV0> = result.json()?;
-            let list_current: Vec<db::StationHistoryCurrent> = list.iter().map(|x| x.into()).collect();
+            let list: Vec<StationHistoryV0> = result.json()?;
+            let list_current: Vec<StationHistoryCurrent> = list.iter().map(|x| x.into()).collect();
             Ok(list_current)
         },
         1 => {
-            let list: Vec<db::StationHistoryCurrent> = result.json()?;
+            let list: Vec<StationHistoryCurrent> = result.json()?;
             Ok(list)
         },
         _ => {

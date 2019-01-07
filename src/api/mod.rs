@@ -12,6 +12,7 @@ mod simple_migrate;
 
 use api::data::StationAddResult;
 use api::data::StationCachedInfo;
+use api::data::StationHistoryCurrent;
 use api::data::Station;
 use api::data::Result1n;
 use api::data::ExtraInfo;
@@ -141,14 +142,14 @@ fn encode_result1n(type_str: &str, list : Vec<Result1n>, format : &str) -> rouil
     }
 }
 
-fn encode_changes(list : Vec<db::StationHistoryCurrent>, format : &str) -> rouille::Response {
+fn encode_changes(list : Vec<StationHistoryCurrent>, format : &str) -> rouille::Response {
     match format {
         "json" => {
             let j = serde_json::to_string(&list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
         },
         "xml" => {
-            let j = db::serialize_changes_list(list).unwrap();
+            let j = StationHistoryCurrent::serialize_changes_list(list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
         },
         _ => rouille::Response::empty_406()
