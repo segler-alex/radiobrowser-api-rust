@@ -1,8 +1,8 @@
 use std::thread;
-use db;
 use time;
 use api;
-use api_error;
+use api::db;
+use api::api_error;
 
 pub fn run(connection: db::Connection, mirrors: Vec<String>, pull_interval: u64){
     thread::spawn(move || {

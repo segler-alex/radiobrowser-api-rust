@@ -4,10 +4,14 @@ extern crate serde;
 extern crate serde_json;
 extern crate dns_lookup;
 
+pub mod db;
+mod pull_servers;
+mod api_error;
+mod simple_migrate;
+
 use api::rouille::Response;
 use api::rouille::Request;
 use std;
-use db;
 use self::dns_lookup::lookup_host;
 use self::dns_lookup::lookup_addr;
 use std::io::Read;
@@ -16,8 +20,6 @@ use url::form_urlencoded;
 
 use std::fs::File;
 use self::serde_json::value::{Map};
-
-use pull_servers;
 
 use handlebars::{
     to_json, Handlebars,

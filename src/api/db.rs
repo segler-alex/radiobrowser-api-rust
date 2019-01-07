@@ -8,8 +8,8 @@ use std::collections::HashMap;
 use thread;
 extern crate uuid;
 use self::uuid::Uuid;
-use simple_migrate::Migrations;
-use api_error;
+use api::simple_migrate::Migrations;
+use api::api_error;
 
 #[derive(Serialize, Deserialize)]
 pub struct StationAddResult {

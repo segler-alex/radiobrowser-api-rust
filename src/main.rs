@@ -13,10 +13,6 @@ use clap::{App, Arg};
 use std::{thread, time};
 
 mod api;
-mod db;
-mod simple_migrate;
-mod pull_servers;
-mod api_error;
 
 fn main() {
     let matches = App::new("stream-check")
@@ -141,7 +137,7 @@ fn main() {
     }
 
     loop {
-        let connection = db::new(&connection_string, update_caches_interval, ignore_migration_errors, allow_database_downgrade);
+        let connection = api::db::new(&connection_string, update_caches_interval, ignore_migration_errors, allow_database_downgrade);
         match connection {
             Ok(v) => {
                 api::run(v, listen_host, listen_port, threads, server_url, &static_files_dir, servers_pull, mirror_pull_interval);
