@@ -78,38 +78,26 @@ fn dns_resolve(format : &str) -> rouille::Response {
     }
 }
 
-fn get_1_n_with_parse(request: &rouille::Request, connection: &db::Connection, column: &str, filter_prev : Option<String>) -> Vec<db::Result1n>{
+fn get_1_n_with_parse(request: &rouille::Request, connection: &db::Connection, column: &str, filter_prev : Option<String>, order: String, reverse: bool, hidebroken: bool) -> Vec<db::Result1n>{
     let filter = request.get_param("filter").or(filter_prev);
-    let order : String = request.get_param("order").unwrap_or(String::from("value"));
-    let reverse : bool = request.get_param("reverse").unwrap_or(String::from("false")) == "true";
-    let hidebroken : bool = request.get_param("hidebroken").unwrap_or(String::from("false")) == "true";
     let stations = connection.get_1_n(column, filter, order, reverse, hidebroken);
     stations
 }
 
-fn get_states_with_parse(request: &rouille::Request, connection: &db::Connection, country: Option<String>, filter_prev : Option<String>) -> Vec<db::State>{
+fn get_states_with_parse(request: &rouille::Request, connection: &db::Connection, country: Option<String>, filter_prev : Option<String>, order: String, reverse: bool, hidebroken: bool) -> Vec<db::State>{
     let filter = request.get_param("filter").or(filter_prev);
-    let order : String = request.get_param("order").unwrap_or(String::from("value"));
-    let reverse : bool = request.get_param("reverse").unwrap_or(String::from("false")) == "true";
-    let hidebroken : bool = request.get_param("hidebroken").unwrap_or(String::from("false")) == "true";
     let stations = connection.get_states(country, filter, order, reverse, hidebroken);
     stations
 }
 
-fn get_tags_with_parse(request: &rouille::Request, connection: &db::Connection, filter_prev : Option<String>) -> Vec<db::ExtraInfo>{
+fn get_tags_with_parse(request: &rouille::Request, connection: &db::Connection, filter_prev : Option<String>, order: String, reverse: bool, hidebroken: bool) -> Vec<db::ExtraInfo>{
     let filter = request.get_param("filter").or(filter_prev);
-    let order : String = request.get_param("order").unwrap_or(String::from("value"));
-    let reverse : bool = request.get_param("reverse").unwrap_or(String::from("false")) == "true";
-    let hidebroken : bool = request.get_param("hidebroken").unwrap_or(String::from("false")) == "true";
     let tags = connection.get_extra("TagCache", "TagName", filter, order, reverse, hidebroken);
     tags
 }
 
-fn get_languages_with_parse(request: &rouille::Request, connection: &db::Connection, filter_prev : Option<String>) -> Vec<db::ExtraInfo>{
+fn get_languages_with_parse(request: &rouille::Request, connection: &db::Connection, filter_prev : Option<String>, order: String, reverse: bool, hidebroken: bool) -> Vec<db::ExtraInfo>{
     let filter = request.get_param("filter").or(filter_prev);
-    let order : String = request.get_param("order").unwrap_or(String::from("value"));
-    let reverse : bool = request.get_param("reverse").unwrap_or(String::from("false")) == "true";
-    let hidebroken : bool = request.get_param("hidebroken").unwrap_or(String::from("false")) == "true";
     let languages = connection.get_extra("LanguageCache", "LanguageName", filter, order, reverse, hidebroken);
     languages
 }
@@ -649,11 +637,11 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
         let filter : Option<String> = None;
 
         match command {
-            "languages" => add_cors(encode_extra(get_languages_with_parse(&request, &connection, filter), format, "language")),
-            "countries" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Country", filter), format)),
-            "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, filter), format)),
-            "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", filter), format)),
-            "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, filter), format, "tag")),
+            "languages" => add_cors(encode_extra(get_languages_with_parse(&request, &connection, filter, param_order, param_reverse, param_hidebroken), format, "language")),
+            "countries" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Country", filter, param_order, param_reverse, param_hidebroken), format)),
+            "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, filter, param_order, param_reverse, param_hidebroken), format)),
+            "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", filter, param_order, param_reverse, param_hidebroken), format)),
+            "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, filter, param_order, param_reverse, param_hidebroken), format, "tag")),
             "stations" => add_cors(encode_stations(connection.get_stations_by_all(&param_order, param_reverse, param_hidebroken, param_offset, param_limit), format)),
             "servers" => add_cors(dns_resolve(format)),
             "stats" => add_cors(encode_status(get_status(connection), format, server_name)),
@@ -667,11 +655,11 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
         let parameter = items[3];
 
         match command {
-            "languages" => add_cors(encode_extra(get_languages_with_parse(&request, &connection, Some(String::from(parameter))), format, "language")),
-            "countries" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Country", Some(String::from(parameter))), format)),
-            "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", Some(String::from(parameter))), format)),
-            "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, Some(String::from(parameter))), format, "tag")),
-            "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, Some(String::from(parameter))), format)),
+            "languages" => add_cors(encode_extra(get_languages_with_parse(&request, &connection, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format, "language")),
+            "countries" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Country", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format)),
+            "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format)),
+            "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format, "tag")),
+            "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format)),
             "vote" => add_cors(encode_message(connection.vote_for_station(&remote_ip, connection.get_station_by_id_or_uuid(parameter)), format)),
             "url" => add_cors(encode_station_url(connection, connection.get_station_by_id_or_uuid(parameter), &remote_ip, format)),
             "stations" => {
@@ -707,7 +695,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
             }
         }else{
             match command {
-                "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, Some(String::from(parameter)), Some(String::from(search))), format)),
+                "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, Some(String::from(parameter)), Some(String::from(search)), param_order, param_reverse, param_hidebroken), format)),
                 
                 "stations" => {
                     match parameter {
