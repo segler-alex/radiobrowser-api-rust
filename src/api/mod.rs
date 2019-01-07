@@ -10,6 +10,7 @@ mod pull_servers;
 mod api_error;
 mod simple_migrate;
 
+use api::data::StationAddResult;
 use api::data::Result1n;
 use api::data::ExtraInfo;
 use api::rouille::Response;
@@ -273,14 +274,14 @@ fn encode_checks(list: Vec<db::StationCheck>, format: &str) -> rouille::Response
     }
 }
 
-fn encode_add(status: db::StationAddResult, format: &str) -> rouille::Response {
+fn encode_add(status: StationAddResult, format: &str) -> rouille::Response {
     match format {
         "json" => {
             let j = serde_json::to_string(&status).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
         },
         "xml" => {
-            let j = db::serialize_station_add(status).unwrap();
+            let j = status.serialize_xml().unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
         },
         _ => rouille::Response::empty_406()

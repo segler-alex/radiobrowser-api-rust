@@ -1,6 +1,7 @@
 extern crate chrono;
 extern crate xml_writer;
 
+use api::data::StationAddResult;
 use api::data::Result1n;
 use mysql::QueryResult;
 use mysql::Value;
@@ -12,52 +13,6 @@ use self::uuid::Uuid;
 use api::simple_migrate::Migrations;
 use api::api_error;
 use api::data::ExtraInfo;
-
-#[derive(Serialize, Deserialize)]
-pub struct StationAddResult {
-    ok: bool,
-    message: String,
-    id: u64,
-    uuid: String,
-    stream_check_ok: bool,
-    stream_check_bitrate: u32,
-    stream_check_codec: String,
-    favicon_check_done: bool,
-    favicon_check_ok: bool,
-    favicon_check_url: String,
-}
-
-impl StationAddResult {
-    fn new_ok(id: u64, stationuuid: String) -> StationAddResult {
-        StationAddResult{
-            ok: true,
-            message: "added station successfully".to_string(),
-            id: id,
-            uuid: stationuuid,
-            stream_check_ok: false,
-            stream_check_bitrate: 0,
-            stream_check_codec: "".to_string(),
-            favicon_check_done: false,
-            favicon_check_ok: false,
-            favicon_check_url: "".to_string(),
-        }
-    }
-
-    fn new_err(err: &str) -> StationAddResult {
-        StationAddResult{
-            ok: false,
-            message: err.to_string(),
-            id: 0,
-            uuid: "".to_string(),
-            stream_check_ok: false,
-            stream_check_bitrate: 0,
-            stream_check_codec: "".to_string(),
-            favicon_check_done: false,
-            favicon_check_ok: false,
-            favicon_check_url: "".to_string(),
-        }
-    }
-}
 
 #[derive(Clone)]
 pub struct Connection {
@@ -274,27 +229,6 @@ pub fn serialize_to_xspf(entries: Vec<Station>) -> std::io::Result<String> {
         xml.elem_text("location", &entry.url)?;
         xml.end_elem()?;
     }
-    xml.end_elem()?;
-    xml.end_elem()?;
-    xml.close()?;
-    xml.flush()?;
-    Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
-}
-
-pub fn serialize_station_add(station_add: StationAddResult) -> std::io::Result<String> {
-    let mut xml = xml_writer::XmlWriter::new(Vec::new());
-    xml.begin_elem("result")?;
-    xml.begin_elem("status")?;
-    xml.attr_esc("ok", &station_add.ok.to_string())?;
-    xml.attr_esc("message", &station_add.ok.to_string())?;
-    xml.attr_esc("id", &station_add.id.to_string())?;
-    xml.attr_esc("uuid", &station_add.uuid)?;
-    xml.attr_esc("stream_check_ok", &station_add.stream_check_ok.to_string())?;
-    xml.attr_esc("stream_check_bitrate", &station_add.stream_check_bitrate.to_string())?;
-    xml.attr_esc("stream_check_codec", &station_add.stream_check_codec)?;
-    xml.attr_esc("favicon_check_done", &station_add.favicon_check_done.to_string())?;
-    xml.attr_esc("favicon_check_ok", &station_add.favicon_check_ok.to_string())?;
-    xml.attr_esc("favicon_check_url", &station_add.favicon_check_url.to_string())?;
     xml.end_elem()?;
     xml.end_elem()?;
     xml.close()?;
