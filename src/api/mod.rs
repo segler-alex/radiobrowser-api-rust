@@ -5,10 +5,12 @@ extern crate serde_json;
 extern crate dns_lookup;
 
 pub mod db;
+pub mod data;
 mod pull_servers;
 mod api_error;
 mod simple_migrate;
 
+use api::data::ExtraInfo;
 use api::rouille::Response;
 use api::rouille::Request;
 use std;
@@ -90,13 +92,13 @@ fn get_states_with_parse(request: &rouille::Request, connection: &db::Connection
     stations
 }
 
-fn get_tags_with_parse(request: &rouille::Request, connection: &db::Connection, filter_prev : Option<String>, order: String, reverse: bool, hidebroken: bool) -> Vec<db::ExtraInfo>{
+fn get_tags_with_parse(request: &rouille::Request, connection: &db::Connection, filter_prev : Option<String>, order: String, reverse: bool, hidebroken: bool) -> Vec<ExtraInfo>{
     let filter = request.get_param("filter").or(filter_prev);
     let tags = connection.get_extra("TagCache", "TagName", filter, order, reverse, hidebroken);
     tags
 }
 
-fn get_languages_with_parse(request: &rouille::Request, connection: &db::Connection, filter_prev : Option<String>, order: String, reverse: bool, hidebroken: bool) -> Vec<db::ExtraInfo>{
+fn get_languages_with_parse(request: &rouille::Request, connection: &db::Connection, filter_prev : Option<String>, order: String, reverse: bool, hidebroken: bool) -> Vec<ExtraInfo>{
     let filter = request.get_param("filter").or(filter_prev);
     let languages = connection.get_extra("LanguageCache", "LanguageName", filter, order, reverse, hidebroken);
     languages
@@ -242,14 +244,14 @@ fn encode_states(list : Vec<db::State>, format : &str) -> rouille::Response {
     }
 }
 
-fn encode_extra(list : Vec<db::ExtraInfo>, format : &str, tag_name: &str) -> rouille::Response {
+fn encode_extra(list : Vec<ExtraInfo>, format : &str, tag_name: &str) -> rouille::Response {
     match format {
         "json" => {
             let j = serde_json::to_string(&list).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
         },
         "xml" => {
-            let j = db::serialize_extra_list(list, tag_name).unwrap();
+            let j = ExtraInfo::serialize_extra_list(list, tag_name).unwrap();
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
         },
         _ => rouille::Response::empty_406()

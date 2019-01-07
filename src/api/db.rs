@@ -10,6 +10,7 @@ extern crate uuid;
 use self::uuid::Uuid;
 use api::simple_migrate::Migrations;
 use api::api_error;
+use api::data::ExtraInfo;
 
 #[derive(Serialize, Deserialize)]
 pub struct StationAddResult {
@@ -221,13 +222,6 @@ pub struct State {
     name: String,
     country: String,
     stationcount: u32,
-}
-
-#[derive(PartialEq, Eq, Serialize, Deserialize)]
-pub struct ExtraInfo {
-    name: String,
-    stationcount: u32,
-    stationcountworking: u32,
 }
 
 pub fn serialize_to_m3u(list: Vec<Station>, use_cached_url: bool) -> String {
@@ -499,21 +493,6 @@ pub fn serialize_state_list(entries: Vec<State>) -> std::io::Result<String> {
         xml.begin_elem("state")?;
         xml.attr_esc("name", &entry.name)?;
         xml.attr_esc("country", &entry.country)?;
-        xml.attr_esc("stationcount", &entry.stationcount.to_string())?;
-        xml.end_elem()?;
-    }
-    xml.end_elem()?;
-    xml.close()?;
-    xml.flush()?;
-    Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
-}
-
-pub fn serialize_extra_list(entries: Vec<ExtraInfo>, tag_name: &str) -> std::io::Result<String> {
-    let mut xml = xml_writer::XmlWriter::new(Vec::new());
-    xml.begin_elem("result")?;
-    for entry in entries {
-        xml.begin_elem(tag_name)?;
-        xml.attr_esc("name", &entry.name)?;
         xml.attr_esc("stationcount", &entry.stationcount.to_string())?;
         xml.end_elem()?;
     }
@@ -1525,11 +1504,11 @@ impl Connection {
         for my_result in my_results {
             for my_row in my_result {
                 let mut row_unwrapped = my_row.unwrap();
-                items.push(ExtraInfo {
-                    name: row_unwrapped.take(0).unwrap_or("".into()),
-                    stationcount: row_unwrapped.take(1).unwrap_or(0),
-                    stationcountworking: row_unwrapped.take(2).unwrap_or(0),
-                });
+                items.push(ExtraInfo::new(
+                    row_unwrapped.take(0).unwrap_or("".into()),
+                    row_unwrapped.take(1).unwrap_or(0),
+                    row_unwrapped.take(2).unwrap_or(0),
+                ));
             }
         }
         items
