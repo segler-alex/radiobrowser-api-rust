@@ -324,11 +324,11 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Re
         },
         "html" => {
             let mut handlebars = Handlebars::new();
-            let y = handlebars.register_template_file("template.html", &format!("{}/{}",static_dir,"template.html"));
+            let y = handlebars.register_template_file("stats.hbs", &format!("{}/{}",static_dir,"stats.hbs"));
             if y.is_ok(){
                 let mut data = Map::new();
                 data.insert(String::from("status"), to_json(status));
-                let rendered = handlebars.render("template.hbs", &data);
+                let rendered = handlebars.render("stats.hbs", &data);
                 match rendered {
                     Ok(rendered) => rouille::Response::html(rendered).with_no_cache(),
                     _ => rouille::Response::text("").with_status_code(500)
@@ -644,7 +644,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
             "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, filter, param_order, param_reverse, param_hidebroken), format, "tag")),
             "stations" => add_cors(encode_stations(connection.get_stations_by_all(&param_order, param_reverse, param_hidebroken, param_offset, param_limit), format)),
             "servers" => add_cors(dns_resolve(format)),
-            "stats" => add_cors(encode_status(get_status(connection), format, server_name)),
+            "stats" => add_cors(encode_status(get_status(connection), format, static_dir)),
             "checks" => add_cors(encode_checks(connection.get_checks(None, param_seconds),format)),
             "add" => add_cors(encode_add(connection.add_station(param_name, param_url, param_homepage, param_favicon, param_country, param_state, param_language, param_tags), format)),
             _ => rouille::Response::empty_404()
