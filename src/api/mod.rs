@@ -436,7 +436,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
 
     let mut param_bitrate_min : u32 = request.get_param("bitrateMin").unwrap_or(String::from("0")).parse().unwrap_or(0);
     let mut param_bitrate_max : u32 = request.get_param("bitrateMax").unwrap_or(String::from("1000000")).parse().unwrap_or(1000000);
-    let mut param_order : String = request.get_param("order").unwrap_or(String::from("value"));
+    let mut param_order : String = request.get_param("order").unwrap_or(String::from("name"));
     let mut param_reverse : bool = request.get_param("reverse").unwrap_or(String::from("false")) == "true";
     let mut param_hidebroken : bool = request.get_param("hidebroken").unwrap_or(String::from("false")) == "true";
     let mut param_offset : u32 = request.get_param("offset").unwrap_or(String::from("0")).parse().unwrap_or(0);

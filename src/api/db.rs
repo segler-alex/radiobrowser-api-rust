@@ -213,14 +213,12 @@ pub struct StationCheck {
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct Result1n {
     name: String,
-    value: String,
     stationcount: u32,
 }
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct State {
     name: String,
-    value: String,
     country: String,
     stationcount: u32,
 }
@@ -228,7 +226,6 @@ pub struct State {
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExtraInfo {
     name: String,
-    value: String,
     stationcount: u32,
     stationcountworking: u32,
 }
@@ -469,7 +466,6 @@ pub fn serialize_result1n_list(type_str: &str, entries: Vec<Result1n>) -> std::i
     for entry in entries {
         xml.begin_elem(type_str)?;
         xml.attr_esc("name", &entry.name)?;
-        xml.attr_esc("value", &entry.value)?;
         xml.attr_esc("stationcount", &entry.stationcount.to_string())?;
         xml.end_elem()?;
     }
@@ -502,7 +498,6 @@ pub fn serialize_state_list(entries: Vec<State>) -> std::io::Result<String> {
     for entry in entries {
         xml.begin_elem("state")?;
         xml.attr_esc("name", &entry.name)?;
-        xml.attr_esc("value", &entry.value)?;
         xml.attr_esc("country", &entry.country)?;
         xml.attr_esc("stationcount", &entry.stationcount.to_string())?;
         xml.end_elem()?;
@@ -519,7 +514,6 @@ pub fn serialize_extra_list(entries: Vec<ExtraInfo>, tag_name: &str) -> std::io:
     for entry in entries {
         xml.begin_elem(tag_name)?;
         xml.attr_esc("name", &entry.name)?;
-        xml.attr_esc("value", &entry.value)?;
         xml.attr_esc("stationcount", &entry.stationcount.to_string())?;
         xml.end_elem()?;
     }
@@ -1431,11 +1425,11 @@ impl Connection {
         };
         let result = match search {
             Some(value) => {
-                query = format!("SELECT {column} AS value,{column},COUNT(*) AS stationcount FROM Station WHERE {column} LIKE CONCAT('%',?,'%') AND {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
+                query = format!("SELECT {column} AS name,COUNT(*) AS stationcount FROM Station WHERE {column} LIKE CONCAT('%',?,'%') AND {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
                 self.pool.prep_exec(query, (value,))
             }
             None => {
-                query = format!("SELECT {column} AS value,{column},COUNT(*) AS stationcount FROM Station WHERE {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
+                query = format!("SELECT {column} AS name,COUNT(*) AS stationcount FROM Station WHERE {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
                 self.pool.prep_exec(query, ())
             }
         };
@@ -1445,10 +1439,9 @@ impl Connection {
                 result
                     .map(|x| x.unwrap())
                     .map(|row| {
-                        let (name, value, stationcount) = mysql::from_row(row);
+                        let (name, stationcount) = mysql::from_row(row);
                         Result1n {
                             name: name,
-                            value: value,
                             stationcount: stationcount,
                         }
                     }).collect() // Collect payments so now `QueryResult` is mapped to `Vec<Payment>`
@@ -1486,7 +1479,7 @@ impl Connection {
             None => "".to_string(),
         };
 
-        let mut my_stmt = self.pool.prepare(format!(r"SELECT Subcountry AS value,Subcountry,Country,COUNT(*) AS stationcount FROM Station WHERE Subcountry <> '' {country} {search} {hidebroken} GROUP BY Subcountry, Country ORDER BY {order} {reverse}",hidebroken = hidebroken_string, order = order, country = country_string, reverse = reverse_string, search = search_string)).unwrap();
+        let mut my_stmt = self.pool.prepare(format!(r"SELECT Subcountry AS name,Country,COUNT(*) AS stationcount FROM Station WHERE Subcountry <> '' {country} {search} {hidebroken} GROUP BY Subcountry, Country ORDER BY {order} {reverse}",hidebroken = hidebroken_string, order = order, country = country_string, reverse = reverse_string, search = search_string)).unwrap();
         let my_results = my_stmt.execute(params);
         let mut states: Vec<State> = vec![];
 
@@ -1495,9 +1488,8 @@ impl Connection {
                 let mut row_unwrapped = my_row.unwrap();
                 states.push(State {
                     name: row_unwrapped.take(0).unwrap_or("".into()),
-                    value: row_unwrapped.take(1).unwrap_or("".into()),
-                    country: row_unwrapped.take(2).unwrap_or("".into()),
-                    stationcount: row_unwrapped.take(3).unwrap_or(0),
+                    country: row_unwrapped.take(1).unwrap_or("".into()),
+                    stationcount: row_unwrapped.take(2).unwrap_or(0),
                 });
             }
         }
@@ -1528,16 +1520,15 @@ impl Connection {
             }
             None => "".to_string(),
         };
-        let mut stmt = self.pool.prepare(format!("SELECT {column_name} AS value, {column_name}, StationCount as stationcount, StationCountWorking FROM {table_name} WHERE {column_name} <> '' {search} {hidebroken} ORDER BY {order} {reverse}",search = search_string, order = order, reverse = reverse_string, hidebroken = hidebroken_string, table_name = table_name, column_name = column_name)).unwrap();
+        let mut stmt = self.pool.prepare(format!("SELECT {column_name} AS name, StationCount as stationcount, StationCountWorking FROM {table_name} WHERE {column_name} <> '' {search} {hidebroken} ORDER BY {order} {reverse}",search = search_string, order = order, reverse = reverse_string, hidebroken = hidebroken_string, table_name = table_name, column_name = column_name)).unwrap();
         let my_results = stmt.execute(params);
         for my_result in my_results {
             for my_row in my_result {
                 let mut row_unwrapped = my_row.unwrap();
                 items.push(ExtraInfo {
                     name: row_unwrapped.take(0).unwrap_or("".into()),
-                    value: row_unwrapped.take(1).unwrap_or("".into()),
-                    stationcount: row_unwrapped.take(2).unwrap_or(0),
-                    stationcountworking: row_unwrapped.take(3).unwrap_or(0),
+                    stationcount: row_unwrapped.take(1).unwrap_or(0),
+                    stationcountworking: row_unwrapped.take(2).unwrap_or(0),
                 });
             }
         }
