@@ -59,6 +59,7 @@ fn pull_server(connection: &db::Connection, server: &str) -> Result<(),Box<std::
     let api_version = get_remote_version(server)?;
     let lastid = connection.get_pull_server_lastid(server);
     let list = pull_history(server, api_version, lastid)?;
+    let len = list.len();
 
     /*if connection.is_empty()? {
         println!("Initial sync ({})..", list.len());
@@ -74,6 +75,9 @@ fn pull_server(connection: &db::Connection, server: &str) -> Result<(),Box<std::
 
             if i % 100 == 0 {
                 print!(".");
+                connection.set_pull_server_lastid(server, &changeuuid)?;
+            }
+            if i == len {
                 connection.set_pull_server_lastid(server, &changeuuid)?;
             }
         }

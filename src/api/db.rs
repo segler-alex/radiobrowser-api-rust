@@ -113,7 +113,6 @@ impl Connection {
     }
 
     pub fn add_station(&self, station: Station) -> Result<u64,Box<std::error::Error>> {
-        println!("add_station");
         let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache) 
                                 VALUES(:name, :url, :homepage, :favicon, :country, :state, :language, :tags, :changeuuid, :stationuuid, '')");
         let params = params!{
@@ -771,7 +770,7 @@ impl Connection {
                 Favicon,Tags,
                 Country,Subcountry,
                 Language,Votes,
-                NegativeVotes,Creation,Ip from StationHistory WHERE 1=:mynumber {changeuuid_str} {stationuuid} ORDER BY Creation DESC", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str);
+                NegativeVotes,Creation,Ip from StationHistory WHERE 1=:mynumber {changeuuid_str} {stationuuid} ORDER BY Creation ASC", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str);
         let results = self.pool.prep_exec(query, params! {
             "mynumber" => 1,
             "stationuuid" => stationuuid.unwrap_or(String::from("")),
