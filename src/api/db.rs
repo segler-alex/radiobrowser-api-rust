@@ -1316,7 +1316,7 @@ r#"CREATE TABLE `IPVoteCheck` (
 
     migrations.add_migration("20190104_014302_CreateLanguageCache",
 r#"CREATE TABLE `LanguageCache` (
-  `LanguageName` varchar(100) COLLATE utf8_bin NOT NULL,
+  `LanguageName` varchar(1000) COLLATE utf8_bin NOT NULL,
   `StationCount` int(11) DEFAULT '0',
   `StationCountWorking` int(11) DEFAULT '0',
   PRIMARY KEY (`LanguageName`)
@@ -1324,7 +1324,7 @@ r#"CREATE TABLE `LanguageCache` (
 
     migrations.add_migration("20190104_014303_CreateTagCache",
 r#"CREATE TABLE `TagCache` (
-  `TagName` varchar(100) COLLATE utf8_bin NOT NULL,
+  `TagName` varchar(1000) COLLATE utf8_bin NOT NULL,
   `StationCount` int(11) DEFAULT '0',
   `StationCountWorking` int(11) DEFAULT '0',
   PRIMARY KEY (`TagName`)
