@@ -147,19 +147,51 @@ impl Connection {
         Ok(())
     }
 
+    pub fn insert_station_change(&self, station: StationHistoryCurrent) -> Result<(),Box<std::error::Error>> {
+        let params = params!{
+            "name" => station.name,
+            "url" => station.url,
+            "homepage" => station.homepage,
+            "favicon" => station.favicon,
+            "country" => station.country,
+            "state" => station.state,
+            "language" => station.language,
+            "tags" => station.tags,
+            "ip" => station.ip,
+            "stationuuid" => station.stationuuid,
+            "changeuuid" => station.changeuuid,
+        };
+        let query = format!("INSERT INTO
+            StationHistory(Name,Url,Homepage,Favicon,Country,SubCountry,Language,Tags,IP,StationUuid,ChangeUuid)
+            VALUES(:name,:url,:homepage,:favicon,:country,:state,:language,:tags,:ip,:stationuuid,:changeuuid)");
+        self.pool.prep_exec(query, params)?;
+        Ok(())
+    }
+
     pub fn insert_station_changes(&self, stations: &[StationHistoryCurrent]) -> Result<(),Box<std::error::Error>> {
         let mut params = params!{
             "x" => "x"
         };
-        let mut query = format!("INSERT INTO StationHistory(Name,Url) VALUES"); // ,Homepage,Favicon,Country,SubCountry,Language,Tags,IP,StationUuid,ChangeUuid
+        let mut query = format!("INSERT INTO StationHistory(Name,Url,Homepage,Favicon,Country,SubCountry,Language,Tags,IP,StationUuid,ChangeUuid) VALUES");
         let mut i = 0;
         for station in stations {
             if i > 0 {
                 query.push_str(",");
             }
-            query.push_str(&format!("(:name{i},:url{i})",i=i));//,?,?,?,?,?,?,?,?,?
+            query.push_str(&format!("(:name{i},:url{i},:homepage{i},:favicon{i},:country{i},:state{i},:language{i},:tags{i},:ip{i},:stationuuid{i},:changeuuid{i})",i=i));
             params.push((format!("name{i}",i=i), Value::from(station.name.clone())));
             params.push((format!("url{i}",i=i), Value::from(station.url.clone())));
+            params.push((format!("homepage{i}",i=i), Value::from(station.homepage.clone())));
+            params.push((format!("favicon{i}",i=i), Value::from(station.favicon.clone())));
+
+            params.push((format!("country{i}",i=i), Value::from(station.country.clone())));
+            params.push((format!("state{i}",i=i), Value::from(station.state.clone())));
+            params.push((format!("language{i}",i=i), Value::from(station.language.clone())));
+            params.push((format!("tags{i}",i=i), Value::from(station.tags.clone())));
+
+            params.push((format!("ip{i}",i=i), Value::from(station.ip.clone())));
+            params.push((format!("stationuuid{i}",i=i), Value::from(station.stationuuid.clone())));
+            params.push((format!("changeuuid{i}",i=i), Value::from(station.changeuuid.clone())));
 
             i = i+1;
         }

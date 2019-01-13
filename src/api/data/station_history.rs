@@ -20,20 +20,20 @@ pub struct StationHistoryV0 {
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct StationHistoryCurrent {
     id: i32,
-    changeuuid: String,
-    stationuuid: String,
+    pub changeuuid: String,
+    pub stationuuid: String,
     pub name: String,
     pub url: String,
-    homepage: String,
-    favicon: String,
-    tags: String,
-    country: String,
-    state: String,
-    language: String,
-    votes: i32,
-    negativevotes: i32,
-    lastchangetime: String,
-    ip: String,
+    pub homepage: String,
+    pub favicon: String,
+    pub tags: String,
+    pub country: String,
+    pub state: String,
+    pub language: String,
+    pub votes: i32,
+    pub negativevotes: i32,
+    pub lastchangetime: String,
+    pub ip: String,
 }
 
 impl From<StationHistoryV0> for StationHistoryCurrent {
