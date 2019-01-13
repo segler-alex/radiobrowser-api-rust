@@ -37,6 +37,7 @@ fn pull_history(server: &str, api_version: u32, lastid: Option<String>) -> Resul
         Some(id) => format!("{}/json/stations/changed?lastchangeuuid={}",server, id),
         None => format!("{}/json/stations/changed",server),
     };
+    println!("{}", path);
     let mut result = reqwest::get(&path)?;
     match api_version {
         0 => {
@@ -59,15 +60,25 @@ fn pull_server(connection: &db::Connection, server: &str) -> Result<(),Box<std::
     let lastid = connection.get_pull_server_lastid(server);
     let list = pull_history(server, api_version, lastid)?;
 
-    let result = connection.insert_station_changes(&list[0..10]);
-    match result {
-        Ok(_) => {
+    /*if connection.is_empty()? {
+        println!("Initial sync ({})..", list.len());
+        let chunksize = 10;
+        connection.insert_station_changes(&list[0..chunksize])?;
+    }else{*/
+        print!("Incremental sync ({})..", list.len());
+        let mut i = 0;
+        for station in list {
+            let changeuuid = station.changeuuid.clone();
+            connection.insert_station_by_change(station)?;
+            i = i + 1;
 
-        },
-        Err(err)=>{
-            println!("{}", err);
+            if i % 100 == 0 {
+                print!(".");
+                connection.set_pull_server_lastid(server, &changeuuid)?;
+            }
         }
-    }
+        println!("");
+    //}
     println!("Pull from '{}' OK", server);
     Ok(())
 }

@@ -43,54 +43,99 @@ impl Connection {
     Date_Format(CheckTime,'%Y-%m-%d %H:%i:%s') AS CheckTimeFormated,
     UrlCache";
 
-    pub fn get_single_column_number(&self, query: &str) -> u64 {
-        let results = self.pool.prep_exec(query, ());
-        match results {
-            Ok(results) => {
-                for resultsingle in results {
-                    for mut result_row in resultsingle {
-                        let count: u64 = result_row.take(0).unwrap_or(0);
-                        return count;
-                    }
-                }
-                0
-            },
-            Err(err) => {
-                println!("{}", err);
-                0
-            }
-        }
+    pub fn get_single_column_number(&self, query: &str) -> Result<u64,Box<std::error::Error>> {
+        let results = self.pool.prep_exec(query, ())?;
+        self.get_single_column_number_intern(results)
+    }
+
+    pub fn get_single_column_number_intern(&self, mut results: QueryResult<'static>) -> Result<u64,Box<std::error::Error>> {
+        let mut result_row = results.next().unwrap()?;
+        let count: u64 = result_row.take(0).unwrap();
+        Ok(count)
     }
 
     pub fn get_station_count(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM Station WHERE LastCheckOK=True"#)
+        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM Station WHERE LastCheckOK=True"#).unwrap_or(0)
     }
 
     pub fn get_broken_station_count(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM Station WHERE LastCheckOK=False"#)
+        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM Station WHERE LastCheckOK=False"#).unwrap_or(0)
     }
 
     pub fn get_tag_count(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM TagCache"#)
+        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM TagCache"#).unwrap_or(0)
     }
 
     pub fn get_country_count(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(DISTINCT(Country)) AS StationCount FROM Station"#)
+        self.get_single_column_number(r#"SELECT COUNT(DISTINCT(Country)) AS StationCount FROM Station"#).unwrap_or(0)
     }
 
     pub fn get_language_count(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM LanguageCache"#)
+        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM LanguageCache"#).unwrap_or(0)
     }
 
     pub fn get_click_count_last_hour(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(MINUTE,ClickTimestamp,now())<=60;"#)
+        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(MINUTE,ClickTimestamp,now())<=60;"#).unwrap_or(0)
     }
 
     pub fn get_click_count_last_day(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(HOUR,ClickTimestamp,now())<=24;"#)
+        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(HOUR,ClickTimestamp,now())<=24;"#).unwrap_or(0)
     }
 
-    pub fn add_station(&self, name: Option<String>, url: Option<String>, homepage: Option<String>, favicon: Option<String>,
+    pub fn is_empty(&self) -> Result<bool, Box<std::error::Error>> {
+        let count = self.get_single_column_number(r#"SELECT COUNT(*) FROM StationHistory"#)?;
+        Ok(count == 0)
+    }
+
+    pub fn update_station(&self, station: Station) -> Result<(),Box<std::error::Error>> {
+        let query = format!("UPDATE Station SET Name=:name,Url=:url,Homepage=:homepage,
+            Favicon=:favicon,Country=:country,Subcountry=:state,Language=:language,
+            Tags=:tags,ChangeUuid=:changeuuid,UrlCache=:urlcache
+            WHERE StationUuid=:stationuuid");
+        let params = params!{
+            "name" => station.name,
+            "url" => station.url,
+            "homepage" => station.homepage,
+            "favicon" => station.favicon,
+            "country" => station.country,
+            "state" => station.state,
+            "language" => station.language,
+            "tags" => station.tags,
+            "changeuuid" => station.changeuuid,
+            "stationuuid" => &station.stationuuid,
+            "urlcache" => "",
+        };
+
+        self.pool.prep_exec(query, params)?;
+        self.backup_station_by_uuid(&station.stationuuid)?;
+
+        Ok(())
+    }
+
+    pub fn add_station(&self, station: Station) -> Result<u64,Box<std::error::Error>> {
+        println!("add_station");
+        let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache) 
+                                VALUES(:name, :url, :homepage, :favicon, :country, :state, :language, :tags, :changeuuid, :stationuuid, '')");
+        let params = params!{
+            "name" => station.name,
+            "url" => station.url,
+            "homepage" => station.homepage,
+            "favicon" => station.favicon,
+            "country" => station.country,
+            "state" => station.state,
+            "language" => station.language,
+            "tags" => station.tags,
+            "changeuuid" => station.changeuuid,
+            "stationuuid" => station.stationuuid,
+        };
+
+        let results = self.pool.prep_exec(query, params)?;
+        let id = results.last_insert_id();
+        self.backup_station_by_id(id)?;
+        Ok(id)
+    }
+
+    pub fn add_station_opt(&self, name: Option<String>, url: Option<String>, homepage: Option<String>, favicon: Option<String>,
                         country: Option<String>, state: Option<String>, language: Option<String>, tags: Option<String>) -> StationAddResult{
         let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache) 
                                 VALUES(:name, :url, :homepage, :favicon, :country, :state, :language, :tags, :changeuuid, :stationuuid, '')");
@@ -147,32 +192,45 @@ impl Connection {
         Ok(())
     }
 
-    pub fn insert_station_change(&self, station: StationHistoryCurrent) -> Result<(),Box<std::error::Error>> {
+    fn backup_station_by_uuid(&self, stationuuid: &str) -> Result<(),Box<std::error::Error>>{
+        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid)
+                                SELECT StationID,Name,Url,Homepage,Favicon,Country,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid FROM Station WHERE StationUuid=:stationuuid");
         let params = params!{
-            "name" => station.name,
-            "url" => station.url,
-            "homepage" => station.homepage,
-            "favicon" => station.favicon,
-            "country" => station.country,
-            "state" => station.state,
-            "language" => station.language,
-            "tags" => station.tags,
-            "ip" => station.ip,
-            "stationuuid" => station.stationuuid,
-            "changeuuid" => station.changeuuid,
+            "stationuuid" => stationuuid,
         };
-        let query = format!("INSERT INTO
-            StationHistory(Name,Url,Homepage,Favicon,Country,SubCountry,Language,Tags,IP,StationUuid,ChangeUuid)
-            VALUES(:name,:url,:homepage,:favicon,:country,:state,:language,:tags,:ip,:stationuuid,:changeuuid)");
+
         self.pool.prep_exec(query, params)?;
+        
         Ok(())
     }
+
+    /*pub fn insert_station_change(&self, stationchange: &StationHistoryCurrent) -> Result<(),Box<std::error::Error>> {
+        let params = params!{
+            "stationid" => stationchange.id,
+            "name" => stationchange.name.clone(),
+            "url" => stationchange.url.clone(),
+            "homepage" => stationchange.homepage.clone(),
+            "favicon" => stationchange.favicon.clone(),
+            "country" => stationchange.country.clone(),
+            "state" => stationchange.state.clone(),
+            "language" => stationchange.language.clone(),
+            "tags" => stationchange.tags.clone(),
+            "ip" => stationchange.ip.clone(),
+            "stationuuid" => stationchange.stationuuid.clone(),
+            "changeuuid" => stationchange.changeuuid.clone(),
+        };
+        let query = format!("INSERT INTO
+            StationHistory(StationID,Name,Url,Homepage,Favicon,Country,SubCountry,Language,Tags,IP,StationUuid,ChangeUuid)
+            VALUES(:stationid,:name,:url,:homepage,:favicon,:country,:state,:language,:tags,:ip,:stationuuid,:changeuuid)");
+        self.pool.prep_exec(query, params)?;
+        Ok(())
+    }*/
 
     pub fn insert_station_changes(&self, stations: &[StationHistoryCurrent]) -> Result<(),Box<std::error::Error>> {
         let mut params = params!{
             "x" => "x"
         };
-        let mut query = format!("INSERT INTO StationHistory(Name,Url,Homepage,Favicon,Country,SubCountry,Language,Tags,IP,StationUuid,ChangeUuid) VALUES");
+        let mut query = String::from("INSERT INTO StationHistory(Name,Url,Homepage,Favicon,Country,SubCountry,Language,Tags,IP,StationUuid,ChangeUuid) VALUES");
         let mut i = 0;
         for station in stations {
             if i > 0 {
@@ -196,6 +254,38 @@ impl Connection {
             i = i+1;
         }
         self.pool.prep_exec(query, params)?;
+        Ok(())
+    }
+
+    pub fn station_exists(&self, stationuuid: &str) -> Result<bool, Box<std::error::Error>> {
+        let params = params!{
+            "stationuuid" => stationuuid,
+        };
+        let result = self.pool.prep_exec("SELECT COUNT(*) FROM Station WHERE StationUuid=:stationuuid", params)?;
+        let count = self.get_single_column_number_intern(result)?;
+        Ok(count > 0)
+    }
+
+    pub fn stationchange_exists(&self, changeuuid: &str) -> Result<bool, Box<std::error::Error>> {
+        let params = params!{
+            "changeuuid" => changeuuid,
+        };
+        let result = self.pool.prep_exec("SELECT COUNT(*) FROM StationHistory WHERE ChangeUuid=:changeuuid", params)?;
+        let count = self.get_single_column_number_intern(result)?;
+        Ok(count > 0)
+    }
+
+    pub fn insert_station_by_change(&self, stationchange: StationHistoryCurrent) -> Result<(),Box<std::error::Error>> {
+        //self.insert_station_change(&stationchange)?;
+        let changeexists = self.stationchange_exists(&stationchange.changeuuid)?;
+        if !changeexists {
+            let exists = self.station_exists(&stationchange.stationuuid)?;
+            if exists {
+                self.update_station((&stationchange).into())?;
+            }else{
+                self.add_station((&stationchange).into())?;
+            }
+        }
         Ok(())
     }
 

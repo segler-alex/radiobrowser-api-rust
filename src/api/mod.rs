@@ -655,7 +655,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
             "servers" => add_cors(dns_resolve(format)),
             "stats" => add_cors(encode_status(get_status(connection), format, static_dir)),
             "checks" => add_cors(encode_checks(connection.get_checks(None, param_seconds),format)),
-            "add" => add_cors(encode_add(connection.add_station(param_name, param_url, param_homepage, param_favicon, param_country, param_state, param_language, param_tags), format)),
+            "add" => add_cors(encode_add(connection.add_station_opt(param_name, param_url, param_homepage, param_favicon, param_country, param_state, param_language, param_tags), format)),
             _ => rouille::Response::empty_404()
         }
     } else if items.len() == 4 {

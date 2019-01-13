@@ -1,3 +1,5 @@
+use api::data::station_history::StationHistoryCurrent;
+
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct StationCachedInfo {
     ok: bool,
@@ -30,31 +32,31 @@ impl StationCachedInfo {
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct Station {
     pub id: i32,
-    changeuuid: String,
-    stationuuid: String,
-    name: String,
-    url: String,
+    pub changeuuid: String,
+    pub stationuuid: String,
+    pub name: String,
+    pub url: String,
     #[serde(skip_serializing)]
-    urlcache: String,
-    homepage: String,
-    favicon: String,
-    tags: String,
-    country: String,
-    state: String,
-    language: String,
-    votes: i32,
-    negativevotes: i32,
-    lastchangetime: String,
-    ip: String,
-    codec: String,
-    bitrate: u32,
-    hls: i8,
-    lastcheckok: i8,
-    lastchecktime: String,
-    lastcheckoktime: String,
-    clicktimestamp: String,
-    clickcount: u32,
-    clicktrend: i32,
+    pub urlcache: String,
+    pub homepage: String,
+    pub favicon: String,
+    pub tags: String,
+    pub country: String,
+    pub state: String,
+    pub language: String,
+    pub votes: i32,
+    pub negativevotes: i32,
+    pub lastchangetime: String,
+    pub ip: String,
+    pub codec: String,
+    pub bitrate: u32,
+    pub hls: i8,
+    pub lastcheckok: i8,
+    pub lastchecktime: String,
+    pub lastcheckoktime: String,
+    pub clicktimestamp: String,
+    pub clickcount: u32,
+    pub clicktrend: i32,
 }
 
 impl Station {
@@ -360,5 +362,37 @@ impl Station {
         }
 
         j
+    }
+}
+
+impl From<&StationHistoryCurrent> for Station {
+    fn from(item: &StationHistoryCurrent) -> Self {
+        Station {
+            id: 0,
+            changeuuid: item.changeuuid.clone(),
+            stationuuid: item.stationuuid.clone(),
+            name: item.name.clone(),
+            url: item.url.clone(),
+            homepage: item.homepage.clone(),
+            favicon: item.favicon.clone(),
+            tags: item.tags.clone(),
+            country: item.country.clone(),
+            state: item.state.clone(),
+            language: item.language.clone(),
+            votes: item.votes,
+            negativevotes: item.negativevotes,
+            lastchangetime: item.lastchangetime.clone(),
+            ip: item.ip.clone(),
+            bitrate: 0,
+            clickcount: 0,
+            clicktimestamp: String::from(""),
+            clicktrend: 0,
+            codec: String::from(""),
+            hls: 0,
+            lastcheckok: 0,
+            lastcheckoktime: String::from(""),
+            lastchecktime: String::from(""),
+            urlcache: String::from(""),
+        }
     }
 }
