@@ -18,7 +18,7 @@ export UPDATE_CACHES_INTERVAL
 export DATABASE_URL
 export STATIC_FILES_DIR
 export MIRROR_PULL_INTERVAL
-radiobrowser.bin ${PARAMS}
+radiobrowser.bin $${PARAMS}
 EOF
 
 CONFIG_FILE="/etc/radiobrowser.conf"
