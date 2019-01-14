@@ -17,7 +17,8 @@ export THREADS
 export UPDATE_CACHES_INTERVAL
 export DATABASE_URL
 export STATIC_FILES_DIR
-radiobrowser.bin
+export MIRROR_PULL_INTERVAL
+radiobrowser.bin ${PARAMS}
 EOF
 
 CONFIG_FILE="/etc/radiobrowser.conf"
@@ -37,6 +38,10 @@ UPDATE_CACHES_INTERVAL=30
 DATABASE_URL=mysql://radiouser:password@localhost/radio
 # Directory for static and template files
 STATIC_FILES_DIR=/usr/local/share/radiobrowser
+# Mirror pull interval in seconds
+MIRROR_PULL_INTERVAL=600
+# Mirror from server
+PARAMS="-m http://www.radio-browser.info/webservice"
 EOF
 fi
 
