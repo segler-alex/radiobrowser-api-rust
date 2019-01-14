@@ -21,7 +21,8 @@ sudo apt install apache2 libssl-dev pkg-config gcc
 sudo apt install default-mysql-server
 
 # enable apache modules
-sudo a2enmod rewrite headers
+sudo a2enmod proxy_http
+sudo systemctl restart apache2
 ```
 
 Apache config file example
@@ -34,6 +35,9 @@ Apache config file example
 
 	ErrorLog ${APACHE_LOG_DIR}/error.radio.log
 	CustomLog ${APACHE_LOG_DIR}/access.radio.log combined
+
+    ProxyPass "/"  "http://localhost:8080/"
+    ProxyPassReverse "/"  "http://localhost:8080/"
 
 	<Directory /var/www/radio/>
 		AllowOverride All
