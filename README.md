@@ -28,22 +28,22 @@ sudo systemctl restart apache2
 Apache config file example
 ```
 <VirtualHost *:80>
-	ServerName www.radio-browser.info
+    ServerName www.radio-browser.info
 
-	ServerAdmin webmaster@programmierecke.net
-	DocumentRoot /var/www/radio
+    ServerAdmin webmaster@programmierecke.net
+    DocumentRoot /var/www/radio
 
-	ErrorLog ${APACHE_LOG_DIR}/error.radio.log
-	CustomLog ${APACHE_LOG_DIR}/access.radio.log combined
+    ErrorLog ${APACHE_LOG_DIR}/error.radio.log
+    CustomLog ${APACHE_LOG_DIR}/access.radio.log combined
 
     ProxyPass "/"  "http://localhost:8080/"
     ProxyPassReverse "/"  "http://localhost:8080/"
 
-	<Directory /var/www/radio/>
-		AllowOverride All
-		Order allow,deny
-		allow from all
-	</Directory>
+    <Directory /var/www/radio/>
+        AllowOverride All
+        Order allow,deny
+        allow from all
+    </Directory>
 </VirtualHost>
 ```
 
@@ -62,6 +62,9 @@ bash install.sh
 xdg-open http://localhost/webservice/xml/countries
 # or just open the link with your favourite browser
 ```
+
+If you want to enable SSL just follow this guide:
+https://certbot.eff.org/
 
 ### docker setup
 TODO
