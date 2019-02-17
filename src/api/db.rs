@@ -299,7 +299,7 @@ impl Connection {
         };
         let results = match stationuuid {
             Some(uuid) => {
-                let query = format!("SELECT {columns} from StationCheck WHERE StationUuid=? {where_seconds} ORDER BY CheckTime", columns = Connection::COLUMNS_CHECK, where_seconds = where_seconds);
+                let query = format!("SELECT {columns} from StationCheckHistory WHERE StationUuid=? {where_seconds} ORDER BY CheckTime", columns = Connection::COLUMNS_CHECK, where_seconds = where_seconds);
                 self.pool.prep_exec(query, (uuid,))
             }
             None => {
@@ -1383,6 +1383,23 @@ r#"CREATE TABLE PullServers (
     name TEXT NOT NULL,
     lastid TEXT NOT NULL
 );"#, "DROP TABLE PullServers;");
+
+    migrations.add_migration("20190104_014304_CreateStationCheckHistory",
+r#"CREATE TABLE `StationCheckHistory` (
+  `CheckID` int(11) NOT NULL AUTO_INCREMENT,
+  `StationUuid` char(36) NOT NULL,
+  `CheckUuid` char(36) NOT NULL,
+  `Source` varchar(100) NOT NULL,
+  `Codec` varchar(20) DEFAULT NULL,
+  `Bitrate` int(11) NOT NULL DEFAULT '0',
+  `Hls` tinyint(1) NOT NULL DEFAULT '0',
+  `CheckOK` tinyint(1) NOT NULL DEFAULT '1',
+  `CheckTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `UrlCache` text,
+  PRIMARY KEY (`CheckID`),
+  UNIQUE KEY `CheckUuid` (`CheckUuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"#,"DROP TABLE StationCheckHistory");
+
     migrations.do_migrations(ignore_migration_errors, allow_database_downgrade);
     println!("Connection string: {}", connection_string);
 
