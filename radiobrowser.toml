@@ -1,0 +1,29 @@
+## database connection string (mysql, mariadb)
+database = "mysql://radiouser:password@localhost/radio"
+## Directory for static and template files
+static-files-dir = "/usr/local/share/radiobrowser"
+
+## Listening IP
+listen-host = "127.0.0.1"
+## Listening port
+listen-port = 8080
+
+## Update caches at an interval in seconds
+update-caches-interval = 30
+## Ignore errors on database migration scripts
+## ONLY use this if you know what you are doing
+ignore-migration-errors = false
+## Allow database to downgrade if you start an older version
+## of the radio browser binary
+allow-database-downgrade = false
+## How many concurrent threads used by socket
+threads = 5
+## Documentation url to be used if automatic is not working
+server-url = "https://api.radio-browser.info"
+## Mirror pull interval in seconds
+mirror-pull-interval = 60
+
+## Mirror from server
+#[pullservers]
+#[pullservers.alpha]
+#host = "http://www.radio-browser.info/webservice"
