@@ -82,10 +82,10 @@ impl Connection {
         self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(HOUR,ClickTimestamp,now())<=24;"#).unwrap_or(0)
     }
 
-    pub fn is_empty(&self) -> Result<bool, Box<std::error::Error>> {
+    /*pub fn is_empty(&self) -> Result<bool, Box<std::error::Error>> {
         let count = self.get_single_column_number(r#"SELECT COUNT(*) FROM StationHistory"#)?;
         Ok(count == 0)
-    }
+    }*/
 
     pub fn update_station(&self, station: Station) -> Result<(),Box<std::error::Error>> {
         let query = format!("UPDATE Station SET Name=:name,Url=:url,Homepage=:homepage,
@@ -288,7 +288,7 @@ impl Connection {
         Ok(())
     }
 
-    pub fn get_checks(&self, stationuuid: Option<String>, seconds: u32) -> Vec<StationCheck> {
+    pub fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32) -> Vec<StationCheck> {
         let where_seconds = if seconds > 0 {
             format!(
                 "TIMESTAMPDIFF(SECOND,CheckTime,now())<{seconds}",
@@ -297,13 +297,26 @@ impl Connection {
         } else {
             String::from("")
         };
+
         let results = match stationuuid {
             Some(uuid) => {
-                let query = format!("SELECT {columns} from StationCheckHistory WHERE StationUuid=? {where_seconds} ORDER BY CheckTime", columns = Connection::COLUMNS_CHECK, where_seconds = where_seconds);
+                let where_checkuuid_str = if checkuuid.is_some() {
+                    " AND CheckTime>=(SELECT CheckTime FROM StationCheckHistory WHERE ChangeUuid=:checkuuid) AND ChangeUuid<>:checkuuid"
+                } else {
+                    ""
+                };
+
+                let query = format!("SELECT {columns} from StationCheckHistory WHERE StationUuid=? {where_checkuuid} {where_seconds} ORDER BY CheckTime", columns = Connection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str);
                 self.pool.prep_exec(query, (uuid,))
             }
             None => {
-                let query = format!("SELECT {columns} from StationCheck WHERE 1=1 {where_seconds} ORDER BY CheckTime", columns = Connection::COLUMNS_CHECK, where_seconds = where_seconds);
+                let where_checkuuid_str = if checkuuid.is_some() {
+                    " AND CheckTime>=(SELECT CheckTime FROM StationCheck WHERE ChangeUuid=:checkuuid) AND ChangeUuid<>:checkuuid"
+                } else {
+                    ""
+                };
+
+                let query = format!("SELECT {columns} from StationCheck WHERE 1=1 {where_checkuuid} {where_seconds} ORDER BY CheckTime", columns = Connection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str);
                 self.pool.prep_exec(query, ())
             }
         };

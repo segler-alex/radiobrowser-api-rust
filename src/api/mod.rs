@@ -352,7 +352,7 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Re
 
 pub fn run(connection: db::Connection, host : String, port : i32, threads : usize, server_name: &str, static_dir: &str, mirrors: Vec<String>, mirror_pull_interval: u64) {
     let listen_str = format!("{}:{}", host, port);
-    println!("Listen on {} with {} threads", listen_str, threads);
+    info!("Listen on {} with {} threads", listen_str, threads);
     let x : Option<usize> = Some(threads);
     let y = String::from(server_name);
     let static_dir = static_dir.to_string();
@@ -430,6 +430,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
     let mut param_favicon: Option<String> = request.get_param("favicon");
 
     let mut param_last_changeuuid: Option<String> = request.get_param("lastchangeuuid");
+    let mut param_last_checkuuid: Option<String> = request.get_param("lastcheckuuid");
 
     let mut param_name: Option<String> = request.get_param("name");
     let mut param_name_exact: bool = request.get_param("nameExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
@@ -465,6 +466,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
                         for (key,val) in iter {
                             if key == "order" { param_order = val.into(); }
                             else if key == "lastchangeuuid" { param_last_changeuuid = Some(val.into()); }
+                            else if key == "lastcheckuuid" { param_last_checkuuid = Some(val.into()); }
                             else if key == "name" { param_name = Some(val.into()); }
                             else if key == "nameExact" { param_name_exact = val.parse().unwrap_or(param_name_exact); }
                             else if key == "country" { param_country = Some(val.into()); }
@@ -493,7 +495,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
                         }
                     },
                     Err(err) => {
-                        println!("err {}",err);
+                        error!("err {}",err);
                     }
                 }
             },
@@ -572,6 +574,9 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
                         if v["lastchangeuuid"].is_string() {
                             param_last_changeuuid = Some(v["lastchangeuuid"].as_str().unwrap().to_string());
                         }
+                        if v["lastcheckuuid"].is_string() {
+                            param_last_checkuuid = Some(v["lastcheckuuid"].as_str().unwrap().to_string());
+                        }
                         if v["homepage"].is_string() {
                             param_homepage = Some(v["homepage"].as_str().unwrap().to_string());
                         }
@@ -606,7 +611,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
                         param_seconds = v["seconds"].as_u64().unwrap_or(param_seconds.into()) as u32;
                     },
                     Err(err) => {
-                        println!("err {}",err);
+                        error!("err {}",err);
                     }
                 }
             },
@@ -654,7 +659,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
             "stations" => add_cors(encode_stations(connection.get_stations_by_all(&param_order, param_reverse, param_hidebroken, param_offset, param_limit), format)),
             "servers" => add_cors(dns_resolve(format)),
             "stats" => add_cors(encode_status(get_status(connection), format, static_dir)),
-            "checks" => add_cors(encode_checks(connection.get_checks(None, param_seconds),format)),
+            "checks" => add_cors(encode_checks(connection.get_checks(None, param_last_checkuuid, param_seconds),format)),
             "add" => add_cors(encode_add(connection.add_station_opt(param_name, param_url, param_homepage, param_favicon, param_country, param_state, param_language, param_tags), format)),
             _ => rouille::Response::empty_404()
         }
@@ -686,7 +691,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
                     _ => rouille::Response::empty_404()
                 }
             },
-            "checks" => add_cors(encode_checks(connection.get_checks(Some(parameter.to_string()), param_seconds), format)),
+            "checks" => add_cors(encode_checks(connection.get_checks(Some(parameter.to_string()), param_last_checkuuid, param_seconds), format)),
             _ => rouille::Response::empty_404()
         }
     } else if items.len() == 5 {
