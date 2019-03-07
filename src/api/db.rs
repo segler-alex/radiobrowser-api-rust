@@ -1244,7 +1244,7 @@ pub fn refresh_cache_items(
         }
     }
     insert_to_cache(pool, to_insert, cache_table_name, cache_column_name);
-    println!(
+    trace!(
         "{}: {} -> {}, Changed: {}",
         station_column_name,
         items_cached.len(),

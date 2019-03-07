@@ -50,6 +50,7 @@ fn main() {
                     config.threads,
                     &config.server_url,
                     &config.static_files_dir,
+                    &config.log_dir,
                     config.servers_pull,
                     config.mirror_pull_interval,
                 );

@@ -2,6 +2,7 @@
 cargo build --release
 sudo mkdir -p /usr/local/bin
 sudo mkdir -p /usr/local/share/radiobrowser
+sudo mkdir -p /var/log/radiobrowser
 
 sudo cp target/release/radiobrowser-api-rust /usr/local/bin/radiobrowser
 sudo cp init/radiobrowser.service /etc/systemd/system
@@ -13,6 +14,8 @@ fi
 sudo chmod ugo+x /usr/local/bin/radiobrowser
 sudo groupadd --system radiobrowser
 sudo useradd --system --no-create-home --gid radiobrowser radiobrowser
+
+sudo chown radiobrowser:radiobrowser /var/log/radiobrowser
 
 sudo systemctl daemon-reload
 

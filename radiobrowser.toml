@@ -2,6 +2,8 @@
 database = "mysql://radiouser:password@localhost/radio"
 ## Directory for static and template files
 static-files-dir = "/usr/local/share/radiobrowser"
+## Log file path
+log-files-dir = "/var/log/radiobrowser/"
 
 ## Listening IP
 listen-host = "127.0.0.1"

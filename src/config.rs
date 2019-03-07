@@ -12,6 +12,7 @@ pub struct Config {
     pub threads: usize,
     pub server_url: String,
     pub static_files_dir: String,
+    pub log_dir: String,
     pub servers_pull: Vec<String>,
     pub mirror_pull_interval: u64,
 }
@@ -95,6 +96,14 @@ pub fn load_config() -> Config {
                 .help("Path to config file")
                 .env("CONFIG_FILE")
                 .default_value("/etc/radiobrowser.toml")
+                .takes_value(true),
+        ).arg(
+            Arg::with_name("log-dir")
+                .short("l")
+                .long("log-dir")
+                .value_name("LOG-DIR")
+                .help("Path to log dir")
+                .env("LOG_DIR")
                 .takes_value(true),
         ).arg(
             Arg::with_name("database")
@@ -219,10 +228,16 @@ pub fn load_config() -> Config {
         "static-files-dir",
         String::from("./static/"),
     );
+    let log_dir: String = get_option_string(&matches, &config, "log-dir", String::from("."));
     let listen_host: String =
         get_option_string(&matches, &config, "listen-host", String::from("127.0.0.1"));
     let listen_port: i32 = get_option_number(&matches, &config, "listen-port", 8080) as i32;
-    let server_url: String = get_option_string(&matches, &config, "server-url", String::from(""));
+    let server_url: String = get_option_string(
+        &matches,
+        &config,
+        "server-url",
+        String::from("http://localhost"),
+    );
     let threads: usize = get_option_number(&matches, &config, "threads", 1) as usize;
     let update_caches_interval: u64 =
         get_option_number(&matches, &config, "update-caches-interval", 0) as u64;
@@ -255,5 +270,6 @@ pub fn load_config() -> Config {
         threads,
         server_url,
         static_files_dir,
+        log_dir,
     }
 }

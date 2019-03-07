@@ -350,17 +350,18 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Re
     }
 }
 
-pub fn run(connection: db::Connection, host : String, port : i32, threads : usize, server_name: &str, static_dir: &str, mirrors: Vec<String>, mirror_pull_interval: u64) {
+pub fn run(connection: db::Connection, host : String, port : i32, threads : usize, server_name: &str, static_dir: &str, log_dir: &str, mirrors: Vec<String>, mirror_pull_interval: u64) {
     let listen_str = format!("{}:{}", host, port);
     info!("Listen on {} with {} threads", listen_str, threads);
     let x : Option<usize> = Some(threads);
     let y = String::from(server_name);
     let static_dir = static_dir.to_string();
+    let log_dir = log_dir.to_string();
     if mirrors.len() > 0{
         pull_servers::run(connection.clone(), mirrors, mirror_pull_interval);
     }
     rouille::start_server_with_pool(listen_str, x, move |request| {
-        handle_connection(&connection, request, &y, &static_dir)
+        handle_connection(&connection, request, &y, &static_dir, &log_dir)
     });
 }
 
@@ -398,17 +399,45 @@ fn str_to_arr(string: &str) -> Vec<String> {
     list
 }
 
-fn handle_connection(connection: &db::Connection, request: &rouille::Request, server_name: &str, static_dir: &str) -> rouille::Response {
+use std::fs::OpenOptions;
+use std::io::prelude::*;
+
+fn log_to_file(file_name: &str, line: &str) {
+    let file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create(true)
+        .open(file_name);
+
+    match file {
+        Ok(mut file) =>{
+            if let Err(e) = writeln!(file, "{}", line) {
+                error!("Couldn't write to file: {}", e);
+            }
+        },
+        Err(err) => {
+            error!("Could not open log file {}", err);
+        }
+    }
+}
+
+fn handle_connection(connection: &db::Connection, request: &rouille::Request, server_name: &str, static_dir: &str, log_dir: &str) -> rouille::Response {
     let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
     let referer: String = request.header("Referer").unwrap_or(&"-".to_string()).to_string();
     let user_agent: String = request.header("User-agent").unwrap_or(&"-".to_string()).to_string();
 
     let now = chrono::Utc::now().format("%d/%m/%Y:%H:%M:%S%.6f");
     let log_ok = |req: &Request, resp: &Response, _elap: std::time::Duration| {
-        println!(r#"{} - - [{}] "{} {}" {} {} "{}" "{}""#, remote_ip, now, req.method(), req.raw_url(), resp.status_code, 0, referer, user_agent);
+        let line = format!(r#"{} - - [{}] "{} {}" {} {} "{}" "{}""#, remote_ip, now, req.method(), req.raw_url(), resp.status_code, 0, referer, user_agent);
+        println!("{}", line);
+        let log_file = format!("{}/access.log",log_dir);
+        log_to_file(&log_file, &line);
     };
     let log_err = |req: &Request, _elap: std::time::Duration| {
-        println!("{} {} Handler panicked: {} {}", remote_ip, now, req.method(), req.raw_url());
+        let line = format!("{} {} Handler panicked: {} {}", remote_ip, now, req.method(), req.raw_url());
+        println!("{}", line);
+        let log_file = format!("{}/error.log", log_dir);
+        log_to_file(&log_file, &line);
     };
     rouille::log_custom(request, log_ok, log_err, || {
         handle_connection_internal(connection, request, server_name, static_dir)
