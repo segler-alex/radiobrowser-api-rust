@@ -1,6 +1,7 @@
 use clap::{App, Arg};
 use std::fs;
 
+#[derive(Debug)]
 pub struct Config {
     pub listen_host: String,
     pub listen_port: i32,
@@ -104,7 +105,7 @@ pub fn load_config() -> Config {
                 .env("DATABASE_URL")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("listen_host")
+            Arg::with_name("listen-host")
                 .short("h")
                 .long("host")
                 .value_name("HOST")
@@ -112,16 +113,16 @@ pub fn load_config() -> Config {
                 .env("HOST")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("server_url")
+            Arg::with_name("server-url")
                 .short("s")
-                .long("server_url")
+                .long("server-url")
                 .value_name("SERVER_URL")
                 .help("full server url that should be used in docs")
                 .env("SERVER_URL")
                 .default_value("localhost:8080")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("listen_port")
+            Arg::with_name("listen-port")
                 .short("p")
                 .long("port")
                 .value_name("PORT")
@@ -219,9 +220,9 @@ pub fn load_config() -> Config {
         String::from("./static/"),
     );
     let listen_host: String =
-        get_option_string(&matches, &config, "listen_host", String::from("127.0.0.1"));
-    let listen_port: i32 = get_option_number(&matches, &config, "listen_port", 8080) as i32;
-    let server_url: String = get_option_string(&matches, &config, "server_url", String::from(""));
+        get_option_string(&matches, &config, "listen-host", String::from("127.0.0.1"));
+    let listen_port: i32 = get_option_number(&matches, &config, "listen-port", 8080) as i32;
+    let server_url: String = get_option_string(&matches, &config, "server-url", String::from(""));
     let threads: usize = get_option_number(&matches, &config, "threads", 1) as usize;
     let update_caches_interval: u64 =
         get_option_number(&matches, &config, "update-caches-interval", 0) as u64;

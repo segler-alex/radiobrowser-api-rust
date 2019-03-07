@@ -1414,7 +1414,6 @@ r#"CREATE TABLE `StationCheckHistory` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"#,"DROP TABLE StationCheckHistory");
 
     migrations.do_migrations(ignore_migration_errors, allow_database_downgrade);
-    println!("Connection string: {}", connection_string);
 
     let pool = mysql::Pool::new(connection_string);
     match pool {

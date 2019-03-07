@@ -32,6 +32,7 @@ fn main() {
     let _log_guard = slog_stdlog::init().unwrap();
 
     let config = config::load_config();
+    trace!("Config: {:#?}", config);
 
     loop {
         let connection = api::db::new(
