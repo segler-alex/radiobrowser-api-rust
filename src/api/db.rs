@@ -225,7 +225,7 @@ impl Connection {
         Ok(())
     }*/
 
-    pub fn insert_station_changes(&self, stations: &[StationHistoryCurrent]) -> Result<(),Box<std::error::Error>> {
+    /*pub fn insert_station_changes(&self, stations: &[StationHistoryCurrent]) -> Result<(),Box<std::error::Error>> {
         let mut params = params!{
             "x" => "x"
         };
@@ -254,7 +254,7 @@ impl Connection {
         }
         self.pool.prep_exec(query, params)?;
         Ok(())
-    }
+    }*/
 
     pub fn station_exists(&self, stationuuid: &str) -> Result<bool, Box<std::error::Error>> {
         let params = params!{
@@ -1156,7 +1156,7 @@ fn update_cache_item(
     match result {
         Ok(_) => {}
         Err(err) => {
-            println!("{}", err);
+            error!("{}", err);
         }
     }
 }
@@ -1178,7 +1178,7 @@ fn insert_to_cache(
         match result {
             Ok(_) => {}
             Err(err) => {
-                println!("{}", err);
+                error!("{}", err);
             }
         }
     }
@@ -1200,7 +1200,7 @@ fn remove_from_cache(pool: &mysql::Pool, tags: Vec<&String>, table_name: &str, c
     match result {
         Ok(_) => {}
         Err(err) => {
-            println!("{}", err);
+            error!("{}", err);
         }
     }
 }
@@ -1274,7 +1274,7 @@ fn start_refresh_worker(connection_string: String, update_caches_interval: u64) 
                     refresh_cache_items(&p, "LanguageCache", "LanguageName", "Language");
                     //println!("REFRESH END");
                 }
-                Err(e) => println!("{}", e),
+                Err(e) => error!("{}", e),
             }
 
             thread::sleep(::std::time::Duration::new(update_caches_interval, 0));

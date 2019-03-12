@@ -1,6 +1,46 @@
 use clap::{App, Arg};
 use std::fs;
 
+use slog::Drain;
+
+use std::result;
+use std::sync::atomic::Ordering;
+use std::sync::{atomic, Arc};
+
+/// Custom Drain logic
+pub struct RuntimeLevelFilter<D> {
+    pub drain: D,
+    pub on: Arc<atomic::AtomicUsize>,
+}
+
+impl<D> Drain for RuntimeLevelFilter<D>
+where
+    D: Drain,
+{
+    type Ok = Option<D::Ok>;
+    type Err = Option<D::Err>;
+
+    fn log(
+        &self,
+        record: &slog::Record,
+        values: &slog::OwnedKVList,
+    ) -> result::Result<Self::Ok, Self::Err> {
+        let current_level = match self.on.load(Ordering::Relaxed) {
+            0 => slog::Level::Warning,
+            1 => slog::Level::Info,
+            2 => slog::Level::Debug,
+            3 => slog::Level::Trace,
+            _ => slog::Level::Warning
+        };
+
+        if record.level().is_at_least(current_level) {
+            self.drain.log(record, values).map(Some).map_err(Some)
+        } else {
+            Ok(None)
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Config {
     pub listen_host: String,
@@ -15,6 +55,7 @@ pub struct Config {
     pub log_dir: String,
     pub servers_pull: Vec<String>,
     pub mirror_pull_interval: u64,
+    pub log_level: usize,
 }
 
 fn get_option_string(
@@ -185,6 +226,14 @@ pub fn load_config() -> Config {
                 .takes_value(false)
                 .help("allows downgrade of database if tables were created with newer software version"),
         ).arg(
+            Arg::with_name("log-level")
+                .short("v")
+                .long("log-level")
+                .value_name("LOG_LEVEL")
+                .takes_value(false)
+                .multiple(true)
+                .help("increases the log level. can be specified mutliple times 0..3"),
+        ).arg(
             Arg::with_name("static-files-dir")
                 .short("g")
                 .long("static-files-dir")
@@ -245,6 +294,7 @@ pub fn load_config() -> Config {
         get_option_number(&matches, &config, "mirror-pull-interval", 30) as u64;
     let ignore_migration_errors: bool = matches.occurrences_of("ignore-migration-errors") > 0;
     let allow_database_downgrade: bool = matches.occurrences_of("allow-database-downgrade") > 0;
+    let log_level: usize = matches.occurrences_of("log-level") as usize;
 
     let mut servers_pull = vec![];
     let mirrors = matches.values_of("mirror");
@@ -271,5 +321,6 @@ pub fn load_config() -> Config {
         server_url,
         static_files_dir,
         log_dir,
+        log_level,
     }
 }
