@@ -1413,7 +1413,7 @@ r#"CREATE TABLE `StationCheckHistory` (
   UNIQUE KEY `CheckUuid` (`CheckUuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"#,"DROP TABLE StationCheckHistory");
 
-    migrations.do_migrations(ignore_migration_errors, allow_database_downgrade);
+    migrations.do_migrations(ignore_migration_errors, allow_database_downgrade)?;
 
     let pool = mysql::Pool::new(connection_string);
     match pool {

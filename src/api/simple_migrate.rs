@@ -19,24 +19,23 @@ impl Migrations {
         }
     }
 
-    fn ensure_tables(&self) {
-        let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone()).unwrap();
+    fn ensure_tables(&self) -> Result<(), Box<std::error::Error>> {
+        let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone())?;
         pool.prep_exec(
             "CREATE TABLE IF NOT EXISTS __migrations(id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, name TEXT NOT NULL, up TEXT NOT NULL, down TEXT NOT NULL);",
             (),
-        )
-        .unwrap();
+        )?;
+        Ok(())
     }
 
-    fn get_applied_migrations(&self) -> Vec<Migration> {
+    fn get_applied_migrations(&self) -> Result<Vec<Migration>, Box<std::error::Error>> {
         let mut list = vec![];
-        let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone()).unwrap();
+        let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone())?;
         let results = pool
             .prep_exec(
                 "SELECT id,name,up,down FROM __migrations ORDER BY name;",
                 (),
-            )
-            .unwrap();
+            )?;
         for result in results {
             for mut row_ in result {
                 let item = Migration {
@@ -47,11 +46,11 @@ impl Migrations {
                 list.push(item);
             }
         }
-        list
+        Ok(list)
     }
 
-    fn insert_db_migration(&self, name: &str, up: &str, down: &str) {
-        let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone()).unwrap();
+    fn insert_db_migration(&self, name: &str, up: &str, down: &str) -> Result<(), Box<std::error::Error>> {
+        let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone())?;
         pool.prep_exec(
             "INSERT INTO __migrations(name, up , down) VALUES (:name,:up,:down);",
             params! {
@@ -59,19 +58,19 @@ impl Migrations {
                 "up" => up,
                 "down" => down,
             },
-        )
-        .unwrap();
+        )?;
+        Ok(())
     }
 
-    fn delete_db_migration(&self, name: &str) {
-        let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone()).unwrap();
+    fn delete_db_migration(&self, name: &str) -> Result<(), Box<std::error::Error>> {
+        let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone())?;
         pool.prep_exec(
             "DELETE FROM __migrations WHERE name=:name;",
             params! {
                 "name" => name,
             },
-        )
-        .unwrap();
+        )?;
+        Ok(())
     }
 
     pub fn add_migration(&mut self, name: &str, up: &str, down: &str) {
@@ -85,8 +84,8 @@ impl Migrations {
             .sort_unstable_by(|a, b| a.name.cmp(&b.name));
     }
 
-    fn apply_migration(&self, migration: &Migration, ignore_errors: bool) {
-        let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone()).unwrap();
+    fn apply_migration(&self, migration: &Migration, ignore_errors: bool) -> Result<(),Box<std::error::Error>> {
+        let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone())?;
         println!("APPLY UP '{}'", migration.name);
         let result = pool.prep_exec(&migration.up, ());
         match result {
@@ -97,11 +96,12 @@ impl Migrations {
             },
             _ => {}
         };
-        self.insert_db_migration(&migration.name, &migration.up, &migration.down);
+        self.insert_db_migration(&migration.name, &migration.up, &migration.down)?;
+        Ok(())
     }
 
-    fn unapply_migration(&self, migration: &Migration, ignore_errors: bool) {
-        let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone()).unwrap();
+    fn unapply_migration(&self, migration: &Migration, ignore_errors: bool) -> Result<(),Box<std::error::Error>> {
+        let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone())?;
         println!("APPLY DOWN '{}'", migration.name);
         let result = pool.prep_exec(&migration.down, ());
         match result {
@@ -112,13 +112,14 @@ impl Migrations {
             },
             _ => {}
         };
-        self.delete_db_migration(&migration.name);
+        self.delete_db_migration(&migration.name)?;
+        Ok(())
     }
 
-    pub fn do_migrations(&self, ignore_errors: bool, allow_database_downgrade: bool) {
-        self.ensure_tables();
+    pub fn do_migrations(&self, ignore_errors: bool, allow_database_downgrade: bool) -> Result<(),Box<std::error::Error>> {
+        self.ensure_tables()?;
 
-        let migrations_applied = self.get_applied_migrations();
+        let migrations_applied = self.get_applied_migrations()?;
         // apply all migrations, that are not applied
         for wanted in self.migrations_wanted.iter() {
             let mut found = false;
@@ -128,7 +129,7 @@ impl Migrations {
                 }
             }
             if !found {
-                self.apply_migration(&wanted, ignore_errors);
+                self.apply_migration(&wanted, ignore_errors)?;
             }
         }
 
@@ -142,11 +143,13 @@ impl Migrations {
             }
             if !found {
                 if allow_database_downgrade {
-                    self.unapply_migration(&wanted, ignore_errors);
+                    self.unapply_migration(&wanted, ignore_errors)?;
                 }else{
                     panic!("Database downgrade would be neccessary! Please confirm if you really want to do that.")
                 }
             }
         }
+
+        Ok(())
     }
 }
