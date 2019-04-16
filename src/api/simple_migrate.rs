@@ -86,7 +86,7 @@ impl Migrations {
 
     fn apply_migration(&self, migration: &Migration, ignore_errors: bool) -> Result<(),Box<std::error::Error>> {
         let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone())?;
-        println!("APPLY UP '{}'", migration.name);
+        info!("APPLY UP '{}'", migration.name);
         let result = pool.prep_exec(&migration.up, ());
         match result {
             Err(err) => {
@@ -102,7 +102,7 @@ impl Migrations {
 
     fn unapply_migration(&self, migration: &Migration, ignore_errors: bool) -> Result<(),Box<std::error::Error>> {
         let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone())?;
-        println!("APPLY DOWN '{}'", migration.name);
+        info!("APPLY DOWN '{}'", migration.name);
         let result = pool.prep_exec(&migration.down, ());
         match result {
             Err(err) => {
