@@ -343,6 +343,7 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Re
                     _ => rouille::Response::text("").with_status_code(500)
                 }
             }else{
+                error!("unable register template file: stats.hbs");
                 rouille::Response::text("").with_status_code(500)
             }
         },
@@ -429,13 +430,13 @@ fn handle_connection(connection: &db::Connection, request: &rouille::Request, se
     let now = chrono::Utc::now().format("%d/%m/%Y:%H:%M:%S%.6f");
     let log_ok = |req: &Request, resp: &Response, _elap: std::time::Duration| {
         let line = format!(r#"{} - - [{}] "{} {}" {} {} "{}" "{}""#, remote_ip, now, req.method(), req.raw_url(), resp.status_code, 0, referer, user_agent);
-        println!("{}", line);
+        debug!("{}", line);
         let log_file = format!("{}/access.log",log_dir);
         log_to_file(&log_file, &line);
     };
     let log_err = |req: &Request, _elap: std::time::Duration| {
         let line = format!("{} {} Handler panicked: {} {}", remote_ip, now, req.method(), req.raw_url());
-        println!("{}", line);
+        debug!("{}", line);
         let log_file = format!("{}/error.log", log_dir);
         log_to_file(&log_file, &line);
     };
@@ -669,6 +670,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
                         _ => rouille::Response::text("").with_status_code(500)
                     }
                 }else{
+                    error!("unable register template file: docs.hbs");
                     rouille::Response::text("").with_status_code(500)
                 }
             }

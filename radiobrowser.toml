@@ -30,13 +30,13 @@ mirror-pull-interval = 60
 ## ============
 
 ## Enable the checking of stations
-enable_check = false
+enable_check = true
 
 ## Concurrent checks
-concurrency = 1
+concurrency = 10
 
 ## Batchsize of stations to get from the database at a time
-stations = 1
+stations = 100
 
 ## Enable delete logic for stations
 delete = false
@@ -57,7 +57,7 @@ max_depth = 5
 retries = 5
 
 ## Hostname for the check-entries in the database, defaults to the local hostname
-# source = "myhostname"
+#source = "myhostname"
 
 ## User agent for the stream check
 #useragent = "useragent/1.0"

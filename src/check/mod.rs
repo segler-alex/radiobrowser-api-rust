@@ -43,10 +43,10 @@ pub fn start(
                     db::delete_old_clicks(&conn, 24 * 30);
                 }
 
-                debug!("STATS: {} Checks/Hour, {} Checks/Day, {} Working stations, {} Broken stations, {} to do, deletable {} + {}", checks_hour, checks_day, stations_working, stations_broken, stations_todo, stations_deletable_never_worked, stations_deletable_were_working);
+                info!("STATS: {} Checks/Hour, {} Checks/Day, {} Working stations, {} Broken stations, {} to do, deletable {} + {}", checks_hour, checks_day, stations_working, stations_broken, stations_todo, stations_deletable_never_worked, stations_deletable_were_working);
             }
             Err(e) => {
-                debug!("Database connection error {}", e);
+                error!("Database connection error {}", e);
             }
         }
         thread::sleep(Duration::from_secs(3600));
