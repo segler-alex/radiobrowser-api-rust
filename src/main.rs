@@ -18,12 +18,21 @@ extern crate slog_term;
 use config::RuntimeLevelFilter;
 use slog::Drain;
 
-use std::{thread, time};
+extern crate av_stream_info_rust;
+extern crate colored;
+extern crate hostname;
+extern crate native_tls;
+extern crate reqwest;
+extern crate threadpool;
+extern crate website_icon_extract;
+
 use std::sync::atomic::Ordering;
 use std::sync::{atomic, Arc};
+use std::{thread, time};
 
 mod api;
 mod config;
+mod check;
 
 fn main() {
     let log_level = Arc::new(atomic::AtomicUsize::new(3));
@@ -33,7 +42,8 @@ fn main() {
     let drain = RuntimeLevelFilter {
         drain: drain,
         on: log_level.clone(),
-    }.fuse();
+    }
+    .fuse();
     let drain = slog_async::Async::new(drain).build().fuse();
     let logger = slog::Logger::root(drain, slog_o![]);
 
@@ -56,6 +66,21 @@ fn main() {
         );
         match connection {
             Ok(v) => {
+                check::start(
+                    config.connection_string,
+                    config.source,
+                    config.delete,
+                    config.concurrency,
+                    config.check_stations,
+                    config.useragent,
+                    config.tcp_timeout as u32,
+                    config.max_depth,
+                    config.retries,
+                    config.favicon,
+                    config.enable_check,
+                    config.pause_seconds,
+                );
+
                 api::run(
                     v,
                     config.listen_host,

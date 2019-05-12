@@ -1205,12 +1205,18 @@ fn remove_from_cache(pool: &mysql::Pool, tags: Vec<&String>, table_name: &str, c
     }
 }
 
+pub struct RefreshCacheStatus{
+    old_items: usize,
+    new_items: usize,
+    changed_items: usize,
+}
+
 pub fn refresh_cache_items(
     pool: &mysql::Pool,
     cache_table_name: &str,
     cache_column_name: &str,
     station_column_name: &str,
-) {
+)-> RefreshCacheStatus {
     let items_cached = get_cached_items(pool, cache_table_name, cache_column_name);
     let items_current = get_stations_multi_items(pool, station_column_name);
     let mut changed = 0;
@@ -1261,6 +1267,11 @@ pub fn refresh_cache_items(
     for item_to_delete in to_delete {
         self.remove_tag(item_to_delete);
     }*/
+    RefreshCacheStatus{
+        old_items: items_cached.len(),
+        new_items: items_current.len(),
+        changed_items: changed,
+    }
 }
 
 fn start_refresh_worker(connection_string: String, update_caches_interval: u64) {
@@ -1269,10 +1280,10 @@ fn start_refresh_worker(connection_string: String, update_caches_interval: u64) 
             let pool = mysql::Pool::new(&connection_string);
             match pool {
                 Ok(p) => {
-                    //println!("REFRESH START");
-                    refresh_cache_items(&p, "TagCache", "TagName", "Tags");
-                    refresh_cache_items(&p, "LanguageCache", "LanguageName", "Language");
-                    //println!("REFRESH END");
+                    trace!("REFRESH START");
+                    let tags = refresh_cache_items(&p, "TagCache", "TagName", "Tags");
+                    let languages = refresh_cache_items(&p, "LanguageCache", "LanguageName", "Language");
+                    debug!("Refresh(Tags={}->{}, Languages={}->{})", tags.old_items, tags.new_items, languages.old_items, languages.new_items);
                 }
                 Err(e) => error!("{}", e),
             }

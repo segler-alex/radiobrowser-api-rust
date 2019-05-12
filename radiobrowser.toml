@@ -25,6 +25,43 @@ server-url = "https://api.radio-browser.info"
 ## Mirror pull interval in seconds
 mirror-pull-interval = 60
 
+
+## Stream check
+## ============
+
+## Enable the checking of stations
+enable_check = false
+
+## Concurrent checks
+concurrency = 1
+
+## Batchsize of stations to get from the database at a time
+stations = 1
+
+## Enable delete logic for stations
+delete = false
+
+## Automatic favicon check for stations (experimental)
+favicon = false
+
+## Interval in seconds to wait after every batch of checks
+pause_seconds = 60
+
+## Timeout for tcp connections
+tcp_timeout = 10
+
+## Recursive depth for real stream link resolution
+max_depth = 5
+
+## Retries for each station check until marked as broken
+retries = 5
+
+## Hostname for the check-entries in the database, defaults to the local hostname
+# source = "myhostname"
+
+## User agent for the stream check
+#useragent = "useragent/1.0"
+
 ## Mirror from server
 #[pullservers]
 #[pullservers.alpha]

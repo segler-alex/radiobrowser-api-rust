@@ -7,6 +7,8 @@ use std::result;
 use std::sync::atomic::Ordering;
 use std::sync::{atomic, Arc};
 
+use hostname::get_hostname;
+
 /// Custom Drain logic
 pub struct RuntimeLevelFilter<D> {
     pub drain: D,
@@ -56,6 +58,18 @@ pub struct Config {
     pub servers_pull: Vec<String>,
     pub mirror_pull_interval: u64,
     pub log_level: usize,
+
+    pub concurrency: usize,
+    pub check_stations: u32,
+    pub enable_check: bool,
+    pub delete: bool,
+    pub favicon: bool,
+    pub pause_seconds: u64,
+    pub tcp_timeout: u64,
+    pub max_depth: u8,
+    pub retries: u8,
+    pub source: String,
+    pub useragent: String,
 }
 
 fn get_option_string(
@@ -104,6 +118,28 @@ fn get_option_number(
     default_value
 }
 
+fn get_option_bool(
+    matches: &clap::ArgMatches,
+    config: &toml::Value,
+    setting_name: &str,
+    default_value: bool,
+) -> bool {
+    let value_from_clap = matches.value_of(setting_name);
+    if let Some(value_from_clap) = value_from_clap {
+        return value_from_clap.to_string().parse().unwrap_or(default_value);
+    }
+
+    let setting = config.get(setting_name);
+    if let Some(setting) = setting {
+        let setting_decoded = setting.as_bool();
+        if let Some(setting_decoded) = setting_decoded {
+            return setting_decoded;
+        }
+    }
+
+    default_value
+}
+
 fn get_hosts_from_config(config: &toml::Value) -> Vec<String> {
     let mut list = vec![];
     let setting = config.get("pullservers");
@@ -125,13 +161,15 @@ fn get_hosts_from_config(config: &toml::Value) -> Vec<String> {
 }
 
 pub fn load_config() -> Config {
+    let hostname: String = get_hostname().unwrap_or("".to_string());
+
     let matches = App::new("stream-check")
         .version(crate_version!())
         .author("segler_alex@web.de")
         .about("HTTP Rest API for radiobrowser")
         .arg(
             Arg::with_name("config-file")
-                .short("c")
+                .short("f")
                 .long("config-file")
                 .value_name("CONFIG-FILE")
                 .help("Path to config file")
@@ -169,7 +207,6 @@ pub fn load_config() -> Config {
                 .value_name("SERVER_URL")
                 .help("full server url that should be used in docs")
                 .env("SERVER_URL")
-                .default_value("localhost:8080")
                 .takes_value(true),
         ).arg(
             Arg::with_name("listen-port")
@@ -216,14 +253,14 @@ pub fn load_config() -> Config {
                 .short("i")
                 .long("ignore-migration-errors")
                 .value_name("IGNORE_MIGRATION_ERRORS")
-                .takes_value(false)
+                .takes_value(true)
                 .help("ignore errors in migrations"),
         ).arg(
             Arg::with_name("allow-database-downgrade")
                 .short("a")
                 .long("allow-database-downgrade")
                 .value_name("IGNORE_MIGRATION_ERRORS")
-                .takes_value(false)
+                .takes_value(true)
                 .help("allows downgrade of database if tables were created with newer software version"),
         ).arg(
             Arg::with_name("log-level")
@@ -240,6 +277,97 @@ pub fn load_config() -> Config {
                 .value_name("STATIC_FILES_DIR")
                 .help("directory that contains the static files")
                 .env("STATIC_FILES_DIR")
+                .takes_value(true),
+        ).arg(
+            Arg::with_name("source")
+                .long("source")
+                .value_name("SOURCE")
+                .help("Source string for database check entries")
+                .env("SOURCE")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("useragent")
+                .long("useragent")
+                .value_name("USERAGENT")
+                .help("user agent value for http requests")
+                .env("USERAGENT")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("retries")
+                .short("r")
+                .long("retries")
+                .value_name("RETRIES")
+                .help("Max number of retries for station checks")
+                .env("RETRIES")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("max_depth")
+                .long("max_depth")
+                .value_name("MAX_DEPTH")
+                .help("max recursive link check depth")
+                .env("MAX_DEPTH")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("tcp_timeout")
+                .long("tcp_timeout")
+                .value_name("TCP_TIMEOUT")
+                .help("tcp connect/read timeout in seconds")
+                .env("TCP_TIMEOUT")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("pause_seconds")
+                .long("pause_seconds")
+                .value_name("PAUSE_SECONDS")
+                .help("database check pauses in seconds")
+                .env("PAUSE_SECONDS")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("stations")
+                .short("n")
+                .long("stations")
+                .value_name("STATIONS")
+                .help("batch size for station checks")
+                .env("STATIONS")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("concurrency")
+                .short("c")
+                .long("concurrency")
+                .value_name("CONCURRENCY")
+                .help("streams checked in parallel")
+                .env("CONCURRENCY")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("delete")
+                .short("x")
+                .long("delete")
+                .value_name("DELETE")
+                .help("delete broken stations according to rules")
+                .env("DELETE")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("loop")
+                .long("loop")
+                .value_name("LOOP")
+                .help("do loop checks forever")
+                .env("LOOP")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("favicon")
+                .long("favicon")
+                .value_name("FAVICON")
+                .help("check favicons and try to repair them")
+                .env("FAVICON")
                 .takes_value(true),
         ).get_matches();
 
@@ -292,10 +420,21 @@ pub fn load_config() -> Config {
         get_option_number(&matches, &config, "update-caches-interval", 0) as u64;
     let mirror_pull_interval: u64 =
         get_option_number(&matches, &config, "mirror-pull-interval", 30) as u64;
-    let ignore_migration_errors: bool = matches.occurrences_of("ignore-migration-errors") > 0;
-    let allow_database_downgrade: bool = matches.occurrences_of("allow-database-downgrade") > 0;
+    let ignore_migration_errors: bool = get_option_bool(&matches, &config, "ignore-migration-errors", false);
+    let allow_database_downgrade: bool = get_option_bool(&matches, &config, "allow-database-downgrade", false);
     let log_level: usize = matches.occurrences_of("log-level") as usize;
 
+    let concurrency: usize = get_option_number(&matches, &config, "concurrency", 1) as usize;
+    let check_stations: u32 = get_option_number(&matches, &config, "stations", 10) as u32;
+    let enable_check: bool = get_option_bool(&matches, &config, "enable_check", false);
+    let delete: bool = get_option_bool(&matches, &config, "delete", false);
+    let favicon: bool = get_option_bool(&matches, &config, "favicon", false);
+    let pause_seconds: u64 = get_option_number(&matches, &config, "pause_seconds", 10) as u64;
+    let tcp_timeout: u64 = get_option_number(&matches, &config, "tcp_timeout", 10) as u64;
+    let max_depth: u8 = get_option_number(&matches, &config, "max_depth", 5) as u8;
+    let retries: u8 = get_option_number(&matches, &config, "retries", 5) as u8;
+    let source: String = get_option_string(&matches, &config, "source", hostname);
+    let useragent = get_option_string(&matches, &config, "useragent", String::from("stream-check/0.1"));
     let mut servers_pull = vec![];
     let mirrors = matches.values_of("mirror");
     if let Some(mirrors) = mirrors {
@@ -322,5 +461,16 @@ pub fn load_config() -> Config {
         static_files_dir,
         log_dir,
         log_level,
+        concurrency,
+        check_stations,
+        enable_check,
+        delete,
+        favicon,
+        pause_seconds,
+        tcp_timeout,
+        max_depth,
+        retries,
+        source,
+        useragent,
     }
 }
