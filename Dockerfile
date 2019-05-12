@@ -4,4 +4,5 @@ WORKDIR /root
 RUN cargo install && cargo clean
 
 EXPOSE 8080
-CMD [ "radiobrowser-api-rust" ]
+ENV STATIC_FILES_DIR=./static/
+CMD [ "radiobrowser-api-rust", "-f", "radiobrowser.toml"]

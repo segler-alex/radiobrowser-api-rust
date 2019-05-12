@@ -304,7 +304,7 @@ pub fn load_config() -> Config {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("max_depth")
+            Arg::with_name("max-depth")
                 .long("max_depth")
                 .value_name("MAX_DEPTH")
                 .help("max recursive link check depth")
@@ -312,7 +312,7 @@ pub fn load_config() -> Config {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("tcp_timeout")
+            Arg::with_name("tcp-timeout")
                 .long("tcp_timeout")
                 .value_name("TCP_TIMEOUT")
                 .help("tcp connect/read timeout in seconds")
@@ -320,7 +320,7 @@ pub fn load_config() -> Config {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("pause_seconds")
+            Arg::with_name("pause-seconds")
                 .long("pause_seconds")
                 .value_name("PAUSE_SECONDS")
                 .help("database check pauses in seconds")
@@ -355,11 +355,11 @@ pub fn load_config() -> Config {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("loop")
-                .long("loop")
-                .value_name("LOOP")
-                .help("do loop checks forever")
-                .env("LOOP")
+            Arg::with_name("enable-check")
+                .long("enable-check")
+                .value_name("ENABLE_CHECK")
+                .help("enable station checks")
+                .env("ENABLE_CHECK")
                 .takes_value(true),
         )
         .arg(
@@ -426,12 +426,12 @@ pub fn load_config() -> Config {
 
     let concurrency: usize = get_option_number(&matches, &config, "concurrency", 1) as usize;
     let check_stations: u32 = get_option_number(&matches, &config, "stations", 10) as u32;
-    let enable_check: bool = get_option_bool(&matches, &config, "enable_check", false);
+    let enable_check: bool = get_option_bool(&matches, &config, "enable-check", false);
     let delete: bool = get_option_bool(&matches, &config, "delete", false);
     let favicon: bool = get_option_bool(&matches, &config, "favicon", false);
-    let pause_seconds: u64 = get_option_number(&matches, &config, "pause_seconds", 10) as u64;
-    let tcp_timeout: u64 = get_option_number(&matches, &config, "tcp_timeout", 10) as u64;
-    let max_depth: u8 = get_option_number(&matches, &config, "max_depth", 5) as u8;
+    let pause_seconds: u64 = get_option_number(&matches, &config, "pause-seconds", 10) as u64;
+    let tcp_timeout: u64 = get_option_number(&matches, &config, "tcp-timeout", 10) as u64;
+    let max_depth: u8 = get_option_number(&matches, &config, "max-depth", 5) as u8;
     let retries: u8 = get_option_number(&matches, &config, "retries", 5) as u8;
     let source: String = get_option_string(&matches, &config, "source", hostname);
     let useragent = get_option_string(&matches, &config, "useragent", String::from("stream-check/0.1"));

@@ -67,4 +67,13 @@ If you want to enable SSL just follow this guide:
 https://certbot.eff.org/
 
 ### docker setup
-TODO
+```bash
+# start db and api server
+docker-compose up --abort-on-container-exit
+```
+
+### debian package
+```bash
+cargo install cargo-deb
+cargo deb # run this in your Cargo project directory
+```

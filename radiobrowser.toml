@@ -30,7 +30,7 @@ mirror-pull-interval = 60
 ## ============
 
 ## Enable the checking of stations
-enable_check = true
+enable-check = true
 
 ## Concurrent checks
 concurrency = 10
@@ -45,13 +45,13 @@ delete = false
 favicon = false
 
 ## Interval in seconds to wait after every batch of checks
-pause_seconds = 60
+pause-seconds = 60
 
 ## Timeout for tcp connections
-tcp_timeout = 10
+tcp-timeout = 10
 
 ## Recursive depth for real stream link resolution
-max_depth = 5
+max-depth = 5
 
 ## Retries for each station check until marked as broken
 retries = 5
@@ -64,5 +64,5 @@ retries = 5
 
 ## Mirror from server
 #[pullservers]
-#[pullservers.alpha]
-#host = "http://www.radio-browser.info/webservice"
+[pullservers.alpha]
+host = "http://www.radio-browser.info/webservice"

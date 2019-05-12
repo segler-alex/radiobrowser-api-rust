@@ -1,6 +1,7 @@
 version: "3.0"
 services:
   api:
+    build: ./
     image: segleralex/radiobrowser-api-rust:latest
     deploy:
       replicas: 1
@@ -23,7 +24,6 @@ services:
     networks:
       - mynet
     volumes:
-      - ./radio.sql.gz:/docker-entrypoint-initdb.d/radio.sql.gz
       - ./dbdata:/var/lib/mysql
     command: ["mysqld","--character-set-server=utf8mb4","--collation-server=utf8mb4_unicode_ci"]
 networks:
