@@ -1,15 +1,27 @@
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
+pub struct StationCheckV0 {
+    pub stationuuid: String,
+    pub checkuuid: String,
+    pub source: String,
+    pub codec: String,
+    pub bitrate: String,
+    pub hls: String,
+    pub ok: String,
+    pub timestamp: String,
+}
+
+#[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct StationCheck {
-    id: i32,
-    stationuuid: String,
-    checkuuid: String,
-    source: String,
-    codec: String,
-    bitrate: u32,
-    hls: u8,
-    ok: u8,
-    timestamp: String,
-    urlcache: String,
+    pub id: i32,
+    pub stationuuid: String,
+    pub checkuuid: String,
+    pub source: String,
+    pub codec: String,
+    pub bitrate: u32,
+    pub hls: u8,
+    pub ok: u8,
+    pub timestamp: String,
+    pub urlcache: String,
 }
 
 impl StationCheck {
@@ -58,5 +70,23 @@ impl StationCheck {
         xml.close()?;
         xml.flush()?;
         Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
+    }
+}
+
+
+impl From<&StationCheckV0> for StationCheck {
+    fn from(item: &StationCheckV0) -> Self {
+        StationCheck {
+            id: 0,
+            stationuuid: item.stationuuid.clone(),
+            checkuuid: item.checkuuid.clone(),
+            source: item.source.clone(),
+            codec: item.codec.clone(),
+            bitrate: item.bitrate.parse().unwrap(),
+            hls: item.hls.parse().unwrap(),
+            ok: item.ok.parse().unwrap(),
+            timestamp: item.timestamp.clone(),
+            urlcache: String::from(""),
+        }
     }
 }

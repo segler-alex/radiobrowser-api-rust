@@ -15,3 +15,4 @@ pub use self::station::Station;
 pub use self::station::StationCachedInfo;
 pub use self::station_history::StationHistoryCurrent;
 pub use self::station_history::StationHistoryV0;
+pub use self::station_check::StationCheckV0;

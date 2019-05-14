@@ -288,6 +288,37 @@ impl Connection {
         Ok(())
     }
 
+    pub fn stationcheck_exists(&self, checkuuid: &str) -> Result<bool, Box<std::error::Error>> {
+        let params = params!{
+            "checkuuid" => checkuuid,
+        };
+        let result = self.pool.prep_exec("SELECT COUNT(*) FROM StationCheck WHERE CheckUuid=:checkuuid", params)?;
+        let count = self.get_single_column_number_intern(result)?;
+        Ok(count > 0)
+    }
+
+    pub fn insert_station_check(&self, stationcheck: StationCheck) -> Result<(),Box<std::error::Error>> {
+        let checkexists = self.stationcheck_exists(&stationcheck.checkuuid)?;
+        if !checkexists {
+            let query = format!("INSERT INTO StationCheck(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) 
+                        VALUES(:stationuuid, :checkuuid, :source, :codec, :bitrate, :hls, :checkok, :checktime, :urlcache)");
+            let params = params!{
+                "stationuuid" => stationcheck.stationuuid,
+                "checkuuid" => stationcheck.checkuuid,
+                "source" => stationcheck.source,
+                "codec" => stationcheck.codec,
+                "bitrate" => stationcheck.bitrate,
+                "hls" => stationcheck.hls,
+                "checkok" => stationcheck.ok,
+                "checktime" => stationcheck.timestamp,
+                "urlcache" => stationcheck.urlcache,
+            };
+
+            self.pool.prep_exec(query, params)?;
+        }
+        Ok(())
+    }
+
     pub fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32) -> Vec<StationCheck> {
         let where_seconds = if seconds > 0 {
             format!(
@@ -356,8 +387,35 @@ impl Connection {
             Ok(results) => {
                 for result in results {
                     if let Ok(mut result) = result {
-                        let lastid: String = result.take("lastid").unwrap();
-                        return Some(lastid);
+                        let lastid = result.take_opt("lastid");
+                        if let Some(lastid) = lastid {
+                            if let Ok(lastid) = lastid {
+                                return Some(lastid);
+                            }
+                        }
+                    }
+                };
+                None
+            },
+            _ => None
+        }
+    }
+
+    pub fn get_pull_server_lastcheckid(&self, server: &str) -> Option<String> {
+        let query: String = format!("SELECT lastcheckid FROM PullServers WHERE name=:name");
+        let results = self.pool.prep_exec(query, params!{
+            "name" => server
+        });
+        match results {
+            Ok(results) => {
+                for result in results {
+                    if let Ok(mut result) = result {
+                        let lastcheckid = result.take_opt("lastcheckid");
+                        if let Some(lastcheckid) = lastcheckid {
+                            if let Ok(lastcheckid) = lastcheckid {
+                                return Some(lastcheckid);
+                            }
+                        }
                     }
                 };
                 None
@@ -375,6 +433,20 @@ impl Connection {
         let results_update = self.pool.prep_exec(query_update, &params)?;
         if results_update.affected_rows() == 0 {
             let query_insert: String = format!("INSERT INTO PullServers(name, lastid) VALUES(:name,:lastid)");
+            self.pool.prep_exec(query_insert, &params)?;
+        }
+        Ok(())
+    }
+
+    pub fn set_pull_server_lastcheckid(&self, server: &str, lastcheckid: &str) -> Result<(),Box<std::error::Error>> {
+        let params = params!{
+            "name" => server,
+            "lastcheckid" => lastcheckid,
+        };
+        let query_update: String = format!("UPDATE PullServers SET lastcheckid=:lastcheckid WHERE name=:name");
+        let results_update = self.pool.prep_exec(query_update, &params)?;
+        if results_update.affected_rows() == 0 {
+            let query_insert: String = format!("INSERT INTO PullServers(name, lastcheckid) VALUES(:name,:lastcheckid)");
             self.pool.prep_exec(query_insert, &params)?;
         }
         Ok(())
@@ -1405,7 +1477,8 @@ r#"CREATE TABLE `StationHistory` (
 r#"CREATE TABLE PullServers (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     name TEXT NOT NULL,
-    lastid TEXT NOT NULL
+    lastid TEXT,
+    lastcheckid TEXT
 );"#, "DROP TABLE PullServers;");
 
     migrations.add_migration("20190104_014304_CreateStationCheckHistory",
