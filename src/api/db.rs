@@ -288,34 +288,58 @@ impl Connection {
         Ok(())
     }
 
-    pub fn stationcheck_exists(&self, checkuuid: &str) -> Result<bool, Box<std::error::Error>> {
+    pub fn stationcheck_exists_in_history(&self, checkuuid: &str) -> Result<bool, Box<std::error::Error>> {
         let params = params!{
             "checkuuid" => checkuuid,
         };
-        let result = self.pool.prep_exec("SELECT COUNT(*) FROM StationCheck WHERE CheckUuid=:checkuuid", params)?;
+        let result = self.pool.prep_exec("SELECT COUNT(*) FROM StationCheckHistory WHERE CheckUuid=:checkuuid", params)?;
         let count = self.get_single_column_number_intern(result)?;
         Ok(count > 0)
     }
 
-    pub fn insert_station_check(&self, stationcheck: StationCheck) -> Result<(),Box<std::error::Error>> {
-        let checkexists = self.stationcheck_exists(&stationcheck.checkuuid)?;
-        if !checkexists {
-            let query = format!("INSERT INTO StationCheck(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) 
-                        VALUES(:stationuuid, :checkuuid, :source, :codec, :bitrate, :hls, :checkok, :checktime, :urlcache)");
-            let params = params!{
-                "stationuuid" => stationcheck.stationuuid,
-                "checkuuid" => stationcheck.checkuuid,
-                "source" => stationcheck.source,
-                "codec" => stationcheck.codec,
-                "bitrate" => stationcheck.bitrate,
-                "hls" => stationcheck.hls,
-                "checkok" => stationcheck.ok,
-                "checktime" => stationcheck.timestamp,
-                "urlcache" => stationcheck.urlcache,
-            };
+    pub fn insert_pulled_station_check(&self, stationcheck: StationCheck) -> Result<(),Box<std::error::Error>> {
+        // delete from stationcheck if exists
+        let params_delete = params!{
+            "stationuuid" => &stationcheck.stationuuid,
+            "source" => &stationcheck.source,
+        };
+        let query_current = format!("DELETE FROM StationCheck WHERE StationUuid=:stationuuid AND Source=:source");
+        self.pool.prep_exec(query_current, &params_delete)?;
 
-            self.pool.prep_exec(query, params)?;
+        // insert into StationCheck
+        let params_insert = params!{
+            "stationuuid" => &stationcheck.stationuuid,
+            "checkuuid" => &stationcheck.checkuuid,
+            "source" => stationcheck.source,
+            "codec" => stationcheck.codec,
+            "bitrate" => stationcheck.bitrate,
+            "hls" => stationcheck.hls,
+            "checkok" => stationcheck.ok,
+            "checktime" => stationcheck.timestamp,
+            "urlcache" => stationcheck.urlcache,
+        };
+        let query = format!("INSERT INTO StationCheck(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) 
+                    VALUES(:stationuuid, :checkuuid, :source, :codec, :bitrate, :hls, :checkok, :checktime, :urlcache)");
+        self.pool.prep_exec(query, &params_insert)?;
+
+        // insert into StationCheckHistory if not already there with same id
+        let checkid_exists_in_history = self.stationcheck_exists_in_history(&stationcheck.checkuuid)?;
+        if !checkid_exists_in_history {
+            let query = format!("INSERT INTO StationCheckHistory(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) 
+                        VALUES(:stationuuid, :checkuuid, :source, :codec, :bitrate, :hls, :checkok, :checktime, :urlcache)");
+
+            self.pool.prep_exec(query, params_insert)?;
         }
+        Ok(())
+    }
+
+    pub fn update_station_with_check_data(&self, item: &StationCheck) -> Result<(), Box<std::error::Error>> {
+        let mut query: String = String::from("UPDATE Station SET LastCheckTime=NOW(),LastCheckOkTime=NOW(),LastCheckOk=?,Codec=?,Bitrate=?,UrlCache=? WHERE StationUuid=?");
+        if item.ok == 0 {
+            query = format!("UPDATE Station SET LastCheckTime=NOW(),LastCheckOk=?,Codec=?,Bitrate=?,UrlCache=? WHERE StationUuid=?");
+        }
+        let mut my_stmt = self.pool.prepare(query)?;
+        my_stmt.execute((&item.ok,&item.codec,&item.bitrate,&item.urlcache,&item.stationuuid))?;
         Ok(())
     }
 
@@ -502,13 +526,13 @@ impl Connection {
         self.get_stations(results)
     }
 
-    pub fn increase_clicks(&self, ip: &str, station: &Station) -> bool {
+    pub fn increase_clicks(&self, ip: &str, station: &Station) -> Result<bool,Box<std::error::Error>> {
         let query = format!(r#"SELECT * FROM StationClick WHERE StationID={id} AND IP="{ip}" AND TIME_TO_SEC(TIMEDIFF(Now(),ClickTimestamp))<24*60*60"#, id = station.id, ip = ip);
-        let result = self.pool.prep_exec(query, ()).unwrap();
+        let result = self.pool.prep_exec(query, ())?;
 
         for resultsingle in result {
             for _ in resultsingle {
-                return false;
+                return Ok(false);
             }
         }
 
@@ -517,18 +541,18 @@ impl Connection {
             id = station.id,
             ip = ip
         );
-        let result2 = self.pool.prep_exec(query2, ()).unwrap();
+        let result2 = self.pool.prep_exec(query2, ())?;
 
         let query3 = format!(
             "UPDATE Station SET ClickTimestamp=NOW() WHERE StationID={id}",
             id = station.id
         );
-        let result3 = self.pool.prep_exec(query3, ()).unwrap();
+        let result3 = self.pool.prep_exec(query3, ())?;
 
         if result2.affected_rows() == 1 && result3.affected_rows() == 1 {
-            true
+            return Ok(true);
         } else {
-            false
+            return Ok(false);
         }
     }
 
@@ -1399,7 +1423,7 @@ r#"CREATE TABLE `Station` (
   PRIMARY KEY (`StationID`),
   UNIQUE KEY `ChangeUuid` (`ChangeUuid`),
   UNIQUE KEY `StationUuid` (`StationUuid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"#, "DROP TABLE Station;");
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"#, "DROP TABLE Station;");
 
     migrations.add_migration("20190104_014301_CreateIPVoteCheck",
 r#"CREATE TABLE `IPVoteCheck` (
@@ -1408,7 +1432,7 @@ r#"CREATE TABLE `IPVoteCheck` (
   `StationID` int(11) NOT NULL,
   `VoteTimestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`CheckID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"#,"DROP TABLE IPVoteCheck");
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"#,"DROP TABLE IPVoteCheck");
 
     migrations.add_migration("20190104_014302_CreateLanguageCache",
 r#"CREATE TABLE `LanguageCache` (
@@ -1440,7 +1464,7 @@ r#"CREATE TABLE `StationCheck` (
   `UrlCache` text,
   PRIMARY KEY (`CheckID`),
   UNIQUE KEY `CheckUuid` (`CheckUuid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"#,"DROP TABLE StationCheck");
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"#,"DROP TABLE StationCheck");
 
     migrations.add_migration("20190104_014305_CreateStationClick",
 r#"CREATE TABLE `StationClick` (
@@ -1449,7 +1473,7 @@ r#"CREATE TABLE `StationClick` (
   `ClickTimestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `IP` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`ClickID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"#,"DROP TABLE StationClick");
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"#,"DROP TABLE StationClick");
 
     migrations.add_migration("20190104_014306_CreateStationHistory",
 r#"CREATE TABLE `StationHistory` (
@@ -1471,7 +1495,7 @@ r#"CREATE TABLE `StationHistory` (
   `StationUuid` char(36) DEFAULT NULL,
   PRIMARY KEY (`StationChangeID`),
   UNIQUE KEY `ChangeUuid` (`ChangeUuid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"#,"DROP TABLE StationHistory");
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"#,"DROP TABLE StationHistory");
 
     migrations.add_migration("20190104_014307_CreatePullServers",
 r#"CREATE TABLE PullServers (
@@ -1479,7 +1503,7 @@ r#"CREATE TABLE PullServers (
     name TEXT NOT NULL,
     lastid TEXT,
     lastcheckid TEXT
-);"#, "DROP TABLE PullServers;");
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"#, "DROP TABLE PullServers;");
 
     migrations.add_migration("20190104_014304_CreateStationCheckHistory",
 r#"CREATE TABLE `StationCheckHistory` (
@@ -1492,10 +1516,11 @@ r#"CREATE TABLE `StationCheckHistory` (
   `Hls` tinyint(1) NOT NULL DEFAULT '0',
   `CheckOK` tinyint(1) NOT NULL DEFAULT '1',
   `CheckTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `InsertTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `UrlCache` text,
   PRIMARY KEY (`CheckID`),
   UNIQUE KEY `CheckUuid` (`CheckUuid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"#,"DROP TABLE StationCheckHistory");
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"#,"DROP TABLE StationCheckHistory");
 
     migrations.do_migrations(ignore_migration_errors, allow_database_downgrade)?;
 

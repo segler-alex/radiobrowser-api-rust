@@ -117,7 +117,8 @@ fn pull_server(connection: &db::Connection, server: &str) -> Result<(),Box<std::
     let mut station_check_count = 0;
     for check in list_checks {
         let changeuuid = check.checkuuid.clone();
-        connection.insert_station_check(check)?;
+        connection.update_station_with_check_data(&check)?;
+        connection.insert_pulled_station_check(check)?;
         station_check_count = station_check_count + 1;
 
         if station_check_count % 100 == 0 {
