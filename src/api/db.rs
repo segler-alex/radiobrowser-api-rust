@@ -333,13 +333,39 @@ impl Connection {
         Ok(())
     }
 
-    pub fn update_station_with_check_data(&self, item: &StationCheck) -> Result<(), Box<std::error::Error>> {
-        let mut query: String = String::from("UPDATE Station SET LastCheckTime=?,LastCheckOkTime=NOW(),LastCheckOk=?,Codec=?,Bitrate=?,UrlCache=? WHERE StationUuid=?");
-        if item.ok == 0 {
-            query = format!("UPDATE Station SET LastCheckTime=?,LastCheckOk=?,Codec=?,Bitrate=?,UrlCache=? WHERE StationUuid=?");
+    pub fn update_station_with_check_data(&self, stationcheck: &StationCheck) -> Result<(), Box<std::error::Error>> {
+        let mut query: String = String::from("UPDATE Station SET
+            LastCheckTime=:checktime,
+            LastCheckOkTime=:checktime,
+            LastCheckOk=:checkok,
+            Codec=:codec,
+            Bitrate=:bitrate,
+            Hls=:hls,
+            UrlCache=:urlcache
+            WHERE StationUuid=:stationuuid");
+        if stationcheck.ok == 0 {
+            query = format!("UPDATE Station SET
+                LastCheckTime=:checktime,
+                LastCheckOk=:checkok,
+                Codec=:codec,
+                Bitrate=:bitrate,
+                Hls=:hls,
+                UrlCache=:urlcache
+                WHERE StationUuid=:stationuuid");
         }
+
+        // insert into StationCheck
+        let params = params!{
+            "checktime" => &stationcheck.timestamp,
+            "checkok" => stationcheck.ok,
+            "codec" => &stationcheck.codec,
+            "bitrate" => stationcheck.bitrate,
+            "hls" => stationcheck.hls,
+            "urlcache" => &stationcheck.urlcache,
+            "stationuuid" => &stationcheck.stationuuid,
+        };
         let mut my_stmt = self.pool.prepare(query)?;
-        my_stmt.execute((&item.timestamp,&item.ok,&item.codec,&item.bitrate,&item.urlcache,&item.stationuuid))?;
+        my_stmt.execute(params)?;
         Ok(())
     }
 
