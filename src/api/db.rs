@@ -1399,7 +1399,7 @@ r#"CREATE TABLE `Station` (
   PRIMARY KEY (`StationID`),
   UNIQUE KEY `ChangeUuid` (`ChangeUuid`),
   UNIQUE KEY `StationUuid` (`StationUuid`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;"#, "DROP TABLE Station;");
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"#, "DROP TABLE Station;");
 
     migrations.add_migration("20190104_014301_CreateIPVoteCheck",
 r#"CREATE TABLE `IPVoteCheck` (
@@ -1408,23 +1408,23 @@ r#"CREATE TABLE `IPVoteCheck` (
   `StationID` int(11) NOT NULL,
   `VoteTimestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`CheckID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;"#,"DROP TABLE IPVoteCheck");
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"#,"DROP TABLE IPVoteCheck");
 
     migrations.add_migration("20190104_014302_CreateLanguageCache",
 r#"CREATE TABLE `LanguageCache` (
-  `LanguageName` varchar(500) COLLATE utf8_bin NOT NULL,
+  `LanguageName` varchar(500) COLLATE utf8mb4_bin NOT NULL,
   `StationCount` int(11) DEFAULT '0',
   `StationCountWorking` int(11) DEFAULT '0',
   PRIMARY KEY (`LanguageName`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;"#,"DROP TABLE LanguageCache");
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"#,"DROP TABLE LanguageCache");
 
     migrations.add_migration("20190104_014303_CreateTagCache",
 r#"CREATE TABLE `TagCache` (
-  `TagName` varchar(500) COLLATE utf8_bin NOT NULL,
+  `TagName` varchar(500) COLLATE utf8mb4_bin NOT NULL,
   `StationCount` int(11) DEFAULT '0',
   `StationCountWorking` int(11) DEFAULT '0',
   PRIMARY KEY (`TagName`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;"#,"DROP TABLE TagCache");
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"#,"DROP TABLE TagCache");
 
     migrations.add_migration("20190104_014304_CreateStationCheck",
 r#"CREATE TABLE `StationCheck` (
@@ -1449,7 +1449,7 @@ r#"CREATE TABLE `StationClick` (
   `ClickTimestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `IP` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`ClickID`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;"#,"DROP TABLE StationClick");
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"#,"DROP TABLE StationClick");
 
     migrations.add_migration("20190104_014306_CreateStationHistory",
 r#"CREATE TABLE `StationHistory` (
@@ -1471,7 +1471,7 @@ r#"CREATE TABLE `StationHistory` (
   `StationUuid` char(36) DEFAULT NULL,
   PRIMARY KEY (`StationChangeID`),
   UNIQUE KEY `ChangeUuid` (`ChangeUuid`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8;"#,"DROP TABLE StationHistory");
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;"#,"DROP TABLE StationHistory");
 
     migrations.add_migration("20190104_014307_CreatePullServers",
 r#"CREATE TABLE PullServers (
