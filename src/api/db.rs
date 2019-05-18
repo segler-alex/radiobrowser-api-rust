@@ -334,12 +334,12 @@ impl Connection {
     }
 
     pub fn update_station_with_check_data(&self, item: &StationCheck) -> Result<(), Box<std::error::Error>> {
-        let mut query: String = String::from("UPDATE Station SET LastCheckTime=NOW(),LastCheckOkTime=NOW(),LastCheckOk=?,Codec=?,Bitrate=?,UrlCache=? WHERE StationUuid=?");
+        let mut query: String = String::from("UPDATE Station SET LastCheckTime=?,LastCheckOkTime=NOW(),LastCheckOk=?,Codec=?,Bitrate=?,UrlCache=? WHERE StationUuid=?");
         if item.ok == 0 {
-            query = format!("UPDATE Station SET LastCheckTime=NOW(),LastCheckOk=?,Codec=?,Bitrate=?,UrlCache=? WHERE StationUuid=?");
+            query = format!("UPDATE Station SET LastCheckTime=?,LastCheckOk=?,Codec=?,Bitrate=?,UrlCache=? WHERE StationUuid=?");
         }
         let mut my_stmt = self.pool.prepare(query)?;
-        my_stmt.execute((&item.ok,&item.codec,&item.bitrate,&item.urlcache,&item.stationuuid))?;
+        my_stmt.execute((&item.timestamp,&item.ok,&item.codec,&item.bitrate,&item.urlcache,&item.stationuuid))?;
         Ok(())
     }
 
