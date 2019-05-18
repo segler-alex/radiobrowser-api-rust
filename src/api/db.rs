@@ -810,7 +810,7 @@ impl Connection {
         self.get_stations(results)
     }
 
-    pub fn get_station_by_id_or_uuid(&self, id_str: &str) -> Option<Station> {
+    pub fn get_station_by_id_or_uuid(&self, id_str: &str) -> Vec<Station> {
         let id = id_str.parse::<u32>();
         let results = match id {
             Ok(id_number) => {
@@ -828,22 +828,7 @@ impl Connection {
                 self.pool.prep_exec(query, (id_str,))
             }
         };
-        let mut stations = self.get_stations(results);
-        if stations.len() == 1 {
-            Some(stations.pop().unwrap())
-        } else {
-            None
-        }
-    }
-
-    pub fn get_stations_by_id(&self, id: i32) -> Vec<Station> {
-        let query: String;
-        query = format!(
-            "SELECT {columns} from Station WHERE StationID={id} ORDER BY Name",
-            columns = Connection::COLUMNS,
-            id = id
-        );
-        self.get_stations_query(query)
+        self.get_stations(results)
     }
 
     pub fn get_stations_topvote(&self, limit: u32) -> Vec<Station> {

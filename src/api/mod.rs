@@ -65,6 +65,14 @@ fn add_cors(result : rouille::Response) -> rouille::Response {
         .with_unique_header("Access-Control-Allow-Methods", "GET,POST")
 }
 
+fn get_only_first(mut stations: Vec<Station>) -> Option<Station>{
+    if stations.len() == 1 {
+        Some(stations.pop().unwrap())
+    } else {
+        None
+    }
+}
+
 fn dns_resolve(format : &str) -> rouille::Response {
     let hostname = "api.radio-browser.info";
     let ips: Vec<std::net::IpAddr> = lookup_host(hostname).unwrap();
@@ -705,8 +713,8 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
             "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format)),
             "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format, "tag")),
             "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format)),
-            "vote" => add_cors(encode_message(connection.vote_for_station(&remote_ip, connection.get_station_by_id_or_uuid(parameter)), format)),
-            "url" => add_cors(encode_station_url(connection, connection.get_station_by_id_or_uuid(parameter), &remote_ip, format)),
+            "vote" => add_cors(encode_message(connection.vote_for_station(&remote_ip, get_only_first(connection.get_station_by_id_or_uuid(parameter))), format)),
+            "url" => add_cors(encode_station_url(connection, get_only_first(connection.get_station_by_id_or_uuid(parameter)), &remote_ip, format)),
             "stations" => {
                 match parameter {
                     "topvote" => add_cors(encode_stations(connection.get_stations_topvote(999999), format)),
@@ -735,7 +743,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
             let format = command;
             let command = parameter;
             match command {
-                "url" => add_cors(encode_station_url(connection, connection.get_station_by_id_or_uuid(search), &remote_ip, format)),
+                "url" => add_cors(encode_station_url(connection, get_only_first(connection.get_station_by_id_or_uuid(search)), &remote_ip, format)),
                 _ => rouille::Response::empty_404(),
             }
         }else{
@@ -764,13 +772,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
                         "bylanguage" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Language", Some(search.to_string()),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
                         "bylanguageexact" => add_cors(encode_stations(connection.get_stations_by_column_multiple("Language", Some(search.to_string()),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
                         "byuuid" => add_cors(encode_stations(connection.get_stations_by_column("StationUuid", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
-                        "byid" => {
-                            let id = search.parse();
-                            match id{
-                                Ok(i) => add_cors(encode_stations(connection.get_stations_by_id(i), format)),
-                                Err(_) => add_cors(rouille::Response::empty_400())
-                            }
-                        },
+                        "byid" => add_cors(encode_stations(connection.get_station_by_id_or_uuid(search), format)),
                         "changed" => add_cors(encode_changes(connection.get_changes(Some(search.to_string()),param_last_changeuuid), format)),
                         _ => rouille::Response::empty_404()
                     }
