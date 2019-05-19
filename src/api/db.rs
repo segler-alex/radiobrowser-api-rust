@@ -1416,7 +1416,6 @@ r#"CREATE TABLE `Station` (
   `Tags` text,
   `Votes` int(11) DEFAULT '0',
   `NegativeVotes` int(11) NOT NULL DEFAULT '0',
-  `Source` varchar(20) DEFAULT NULL,
   `Subcountry` varchar(50) DEFAULT NULL,
   `clickcount` int(11) DEFAULT '0',
   `ClickTrend` int(11) DEFAULT '0',
