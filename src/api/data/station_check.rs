@@ -7,6 +7,7 @@ pub struct StationCheckV0 {
     pub bitrate: String,
     pub hls: String,
     pub ok: String,
+    pub urlcache: String,
     pub timestamp: String,
 }
 
@@ -63,6 +64,7 @@ impl StationCheck {
             xml.attr_esc("bitrate", &entry.bitrate.to_string())?;
             xml.attr_esc("hls", &entry.hls.to_string())?;
             xml.attr_esc("ok", &entry.ok.to_string())?;
+            xml.attr_esc("urlcache", &entry.urlcache)?;
             xml.attr_esc("timestamp", &entry.timestamp)?;
             xml.end_elem()?;
         }
@@ -86,7 +88,7 @@ impl From<&StationCheckV0> for StationCheck {
             hls: item.hls.parse().unwrap(),
             ok: item.ok.parse().unwrap(),
             timestamp: item.timestamp.clone(),
-            urlcache: String::from(""),
+            urlcache: item.urlcache.clone()
         }
     }
 }
