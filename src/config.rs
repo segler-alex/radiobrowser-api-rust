@@ -1,47 +1,7 @@
 use clap::{App, Arg};
 use std::fs;
 
-use slog::Drain;
-
-use std::result;
-use std::sync::atomic::Ordering;
-use std::sync::{atomic, Arc};
-
 use hostname::get_hostname;
-
-/// Custom Drain logic
-pub struct RuntimeLevelFilter<D> {
-    pub drain: D,
-    pub on: Arc<atomic::AtomicUsize>,
-}
-
-impl<D> Drain for RuntimeLevelFilter<D>
-where
-    D: Drain,
-{
-    type Ok = Option<D::Ok>;
-    type Err = Option<D::Err>;
-
-    fn log(
-        &self,
-        record: &slog::Record,
-        values: &slog::OwnedKVList,
-    ) -> result::Result<Self::Ok, Self::Err> {
-        let current_level = match self.on.load(Ordering::Relaxed) {
-            0 => slog::Level::Warning,
-            1 => slog::Level::Info,
-            2 => slog::Level::Debug,
-            3 => slog::Level::Trace,
-            _ => slog::Level::Warning
-        };
-
-        if record.level().is_at_least(current_level) {
-            self.drain.log(record, values).map(Some).map_err(Some)
-        } else {
-            Ok(None)
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct Config {
