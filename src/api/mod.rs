@@ -215,7 +215,10 @@ fn encode_message(status: Result<String,String>, format : &str) -> rouille::Resp
 fn encode_station_url(connection: &db::Connection, station: Option<Station>, ip: &str, format : &str) -> rouille::Response {
     match station {
         Some(station) => {
-            connection.increase_clicks(&ip, &station);
+            let increase_result = connection.increase_clicks(&ip, &station);
+            if let Err(increase_result) = increase_result {
+                error!("station clicks could not be increased: {}", increase_result);
+            }
 
             match format {
                 "json" => {
