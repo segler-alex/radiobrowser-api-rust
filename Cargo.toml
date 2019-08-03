@@ -7,7 +7,7 @@ readme = "README.md"
 version = "0.1.0"
 
 [dependencies]
-av-stream-info-rust = "0.5.0"
+av-stream-info-rust = "0.5.1"
 chrono = { version = "0.4.7", features = ["serde"] }
 clap = "2.33.0"
 colored = "1.8.0"
@@ -27,7 +27,7 @@ threadpool = "1.7.1"
 toml = "0.5.1"
 url = "2.0.0"
 uuid = { version = "0.7.4", features = ["serde", "v4"] }
-website-icon-extract = "0.4.0"
+website-icon-extract = "0.4.1"
 xml_writer = "0.4.0"
 
 [package.metadata.deb]
