@@ -1,39 +1,34 @@
 [package]
-name = "radiobrowser-api-rust"
-version = "0.1.0"
 authors = ["segler_alex"]
-license = "agpl-3.0"
 description = "Radio-Browser Server with REST API"
+license = "agpl-3.0"
+name = "radiobrowser-api-rust"
 readme = "README.md"
+version = "0.1.0"
 
 [dependencies]
 av-stream-info-rust = "0.5.0"
-chrono = { version = "0.4", features = ["serde"] }
-clap = "*"
+chrono = { version = "0.4.7", features = ["serde"] }
+clap = "2.33.0"
 colored = "1.8.0"
-dns-lookup = "*"
-env_logger = "*"
-handlebars = "*"
+dns-lookup = "1.0.1"
+env_logger = "0.6.2"
+handlebars = "2.0.1"
 hostname = "0.1.5"
-log = "*"
+log = "0.4.8"
 mysql = "16.0.2"
 native-tls = "0.2.3"
-reqwest = "*"
-rouille = "*"
-serde = "*"
-serde_derive = "*"
-serde_json = "*"
-#slog = "*"
-#slog-async = "*"
-#slog-scope = "*"
-#slog-stdlog = "*"
-#slog-term = "*"
+reqwest = "0.9.19"
+rouille = "3.0.0"
+serde = "1.0.98"
+serde_derive = "1.0.98"
+serde_json = "1.0.40"
 threadpool = "1.7.1"
-toml = "*"
-url = "1.7.2"
-uuid = { version = "*", features = ["serde", "v4"] }
+toml = "0.5.1"
+url = "2.0.0"
+uuid = { version = "0.7.4", features = ["serde", "v4"] }
 website-icon-extract = "0.4.0"
-xml_writer = "*"
+xml_writer = "0.4.0"
 
 [package.metadata.deb]
 maintainer = "sailor <segler@programmierecke.net>"
