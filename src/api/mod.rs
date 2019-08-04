@@ -18,6 +18,7 @@ use api::data::Result1n;
 use api::data::ExtraInfo;
 use api::data::State;
 use api::data::StationCheck;
+use api::data::Status;
 use api::rouille::Response;
 use api::rouille::Request;
 use std;
@@ -38,19 +39,6 @@ use handlebars::{
 pub struct ServerEntry {
     ip: String,
     name: String
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Status {
-    pub supported_version: u32,
-    status: String,
-    stations: u64,
-    stations_broken: u64,
-    tags: u64,
-    clicks_last_hour: u64,
-    clicks_last_day: u64,
-    languages: u64,
-    countries: u64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -304,28 +292,6 @@ fn encode_add(status: StationAddResult, format: &str) -> rouille::Response {
     }
 }
 
-pub fn serialize_status(status: &Status) -> std::io::Result<String> {
-    let mut xml = xml_writer::XmlWriter::new(Vec::new());
-    xml.begin_elem("result")?;
-    {
-        xml.begin_elem("stats")?;
-        let s = status.status.clone();
-            xml.attr_esc("status", &s)?;
-            xml.attr_esc("stations", &status.stations.to_string())?;
-            xml.attr_esc("stations_broken", &status.stations_broken.to_string())?;
-            xml.attr_esc("tags", &status.tags.to_string())?;
-            xml.attr_esc("clicks_last_hour", &status.clicks_last_hour.to_string())?;
-            xml.attr_esc("clicks_last_day", &status.clicks_last_day.to_string())?;
-            xml.attr_esc("languages", &status.languages.to_string())?;
-            xml.attr_esc("countries", &status.countries.to_string())?;
-        xml.end_elem()?;
-    }
-    xml.end_elem()?;
-    xml.close()?;
-    xml.flush()?;
-    Ok(String::from_utf8(xml.into_inner()).unwrap())
-}
-
 fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Response {
     match format {
         "json" => {
@@ -336,7 +302,7 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Re
             }
         },
         "xml" => {
-            let j = serialize_status(&status);
+            let j = status.serialize_xml();
             match j {
                 Ok(j) => rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml"),
                 _ => rouille::Response::text("").with_status_code(500)
@@ -378,17 +344,17 @@ pub fn run(connection: db::Connection, host : String, port : i32, threads : usiz
 }
 
 fn get_status(connection: &db::Connection) -> Status {
-    Status{
-        supported_version: 1,
-        status: "OK".to_string(),
-        stations: connection.get_station_count(),
-        stations_broken: connection.get_broken_station_count(),
-        tags: connection.get_tag_count(),
-        clicks_last_hour: connection.get_click_count_last_hour(),
-        clicks_last_day: connection.get_click_count_last_day(),
-        languages: connection.get_language_count(),
-        countries: connection.get_country_count(),
-    }
+    Status::new(
+        1,
+        "OK".to_string(),
+        connection.get_station_count(),
+        connection.get_broken_station_count(),
+        connection.get_tag_count(),
+        connection.get_click_count_last_hour(),
+        connection.get_click_count_last_day(),
+        connection.get_language_count(),
+        connection.get_country_count(),
+    )
 }
 
 fn send_file(path: &str, content_type: &'static str) -> rouille::Response {

@@ -1,12 +1,12 @@
 use std::thread;
 use time;
-use api;
 use api::db;
 use api::api_error;
 use api::data::StationHistoryCurrent;
 use api::data::StationHistoryV0;
 use api::data::StationCheck;
 use api::data::StationCheckV0;
+use api::data::Status;
 
 pub fn run(connection: db::Connection, mirrors: Vec<String>, pull_interval: u64){
     thread::spawn(move || {
@@ -29,7 +29,7 @@ pub fn run(connection: db::Connection, mirrors: Vec<String>, pull_interval: u64)
 fn get_remote_version(server: &str) -> Result<u32,Box<std::error::Error>> {
     debug!("Check server status of '{}' ..", server);
     let path = format!("{}/json/stats",server);
-    let status: api::Status = reqwest::get(&path)?.json()?;
+    let status: Status = reqwest::get(&path)?.json()?;
     Ok(status.supported_version)
 }
 
