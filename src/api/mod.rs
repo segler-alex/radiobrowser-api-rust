@@ -10,6 +10,7 @@ mod pull_servers;
 mod api_error;
 mod simple_migrate;
 
+use api::data::ResultMessage;
 use api::data::StationAddResult;
 use api::data::StationCachedInfo;
 use api::data::StationHistoryCurrent;
@@ -39,12 +40,6 @@ use handlebars::{
 pub struct ServerEntry {
     ip: String,
     name: String
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct ResultMessage {
-    ok: bool,
-    message: String,
 }
 
 fn add_cors(result : rouille::Response) -> rouille::Response {
@@ -111,19 +106,6 @@ fn get_languages_with_parse(request: &rouille::Request, connection: &db::Connect
     encode_result1n_xml
 }*/
 
-pub fn serialize_result_message(result: ResultMessage) -> std::io::Result<String> {
-    let mut xml = xml_writer::XmlWriter::new(Vec::new());
-    xml.begin_elem("result")?;
-        xml.begin_elem("status")?;
-            xml.attr_esc("ok", &result.ok.to_string())?;
-            xml.attr_esc("message", &result.message)?;
-        xml.end_elem()?;
-    xml.end_elem()?;
-    xml.close()?;
-    xml.flush()?;
-    Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
-}
-
 fn encode_result1n(type_str: &str, list : Vec<Result1n>, format : &str) -> rouille::Response {
     match format {
         "json" => {
@@ -186,15 +168,15 @@ fn encode_message(status: Result<String,String>, format : &str) -> rouille::Resp
     match format {
         "json" => {
             match status {
-                Ok(message) => rouille::Response::text(serde_json::to_string(&ResultMessage{ok:true,message:message}).unwrap()).with_no_cache().with_unique_header("Content-Type","application/json"),
-                Err(message) => rouille::Response::text(serde_json::to_string(&ResultMessage{ok:false,message:message}).unwrap()).with_no_cache().with_unique_header("Content-Type","application/json"),
-            }
+                Ok(message) => rouille::Response::text(serde_json::to_string(&ResultMessage::new(true,message).serialize_xml().unwrap()).unwrap()),
+                Err(message) => rouille::Response::text(serde_json::to_string(&ResultMessage::new(false,message).serialize_xml().unwrap()).unwrap()),
+            }.with_no_cache().with_unique_header("Content-Type","application/json")
         },
         "xml" => {
             match status {
-                Ok(message) => rouille::Response::text(serialize_result_message(ResultMessage{ok:true,message:message}).unwrap()).with_no_cache().with_unique_header("Content-Type","text/xml"),
-                Err(message) => rouille::Response::text(serialize_result_message(ResultMessage{ok:false,message:message}).unwrap()).with_no_cache().with_unique_header("Content-Type","text/xml"),
-            }
+                Ok(message) => rouille::Response::text(ResultMessage::new(true,message).serialize_xml().unwrap()),
+                Err(message) => rouille::Response::text(ResultMessage::new(false,message).serialize_xml().unwrap()),
+            }.with_no_cache().with_unique_header("Content-Type","text/xml")
         },
         _ => rouille::Response::empty_406()
     }

@@ -6,6 +6,7 @@ mod station_check;
 mod station;
 mod station_history;
 mod status;
+mod result_message;
 
 pub use self::extra_info::ExtraInfo;
 pub use self::result1n::Result1n;
@@ -18,3 +19,4 @@ pub use self::station_history::StationHistoryCurrent;
 pub use self::station_history::StationHistoryV0;
 pub use self::station_check::StationCheckV0;
 pub use self::status::Status;
+pub use self::result_message::ResultMessage;

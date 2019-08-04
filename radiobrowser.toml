@@ -1,7 +1,8 @@
 ## database connection string (mysql, mariadb)
 database = "mysql://radiouser:password@localhost/radio"
 ## Directory for static and template files
-static-files-dir = "/usr/local/share/radiobrowser"
+#static-files-dir = "/usr/local/share/radiobrowser"
+static-files-dir = "./static"
 ## Log file path
 log-files-dir = "/var/log/radiobrowser/"
 
@@ -30,7 +31,7 @@ mirror-pull-interval = 60
 ## ============
 
 ## Enable the checking of stations
-enable-check = true
+enable-check = false
 
 ## Concurrent checks
 concurrency = 10
@@ -64,5 +65,5 @@ retries = 5
 
 ## Mirror from server
 #[pullservers]
-[pullservers.alpha]
-host = "http://www.radio-browser.info/webservice"
+#[pullservers.alpha]
+#host = "http://www.radio-browser.info/webservice"
