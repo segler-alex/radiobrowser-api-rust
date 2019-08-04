@@ -1406,17 +1406,17 @@ pub fn new(connection_string: &String, update_caches_interval: u64, ignore_migra
     migrations.add_migration("20190104_014300_CreateStation",
 r#"CREATE TABLE `Station` (
   `StationID` int(11) NOT NULL AUTO_INCREMENT,
-  `Name` text,
+  `Name` text COLLATE utf8mb4_unicode_ci,
   `Url` text,
   `Homepage` text,
   `Favicon` text,
   `Creation` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `Country` varchar(50) DEFAULT NULL,
-  `Language` varchar(50) DEFAULT NULL,
-  `Tags` text,
+  `Country` varchar(50) DEFAULT NULL COLLATE utf8mb4_unicode_ci,
+  `Language` varchar(50) DEFAULT NULL COLLATE utf8mb4_unicode_ci,
+  `Tags` text COLLATE utf8mb4_unicode_ci,
   `Votes` int(11) DEFAULT '0',
   `NegativeVotes` int(11) NOT NULL DEFAULT '0',
-  `Subcountry` varchar(50) DEFAULT NULL,
+  `Subcountry` varchar(50) DEFAULT NULL COLLATE utf8mb4_unicode_ci,
   `clickcount` int(11) DEFAULT '0',
   `ClickTrend` int(11) DEFAULT '0',
   `ClickTimestamp` datetime DEFAULT NULL,
@@ -1446,7 +1446,7 @@ r#"CREATE TABLE `IPVoteCheck` (
 
     migrations.add_migration("20190104_014302_CreateLanguageCache",
 r#"CREATE TABLE `LanguageCache` (
-  `LanguageName` varchar(500) COLLATE utf8mb4_bin NOT NULL,
+  `LanguageName` varchar(500) NOT NULL,
   `StationCount` int(11) DEFAULT '0',
   `StationCountWorking` int(11) DEFAULT '0',
   PRIMARY KEY (`LanguageName`)
@@ -1454,7 +1454,7 @@ r#"CREATE TABLE `LanguageCache` (
 
     migrations.add_migration("20190104_014303_CreateTagCache",
 r#"CREATE TABLE `TagCache` (
-  `TagName` varchar(500) COLLATE utf8mb4_bin NOT NULL,
+  `TagName` varchar(500) NOT NULL,
   `StationCount` int(11) DEFAULT '0',
   `StationCountWorking` int(11) DEFAULT '0',
   PRIMARY KEY (`TagName`)
