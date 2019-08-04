@@ -63,4 +63,18 @@ impl StationAddResult {
         xml.flush()?;
         Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
     }
+
+    pub fn get_response(&self, format: &str) -> rouille::Response {
+        match format {
+            "json" => {
+                let j = serde_json::to_string(&self).unwrap();
+                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+            },
+            "xml" => {
+                let j = self.serialize_xml().unwrap();
+                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
+            },
+            _ => rouille::Response::empty_406()
+        }
+    }
 }

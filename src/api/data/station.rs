@@ -363,6 +363,36 @@ impl Station {
 
         j
     }
+
+    pub fn get_response(list : Vec<Station>, format : &str) -> rouille::Response {
+        match format {
+            "json" => {
+                let j = serde_json::to_string(&list).unwrap();
+                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+            },
+            "xml" => {
+                let j = Station::serialize_station_list(list).unwrap();
+                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
+            },
+            "m3u" => {
+                let j = Station::serialize_to_m3u(list, false);
+                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/mpegurl").with_unique_header("Content-Disposition", r#"inline; filename="playlist.m3u""#)
+            },
+            "pls" => {
+                let j = Station::serialize_to_pls(list, false);
+                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/x-scpls").with_unique_header("Content-Disposition", r#"inline; filename="playlist.pls""#)
+            },
+            "xspf" => {
+                let j = Station::serialize_to_xspf(list).unwrap();
+                rouille::Response::text(j).with_unique_header("Content-Type","application/xspf+xml").with_unique_header("Content-Disposition", r#"inline; filename="playlist.xspf""#)
+            },
+            "ttl" => {
+                let j = Station::serialize_to_ttl(list);
+                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/turtle")
+            },
+            _ => rouille::Response::empty_406()
+        }
+    }
 }
 
 impl From<&StationHistoryCurrent> for Station {
