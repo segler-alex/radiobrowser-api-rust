@@ -26,7 +26,7 @@ pub struct Connection {
 impl Connection {
     const COLUMNS: &'static str =
         "StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,UrlCache,
-    Tags,Country,Subcountry,Language,Votes,NegativeVotes,
+    Tags,Country,CountryCode,Subcountry,Language,Votes,NegativeVotes,
     Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated,
     Ip,Codec,Bitrate,Hls,LastCheckOK,
     LastCheckTime,
@@ -113,14 +113,15 @@ impl Connection {
     }
 
     pub fn add_station(&self, station: Station) -> Result<u64,Box<std::error::Error>> {
-        let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache) 
-                                VALUES(:name, :url, :homepage, :favicon, :country, :state, :language, :tags, :changeuuid, :stationuuid, '')");
+        let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache) 
+                                VALUES(:name, :url, :homepage, :favicon, :country, :countrycode, :state, :language, :tags, :changeuuid, :stationuuid, '')");
         let params = params!{
             "name" => station.name,
             "url" => station.url,
             "homepage" => station.homepage,
             "favicon" => station.favicon,
             "country" => station.country,
+            "countrycode" => station.countrycode,
             "state" => station.state,
             "language" => station.language,
             "tags" => station.tags,
@@ -135,9 +136,9 @@ impl Connection {
     }
 
     pub fn add_station_opt(&self, name: Option<String>, url: Option<String>, homepage: Option<String>, favicon: Option<String>,
-                        country: Option<String>, state: Option<String>, language: Option<String>, tags: Option<String>) -> StationAddResult{
-        let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache) 
-                                VALUES(:name, :url, :homepage, :favicon, :country, :state, :language, :tags, :changeuuid, :stationuuid, '')");
+                        country: Option<String>, countrycode: Option<String>, state: Option<String>, language: Option<String>, tags: Option<String>) -> StationAddResult{
+        let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache) 
+                                VALUES(:name, :url, :homepage, :favicon, :country, :countrycode, :state, :language, :tags, :changeuuid, :stationuuid, '')");
         
         if name.is_none(){
             return StationAddResult::new_err("name is empty");
@@ -158,6 +159,7 @@ impl Connection {
             "homepage" => homepage.unwrap_or_default(),
             "favicon" => favicon.unwrap_or_default(),
             "country" => country.unwrap_or_default(),
+            "countrycode" => countrycode.unwrap_or_default(),
             "state" => state.unwrap_or_default(),
             "language" => language.unwrap_or_default(),
             "tags" => tags.unwrap_or_default(),
@@ -180,8 +182,8 @@ impl Connection {
     }
 
     fn backup_station_by_id(&self, stationid: u64) -> Result<(),Box<std::error::Error>>{
-        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid)
-                                SELECT StationID,Name,Url,Homepage,Favicon,Country,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid FROM Station WHERE StationID=:id");
+        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid)
+                                SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid FROM Station WHERE StationID=:id");
         let params = params!{
             "id" => stationid,
         };
@@ -192,8 +194,8 @@ impl Connection {
     }
 
     fn backup_station_by_uuid(&self, stationuuid: &str) -> Result<(),Box<std::error::Error>>{
-        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid)
-                                SELECT StationID,Name,Url,Homepage,Favicon,Country,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid FROM Station WHERE StationUuid=:stationuuid");
+        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid)
+                                SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid FROM Station WHERE StationUuid=:stationuuid");
         let params = params!{
             "stationuuid" => stationuuid,
         };
@@ -933,6 +935,10 @@ impl Connection {
                         .unwrap_or(Ok("".to_string()))
                         .unwrap_or("".to_string()),
                     row
+                        .take_opt("CountryCode")
+                        .unwrap_or(Ok("".to_string()))
+                        .unwrap_or("".to_string()),
+                    row
                         .take_opt("Subcountry")
                         .unwrap_or(Ok("".to_string()))
                         .unwrap_or("".to_string()),
@@ -1004,6 +1010,10 @@ impl Connection {
                         .unwrap_or("".to_string()),
                     row
                         .take_opt("Country")
+                        .unwrap_or(Ok("".to_string()))
+                        .unwrap_or("".to_string()),
+                    row
+                        .take_opt("CountryCode")
                         .unwrap_or(Ok("".to_string()))
                         .unwrap_or("".to_string()),
                     row
@@ -1446,7 +1456,7 @@ r#"CREATE TABLE `IPVoteCheck` (
 
     migrations.add_migration("20190104_014302_CreateLanguageCache",
 r#"CREATE TABLE `LanguageCache` (
-  `LanguageName` varchar(500) NOT NULL,
+  `LanguageName` varchar(150) NOT NULL,
   `StationCount` int(11) DEFAULT '0',
   `StationCountWorking` int(11) DEFAULT '0',
   PRIMARY KEY (`LanguageName`)
@@ -1454,7 +1464,7 @@ r#"CREATE TABLE `LanguageCache` (
 
     migrations.add_migration("20190104_014303_CreateTagCache",
 r#"CREATE TABLE `TagCache` (
-  `TagName` varchar(500) NOT NULL,
+  `TagName` varchar(150) NOT NULL,
   `StationCount` int(11) DEFAULT '0',
   `StationCountWorking` int(11) DEFAULT '0',
   PRIMARY KEY (`TagName`)
@@ -1531,6 +1541,14 @@ r#"CREATE TABLE `StationCheckHistory` (
   PRIMARY KEY (`CheckID`),
   UNIQUE KEY `CheckUuid` (`CheckUuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"#,"DROP TABLE StationCheckHistory");
+
+    migrations.add_migration("20190816_010900_AddStationCountryCode",
+r#"ALTER TABLE `Station` ADD COLUMN CountryCode varchar(2)"#, 
+r#"ALTER TABLE `Station` DROP COLUMN CountryCode"#);
+
+    migrations.add_migration("20190816_010900_AddStationHistoryCountryCode",
+r#"ALTER TABLE `StationHistory` ADD COLUMN CountryCode varchar(2)"#, 
+r#"ALTER TABLE `StationHistory` DROP COLUMN CountryCode"#);
 
     migrations.do_migrations(ignore_migration_errors, allow_database_downgrade)?;
 

@@ -362,6 +362,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
     let mut param_name_exact: bool = request.get_param("nameExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
     let mut param_country: Option<String> = request.get_param("country");
     let mut param_country_exact: bool = request.get_param("countryExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
+    let mut param_countrycode: Option<String> = request.get_param("countrycode");
     let mut param_state: Option<String> = request.get_param("state");
     let mut param_state_exact: bool = request.get_param("stateExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
     let mut param_language: Option<String> = request.get_param("language");
@@ -397,6 +398,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
                             else if key == "nameExact" { param_name_exact = val.parse().unwrap_or(param_name_exact); }
                             else if key == "country" { param_country = Some(val.into()); }
                             else if key == "countryExact" { param_country_exact = val.parse().unwrap_or(param_country_exact); }
+                            else if key == "countrycode" { param_countrycode = Some(val.into()); }
                             else if key == "state" { param_state = Some(val.into()); }
                             else if key == "stateExact" { param_state_exact = val.parse().unwrap_or(param_state_exact); }
                             else if key == "language" { param_language = Some(val.into()); }
@@ -450,6 +452,9 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
                         }
                         if v["countryExact"].is_string() {
                             param_country_exact = v["countryExact"].as_str().unwrap().parse().unwrap_or(param_country_exact);
+                        }
+                        if v["countrycode"].is_string() {
+                            param_countrycode = Some(v["countrycode"].as_str().unwrap().to_string());
                         }
                         // state
                         if v["state"].is_string() {
@@ -580,6 +585,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
         match command {
             "languages" => add_cors(encode_extra(get_languages_with_parse(&request, &connection, filter, param_order, param_reverse, param_hidebroken), format, "language")),
             "countries" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Country", filter, param_order, param_reverse, param_hidebroken), format)),
+            "countrycodes" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "CountryCode", filter, param_order, param_reverse, param_hidebroken), format)),
             "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, filter, param_order, param_reverse, param_hidebroken), format)),
             "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", filter, param_order, param_reverse, param_hidebroken), format)),
             "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, filter, param_order, param_reverse, param_hidebroken), format, "tag")),
@@ -587,7 +593,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
             "servers" => add_cors(dns_resolve(format)),
             "stats" => add_cors(encode_status(get_status(connection), format, static_dir)),
             "checks" => add_cors(StationCheck::get_response(connection.get_checks(None, param_last_checkuuid, param_seconds),format)),
-            "add" => add_cors(connection.add_station_opt(param_name, param_url, param_homepage, param_favicon, param_country, param_state, param_language, param_tags).get_response(format)),
+            "add" => add_cors(connection.add_station_opt(param_name, param_url, param_homepage, param_favicon, param_country, param_countrycode, param_state, param_language, param_tags).get_response(format)),
             _ => rouille::Response::empty_404()
         }
     } else if items.len() == 4 {
@@ -598,6 +604,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
         match command {
             "languages" => add_cors(encode_extra(get_languages_with_parse(&request, &connection, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format, "language")),
             "countries" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Country", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format)),
+            "countrycodes" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "CountryCode", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format)),
             "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format)),
             "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format, "tag")),
             "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format)),
@@ -653,6 +660,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
                         "bycodecexact" => add_cors(Station::get_response(connection.get_stations_by_column("Codec", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
                         "bycountry" => add_cors(Station::get_response(connection.get_stations_by_column("Country", search.to_string(),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
                         "bycountryexact" => add_cors(Station::get_response(connection.get_stations_by_column("Country", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
+                        "bycountrycodeexact" => add_cors(Station::get_response(connection.get_stations_by_column("CountryCode", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
                         "bystate" => add_cors(Station::get_response(connection.get_stations_by_column("Subcountry", search.to_string(),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
                         "bystateexact" => add_cors(Station::get_response(connection.get_stations_by_column("Subcountry", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
                         "bytag" => add_cors(Station::get_response(connection.get_stations_by_column_multiple("Tags", Some(search.to_string()),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),

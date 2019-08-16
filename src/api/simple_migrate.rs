@@ -54,9 +54,7 @@ impl Migrations {
         pool.prep_exec(
             "INSERT INTO __migrations(name, up , down) VALUES (:name,:up,:down);",
             params! {
-                "name" => name,
-                "up" => up,
-                "down" => down,
+                name, up, down,
             },
         )?;
         Ok(())
@@ -67,7 +65,7 @@ impl Migrations {
         pool.prep_exec(
             "DELETE FROM __migrations WHERE name=:name;",
             params! {
-                "name" => name,
+                name,
             },
         )?;
         Ok(())

@@ -29,7 +29,7 @@ impl StationCachedInfo {
     }
 }
 
-#[derive(PartialEq, Eq, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Station {
     pub id: i32,
     pub changeuuid: String,
@@ -42,6 +42,7 @@ pub struct Station {
     pub favicon: String,
     pub tags: String,
     pub country: String,
+    pub countrycode: String,
     pub state: String,
     pub language: String,
     pub votes: i32,
@@ -71,6 +72,7 @@ impl Station {
         favicon: String,
         tags: String,
         country: String,
+        countrycode: String,
         state: String,
         language: String,
         votes: i32,
@@ -98,6 +100,7 @@ impl Station {
             favicon,
             tags,
             country,
+            countrycode,
             state,
             language,
             votes,
@@ -142,6 +145,7 @@ impl Station {
             xml.attr_esc("favicon", &entry.favicon)?;
             xml.attr_esc("tags", &entry.tags)?;
             xml.attr_esc("country", &entry.country)?;
+            xml.attr_esc("countrycode", &entry.countrycode)?;
             xml.attr_esc("state", &entry.state)?;
             xml.attr_esc("language", &entry.language)?;
             let station_votes_str = format!("{}", entry.votes);
@@ -259,6 +263,9 @@ impl Station {
     schema:Country [
         schema:name "{country}" ;
     ] ;
+    schema:CountryCode [
+        schema:name "{countrycode}" ;
+    ] ;
     schema:State [
         schema:name "{state}" ;
     ] ;
@@ -330,6 +337,7 @@ impl Station {
             homepage = self.homepage,
             favicon = self.favicon,
             country = self.country,
+            countrycode = self.countrycode,
             state = self.state,
             language = self.language,
             votes = self.votes,
@@ -407,6 +415,7 @@ impl From<&StationHistoryCurrent> for Station {
             favicon: item.favicon.clone(),
             tags: item.tags.clone(),
             country: item.country.clone(),
+            countrycode: item.countrycode.clone(),
             state: item.state.clone(),
             language: item.language.clone(),
             votes: item.votes,

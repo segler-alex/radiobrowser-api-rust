@@ -20,6 +20,7 @@
           <a class="nav-link navbar-light dropdown-toggle" href="" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Lists</a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="#List_of_countries">List of countries</a></li>
+            <li><a class="dropdown-item" href="#List_of_countrycodes">List of countrycodes</a></li>
             <li><a class="dropdown-item" href="#List_of_codecs">List of codecs</a></li>
             <li><a class="dropdown-item" href="#List_of_states">List of states</a></li>
             <li><a class="dropdown-item" href="#List_of_languages">List of languages</a></li>
@@ -157,6 +158,85 @@
           <ul class="list-unstyled ml-4">
             <li><a href="{{ API_SERVER }}/json/countries" target="_blank">{{ API_SERVER }}/json/countries</a></li>
             <li><a href="{{ API_SERVER }}/xml/countries/aus" target="_blank">{{ API_SERVER }}/xml/countries/aus</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_countrycodes">
+      <div class="container">
+        <h1 class="display-4">List of countrycodes</h1>
+        <p class="lead">Will get a JSON encoded list of all countries in the database. If a filter is given, it will only only return the ones that contain the filter as substring, supported output formats: JSON, XML</p>
+        <hr class="my-4">
+        <div class="h5">Syntax:</div>
+        <div class="syntax">
+          <ul class="list-unstyled ml-4">
+            <li class="ml-3">{{ API_SERVER }}/json/countrycodes</li>
+            <li class="ml-3">{{ API_SERVER }}/json/countrycodes/&lt;filter&gt;</li>
+            <li class="ml-3">{{ API_SERVER }}/xml/countrycodes</li>
+            <li class="ml-3">{{ API_SERVER }}/xml/countrycodes/&lt;filter&gt;</li>
+          </ul>
+          <div class="h5">Parameter:</div>
+          This parameters can be added by using a HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request. The parameters can also be sent with encoding "application/json" that is used for example by Angular.js
+          <table class="table mt-2 table-striped">
+            <thead class="thead-dark">
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Default value</th>
+                <th scope="col">Possible values</th>
+                <th scope="col">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>order</td>
+                <td>name</td>
+                <td>name, stationcount</td>
+                <td>name of the attribute the result list will be sorted by</td>
+              </tr>
+              <tr>
+                <td>reverse</td>
+                <td>false</td>
+                <td>true, false</td>
+                <td>rerverses the result list if set to true</td>
+              </tr>
+              <tr>
+                <td>hidebroken</td>
+                <td>false</td>
+                <td>true, false</td>
+                <td>do not count broken stations</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="h5">Result JSON:</div>
+          <div class="well well-sm bg-light border border-secondary rounded">
+            <pre class="mt-4">
+                [
+                {
+                  &quot;name&quot;: &quot;AT&quot;,
+                  &quot;stationcount&quot;: &quot;1&quot;
+                },
+                {
+                  &quot;name&quot;: &quot;DE&quot;,
+                  &quot;stationcount&quot;: &quot;5&quot;
+                },
+                ..
+                ]
+                </pre>
+          </div>
+          <div class="h5 mt-3">Result XML:</div>
+          <div class="well well-sm bg-light border border-secondary rounded">
+            <pre class="mt-4">
+                &lt;result&gt;
+                &lt;country name=&quot;AT&quot; stationcount=&quot;1&quot;/&gt;
+                &lt;country name=&quot;DE&quot; stationcount=&quot;5&quot;/&gt;
+                ..
+                &lt;/result&gt;
+                </pre>
+          </div>
+          <div class="h5 mt-3">Example:</div>
+          <ul class="list-unstyled ml-4">
+            <li><a href="{{ API_SERVER }}/json/countrycodes" target="_blank">{{ API_SERVER }}/json/countrycodes</a></li>
+            <li><a href="{{ API_SERVER }}/xml/countrycodes/at" target="_blank">{{ API_SERVER }}/xml/countrycodes/at</a></li>
           </ul>
         </div>
       </div>
@@ -507,6 +587,7 @@
           <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bycodecexact/<span class="searchTerm">{searchterm}</span></li>
           <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bycountry/<span class="searchTerm">{searchterm}</span></li>
           <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bycountryexact/<span class="searchTerm">{searchterm}</span></li>
+          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bycountrycodeexact/<span class="searchTerm">{searchterm}</span></li>
           <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bystate/<span class="searchTerm">{searchterm}</span></li>
           <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bystateexact/<span class="searchTerm">{searchterm}</span></li>
           <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bylanguage/<span class="searchTerm">{searchterm}</span></li>
@@ -560,6 +641,7 @@
         <li><a href="{{ API_SERVER }}/json/stations/byname/jazz" target="_blank">{{ API_SERVER }}/json/stations/byname/jazz</a></li>
         <li><a href="{{ API_SERVER }}/xml/stations/bycountry/austria" target="_blank">{{ API_SERVER }}/xml/stations/bycountry/austria</a></li>
         <li><a href="{{ API_SERVER }}/xml/stations/bycountryexact/austria" target="_blank">{{ API_SERVER }}/xml/stations/bycountryexact/austria</a></li>
+        <li><a href="{{ API_SERVER }}/xml/stations/bycountrycodeexact/at" target="_blank">{{ API_SERVER }}/xml/stations/bycountrycodeexact/at</a></li>
         <li><a href="{{ API_SERVER }}/m3u/stations/bytagexact/320kbps" target="_blank">{{ API_SERVER }}/m3u/stations/bytagexact/320kbps</a></li>
         <li><a href="{{ API_SERVER }}/pls/stations/bytagexact/320kbps" target="_blank">{{ API_SERVER }}/pls/stations/bytagexact/320kbps</a></li>
       </ul>

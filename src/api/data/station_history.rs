@@ -1,4 +1,4 @@
-#[derive(PartialEq, Eq, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct StationHistoryV0 {
     id: String,
     changeuuid: String,
@@ -9,6 +9,7 @@ pub struct StationHistoryV0 {
     favicon: String,
     tags: String,
     country: String,
+    countrycode: String,
     state: String,
     language: String,
     votes: String,
@@ -17,7 +18,7 @@ pub struct StationHistoryV0 {
     ip: String,
 }
 
-#[derive(PartialEq, Eq, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct StationHistoryCurrent {
     id: i32,
     pub changeuuid: String,
@@ -28,6 +29,7 @@ pub struct StationHistoryCurrent {
     pub favicon: String,
     pub tags: String,
     pub country: String,
+    pub countrycode: String,
     pub state: String,
     pub language: String,
     pub votes: i32,
@@ -48,6 +50,7 @@ impl From<StationHistoryV0> for StationHistoryCurrent {
             favicon: item.favicon,
             tags: item.tags,
             country: item.country,
+            countrycode: item.countrycode,
             state: item.state,
             language: item.language,
             votes: item.votes.parse().unwrap(),
@@ -70,6 +73,7 @@ impl From<&StationHistoryV0> for StationHistoryCurrent {
             favicon: item.favicon.clone(),
             tags: item.tags.clone(),
             country: item.country.clone(),
+            countrycode: item.countrycode.clone(),
             state: item.state.clone(),
             language: item.language.clone(),
             votes: item.votes.parse().unwrap(),
@@ -91,6 +95,7 @@ impl StationHistoryCurrent {
         favicon: String,
         tags: String,
         country: String,
+        countrycode: String,
         state: String,
         language: String,
         votes: i32,
@@ -108,6 +113,7 @@ impl StationHistoryCurrent {
             favicon,
             tags,
             country,
+            countrycode,
             state,
             language,
             votes,
