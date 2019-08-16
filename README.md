@@ -19,6 +19,8 @@ You can do a native setup or a docker setup
 # checkout this project
 git clone https://github.com/segler-alex/radiobrowser-api-rust.git
 cd radiobrowser-api-rust
+# create database save directory
+mkdir -p dbdata
 # create ssl certificate cache file
 touch acme.json
 chmod 0600 acme.json
