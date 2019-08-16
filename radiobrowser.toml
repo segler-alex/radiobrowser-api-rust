@@ -65,5 +65,5 @@ retries = 5
 
 ## Mirror from server
 #[pullservers]
-#[pullservers.alpha]
-#host = "http://www.radio-browser.info/webservice"
+[pullservers.alpha]
+host = "http://www.radio-browser.info/webservice"
