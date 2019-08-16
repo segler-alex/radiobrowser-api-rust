@@ -23,7 +23,7 @@ impl Error for ApiError {
         "invalid first item to double"
     }
 
-    fn cause(&self) -> Option<&Error> {
+    fn cause(&self) -> Option<&dyn Error> {
         None
     }
 }

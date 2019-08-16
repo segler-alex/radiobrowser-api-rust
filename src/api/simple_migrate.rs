@@ -19,7 +19,7 @@ impl Migrations {
         }
     }
 
-    fn ensure_tables(&self) -> Result<(), Box<std::error::Error>> {
+    fn ensure_tables(&self) -> Result<(), Box<dyn std::error::Error>> {
         let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone())?;
         pool.prep_exec(
             "CREATE TABLE IF NOT EXISTS __migrations(id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, name TEXT NOT NULL, up TEXT NOT NULL, down TEXT NOT NULL);",
@@ -28,7 +28,7 @@ impl Migrations {
         Ok(())
     }
 
-    fn get_applied_migrations(&self) -> Result<Vec<Migration>, Box<std::error::Error>> {
+    fn get_applied_migrations(&self) -> Result<Vec<Migration>, Box<dyn std::error::Error>> {
         let mut list = vec![];
         let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone())?;
         let results = pool
@@ -49,7 +49,7 @@ impl Migrations {
         Ok(list)
     }
 
-    fn insert_db_migration(&self, name: &str, up: &str, down: &str) -> Result<(), Box<std::error::Error>> {
+    fn insert_db_migration(&self, name: &str, up: &str, down: &str) -> Result<(), Box<dyn std::error::Error>> {
         let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone())?;
         pool.prep_exec(
             "INSERT INTO __migrations(name, up , down) VALUES (:name,:up,:down);",
@@ -60,7 +60,7 @@ impl Migrations {
         Ok(())
     }
 
-    fn delete_db_migration(&self, name: &str) -> Result<(), Box<std::error::Error>> {
+    fn delete_db_migration(&self, name: &str) -> Result<(), Box<dyn std::error::Error>> {
         let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone())?;
         pool.prep_exec(
             "DELETE FROM __migrations WHERE name=:name;",
@@ -82,7 +82,7 @@ impl Migrations {
             .sort_unstable_by(|a, b| a.name.cmp(&b.name));
     }
 
-    fn apply_migration(&self, migration: &Migration, ignore_errors: bool) -> Result<(),Box<std::error::Error>> {
+    fn apply_migration(&self, migration: &Migration, ignore_errors: bool) -> Result<(),Box<dyn std::error::Error>> {
         let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone())?;
         info!("APPLY UP '{}'", migration.name);
         let result = pool.prep_exec(&migration.up, ());
@@ -98,7 +98,7 @@ impl Migrations {
         Ok(())
     }
 
-    fn unapply_migration(&self, migration: &Migration, ignore_errors: bool) -> Result<(),Box<std::error::Error>> {
+    fn unapply_migration(&self, migration: &Migration, ignore_errors: bool) -> Result<(),Box<dyn std::error::Error>> {
         let pool: mysql::Pool = mysql::Pool::new(self.conn_string.clone())?;
         info!("APPLY DOWN '{}'", migration.name);
         let result = pool.prep_exec(&migration.down, ());
@@ -114,7 +114,7 @@ impl Migrations {
         Ok(())
     }
 
-    pub fn do_migrations(&self, ignore_errors: bool, allow_database_downgrade: bool) -> Result<(),Box<std::error::Error>> {
+    pub fn do_migrations(&self, ignore_errors: bool, allow_database_downgrade: bool) -> Result<(),Box<dyn std::error::Error>> {
         self.ensure_tables()?;
 
         let migrations_applied = self.get_applied_migrations()?;

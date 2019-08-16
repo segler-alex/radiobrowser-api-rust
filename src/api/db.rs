@@ -43,12 +43,12 @@ impl Connection {
     Date_Format(CheckTime,'%Y-%m-%d %H:%i:%s') AS CheckTimeFormated,
     UrlCache";
 
-    pub fn get_single_column_number(&self, query: &str) -> Result<u64,Box<std::error::Error>> {
+    pub fn get_single_column_number(&self, query: &str) -> Result<u64,Box<dyn std::error::Error>> {
         let results = self.pool.prep_exec(query, ())?;
         self.get_single_column_number_intern(results)
     }
 
-    pub fn get_single_column_number_intern(&self, mut results: QueryResult<'static>) -> Result<u64,Box<std::error::Error>> {
+    pub fn get_single_column_number_intern(&self, mut results: QueryResult<'static>) -> Result<u64,Box<dyn std::error::Error>> {
         let mut result_row = results.next().unwrap()?;
         let count: u64 = result_row.take(0).unwrap();
         Ok(count)
@@ -82,12 +82,12 @@ impl Connection {
         self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(HOUR,ClickTimestamp,now())<=24;"#).unwrap_or(0)
     }
 
-    /*pub fn is_empty(&self) -> Result<bool, Box<std::error::Error>> {
+    /*pub fn is_empty(&self) -> Result<bool, Box<dyn std::error::Error>> {
         let count = self.get_single_column_number(r#"SELECT COUNT(*) FROM StationHistory"#)?;
         Ok(count == 0)
     }*/
 
-    pub fn update_station(&self, station: Station) -> Result<(),Box<std::error::Error>> {
+    pub fn update_station(&self, station: Station) -> Result<(),Box<dyn std::error::Error>> {
         let query = format!("UPDATE Station SET Name=:name,Url=:url,Homepage=:homepage,
             Favicon=:favicon,Country=:country,Subcountry=:state,Language=:language,
             Tags=:tags,ChangeUuid=:changeuuid,UrlCache=:urlcache
@@ -112,7 +112,7 @@ impl Connection {
         Ok(())
     }
 
-    pub fn add_station(&self, station: Station) -> Result<u64,Box<std::error::Error>> {
+    pub fn add_station(&self, station: Station) -> Result<u64,Box<dyn std::error::Error>> {
         let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache) 
                                 VALUES(:name, :url, :homepage, :favicon, :country, :countrycode, :state, :language, :tags, :changeuuid, :stationuuid, '')");
         let params = params!{
@@ -181,7 +181,7 @@ impl Connection {
         }
     }
 
-    fn backup_station_by_id(&self, stationid: u64) -> Result<(),Box<std::error::Error>>{
+    fn backup_station_by_id(&self, stationid: u64) -> Result<(),Box<dyn std::error::Error>>{
         let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid)
                                 SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid FROM Station WHERE StationID=:id");
         let params = params!{
@@ -193,7 +193,7 @@ impl Connection {
         Ok(())
     }
 
-    fn backup_station_by_uuid(&self, stationuuid: &str) -> Result<(),Box<std::error::Error>>{
+    fn backup_station_by_uuid(&self, stationuuid: &str) -> Result<(),Box<dyn std::error::Error>>{
         let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid)
                                 SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid FROM Station WHERE StationUuid=:stationuuid");
         let params = params!{
@@ -205,7 +205,7 @@ impl Connection {
         Ok(())
     }
 
-    /*pub fn insert_station_change(&self, stationchange: &StationHistoryCurrent) -> Result<(),Box<std::error::Error>> {
+    /*pub fn insert_station_change(&self, stationchange: &StationHistoryCurrent) -> Result<(),Box<dyn std::error::Error>> {
         let params = params!{
             "stationid" => stationchange.id,
             "name" => stationchange.name.clone(),
@@ -227,7 +227,7 @@ impl Connection {
         Ok(())
     }*/
 
-    /*pub fn insert_station_changes(&self, stations: &[StationHistoryCurrent]) -> Result<(),Box<std::error::Error>> {
+    /*pub fn insert_station_changes(&self, stations: &[StationHistoryCurrent]) -> Result<(),Box<dyn std::error::Error>> {
         let mut params = params!{
             "x" => "x"
         };
@@ -258,7 +258,7 @@ impl Connection {
         Ok(())
     }*/
 
-    pub fn station_exists(&self, stationuuid: &str) -> Result<bool, Box<std::error::Error>> {
+    pub fn station_exists(&self, stationuuid: &str) -> Result<bool, Box<dyn std::error::Error>> {
         let params = params!{
             "stationuuid" => stationuuid,
         };
@@ -267,7 +267,7 @@ impl Connection {
         Ok(count > 0)
     }
 
-    pub fn stationchange_exists(&self, changeuuid: &str) -> Result<bool, Box<std::error::Error>> {
+    pub fn stationchange_exists(&self, changeuuid: &str) -> Result<bool, Box<dyn std::error::Error>> {
         let params = params!{
             "changeuuid" => changeuuid,
         };
@@ -276,7 +276,7 @@ impl Connection {
         Ok(count > 0)
     }
 
-    pub fn insert_station_by_change(&self, stationchange: StationHistoryCurrent) -> Result<(),Box<std::error::Error>> {
+    pub fn insert_station_by_change(&self, stationchange: StationHistoryCurrent) -> Result<(),Box<dyn std::error::Error>> {
         //self.insert_station_change(&stationchange)?;
         let changeexists = self.stationchange_exists(&stationchange.changeuuid)?;
         if !changeexists {
@@ -290,7 +290,7 @@ impl Connection {
         Ok(())
     }
 
-    pub fn stationcheck_exists_in_history(&self, checkuuid: &str) -> Result<bool, Box<std::error::Error>> {
+    pub fn stationcheck_exists_in_history(&self, checkuuid: &str) -> Result<bool, Box<dyn std::error::Error>> {
         let params = params!{
             "checkuuid" => checkuuid,
         };
@@ -299,7 +299,7 @@ impl Connection {
         Ok(count > 0)
     }
 
-    pub fn insert_pulled_station_check(&self, stationcheck: StationCheck) -> Result<(),Box<std::error::Error>> {
+    pub fn insert_pulled_station_check(&self, stationcheck: StationCheck) -> Result<(),Box<dyn std::error::Error>> {
         // delete from stationcheck if exists
         let params_delete = params!{
             "stationuuid" => &stationcheck.stationuuid,
@@ -335,7 +335,7 @@ impl Connection {
         Ok(())
     }
 
-    pub fn update_station_with_check_data(&self, stationcheck: &StationCheck) -> Result<(), Box<std::error::Error>> {
+    pub fn update_station_with_check_data(&self, stationcheck: &StationCheck) -> Result<(), Box<dyn std::error::Error>> {
         let mut query: String = String::from("UPDATE Station SET
             LastCheckTime=:checktime,
             LastCheckOkTime=:checktime,
@@ -476,7 +476,7 @@ impl Connection {
         }
     }
 
-    pub fn set_pull_server_lastid(&self, server: &str, lastid: &str) -> Result<(),Box<std::error::Error>> {
+    pub fn set_pull_server_lastid(&self, server: &str, lastid: &str) -> Result<(),Box<dyn std::error::Error>> {
         let params = params!{
             "name" => server,
             "lastid" => lastid,
@@ -490,7 +490,7 @@ impl Connection {
         Ok(())
     }
 
-    pub fn set_pull_server_lastcheckid(&self, server: &str, lastcheckid: &str) -> Result<(),Box<std::error::Error>> {
+    pub fn set_pull_server_lastcheckid(&self, server: &str, lastcheckid: &str) -> Result<(),Box<dyn std::error::Error>> {
         let params = params!{
             "name" => server,
             "lastcheckid" => lastcheckid,
@@ -554,7 +554,7 @@ impl Connection {
         self.get_stations(results)
     }
 
-    pub fn increase_clicks(&self, ip: &str, station: &Station) -> Result<bool,Box<std::error::Error>> {
+    pub fn increase_clicks(&self, ip: &str, station: &Station) -> Result<bool,Box<dyn std::error::Error>> {
         let query = format!(r#"SELECT * FROM StationClick WHERE StationID={id} AND IP="{ip}" AND TIME_TO_SEC(TIMEDIFF(Now(),ClickTimestamp))<24*60*60"#, id = station.id, ip = ip);
         let result = self.pool.prep_exec(query, ())?;
 
@@ -1410,7 +1410,7 @@ fn start_refresh_worker(connection_string: String, update_caches_interval: u64) 
     });
 }
 
-pub fn new(connection_string: &String, update_caches_interval: u64, ignore_migration_errors: bool, allow_database_downgrade: bool) -> Result<Connection, Box<std::error::Error>> {
+pub fn new(connection_string: &String, update_caches_interval: u64, ignore_migration_errors: bool, allow_database_downgrade: bool) -> Result<Connection, Box<dyn std::error::Error>> {
     let connection_string2 = connection_string.clone();
     let mut migrations = Migrations::new(connection_string);
     migrations.add_migration("20190104_014300_CreateStation",

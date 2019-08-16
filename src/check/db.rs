@@ -134,7 +134,7 @@ pub fn delete_were_working(pool: &mysql::Pool, hours: u32) {
     }
 }
 
-pub fn insert_check(pool: &mysql::Pool,item: &StationCheckItemNew) -> Result<(), Box<std::error::Error>> {
+pub fn insert_check(pool: &mysql::Pool,item: &StationCheckItemNew) -> Result<(), Box<dyn std::error::Error>> {
     let query = "DELETE FROM StationCheck WHERE StationUuid=:stationuuid AND Source=:source";
     let mut my_stmt = pool.prepare(query)?;
     my_stmt.execute(params!(
@@ -193,7 +193,7 @@ pub fn delete_old_clicks(pool: &mysql::Pool, hours: u32) {
     }
 }
 
-pub fn new(connection_str: &str) -> Result<mysql::Pool, Box<Error>> {
+pub fn new(connection_str: &str) -> Result<mysql::Pool, Box<dyn Error>> {
     let pool = mysql::Pool::new(connection_str)?;
     Ok(pool)
 }

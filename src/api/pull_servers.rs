@@ -26,14 +26,14 @@ pub fn run(connection: db::Connection, mirrors: Vec<String>, pull_interval: u64)
     });
 }
 
-fn get_remote_version(server: &str) -> Result<u32,Box<std::error::Error>> {
+fn get_remote_version(server: &str) -> Result<u32,Box<dyn std::error::Error>> {
     debug!("Check server status of '{}' ..", server);
     let path = format!("{}/json/stats",server);
     let status: Status = reqwest::get(&path)?.json()?;
     Ok(status.supported_version)
 }
 
-fn pull_history(server: &str, api_version: u32, lastid: Option<String>) -> Result<Vec<StationHistoryCurrent>, Box<std::error::Error>> {
+fn pull_history(server: &str, api_version: u32, lastid: Option<String>) -> Result<Vec<StationHistoryCurrent>, Box<dyn std::error::Error>> {
     trace!("Pull history from '{}' (API: {}) ..", server, api_version);
     let path = match lastid {
         Some(id) => format!("{}/json/stations/changed?lastchangeuuid={}",server, id),
@@ -57,7 +57,7 @@ fn pull_history(server: &str, api_version: u32, lastid: Option<String>) -> Resul
     }
 }
 
-fn pull_checks(server: &str, api_version: u32, lastid: Option<String>) -> Result<Vec<StationCheck>, Box<std::error::Error>> {
+fn pull_checks(server: &str, api_version: u32, lastid: Option<String>) -> Result<Vec<StationCheck>, Box<dyn std::error::Error>> {
     trace!("Pull checks from '{}' (API: {}) ..", server, api_version);
     let path = match lastid {
         Some(id) => format!("{}/json/checks?lastcheckuuid={}",server, id),
@@ -81,7 +81,7 @@ fn pull_checks(server: &str, api_version: u32, lastid: Option<String>) -> Result
     }
 }
 
-fn pull_server(connection: &db::Connection, server: &str) -> Result<(),Box<std::error::Error>> {
+fn pull_server(connection: &db::Connection, server: &str) -> Result<(),Box<dyn std::error::Error>> {
     let api_version = get_remote_version(server)?;
     let lastid = connection.get_pull_server_lastid(server);
     let list = pull_history(server, api_version, lastid)?;
