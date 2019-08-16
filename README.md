@@ -8,6 +8,27 @@ You can find the api documentation on http://api.radio-browser.info
 ## Setup
 You can do a native setup or a docker setup
 
+### easy all in one docker setup with automatic tls from lets encrypt
+* This has been tested on ubuntu 18.04
+* Automatic redirect from http to https
+* Automatic generation and update of lets encrypt certificates
+
+```bash
+# checkout this project
+git clone https://github.com/segler-alex/radiobrowser-api-rust.git
+cd radiobrowser-api-rust
+# create ssl certificate cache file
+touch acme.json
+chmod 0600 acme.json
+# install docker (ubuntu)
+apt install -qy docker.io
+docker swarm init
+# set email and domain
+gedit docker-compose-traefik.yml
+# deploy app stack
+docker stack deploy -c docker-compose-traefik.yml rb
+```
+
 ### native setup
 Requirements:
 * apache
