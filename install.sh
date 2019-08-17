@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -e
+
 cargo build --release
 sudo mkdir -p /usr/local/bin
 sudo mkdir -p /usr/local/share/radiobrowser
