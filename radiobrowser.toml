@@ -31,7 +31,7 @@ mirror-pull-interval = 60
 ## ============
 
 ## Enable the checking of stations
-enable-check = false
+enable-check = true
 
 ## Concurrent checks
 concurrency = 10
@@ -40,7 +40,7 @@ concurrency = 10
 stations = 100
 
 ## Enable delete logic for stations
-delete = false
+delete = true
 
 ## Automatic favicon check for stations (experimental)
 favicon = false

@@ -28,7 +28,8 @@ chmod 0600 acme.json
 apt install -qy docker.io
 docker swarm init
 # set email and domain
-gedit docker-compose-traefik.yml
+export SOURCE="my.domain.org"
+export EMAIL="mymail@mail.com"
 # deploy app stack
 docker stack deploy -c docker-compose-traefik.yml rb
 ```

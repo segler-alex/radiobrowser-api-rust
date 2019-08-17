@@ -5,13 +5,11 @@ services:
     image: segleralex/radiobrowser-api-rust:latest
     labels:
       - "traefik.enable=true"
-      #TODO: set your domain here
-      - "traefik.http.routers.api.rule=Host(`de2.api.radio-browser.info`)"
+      - "traefik.http.routers.api.rule=Host(`${SOURCE}`)"
       - "traefik.http.routers.api.entrypoints=web"
       - "traefik.http.routers.api.middlewares=redirecttls"
       - "traefik.http.middlewares.redirecttls.redirectscheme.scheme=https"
-      #TODO: set your domain here
-      - "traefik.http.routers.apitls.rule=Host(`de2.api.radio-browser.info`)"
+      - "traefik.http.routers.apitls.rule=Host(`${SOURCE}`)"
       - "traefik.http.routers.apitls.entrypoints=websecure"
       - "traefik.http.routers.apitls.tls.certresolver=letsencrypt"
     deploy:
@@ -19,6 +17,8 @@ services:
     networks:
       - mynet
     environment:
+       - RUST_LOG=radiobrowser_api_rust=debug
+       - SOURCE
        - DATABASE_URL=mysql://radiouser:password@dbserver/radio
        - HOST=0.0.0.0
   dbserver:
@@ -47,8 +47,7 @@ services:
       - "--providers.docker.exposedByDefault=false"
       - "--entryPoints.web.address=:80"
       - "--entryPoints.websecure.address=:443"
-      #TODO: set your email here!
-      - "--certificatesResolvers.letsencrypt.acme.email=segler_alex@web.de"
+      - "--certificatesResolvers.letsencrypt.acme.email=${EMAIL}"
       - "--certificatesResolvers.letsencrypt.acme.storage=acme.json"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
       - "--certificatesResolvers.letsencrypt.acme.httpChallenge.entryPoint=web"
