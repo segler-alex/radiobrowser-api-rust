@@ -1,4 +1,4 @@
-version: "3.0"
+version: "3.2"
 services:
   api:
     build: ./
@@ -53,8 +53,14 @@ services:
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
       - "--certificatesResolvers.letsencrypt.acme.httpChallenge.entryPoint=web"
     ports:
-      - "80:80"
-      - "443:443"
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
       #- "8080:8080"
     volumes:
       # So that Traefik can listen to the Docker events
