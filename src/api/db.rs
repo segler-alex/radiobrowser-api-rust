@@ -1337,6 +1337,7 @@ pub fn refresh_cache_items(
     let items_cached = get_cached_items(pool, cache_table_name, cache_column_name);
     let items_current = get_stations_multi_items(pool, station_column_name);
     let mut changed = 0;
+    let max_cache_item_len = 110;
 
     let mut to_delete = vec![];
     for item_cached in items_cached.keys() {
@@ -1350,7 +1351,11 @@ pub fn refresh_cache_items(
     for item_current in items_current.keys() {
         if !items_cached.contains_key(item_current) {
             //self.insert_tag(tag_current, *tags_current.get(tag_current).unwrap_or(&0));
-            to_insert.insert(item_current, *items_current.get(item_current).unwrap_or(&0));
+            if item_current.len() < max_cache_item_len {
+                to_insert.insert(item_current, *items_current.get(item_current).unwrap_or(&0));
+            }else{
+                warn!("cached '{}' item too long: '{}'", station_column_name, item_current);
+            }
         } else {
             let value_new = *items_current.get(item_current).unwrap_or(&0);
             let value_old = *items_cached.get(item_current).unwrap_or(&0);
