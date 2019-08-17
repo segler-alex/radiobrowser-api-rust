@@ -30,6 +30,8 @@ docker swarm init
 # set email and domain
 export SOURCE="my.domain.org"
 export EMAIL="mymail@mail.com"
+# OPTIONAL: enable checking of stations, this does check all stations once every 24 hours
+export ENABLE_CHECK="true"
 # deploy app stack
 docker stack deploy -c docker-compose-traefik.yml rb
 ```

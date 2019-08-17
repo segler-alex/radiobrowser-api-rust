@@ -28,7 +28,7 @@ fn main() {
 
     let config = config::load_config();
 
-    trace!("Config: {:#?}", config);
+    info!("Config: {:#?}", config);
 
     loop {
         let connection = api::db::new(

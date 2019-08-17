@@ -31,7 +31,7 @@ mirror-pull-interval = 60
 ## ============
 
 ## Enable the checking of stations
-enable-check = true
+enable-check = false
 
 ## Concurrent checks
 concurrency = 10
