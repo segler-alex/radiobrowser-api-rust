@@ -80,7 +80,7 @@ Apache config file example
 cat /var/www/radio/init.sql | mysql
 
 # clone repository
-git clone https://github.com/segler-alex/radiobrowser-api ~/radio
+git clone https://github.com/segler-alex/radiobrowser-api-rust ~/radio
 
 # compile, install
 cd ~/radio
