@@ -347,7 +347,12 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
     }
 
     let header_host: &str = request.header("X-Forwarded-Host").unwrap_or(request.header("Host").unwrap_or(server_name));
-    let content_type: &str = request.header("Content-Type").unwrap_or("nothing");
+    let content_type_raw: &str = request.header("Content-Type").unwrap_or("nothing");
+    let content_type_arr: Vec<&str> = content_type_raw.split(";").collect();
+    if content_type_arr.len() == 0{
+        return rouille::Response::empty_400();
+    }
+    let content_type = content_type_arr[0].trim();
 
     let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
 
@@ -381,9 +386,67 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
 
     let mut param_seconds: u32 = request.get_param("seconds").unwrap_or(String::from("0")).parse().unwrap_or(0);
     let mut param_url: Option<String> = None;
+
+    trace!("content_type: {}", content_type);
     
     if request.method() == "POST" {
         match content_type {
+            "multipart/form-data" =>{
+                let multipart = rouille::input::multipart::get_multipart_input(request);
+                match multipart {
+                    Ok(mut content)=>{
+                        loop{
+                            let field = content.next();
+                            if let Some(mut field) = field {
+                                if field.is_text(){
+                                    let mut buf = String::new();
+                                    let res = field.data.read_to_string(&mut buf);
+                                    if let Ok(_) = res {
+                                        trace!("multipart/form-data '{}' => '{}'", field.headers.name, buf);
+                                        let key = field.headers.name.as_str();
+                                        let val = buf;
+
+                                        if key == "order" { param_order = val.into(); }
+                                        else if key == "lastchangeuuid" { param_last_changeuuid = Some(val.into()); }
+                                        else if key == "lastcheckuuid" { param_last_checkuuid = Some(val.into()); }
+                                        else if key == "name" { param_name = Some(val.into()); }
+                                        else if key == "nameExact" { param_name_exact = val.parse().unwrap_or(param_name_exact); }
+                                        else if key == "country" { param_country = Some(val.into()); }
+                                        else if key == "countryExact" { param_country_exact = val.parse().unwrap_or(param_country_exact); }
+                                        else if key == "countrycode" { param_countrycode = Some(val.into()); }
+                                        else if key == "state" { param_state = Some(val.into()); }
+                                        else if key == "stateExact" { param_state_exact = val.parse().unwrap_or(param_state_exact); }
+                                        else if key == "language" { param_language = Some(val.into()); }
+                                        else if key == "languageExact" { param_language_exact = val.parse().unwrap_or(param_language_exact); }
+                                        else if key == "tag" { param_tag = Some(val.into()); }
+                                        else if key == "tagExact" { param_tag_exact = val.parse().unwrap_or(param_tag_exact); }
+                                        else if key == "tagList" { 
+                                            let x: String = val.into();
+                                            param_tag_list = str_to_arr(&x);
+                                        }
+                                        else if key == "reverse" { param_reverse = val.parse().unwrap_or(param_reverse); }
+                                        else if key == "hidebroken" { param_hidebroken = val.parse().unwrap_or(param_hidebroken); }
+                                        else if key == "bitrateMin" { param_bitrate_min = val.parse().unwrap_or(param_bitrate_min); }
+                                        else if key == "bitrateMax" { param_bitrate_max = val.parse().unwrap_or(param_bitrate_max); }
+                                        else if key == "offset" { param_offset = val.parse().unwrap_or(param_offset); }
+                                        else if key == "limit" { param_limit = val.parse().unwrap_or(param_limit); }
+                                        else if key == "seconds" { param_seconds = val.parse().unwrap_or(param_seconds); }
+                                        else if key == "url" { param_url = Some(val.into()); }
+                                        else if key == "favicon" { param_favicon = Some(val.into()); }
+                                        else if key == "homepage" { param_homepage = Some(val.into()); }
+                                        else if key == "tags" { param_tags = Some(val.into()); }
+                                    }
+                                }
+                            } else {
+                                break;
+                            }
+                        }
+                    },
+                    Err(err)=>{
+                        error!("unable to decode multipart: {}", err);
+                    }
+                }
+            },
             "application/x-www-form-urlencoded" => {
                 let mut data = request.data().unwrap();
                 let mut buf = Vec::new();
@@ -391,6 +454,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
                     Ok(_) => {
                         let iter = form_urlencoded::parse(&buf);
                         for (key,val) in iter {
+                            trace!("application/x-www-form-urlencoded '{}' => '{}'", key, val);
                             if key == "order" { param_order = val.into(); }
                             else if key == "lastchangeuuid" { param_last_changeuuid = Some(val.into()); }
                             else if key == "lastcheckuuid" { param_last_checkuuid = Some(val.into()); }
