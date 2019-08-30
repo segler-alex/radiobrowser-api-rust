@@ -9,6 +9,9 @@ pub mod data;
 mod pull_servers;
 mod api_error;
 mod simple_migrate;
+mod parameters;
+
+use self::parameters::RequestParameters;
 
 use api::data::ResultMessage;
 use api::data::StationCachedInfo;
@@ -24,9 +27,6 @@ use api::rouille::Request;
 use std;
 use self::dns_lookup::lookup_host;
 use self::dns_lookup::lookup_addr;
-use std::io::Read;
-
-use url::form_urlencoded;
 
 use std::fs::File;
 use self::serde_json::value::{Map};
@@ -356,264 +356,40 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
 
     let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
 
-    let mut param_tags: Option<String> = request.get_param("tags");
-    let mut param_homepage: Option<String> = request.get_param("homepage");
-    let mut param_favicon: Option<String> = request.get_param("favicon");
+    let ppp = RequestParameters::new(&request);
+    
+    let param_tags: Option<String> = ppp.get_string("tags");
+    let param_homepage: Option<String> = ppp.get_string("homepage");
+    let param_favicon: Option<String> = ppp.get_string("favicon");
 
-    let mut param_last_changeuuid: Option<String> = request.get_param("lastchangeuuid");
-    let mut param_last_checkuuid: Option<String> = request.get_param("lastcheckuuid");
+    let param_last_changeuuid: Option<String> = ppp.get_string("lastchangeuuid");
+    let param_last_checkuuid: Option<String> = ppp.get_string("lastcheckuuid");
 
-    let mut param_name: Option<String> = request.get_param("name");
-    let mut param_name_exact: bool = request.get_param("nameExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
-    let mut param_country: Option<String> = request.get_param("country");
-    let mut param_country_exact: bool = request.get_param("countryExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
-    let mut param_countrycode: Option<String> = request.get_param("countrycode");
-    let mut param_state: Option<String> = request.get_param("state");
-    let mut param_state_exact: bool = request.get_param("stateExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
-    let mut param_language: Option<String> = request.get_param("language");
-    let mut param_language_exact: bool = request.get_param("languageExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
-    let mut param_tag: Option<String> = request.get_param("tag");
-    let mut param_tag_exact: bool = request.get_param("tagExact").unwrap_or(String::from("false")).parse().unwrap_or(false);
-    let mut param_tag_list: Vec<String> = str_to_arr(&request.get_param("tagList").unwrap_or(String::from("")));
+    let param_name: Option<String> = ppp.get_string("name");
+    let param_name_exact: bool = ppp.get_bool("nameExact", false);
+    let param_country: Option<String> = ppp.get_string("country");
+    let param_country_exact: bool = ppp.get_bool("countryExact", false);
+    let param_countrycode: Option<String> = ppp.get_string("countrycode");
+    let param_state: Option<String> = ppp.get_string("state");
+    let param_state_exact: bool = ppp.get_bool("stateExact", false);
+    let param_language: Option<String> = ppp.get_string("language");
+    let param_language_exact: bool = ppp.get_bool("languageExact", false);
+    let param_tag: Option<String> = ppp.get_string("tag");
+    let param_tag_exact: bool = ppp.get_bool("tagExact", false);
+    let param_tag_list: Vec<String> = str_to_arr(&ppp.get_string("tagList").unwrap_or(String::new()));
 
-    let mut param_bitrate_min : u32 = request.get_param("bitrateMin").unwrap_or(String::from("0")).parse().unwrap_or(0);
-    let mut param_bitrate_max : u32 = request.get_param("bitrateMax").unwrap_or(String::from("1000000")).parse().unwrap_or(1000000);
-    let mut param_order : String = request.get_param("order").unwrap_or(String::from("name"));
-    let mut param_reverse : bool = request.get_param("reverse").unwrap_or(String::from("false")) == "true";
-    let mut param_hidebroken : bool = request.get_param("hidebroken").unwrap_or(String::from("false")) == "true";
-    let mut param_offset : u32 = request.get_param("offset").unwrap_or(String::from("0")).parse().unwrap_or(0);
-    let mut param_limit : u32 = request.get_param("limit").unwrap_or(String::from("999999")).parse().unwrap_or(999999);
+    let param_bitrate_min : u32 = ppp.get_number("bitrateMin", 0);
+    let param_bitrate_max : u32 = ppp.get_number("bitrateMax", 1000000);
+    let param_order : String = ppp.get_string("order").unwrap_or(String::from("name"));
+    let param_reverse : bool = ppp.get_bool("reverse", false);
+    let param_hidebroken : bool = ppp.get_bool("hidebroken", false);
+    let param_offset : u32 = ppp.get_number("offset", 0);
+    let param_limit : u32 = ppp.get_number("limit", 999999);
 
-    let mut param_seconds: u32 = request.get_param("seconds").unwrap_or(String::from("0")).parse().unwrap_or(0);
-    let mut param_url: Option<String> = None;
+    let param_seconds: u32 = ppp.get_number("seconds", 0);
+    let param_url: Option<String> = ppp.get_string("url");
 
     trace!("content_type: {}", content_type);
-    
-    if request.method() == "POST" {
-        match content_type {
-            "multipart/form-data" =>{
-                let multipart = rouille::input::multipart::get_multipart_input(request);
-                match multipart {
-                    Ok(mut content)=>{
-                        loop{
-                            let field = content.next();
-                            if let Some(mut field) = field {
-                                if field.is_text(){
-                                    let mut buf = String::new();
-                                    let res = field.data.read_to_string(&mut buf);
-                                    if let Ok(_) = res {
-                                        trace!("multipart/form-data '{}' => '{}'", field.headers.name, buf);
-                                        let key = field.headers.name.as_str();
-                                        let val = buf;
-
-                                        if key == "order" { param_order = val.into(); }
-                                        else if key == "lastchangeuuid" { param_last_changeuuid = Some(val.into()); }
-                                        else if key == "lastcheckuuid" { param_last_checkuuid = Some(val.into()); }
-                                        else if key == "name" { param_name = Some(val.into()); }
-                                        else if key == "nameExact" { param_name_exact = val.parse().unwrap_or(param_name_exact); }
-                                        else if key == "country" { param_country = Some(val.into()); }
-                                        else if key == "countryExact" { param_country_exact = val.parse().unwrap_or(param_country_exact); }
-                                        else if key == "countrycode" { param_countrycode = Some(val.into()); }
-                                        else if key == "state" { param_state = Some(val.into()); }
-                                        else if key == "stateExact" { param_state_exact = val.parse().unwrap_or(param_state_exact); }
-                                        else if key == "language" { param_language = Some(val.into()); }
-                                        else if key == "languageExact" { param_language_exact = val.parse().unwrap_or(param_language_exact); }
-                                        else if key == "tag" { param_tag = Some(val.into()); }
-                                        else if key == "tagExact" { param_tag_exact = val.parse().unwrap_or(param_tag_exact); }
-                                        else if key == "tagList" { 
-                                            let x: String = val.into();
-                                            param_tag_list = str_to_arr(&x);
-                                        }
-                                        else if key == "reverse" { param_reverse = val.parse().unwrap_or(param_reverse); }
-                                        else if key == "hidebroken" { param_hidebroken = val.parse().unwrap_or(param_hidebroken); }
-                                        else if key == "bitrateMin" { param_bitrate_min = val.parse().unwrap_or(param_bitrate_min); }
-                                        else if key == "bitrateMax" { param_bitrate_max = val.parse().unwrap_or(param_bitrate_max); }
-                                        else if key == "offset" { param_offset = val.parse().unwrap_or(param_offset); }
-                                        else if key == "limit" { param_limit = val.parse().unwrap_or(param_limit); }
-                                        else if key == "seconds" { param_seconds = val.parse().unwrap_or(param_seconds); }
-                                        else if key == "url" { param_url = Some(val.into()); }
-                                        else if key == "favicon" { param_favicon = Some(val.into()); }
-                                        else if key == "homepage" { param_homepage = Some(val.into()); }
-                                        else if key == "tags" { param_tags = Some(val.into()); }
-                                    }
-                                }
-                            } else {
-                                break;
-                            }
-                        }
-                    },
-                    Err(err)=>{
-                        error!("unable to decode multipart: {}", err);
-                    }
-                }
-            },
-            "application/x-www-form-urlencoded" => {
-                let mut data = request.data().unwrap();
-                let mut buf = Vec::new();
-                match data.read_to_end(&mut buf) {
-                    Ok(_) => {
-                        let iter = form_urlencoded::parse(&buf);
-                        for (key,val) in iter {
-                            trace!("application/x-www-form-urlencoded '{}' => '{}'", key, val);
-                            if key == "order" { param_order = val.into(); }
-                            else if key == "lastchangeuuid" { param_last_changeuuid = Some(val.into()); }
-                            else if key == "lastcheckuuid" { param_last_checkuuid = Some(val.into()); }
-                            else if key == "name" { param_name = Some(val.into()); }
-                            else if key == "nameExact" { param_name_exact = val.parse().unwrap_or(param_name_exact); }
-                            else if key == "country" { param_country = Some(val.into()); }
-                            else if key == "countryExact" { param_country_exact = val.parse().unwrap_or(param_country_exact); }
-                            else if key == "countrycode" { param_countrycode = Some(val.into()); }
-                            else if key == "state" { param_state = Some(val.into()); }
-                            else if key == "stateExact" { param_state_exact = val.parse().unwrap_or(param_state_exact); }
-                            else if key == "language" { param_language = Some(val.into()); }
-                            else if key == "languageExact" { param_language_exact = val.parse().unwrap_or(param_language_exact); }
-                            else if key == "tag" { param_tag = Some(val.into()); }
-                            else if key == "tagExact" { param_tag_exact = val.parse().unwrap_or(param_tag_exact); }
-                            else if key == "tagList" { 
-                                let x: String = val.into();
-                                param_tag_list = str_to_arr(&x);
-                            }
-                            else if key == "reverse" { param_reverse = val.parse().unwrap_or(param_reverse); }
-                            else if key == "hidebroken" { param_hidebroken = val.parse().unwrap_or(param_hidebroken); }
-                            else if key == "bitrateMin" { param_bitrate_min = val.parse().unwrap_or(param_bitrate_min); }
-                            else if key == "bitrateMax" { param_bitrate_max = val.parse().unwrap_or(param_bitrate_max); }
-                            else if key == "offset" { param_offset = val.parse().unwrap_or(param_offset); }
-                            else if key == "limit" { param_limit = val.parse().unwrap_or(param_limit); }
-                            else if key == "seconds" { param_seconds = val.parse().unwrap_or(param_seconds); }
-                            else if key == "url" { param_url = Some(val.into()); }
-                            else if key == "favicon" { param_favicon = Some(val.into()); }
-                            else if key == "homepage" { param_homepage = Some(val.into()); }
-                            else if key == "tags" { param_tags = Some(val.into()); }
-                        }
-                    },
-                    Err(err) => {
-                        error!("err {}",err);
-                    }
-                }
-            },
-            "application/json" => {
-                let mut data = request.data().unwrap();
-                let mut buf = Vec::new();
-                match data.read_to_end(&mut buf) {
-                    Ok(_) => {
-                        let v: self::serde_json::Value = serde_json::from_slice(&buf).unwrap();
-                        // name
-                        if v["name"].is_string() {
-                            param_name = Some(v["name"].as_str().unwrap().to_string());
-                        }
-                        if v["nameExact"].is_boolean() {
-                            param_name_exact = v["nameExact"].as_bool().unwrap();
-                        }
-                        if v["nameExact"].is_string() {
-                            param_name_exact = v["nameExact"].as_str().unwrap().parse().unwrap_or(param_name_exact);
-                        }
-                        // country
-                        if v["country"].is_string() {
-                            param_country = Some(v["country"].as_str().unwrap().to_string());
-                        }
-                        if v["countryExact"].is_boolean() {
-                            param_country_exact = v["countryExact"].as_bool().unwrap();
-                        }
-                        if v["countryExact"].is_string() {
-                            param_country_exact = v["countryExact"].as_str().unwrap().parse().unwrap_or(param_country_exact);
-                        }
-                        if v["countrycode"].is_string() {
-                            param_countrycode = Some(v["countrycode"].as_str().unwrap().to_string());
-                        }
-                        // state
-                        if v["state"].is_string() {
-                            param_state = Some(v["state"].as_str().unwrap().to_string());
-                        }
-                        if v["stateExact"].is_boolean() {
-                            param_state_exact = v["stateExact"].as_bool().unwrap();
-                        }
-                        if v["stateExact"].is_string() {
-                            param_state_exact = v["stateExact"].as_str().unwrap().parse().unwrap_or(param_state_exact);
-                        }
-                        // language
-                        if v["language"].is_string() {
-                            param_language = Some(v["language"].as_str().unwrap().to_string());
-                        }
-                        if v["languageExact"].is_boolean() {
-                            param_language_exact = v["languageExact"].as_bool().unwrap();
-                        }
-                        if v["nameExact"].is_string() {
-                            param_language_exact = v["languageExact"].as_str().unwrap().parse().unwrap_or(param_language_exact);
-                        }
-                        // tag
-                        if v["tag"].is_string() {
-                            param_tag = Some(v["tag"].as_str().unwrap().to_string());
-                        }
-                        if v["tagExact"].is_boolean() {
-                            param_tag_exact = v["tagExact"].as_bool().unwrap();
-                        }
-                        if v["tagExact"].is_string() {
-                            param_tag_exact = v["tagExact"].as_str().unwrap().parse().unwrap_or(param_tag_exact);
-                        }
-                        if v["tagList"].is_array() {
-                            let x = v["tagList"].as_array().unwrap();
-                            param_tag_list = x.into_iter().map(|item| {
-                                if item.is_string(){
-                                    item.as_str().unwrap().trim().to_string()
-                                }else{
-                                    String::from("")
-                                }
-                            }).filter(|item| {
-                                item != ""
-                            }).collect();
-                        }
-                        if v["tagList"].is_string() {
-                            param_tag_list = str_to_arr(v["tagList"].as_str().unwrap());
-                        }
-                        // other
-                        if v["lastchangeuuid"].is_string() {
-                            param_last_changeuuid = Some(v["lastchangeuuid"].as_str().unwrap().to_string());
-                        }
-                        if v["lastcheckuuid"].is_string() {
-                            param_last_checkuuid = Some(v["lastcheckuuid"].as_str().unwrap().to_string());
-                        }
-                        if v["homepage"].is_string() {
-                            param_homepage = Some(v["homepage"].as_str().unwrap().to_string());
-                        }
-                        if v["favicon"].is_string() {
-                            param_favicon = Some(v["favicon"].as_str().unwrap().to_string());
-                        }
-                        if v["tags"].is_string() {
-                            param_tags = Some(v["tags"].as_str().unwrap().to_string());
-                        }
-                        if v["order"].is_string() {
-                            param_order = v["order"].as_str().unwrap().to_string();
-                        }
-                        if v["url"].is_string() {
-                            param_url = Some(v["url"].as_str().unwrap().to_string());
-                        }
-                        if v["reverse"].is_string() {
-                            param_reverse = v["reverse"].as_str().unwrap().parse().unwrap_or(param_reverse);
-                        }
-                        if v["reverse"].is_boolean() {
-                            param_reverse = v["reverse"].as_bool().unwrap();
-                        }
-                        if v["hidebroken"].is_string() {
-                            param_hidebroken = v["hidebroken"].as_str().unwrap() == "true";
-                        }
-                        if v["hidebroken"].is_boolean() {
-                            param_hidebroken = v["hidebroken"].as_bool().unwrap();
-                        }
-                        param_offset = v["offset"].as_u64().unwrap_or(param_offset.into()) as u32;
-                        param_limit = v["limit"].as_u64().unwrap_or(param_limit.into()) as u32;
-                        param_bitrate_min = v["bitrateMin"].as_u64().unwrap_or(param_bitrate_min.into()) as u32;
-                        param_bitrate_max = v["bitrateMax"].as_u64().unwrap_or(param_bitrate_max.into()) as u32;
-                        param_seconds = v["seconds"].as_u64().unwrap_or(param_seconds.into()) as u32;
-                    },
-                    Err(err) => {
-                        error!("err {}",err);
-                    }
-                }
-            },
-            _ => {
-            }
-        }
-    }
 
     let parts : Vec<&str> = request.raw_url().split('?').collect();
     let items : Vec<&str> = parts[0].split('/').collect();
