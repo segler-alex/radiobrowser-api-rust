@@ -77,30 +77,6 @@ fn dns_resolve(format : &str) -> rouille::Response {
     }
 }
 
-fn get_1_n_with_parse(request: &rouille::Request, connection: &db::Connection, column: &str, filter_prev : Option<String>, order: String, reverse: bool, hidebroken: bool) -> Vec<Result1n>{
-    let filter = request.get_param("filter").or(filter_prev);
-    let stations = connection.get_1_n(column, filter, order, reverse, hidebroken);
-    stations
-}
-
-fn get_states_with_parse(request: &rouille::Request, connection: &db::Connection, country: Option<String>, filter_prev : Option<String>, order: String, reverse: bool, hidebroken: bool) -> Vec<State>{
-    let filter = request.get_param("filter").or(filter_prev);
-    let stations = connection.get_states(country, filter, order, reverse, hidebroken);
-    stations
-}
-
-fn get_tags_with_parse(request: &rouille::Request, connection: &db::Connection, filter_prev : Option<String>, order: String, reverse: bool, hidebroken: bool) -> Vec<ExtraInfo>{
-    let filter = request.get_param("filter").or(filter_prev);
-    let tags = connection.get_extra("TagCache", "TagName", filter, order, reverse, hidebroken);
-    tags
-}
-
-fn get_languages_with_parse(request: &rouille::Request, connection: &db::Connection, filter_prev : Option<String>, order: String, reverse: bool, hidebroken: bool) -> Vec<ExtraInfo>{
-    let filter = request.get_param("filter").or(filter_prev);
-    let languages = connection.get_extra("LanguageCache", "LanguageName", filter, order, reverse, hidebroken);
-    languages
-}
-
 fn encode_result1n(type_str: &str, list : Vec<Result1n>, format : &str) -> rouille::Response {
     match format {
         "json" => {
@@ -423,12 +399,12 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
         let filter : Option<String> = None;
 
         match command {
-            "languages" => add_cors(encode_extra(get_languages_with_parse(&request, &connection, filter, param_order, param_reverse, param_hidebroken), format, "language")),
-            "countries" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Country", filter, param_order, param_reverse, param_hidebroken), format)),
-            "countrycodes" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "CountryCode", filter, param_order, param_reverse, param_hidebroken), format)),
-            "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, filter, param_order, param_reverse, param_hidebroken), format)),
-            "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", filter, param_order, param_reverse, param_hidebroken), format)),
-            "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, filter, param_order, param_reverse, param_hidebroken), format, "tag")),
+            "languages" => add_cors(encode_extra(connection.get_extra("LanguageCache", "LanguageName", filter, param_order, param_reverse, param_hidebroken), format, "language")),
+            "countries" => add_cors(encode_result1n(command, connection.get_1_n("Country", filter, param_order, param_reverse, param_hidebroken), format)),
+            "countrycodes" => add_cors(encode_result1n(command, connection.get_1_n("CountryCode", filter, param_order, param_reverse, param_hidebroken), format)),
+            "states" => add_cors(encode_states(connection.get_states(None, filter, param_order, param_reverse, param_hidebroken), format)),
+            "codecs" => add_cors(encode_result1n(command, connection.get_1_n("Codec", filter, param_order, param_reverse, param_hidebroken), format)),
+            "tags" => add_cors(encode_extra(connection.get_extra("TagCache", "TagName", filter, param_order, param_reverse, param_hidebroken), format, "tag")),
             "stations" => add_cors(Station::get_response(connection.get_stations_by_all(&param_order, param_reverse, param_hidebroken, param_offset, param_limit), format)),
             "servers" => add_cors(dns_resolve(format)),
             "stats" => add_cors(encode_status(get_status(connection), format, static_dir)),
@@ -442,12 +418,12 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
         let parameter = items[3];
 
         match command {
-            "languages" => add_cors(encode_extra(get_languages_with_parse(&request, &connection, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format, "language")),
-            "countries" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Country", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format)),
-            "countrycodes" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "CountryCode", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format)),
-            "codecs" => add_cors(encode_result1n(command, get_1_n_with_parse(&request, &connection, "Codec", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format)),
-            "tags" => add_cors(encode_extra(get_tags_with_parse(&request, &connection, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format, "tag")),
-            "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, None, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format)),
+            "languages" => add_cors(encode_extra(connection.get_extra("LanguageCache", "LanguageName", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format, "language")),
+            "countries" => add_cors(encode_result1n(command, connection.get_1_n("Country", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format)),
+            "countrycodes" => add_cors(encode_result1n(command, connection.get_1_n("CountryCode", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format)),
+            "codecs" => add_cors(encode_result1n(command, connection.get_1_n("Codec", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format)),
+            "tags" => add_cors(encode_extra(connection.get_extra("TagCache", "TagName", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format, "tag")),
+            "states" => add_cors(encode_states(connection.get_states(None, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format)),
             "vote" => add_cors(encode_message(connection.vote_for_station(&remote_ip, get_only_first(connection.get_station_by_id_or_uuid(parameter))), format)),
             "url" => add_cors(encode_station_url(connection, get_only_first(connection.get_station_by_id_or_uuid(parameter)), &remote_ip, format)),
             "stations" => {
@@ -483,7 +459,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
             }
         }else{
             match command {
-                "states" => add_cors(encode_states(get_states_with_parse(&request, &connection, Some(String::from(parameter)), Some(String::from(search)), param_order, param_reverse, param_hidebroken), format)),
+                "states" => add_cors(encode_states(connection.get_states(Some(String::from(parameter)), Some(String::from(search)), param_order, param_reverse, param_hidebroken), format)),
                 
                 "stations" => {
                     match parameter {
