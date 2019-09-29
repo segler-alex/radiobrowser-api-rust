@@ -22,6 +22,7 @@ use std::{thread, time};
 mod api;
 mod config;
 mod check;
+mod db;
 
 fn main() {
     env_logger::init();

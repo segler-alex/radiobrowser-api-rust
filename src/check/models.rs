@@ -36,3 +36,9 @@ pub struct StationCheckItemNew {
     pub check_ok: bool,
     pub url: String,
 }
+
+#[derive(Clone,Debug)]
+pub struct StationOldNew {
+    pub old: StationItem,
+    pub new: StationCheckItemNew,
+}
