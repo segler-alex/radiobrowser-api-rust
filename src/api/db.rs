@@ -43,43 +43,10 @@ impl Connection {
     Date_Format(CheckTime,'%Y-%m-%d %H:%i:%s') AS CheckTimeFormated,
     UrlCache";
 
-    pub fn get_single_column_number(&self, query: &str) -> Result<u64,Box<dyn std::error::Error>> {
-        let results = self.pool.prep_exec(query, ())?;
-        self.get_single_column_number_intern(results)
-    }
-
     pub fn get_single_column_number_intern(&self, mut results: QueryResult<'static>) -> Result<u64,Box<dyn std::error::Error>> {
         let mut result_row = results.next().unwrap()?;
         let count: u64 = result_row.take(0).unwrap();
         Ok(count)
-    }
-
-    pub fn get_station_count(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM Station WHERE LastCheckOK=True"#).unwrap_or(0)
-    }
-
-    pub fn get_broken_station_count(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM Station WHERE LastCheckOK=False"#).unwrap_or(0)
-    }
-
-    pub fn get_tag_count(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM TagCache"#).unwrap_or(0)
-    }
-
-    pub fn get_country_count(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(DISTINCT(Country)) AS StationCount FROM Station"#).unwrap_or(0)
-    }
-
-    pub fn get_language_count(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM LanguageCache"#).unwrap_or(0)
-    }
-
-    pub fn get_click_count_last_hour(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(MINUTE,ClickTimestamp,now())<=60;"#).unwrap_or(0)
-    }
-
-    pub fn get_click_count_last_day(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(HOUR,ClickTimestamp,now())<=24;"#).unwrap_or(0)
     }
 
     /*pub fn is_empty(&self) -> Result<bool, Box<dyn std::error::Error>> {

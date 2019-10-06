@@ -11,8 +11,8 @@ use db::DbConnection;
 fn do_cleanup(delete: bool, database_url: &str, source: &str) -> Result<(), Box<dyn std::error::Error>> {
     let mut conn_new_style = MysqlConnection::new(database_url)?;
 
-    let checks_hour = conn_new_style.get_checks(1, source)?;
-    let checks_day = conn_new_style.get_checks(24, source)?;
+    let checks_hour = conn_new_style.get_checks_todo_count(1, source)?;
+    let checks_day = conn_new_style.get_checks_todo_count(24, source)?;
     let stations_broken = conn_new_style.get_station_count_broken()?;
     let stations_working = conn_new_style.get_station_count_working()?;
     let stations_todo = conn_new_style.get_station_count_todo(24)?;

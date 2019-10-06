@@ -32,6 +32,7 @@ fn main() {
     info!("Config: {:#?}", config);
 
     loop {
+        let connection_new = db::MysqlConnection::new(&config.connection_string);
         let connection = api::db::new(
             &config.connection_string,
             config.update_caches_interval,
@@ -40,32 +41,42 @@ fn main() {
         );
         match connection {
             Ok(v) => {
-                check::start(
-                    config.connection_string,
-                    config.source,
-                    config.delete,
-                    config.concurrency,
-                    config.check_stations,
-                    config.useragent,
-                    config.tcp_timeout as u32,
-                    config.max_depth,
-                    config.retries,
-                    config.favicon,
-                    config.enable_check,
-                    config.pause_seconds,
-                );
+                match connection_new {
+                    Ok(v2) => {
+                        check::start(
+                            config.connection_string,
+                            config.source,
+                            config.delete,
+                            config.concurrency,
+                            config.check_stations,
+                            config.useragent,
+                            config.tcp_timeout as u32,
+                            config.max_depth,
+                            config.retries,
+                            config.favicon,
+                            config.enable_check,
+                            config.pause_seconds,
+                        );
 
-                api::run(
-                    v,
-                    config.listen_host,
-                    config.listen_port,
-                    config.threads,
-                    &config.server_url,
-                    &config.static_files_dir,
-                    &config.log_dir,
-                    config.servers_pull,
-                    config.mirror_pull_interval,
-                );
+                        api::run(
+                            v,
+                            v2,
+                            config.listen_host,
+                            config.listen_port,
+                            config.threads,
+                            &config.server_url,
+                            &config.static_files_dir,
+                            &config.log_dir,
+                            config.servers_pull,
+                            config.mirror_pull_interval,
+                        );
+                    }
+                    Err(e) => {
+                        error!("{}", e);
+                        thread::sleep(time::Duration::from_millis(1000));
+                    }
+                }
+                
                 break;
             }
             Err(e) => {

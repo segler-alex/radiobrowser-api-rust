@@ -1,74 +1,20 @@
+use mysql::QueryResult;
 use check::models::StationItem;
 use check::models::StationCheckItemNew;
 use std::error::Error;
 use db::DbConnection;
 use mysql;
 
-pub struct MysqlConnection<'a> {
+pub struct MysqlConnection {
     pool: mysql::Pool,
-    delete_old_clicks_stmt: mysql::Stmt<'a>,
-    delete_old_checks_current_stmt: mysql::Stmt<'a>,
-    delete_old_checks_history_stmt: mysql::Stmt<'a>,
-    delete_never_working_stmt: mysql::Stmt<'a>,
-    delete_were_working_stmt: mysql::Stmt<'a>,
-    station_count_broken_stmt: mysql::Stmt<'a>,
-    station_count_working_stmt: mysql::Stmt<'a>,
-    station_count_todo_stmt: mysql::Stmt<'a>,
-    checks_stmt: mysql::Stmt<'a>,
-    deletable_never_working_stmt: mysql::Stmt<'a>,
-    deletable_were_working_stmt: mysql::Stmt<'a>,
 }
 
-impl MysqlConnection<'_> {
+impl MysqlConnection {
     pub fn new(connection_str: &str) -> Result<Self, Box<dyn Error>> {
         let pool = mysql::Pool::new(connection_str)?;
-        let delete_old_clicks_query = "DELETE FROM StationClick WHERE ClickTimestamp < NOW() - INTERVAL :hours HOUR";
-        let delete_old_clicks_stmt = pool.prepare(delete_old_clicks_query)?;
-
-        let delete_old_checks_history_query = "DELETE FROM StationCheckHistory WHERE CheckTime < NOW() - INTERVAL :hours HOUR";
-        let delete_old_checks_history_stmt = pool.prepare(delete_old_checks_history_query)?;
-
-        let delete_old_checks_current_query = "DELETE FROM StationCheck WHERE CheckTime < NOW() - INTERVAL :hours HOUR";
-        let delete_old_checks_current_stmt = pool.prepare(delete_old_checks_current_query)?;
-        
-        let delete_never_working_query = "DELETE FROM Station WHERE LastCheckOkTime IS NULL AND Creation < NOW() - INTERVAL :hours HOUR";
-        let delete_never_working_stmt = pool.prepare(delete_never_working_query)?;
-
-        let delete_were_working_query = "DELETE FROM Station WHERE LastCheckOk=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < NOW() - INTERVAL :hours HOUR";
-        let delete_were_working_stmt = pool.prepare(delete_were_working_query)?;
-
-        let station_count_broken_query = "SELECT COUNT(*) AS Items FROM radio.Station WHERE LastCheckOK=0 OR LastCheckOK IS NULL";
-        let station_count_broken_stmt = pool.prepare(station_count_broken_query)?;
-
-        let station_count_working_query = "SELECT COUNT(*) AS Items FROM radio.Station WHERE LastCheckOK=1";
-        let station_count_working_stmt = pool.prepare(station_count_working_query)?;
-
-        let station_count_todo_query = "SELECT COUNT(*) AS Items FROM Station WHERE LastCheckTime IS NULL OR LastCheckTime < NOW() - INTERVAL :hours HOUR";
-        let station_count_todo_stmt = pool.prepare(station_count_todo_query)?;
-
-        let checks_query = "SELECT COUNT(*) AS Items FROM StationCheckHistory WHERE Source=:source AND CheckTime > NOW() - INTERVAL :hours HOUR";
-        let checks_stmt = pool.prepare(checks_query)?;
-
-        let deletable_never_working_query = "SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOkTime IS NULL AND Creation < NOW() - INTERVAL :hours HOUR";
-        let deletable_never_working_stmt = pool.prepare(deletable_never_working_query)?;
-
-        let deletable_were_working_query = "SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOk=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < NOW() - INTERVAL :hours HOUR";
-        let deletable_were_working_stmt = pool.prepare(deletable_were_working_query)?;
-
         Ok(
             MysqlConnection{
                 pool,
-                delete_old_clicks_stmt,
-                delete_old_checks_current_stmt,
-                delete_old_checks_history_stmt,
-                delete_never_working_stmt,
-                delete_were_working_stmt,
-                station_count_broken_stmt,
-                station_count_working_stmt,
-                station_count_todo_stmt,
-                checks_stmt,
-                deletable_never_working_stmt,
-                deletable_were_working_stmt,
             }
         )
     }
@@ -100,86 +46,140 @@ impl MysqlConnection<'_> {
 
         stations
     }
+
+    pub fn get_single_column_number(&self, query: &str) -> Result<u64,Box<dyn std::error::Error>> {
+        let results = self.pool.prep_exec(query, ())?;
+        self.get_single_column_number_intern(results)
+    }
+
+    pub fn get_single_column_number_intern(&self, mut results: QueryResult<'static>) -> Result<u64,Box<dyn std::error::Error>> {
+        let mut result_row = results.next().unwrap()?;
+        let count: u64 = result_row.take(0).unwrap();
+        Ok(count)
+    }
+
+    pub fn get_tag_count(&self) -> u64 {
+        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM TagCache"#).unwrap_or(0)
+    }
+
+    pub fn get_country_count(&self) -> u64 {
+        self.get_single_column_number(r#"SELECT COUNT(DISTINCT(Country)) AS StationCount FROM Station"#).unwrap_or(0)
+    }
+
+    pub fn get_language_count(&self) -> u64 {
+        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM LanguageCache"#).unwrap_or(0)
+    }
+
+    pub fn get_click_count_last_hour(&self) -> u64 {
+        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(MINUTE,ClickTimestamp,now())<=60;"#).unwrap_or(0)
+    }
+
+    pub fn get_click_count_last_day(&self) -> u64 {
+        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(HOUR,ClickTimestamp,now())<=24;"#).unwrap_or(0)
+    }
 }
 
-impl DbConnection for MysqlConnection<'_>{
+impl DbConnection for MysqlConnection {
     fn delete_old_checks(&mut self, hours: u32) -> Result<(), Box<dyn Error>> {
         let p = params!(hours);
-        self.delete_old_checks_history_stmt.execute(&p)?;
-        self.delete_old_checks_current_stmt.execute(&p)?;
+        let delete_old_checks_history_query = "DELETE FROM StationCheckHistory WHERE CheckTime < NOW() - INTERVAL :hours HOUR";
+        let mut delete_old_checks_history_stmt = self.pool.prepare(delete_old_checks_history_query)?;
+        delete_old_checks_history_stmt.execute(&p)?;
+
+        let delete_old_checks_current_query = "DELETE FROM StationCheck WHERE CheckTime < NOW() - INTERVAL :hours HOUR";
+        let mut delete_old_checks_current_stmt = self.pool.prepare(delete_old_checks_current_query)?;
+        delete_old_checks_current_stmt.execute(&p)?;
         Ok(())
     }
 
     fn delete_old_clicks(&mut self, hours: u32) -> Result<(), Box<dyn Error>> {
-        self.delete_old_clicks_stmt.execute(params!(hours))?;
+        let delete_old_clicks_query = "DELETE FROM StationClick WHERE ClickTimestamp < NOW() - INTERVAL :hours HOUR";
+        let mut delete_old_clicks_stmt = self.pool.prepare(delete_old_clicks_query)?;
+        delete_old_clicks_stmt.execute(params!(hours))?;
         Ok(())
     }
 
     fn delete_never_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>> {
-        self.delete_never_working_stmt.execute(params!(hours))?;
+        let delete_never_working_query = "DELETE FROM Station WHERE LastCheckOkTime IS NULL AND Creation < NOW() - INTERVAL :hours HOUR";
+        let mut delete_never_working_stmt = self.pool.prepare(delete_never_working_query)?;
+        delete_never_working_stmt.execute(params!(hours))?;
         Ok(())
     }
 
     fn delete_were_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>> {
-        self.delete_were_working_stmt.execute(params!(hours))?;
+        let delete_were_working_query = "DELETE FROM Station WHERE LastCheckOk=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < NOW() - INTERVAL :hours HOUR";
+        let mut delete_were_working_stmt = self.pool.prepare(delete_were_working_query)?;
+        delete_were_working_stmt.execute(params!(hours))?;
         Ok(())
     }
 
-    fn get_station_count_broken(&mut self) -> Result<u32, Box<dyn Error>> {
-        let results = self.station_count_broken_stmt.execute(())?;
+    fn get_station_count_broken(&self) -> Result<u64, Box<dyn Error>> {
+        let station_count_broken_query = "SELECT COUNT(*) AS Items FROM radio.Station WHERE LastCheckOK=0 OR LastCheckOK IS NULL";
+        let mut station_count_broken_stmt = self.pool.prepare(station_count_broken_query)?;
+        let results = station_count_broken_stmt.execute(())?;
         for result in results {
             let mut row = result?;
-            let items: u32 = row.take_opt("Items").unwrap_or(Ok(0))?;
+            let items: u64 = row.take_opt("Items").unwrap_or(Ok(0))?;
             return Ok(items);
         }
         return Ok(0);
     }
 
-    fn get_station_count_working(&mut self) -> Result<u32, Box<dyn Error>> {
-        let results = self.station_count_working_stmt.execute(())?;
+    fn get_station_count_working(&self) -> Result<u64, Box<dyn Error>> {
+        let station_count_working_query = "SELECT COUNT(*) AS Items FROM radio.Station WHERE LastCheckOK=1";
+        let mut station_count_working_stmt = self.pool.prepare(station_count_working_query)?;
+        let results = station_count_working_stmt.execute(())?;
         for result in results {
             let mut row = result?;
-            let items: u32 = row.take_opt("Items").unwrap_or(Ok(0))?;
+            let items: u64 = row.take_opt("Items").unwrap_or(Ok(0))?;
             return Ok(items);
         }
         return Ok(0);
     }
 
-    fn get_station_count_todo(&mut self, hours: u32) -> Result<u32, Box<dyn Error>> {
-        let results = self.station_count_todo_stmt.execute(params!(hours))?;
+    fn get_station_count_todo(&self, hours: u32) -> Result<u64, Box<dyn Error>> {
+        let station_count_todo_query = "SELECT COUNT(*) AS Items FROM Station WHERE LastCheckTime IS NULL OR LastCheckTime < NOW() - INTERVAL :hours HOUR";
+        let mut station_count_todo_stmt = self.pool.prepare(station_count_todo_query)?;
+        let results = station_count_todo_stmt.execute(params!(hours))?;
         for result in results {
             let mut row = result?;
-            let items: u32 = row.take_opt("Items").unwrap_or(Ok(0))?;
+            let items: u64 = row.take_opt("Items").unwrap_or(Ok(0))?;
             return Ok(items);
         }
         return Ok(0);
     }
 
-    fn get_checks(&mut self, hours: u32, source: &str) -> Result<u32, Box<dyn Error>> {
-        let results = self.checks_stmt.execute(params!(hours, source))?;
+    fn get_checks_todo_count(&self, hours: u32, source: &str) -> Result<u64, Box<dyn Error>> {
+        let checks_query = "SELECT COUNT(*) AS Items FROM StationCheckHistory WHERE Source=:source AND CheckTime > NOW() - INTERVAL :hours HOUR";
+        let mut checks_stmt = self.pool.prepare(checks_query)?;
+        let results = checks_stmt.execute(params!(hours, source))?;
         for result in results {
             let mut row = result?;
-            let items: u32 = row.take_opt("Items").unwrap_or(Ok(0))?;
+            let items: u64 = row.take_opt("Items").unwrap_or(Ok(0))?;
             return Ok(items);
         }
         return Ok(0);
     }
 
-    fn get_deletable_never_working(&mut self, hours: u32) -> Result<u32, Box<dyn Error>> {
-        let results = self.deletable_never_working_stmt.execute(params!(hours))?;
+    fn get_deletable_never_working(&self, hours: u32) -> Result<u64, Box<dyn Error>> {
+        let deletable_never_working_query = "SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOkTime IS NULL AND Creation < NOW() - INTERVAL :hours HOUR";
+        let mut deletable_never_working_stmt = self.pool.prepare(deletable_never_working_query)?;
+        let results = deletable_never_working_stmt.execute(params!(hours))?;
         for result in results {
             let mut row = result?;
-            let items: u32 = row.take_opt("Items").unwrap_or(Ok(0))?;
+            let items: u64 = row.take_opt("Items").unwrap_or(Ok(0))?;
             return Ok(items);
         }
         return Ok(0);
     }
 
-    fn get_deletable_were_working(&mut self, hours: u32) -> Result<u32, Box<dyn Error>> {
-        let results = self.deletable_were_working_stmt.execute(params!(hours))?;
+    fn get_deletable_were_working(&self, hours: u32) -> Result<u64, Box<dyn Error>> {
+        let deletable_were_working_query = "SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOk=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < NOW() - INTERVAL :hours HOUR";
+        let mut deletable_were_working_stmt = self.pool.prepare(deletable_were_working_query)?;
+        let results = deletable_were_working_stmt.execute(params!(hours))?;
         for result in results {
             let mut row = result?;
-            let items: u32 = row.take_opt("Items").unwrap_or(Ok(0))?;
+            let items: u64 = row.take_opt("Items").unwrap_or(Ok(0))?;
             return Ok(items);
         }
         return Ok(0);

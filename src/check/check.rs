@@ -77,7 +77,7 @@ fn check_for_change(
 }
 
 fn update_station(
-    conn: &mut db::MysqlConnection<'_>,
+    conn: &mut db::MysqlConnection,
     old: &models::StationItem,
     new_item: &StationCheckItemNew,
     new_favicon: &str,
