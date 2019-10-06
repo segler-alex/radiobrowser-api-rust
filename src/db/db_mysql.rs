@@ -1,4 +1,3 @@
-use mysql::QueryResult;
 use check::models::StationItem;
 use check::models::StationCheckItemNew;
 use std::error::Error;
@@ -49,33 +48,22 @@ impl MysqlConnection {
 
     pub fn get_single_column_number(&self, query: &str) -> Result<u64,Box<dyn std::error::Error>> {
         let results = self.pool.prep_exec(query, ())?;
-        self.get_single_column_number_intern(results)
+        for result in results {
+            let mut row = result?;
+            let items: u64 = row.take_opt(0).unwrap_or(Ok(0))?;
+            return Ok(items);
+        }
+        return Ok(0);
     }
 
-    pub fn get_single_column_number_intern(&self, mut results: QueryResult<'static>) -> Result<u64,Box<dyn std::error::Error>> {
-        let mut result_row = results.next().unwrap()?;
-        let count: u64 = result_row.take(0).unwrap();
-        Ok(count)
-    }
-
-    pub fn get_tag_count(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM TagCache"#).unwrap_or(0)
-    }
-
-    pub fn get_country_count(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(DISTINCT(Country)) AS StationCount FROM Station"#).unwrap_or(0)
-    }
-
-    pub fn get_language_count(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM LanguageCache"#).unwrap_or(0)
-    }
-
-    pub fn get_click_count_last_hour(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(MINUTE,ClickTimestamp,now())<=60;"#).unwrap_or(0)
-    }
-
-    pub fn get_click_count_last_day(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(HOUR,ClickTimestamp,now())<=24;"#).unwrap_or(0)
+    pub fn get_single_column_number_params(&self, query: &str, p: Vec<(String, mysql::Value)>) -> Result<u64,Box<dyn std::error::Error>> {
+        let results = self.pool.prep_exec(query, p)?;
+        for result in results {
+            let mut row = result?;
+            let items: u64 = row.take_opt(0).unwrap_or(Ok(0))?;
+            return Ok(items);
+        }
+        return Ok(0);
     }
 }
 
@@ -114,102 +102,83 @@ impl DbConnection for MysqlConnection {
     }
 
     fn get_station_count_broken(&self) -> Result<u64, Box<dyn Error>> {
-        let station_count_broken_query = "SELECT COUNT(*) AS Items FROM radio.Station WHERE LastCheckOK=0 OR LastCheckOK IS NULL";
-        let mut station_count_broken_stmt = self.pool.prepare(station_count_broken_query)?;
-        let results = station_count_broken_stmt.execute(())?;
-        for result in results {
-            let mut row = result?;
-            let items: u64 = row.take_opt("Items").unwrap_or(Ok(0))?;
-            return Ok(items);
-        }
-        return Ok(0);
+        self.get_single_column_number("SELECT COUNT(*) AS Items FROM radio.Station WHERE LastCheckOK=0 OR LastCheckOK IS NULL")
     }
 
     fn get_station_count_working(&self) -> Result<u64, Box<dyn Error>> {
-        let station_count_working_query = "SELECT COUNT(*) AS Items FROM radio.Station WHERE LastCheckOK=1";
-        let mut station_count_working_stmt = self.pool.prepare(station_count_working_query)?;
-        let results = station_count_working_stmt.execute(())?;
-        for result in results {
-            let mut row = result?;
-            let items: u64 = row.take_opt("Items").unwrap_or(Ok(0))?;
-            return Ok(items);
-        }
-        return Ok(0);
+        self.get_single_column_number("SELECT COUNT(*) AS Items FROM radio.Station WHERE LastCheckOK=1")
+    }
+
+    fn get_tag_count(&self) -> Result<u64, Box<dyn Error>> {
+        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM TagCache"#)
+    }
+
+    fn get_country_count(&self) -> Result<u64, Box<dyn Error>> {
+        self.get_single_column_number(r#"SELECT COUNT(DISTINCT(Country)) AS StationCount FROM Station"#)
+    }
+
+    fn get_language_count(&self) -> Result<u64, Box<dyn Error>> {
+        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM LanguageCache"#)
+    }
+
+    fn get_click_count_last_hour(&self) -> Result<u64, Box<dyn Error>> {
+        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(MINUTE,ClickTimestamp,now())<=60;"#)
+    }
+
+    fn get_click_count_last_day(&self) -> Result<u64, Box<dyn Error>> {
+        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(HOUR,ClickTimestamp,now())<=24;"#)
     }
 
     fn get_station_count_todo(&self, hours: u32) -> Result<u64, Box<dyn Error>> {
-        let station_count_todo_query = "SELECT COUNT(*) AS Items FROM Station WHERE LastCheckTime IS NULL OR LastCheckTime < NOW() - INTERVAL :hours HOUR";
-        let mut station_count_todo_stmt = self.pool.prepare(station_count_todo_query)?;
-        let results = station_count_todo_stmt.execute(params!(hours))?;
-        for result in results {
-            let mut row = result?;
-            let items: u64 = row.take_opt("Items").unwrap_or(Ok(0))?;
-            return Ok(items);
-        }
-        return Ok(0);
+        self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckTime IS NULL OR LastCheckTime < NOW() - INTERVAL :hours HOUR", params!(hours))
     }
 
     fn get_checks_todo_count(&self, hours: u32, source: &str) -> Result<u64, Box<dyn Error>> {
-        let checks_query = "SELECT COUNT(*) AS Items FROM StationCheckHistory WHERE Source=:source AND CheckTime > NOW() - INTERVAL :hours HOUR";
-        let mut checks_stmt = self.pool.prepare(checks_query)?;
-        let results = checks_stmt.execute(params!(hours, source))?;
-        for result in results {
-            let mut row = result?;
-            let items: u64 = row.take_opt("Items").unwrap_or(Ok(0))?;
-            return Ok(items);
-        }
-        return Ok(0);
+        self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM StationCheckHistory WHERE Source=:source AND CheckTime > NOW() - INTERVAL :hours HOUR",params!(hours, source))
     }
 
     fn get_deletable_never_working(&self, hours: u32) -> Result<u64, Box<dyn Error>> {
-        let deletable_never_working_query = "SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOkTime IS NULL AND Creation < NOW() - INTERVAL :hours HOUR";
-        let mut deletable_never_working_stmt = self.pool.prepare(deletable_never_working_query)?;
-        let results = deletable_never_working_stmt.execute(params!(hours))?;
-        for result in results {
-            let mut row = result?;
-            let items: u64 = row.take_opt("Items").unwrap_or(Ok(0))?;
-            return Ok(items);
-        }
-        return Ok(0);
+        self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOkTime IS NULL AND Creation < NOW() - INTERVAL :hours HOUR", params!(hours))
     }
 
     fn get_deletable_were_working(&self, hours: u32) -> Result<u64, Box<dyn Error>> {
-        let deletable_were_working_query = "SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOk=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < NOW() - INTERVAL :hours HOUR";
-        let mut deletable_were_working_stmt = self.pool.prepare(deletable_were_working_query)?;
-        let results = deletable_were_working_stmt.execute(params!(hours))?;
-        for result in results {
-            let mut row = result?;
-            let items: u64 = row.take_opt("Items").unwrap_or(Ok(0))?;
-            return Ok(items);
-        }
-        return Ok(0);
+        self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOk=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < NOW() - INTERVAL :hours HOUR", params!(hours))
     }
 
-    fn insert_check(&mut self, item: &StationCheckItemNew) -> Result<(), Box<dyn std::error::Error>> {
-        let query = "DELETE FROM StationCheck WHERE StationUuid=:stationuuid AND Source=:source";
-        let mut my_stmt = self.pool.prepare(query)?;
-        my_stmt.execute(params!(
-            "stationuuid" => &item.station_uuid,
-            "source" => &item.source
-        ))?;
+    fn insert_checks(&mut self, list: Vec<&StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
+        let query_delete_old_station_checks = "DELETE FROM StationCheck WHERE StationUuid=:stationuuid AND Source=:source";
+        let query_insert_station_check = "INSERT INTO StationCheck(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) VALUES(?,UUID(),?,?,?,?,?,NOW(),?)";
+        let query_insert_station_check_history = "INSERT INTO StationCheckHistory(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) VALUES(?,UUID(),?,?,?,?,?,NOW(),?)";
 
-        let query2 = "INSERT INTO StationCheck(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) VALUES(?,UUID(),?,?,?,?,?,NOW(),?)";
-        let mut my_stmt2 = self.pool.prepare(query2)?;
-        my_stmt2.execute((&item.station_uuid,&item.source,&item.codec,&item.bitrate,&item.hls,&item.check_ok,&item.url))?;
+        let mut stmt_delete_old_station_checks = self.pool.prepare(query_delete_old_station_checks)?;
+        let mut stmt_insert_station_check = self.pool.prepare(query_insert_station_check)?;
+        let mut stmt_insert_station_check_history = self.pool.prepare(query_insert_station_check_history)?;
 
-        let query3 = "INSERT INTO StationCheckHistory(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) VALUES(?,UUID(),?,?,?,?,?,NOW(),?)";
-        let mut my_stmt3 = self.pool.prepare(query3)?;
-        my_stmt3.execute((&item.station_uuid,&item.source,&item.codec,&item.bitrate,&item.hls,&item.check_ok,&item.url))?;
+        for item in list {
+            stmt_delete_old_station_checks.execute(params!(
+                "stationuuid" => &item.station_uuid,
+                "source" => &item.source
+            ))?;
+            stmt_insert_station_check.execute((&item.station_uuid,&item.source,&item.codec,&item.bitrate,&item.hls,&item.check_ok,&item.url))?;
+            stmt_insert_station_check_history.execute((&item.station_uuid,&item.source,&item.codec,&item.bitrate,&item.hls,&item.check_ok,&item.url))?;
+        }
         Ok(())
     }
 
-    fn update_station(&mut self, item: &StationCheckItemNew) -> Result<(), Box<dyn std::error::Error>> {
-        let mut query = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOkTime=NOW(),LastCheckOk=?,Codec=?,Bitrate=?,UrlCache=? WHERE StationUuid=?";
-        if !item.check_ok{
-            query = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOk=?,Codec=?,Bitrate=?,UrlCache=? WHERE StationUuid=?";
+    fn update_stations(&mut self, list: Vec<&StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
+        let query_update_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOkTime=NOW(),LastCheckOk=?,Codec=?,Bitrate=?,UrlCache=? WHERE StationUuid=?";
+        let mut stmt_update_ok = self.pool.prepare(query_update_ok)?;
+        
+        let query_update_not_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOk=?,Codec=?,Bitrate=?,UrlCache=? WHERE StationUuid=?";
+        let mut stmt_update_not_ok = self.pool.prepare(query_update_not_ok)?;
+
+        for item in list {
+            if item.check_ok{
+                stmt_update_ok.execute((&item.check_ok,&item.codec,&item.bitrate,&item.url,&item.station_uuid))?;
+            } else {
+                stmt_update_not_ok.execute((&item.check_ok,&item.codec,&item.bitrate,&item.url,&item.station_uuid))?;
+            }
         }
-        let mut my_stmt = self.pool.prepare(query).unwrap();
-        my_stmt.execute((&item.check_ok,&item.codec,&item.bitrate,&item.url,&item.station_uuid))?;
         Ok(())
     }
 

@@ -172,59 +172,6 @@ impl Connection {
         Ok(())
     }
 
-    /*pub fn insert_station_change(&self, stationchange: &StationHistoryCurrent) -> Result<(),Box<dyn std::error::Error>> {
-        let params = params!{
-            "stationid" => stationchange.id,
-            "name" => stationchange.name.clone(),
-            "url" => stationchange.url.clone(),
-            "homepage" => stationchange.homepage.clone(),
-            "favicon" => stationchange.favicon.clone(),
-            "country" => stationchange.country.clone(),
-            "state" => stationchange.state.clone(),
-            "language" => stationchange.language.clone(),
-            "tags" => stationchange.tags.clone(),
-            "ip" => stationchange.ip.clone(),
-            "stationuuid" => stationchange.stationuuid.clone(),
-            "changeuuid" => stationchange.changeuuid.clone(),
-        };
-        let query = format!("INSERT INTO
-            StationHistory(StationID,Name,Url,Homepage,Favicon,Country,SubCountry,Language,Tags,IP,StationUuid,ChangeUuid)
-            VALUES(:stationid,:name,:url,:homepage,:favicon,:country,:state,:language,:tags,:ip,:stationuuid,:changeuuid)");
-        self.pool.prep_exec(query, params)?;
-        Ok(())
-    }*/
-
-    /*pub fn insert_station_changes(&self, stations: &[StationHistoryCurrent]) -> Result<(),Box<dyn std::error::Error>> {
-        let mut params = params!{
-            "x" => "x"
-        };
-        let mut query = String::from("INSERT INTO StationHistory(Name,Url,Homepage,Favicon,Country,SubCountry,Language,Tags,IP,StationUuid,ChangeUuid) VALUES");
-        let mut i = 0;
-        for station in stations {
-            if i > 0 {
-                query.push_str(",");
-            }
-            query.push_str(&format!("(:name{i},:url{i},:homepage{i},:favicon{i},:country{i},:state{i},:language{i},:tags{i},:ip{i},:stationuuid{i},:changeuuid{i})",i=i));
-            params.push((format!("name{i}",i=i), Value::from(station.name.clone())));
-            params.push((format!("url{i}",i=i), Value::from(station.url.clone())));
-            params.push((format!("homepage{i}",i=i), Value::from(station.homepage.clone())));
-            params.push((format!("favicon{i}",i=i), Value::from(station.favicon.clone())));
-
-            params.push((format!("country{i}",i=i), Value::from(station.country.clone())));
-            params.push((format!("state{i}",i=i), Value::from(station.state.clone())));
-            params.push((format!("language{i}",i=i), Value::from(station.language.clone())));
-            params.push((format!("tags{i}",i=i), Value::from(station.tags.clone())));
-
-            params.push((format!("ip{i}",i=i), Value::from(station.ip.clone())));
-            params.push((format!("stationuuid{i}",i=i), Value::from(station.stationuuid.clone())));
-            params.push((format!("changeuuid{i}",i=i), Value::from(station.changeuuid.clone())));
-
-            i = i+1;
-        }
-        self.pool.prep_exec(query, params)?;
-        Ok(())
-    }*/
-
     pub fn station_exists(&self, stationuuid: &str) -> Result<bool, Box<dyn std::error::Error>> {
         let params = params!{
             "stationuuid" => stationuuid,

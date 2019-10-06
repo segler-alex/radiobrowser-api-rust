@@ -248,11 +248,11 @@ fn get_status(connection_new: &MysqlConnection) -> Result<Status, Box<dyn std::e
             "OK".to_string(),
             connection_new.get_station_count_working()?,
             connection_new.get_station_count_broken()?,
-            connection_new.get_tag_count(),
-            connection_new.get_click_count_last_hour(),
-            connection_new.get_click_count_last_day(),
-            connection_new.get_language_count(),
-            connection_new.get_country_count(),
+            connection_new.get_tag_count()?,
+            connection_new.get_click_count_last_hour()?,
+            connection_new.get_click_count_last_day()?,
+            connection_new.get_language_count()?,
+            connection_new.get_country_count()?,
         )
     )
 }
