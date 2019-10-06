@@ -1,22 +1,22 @@
 extern crate chrono;
 extern crate xml_writer;
 
-use api::data::StationHistoryCurrent;
-use api::data::StationAddResult;
-use api::data::Station;
-use api::data::Result1n;
-use api::data::ExtraInfo;
-use api::data::State;
-use api::data::StationCheck;
+use crate::api::data::StationHistoryCurrent;
+use crate::api::data::StationAddResult;
+use crate::api::data::Station;
+use crate::api::data::Result1n;
+use crate::api::data::ExtraInfo;
+use crate::api::data::State;
+use crate::api::data::StationCheck;
 use mysql::QueryResult;
 use mysql::Value;
 use std;
 use std::collections::HashMap;
-use thread;
+use crate::thread;
 extern crate uuid;
 use self::uuid::Uuid;
-use api::simple_migrate::Migrations;
-use api::api_error;
+use crate::api::simple_migrate::Migrations;
+use crate::api::api_error;
 
 #[derive(Clone)]
 pub struct Connection {

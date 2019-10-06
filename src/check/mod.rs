@@ -5,8 +5,8 @@ mod favicon;
 
 use std::thread;
 use std::time::Duration;
-use db::MysqlConnection;
-use db::DbConnection;
+use crate::db::MysqlConnection;
+use crate::db::DbConnection;
 
 fn do_cleanup(delete: bool, database_url: &str, source: &str) -> Result<(), Box<dyn std::error::Error>> {
     let mut conn_new_style = MysqlConnection::new(database_url)?;

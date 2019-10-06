@@ -1,4 +1,4 @@
-use api::data::station_history::StationHistoryCurrent;
+use crate::api::data::station_history::StationHistoryCurrent;
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct StationCachedInfo {

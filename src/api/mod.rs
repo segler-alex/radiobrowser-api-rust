@@ -4,8 +4,8 @@ extern crate serde;
 extern crate serde_json;
 extern crate dns_lookup;
 
-use db::MysqlConnection;
-use db::DbConnection;
+use crate::db::MysqlConnection;
+use crate::db::DbConnection;
 
 pub mod db;
 pub mod data;
@@ -16,17 +16,17 @@ mod parameters;
 
 use self::parameters::RequestParameters;
 
-use api::data::ResultMessage;
-use api::data::StationCachedInfo;
-use api::data::StationHistoryCurrent;
-use api::data::Station;
-use api::data::Result1n;
-use api::data::ExtraInfo;
-use api::data::State;
-use api::data::StationCheck;
-use api::data::Status;
-use api::rouille::Response;
-use api::rouille::Request;
+use crate::api::data::ResultMessage;
+use crate::api::data::StationCachedInfo;
+use crate::api::data::StationHistoryCurrent;
+use crate::api::data::Station;
+use crate::api::data::Result1n;
+use crate::api::data::ExtraInfo;
+use crate::api::data::State;
+use crate::api::data::StationCheck;
+use crate::api::data::Status;
+use crate::api::rouille::Response;
+use crate::api::rouille::Request;
 use std;
 use self::dns_lookup::lookup_host;
 use self::dns_lookup::lookup_addr;

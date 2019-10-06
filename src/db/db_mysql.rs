@@ -1,7 +1,7 @@
-use check::models::StationItem;
-use check::models::StationCheckItemNew;
+use crate::check::models::StationItem;
+use crate::check::models::StationCheckItemNew;
 use std::error::Error;
-use db::DbConnection;
+use crate::db::DbConnection;
 use mysql;
 
 pub struct MysqlConnection {

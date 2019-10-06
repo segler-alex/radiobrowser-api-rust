@@ -1,10 +1,10 @@
-use check::models::StationItem;
-use check::models::StationOldNew;
-use thread;
+use crate::check::models::StationItem;
+use crate::check::models::StationOldNew;
+use crate::thread;
 use threadpool::ThreadPool;
 
 use av_stream_info_rust;
-use check::favicon;
+use crate::check::favicon;
 
 use std;
 use std::sync::mpsc::channel;
@@ -12,11 +12,11 @@ use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
 
-use check::models;
-use check::models::StationCheckItemNew;
+use crate::check::models;
+use crate::check::models::StationCheckItemNew;
 
-use db;
-use db::DbConnection;
+use crate::db;
+use crate::db::DbConnection;
 
 use colored::*;
 
