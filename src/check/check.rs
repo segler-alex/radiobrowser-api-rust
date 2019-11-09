@@ -151,7 +151,7 @@ fn dbcheck_internal(
                             station_uuid: station.uuid.clone(),
                             source: source.clone(),
                             codec: codec,
-                            bitrate: item.Bitrate as i32,
+                            bitrate: item.Bitrate as u32,
                             hls: item.Hls,
                             check_ok: true,
                             url: item.Url.clone(),
