@@ -437,7 +437,7 @@ fn handle_connection_internal(connection: &db::Connection, request: &rouille::Re
                     "deleted" => add_cors(Station::get_response(connection.get_stations_deleted_all(param_limit), format)),
                     "changed" => add_cors(encode_changes(connection.get_changes(None, param_last_changeuuid), format)),
                     "byurl" => add_cors(Station::get_response(connection.get_stations_by_column_multiple("Url", param_url,true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
-                    "search" => add_cors(Station::get_response(connection.get_stations_advanced(param_name, param_name_exact, param_country, param_country_exact, param_state, param_state_exact, param_language, param_language_exact, param_tag, param_tag_exact, param_tag_list, param_bitrate_min, param_bitrate_max, &param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
+                    "search" => add_cors(Station::get_response(connection.get_stations_advanced(param_name, param_name_exact, param_country, param_country_exact, param_countrycode, param_state, param_state_exact, param_language, param_language_exact, param_tag, param_tag_exact, param_tag_list, param_bitrate_min, param_bitrate_max, &param_order,param_reverse,param_hidebroken,param_offset,param_limit), format)),
                     _ => rouille::Response::empty_404()
                 }
             },
