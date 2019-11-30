@@ -553,6 +553,7 @@ impl Connection {
         name_exact: bool,
         country: Option<String>,
         country_exact: bool,
+        countrycode: Option<String>,
         state: Option<String>,
         state_exact: bool,
         language: Option<String>,
@@ -593,6 +594,9 @@ impl Connection {
             } else {
                 query.push_str(" AND Country LIKE CONCAT('%',:country,'%')");
             }
+        }
+        if countrycode.is_some() {
+            query.push_str(" AND CountryCode=:countrycode");
         }
         if state.is_some() {
             if state_exact {
