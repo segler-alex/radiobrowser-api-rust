@@ -69,6 +69,7 @@ fn main() {
                             &config.log_dir,
                             config.servers_pull,
                             config.mirror_pull_interval,
+                            config.prometheus_exporter,
                         );
                     }
                     Err(e) => {

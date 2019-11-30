@@ -26,6 +26,11 @@ server-url = "https://de1.api.radio-browser.info"
 ## Mirror pull interval in seconds
 mirror-pull-interval = 60
 
+## Prometheus exporter
+## ===================
+## this will enable the prometheus compatible exporter on the main listening port
+## you can reach it by doing a "GET /metrics"
+prometheus-exporter = false
 
 ## Stream check
 ## ============

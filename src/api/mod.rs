@@ -13,6 +13,7 @@ mod pull_servers;
 mod api_error;
 mod simple_migrate;
 mod parameters;
+mod prometheus_exporter;
 
 use self::parameters::RequestParameters;
 
@@ -226,7 +227,7 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Re
     }
 }
 
-pub fn run(connection: db::Connection, connection_new: MysqlConnection, host : String, port : i32, threads : usize, server_name: &str, static_dir: &str, log_dir: &str, mirrors: Vec<String>, mirror_pull_interval: u64) {
+pub fn run(connection: db::Connection, connection_new: MysqlConnection, host : String, port : i32, threads : usize, server_name: &str, static_dir: &str, log_dir: &str, mirrors: Vec<String>, mirror_pull_interval: u64, prometheus_exporter_enabled: bool) {
     let listen_str = format!("{}:{}", host, port);
     info!("Listen on {} with {} threads", listen_str, threads);
     let x : Option<usize> = Some(threads);
@@ -237,7 +238,7 @@ pub fn run(connection: db::Connection, connection_new: MysqlConnection, host : S
         pull_servers::run(connection.clone(), mirrors, mirror_pull_interval);
     }
     rouille::start_server_with_pool(listen_str, x, move |request| {
-        handle_connection(&connection, &connection_new, request, &y, &static_dir, &log_dir)
+        handle_connection(&connection, &connection_new, request, &y, &static_dir, &log_dir, prometheus_exporter_enabled)
     });
 }
 
@@ -299,7 +300,7 @@ fn log_to_file(file_name: &str, line: &str) {
     }
 }
 
-fn handle_connection(connection: &db::Connection, connection_new: &MysqlConnection, request: &rouille::Request, server_name: &str, static_dir: &str, log_dir: &str) -> rouille::Response {
+fn handle_connection(connection: &db::Connection, connection_new: &MysqlConnection, request: &rouille::Request, server_name: &str, static_dir: &str, log_dir: &str, prometheus_exporter_enabled: bool) -> rouille::Response {
     let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
     let referer: String = request.header("Referer").unwrap_or(&"-".to_string()).to_string();
     let user_agent: String = request.header("User-agent").unwrap_or(&"-".to_string()).to_string();
@@ -318,7 +319,7 @@ fn handle_connection(connection: &db::Connection, connection_new: &MysqlConnecti
         log_to_file(&log_file, &line);
     };
     rouille::log_custom(request, log_ok, log_err, || {
-        let result = handle_connection_internal(connection, connection_new, request, server_name, static_dir);
+        let result = handle_connection_internal(connection, connection_new, request, server_name, static_dir, prometheus_exporter_enabled);
         match result {
             Ok(response) => response,
             Err(err) => rouille::Response::text(err.to_string()).with_status_code(500),
@@ -326,7 +327,7 @@ fn handle_connection(connection: &db::Connection, connection_new: &MysqlConnecti
     })
 }
 
-fn handle_connection_internal(connection: &db::Connection, connection_new: &MysqlConnection, request: &rouille::Request, server_name: &str, static_dir: &str) -> Result<rouille::Response, Box<dyn std::error::Error>> {
+fn handle_connection_internal(connection: &db::Connection, connection_new: &MysqlConnection, request: &rouille::Request, server_name: &str, static_dir: &str, prometheus_exporter_enabled: bool) -> Result<rouille::Response, Box<dyn std::error::Error>> {
     if request.method() != "POST" && request.method() != "GET" {
         return Ok(rouille::Response::empty_404());
     }
@@ -381,6 +382,13 @@ fn handle_connection_internal(connection: &db::Connection, connection_new: &Mysq
     if items.len() == 2 {
         let file_name = items[1];
         match file_name {
+            "metrics" => {
+                if prometheus_exporter_enabled {
+                    Ok(prometheus_exporter::render(&connection_new)?)
+                }else{
+                    Ok(rouille::Response::text("Exporter not enabled!").with_status_code(423))
+                }
+            },
             "favicon.ico" => Ok(send_file(&format!("{}/{}",static_dir,"favicon.ico"), "image/png")),
             "robots.txt" => Ok(send_file(&format!("{}/{}",static_dir,"robots.txt"), "text/plain")),
             "main.css" => Ok(send_file(&format!("{}/{}",static_dir,"main.css"),"text/css")),

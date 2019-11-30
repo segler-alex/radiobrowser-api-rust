@@ -4,6 +4,7 @@ use std::error::Error;
 use crate::db::DbConnection;
 use mysql;
 
+#[derive(Clone)]
 pub struct MysqlConnection {
     pool: mysql::Pool,
 }
