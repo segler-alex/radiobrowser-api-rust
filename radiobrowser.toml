@@ -28,9 +28,11 @@ mirror-pull-interval = 60
 
 ## Prometheus exporter
 ## ===================
-## this will enable the prometheus compatible exporter on the main listening port
-## you can reach it by doing a "GET /metrics"
+## This will enable the prometheus compatible exporter on the main listening port
+## You can reach it by doing a "GET /metrics"
 prometheus-exporter = false
+## Prefix for all exported keys
+prometheus-exporter-prefix = "radio_browser_"
 
 ## Stream check
 ## ============

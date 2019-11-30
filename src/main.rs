@@ -70,6 +70,7 @@ fn main() {
                             config.servers_pull,
                             config.mirror_pull_interval,
                             config.prometheus_exporter,
+                            &config.prometheus_exporter_prefix,
                         );
                     }
                     Err(e) => {
