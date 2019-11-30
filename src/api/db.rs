@@ -1,22 +1,22 @@
 extern crate chrono;
 extern crate xml_writer;
 
-use api::data::StationHistoryCurrent;
-use api::data::StationAddResult;
-use api::data::Station;
-use api::data::Result1n;
-use api::data::ExtraInfo;
-use api::data::State;
-use api::data::StationCheck;
+use crate::api::data::StationHistoryCurrent;
+use crate::api::data::StationAddResult;
+use crate::api::data::Station;
+use crate::api::data::Result1n;
+use crate::api::data::ExtraInfo;
+use crate::api::data::State;
+use crate::api::data::StationCheck;
 use mysql::QueryResult;
 use mysql::Value;
 use std;
 use std::collections::HashMap;
-use thread;
+use crate::thread;
 extern crate uuid;
 use self::uuid::Uuid;
-use api::simple_migrate::Migrations;
-use api::api_error;
+use crate::api::simple_migrate::Migrations;
+use crate::api::api_error;
 
 #[derive(Clone)]
 pub struct Connection {
@@ -43,43 +43,10 @@ impl Connection {
     Date_Format(CheckTime,'%Y-%m-%d %H:%i:%s') AS CheckTimeFormated,
     UrlCache";
 
-    pub fn get_single_column_number(&self, query: &str) -> Result<u64,Box<dyn std::error::Error>> {
-        let results = self.pool.prep_exec(query, ())?;
-        self.get_single_column_number_intern(results)
-    }
-
     pub fn get_single_column_number_intern(&self, mut results: QueryResult<'static>) -> Result<u64,Box<dyn std::error::Error>> {
         let mut result_row = results.next().unwrap()?;
         let count: u64 = result_row.take(0).unwrap();
         Ok(count)
-    }
-
-    pub fn get_station_count(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM Station WHERE LastCheckOK=True"#).unwrap_or(0)
-    }
-
-    pub fn get_broken_station_count(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM Station WHERE LastCheckOK=False"#).unwrap_or(0)
-    }
-
-    pub fn get_tag_count(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM TagCache"#).unwrap_or(0)
-    }
-
-    pub fn get_country_count(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(DISTINCT(Country)) AS StationCount FROM Station"#).unwrap_or(0)
-    }
-
-    pub fn get_language_count(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) AS StationCount FROM LanguageCache"#).unwrap_or(0)
-    }
-
-    pub fn get_click_count_last_hour(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(MINUTE,ClickTimestamp,now())<=60;"#).unwrap_or(0)
-    }
-
-    pub fn get_click_count_last_day(&self) -> u64 {
-        self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(HOUR,ClickTimestamp,now())<=24;"#).unwrap_or(0)
     }
 
     /*pub fn is_empty(&self) -> Result<bool, Box<dyn std::error::Error>> {
@@ -204,59 +171,6 @@ impl Connection {
         
         Ok(())
     }
-
-    /*pub fn insert_station_change(&self, stationchange: &StationHistoryCurrent) -> Result<(),Box<dyn std::error::Error>> {
-        let params = params!{
-            "stationid" => stationchange.id,
-            "name" => stationchange.name.clone(),
-            "url" => stationchange.url.clone(),
-            "homepage" => stationchange.homepage.clone(),
-            "favicon" => stationchange.favicon.clone(),
-            "country" => stationchange.country.clone(),
-            "state" => stationchange.state.clone(),
-            "language" => stationchange.language.clone(),
-            "tags" => stationchange.tags.clone(),
-            "ip" => stationchange.ip.clone(),
-            "stationuuid" => stationchange.stationuuid.clone(),
-            "changeuuid" => stationchange.changeuuid.clone(),
-        };
-        let query = format!("INSERT INTO
-            StationHistory(StationID,Name,Url,Homepage,Favicon,Country,SubCountry,Language,Tags,IP,StationUuid,ChangeUuid)
-            VALUES(:stationid,:name,:url,:homepage,:favicon,:country,:state,:language,:tags,:ip,:stationuuid,:changeuuid)");
-        self.pool.prep_exec(query, params)?;
-        Ok(())
-    }*/
-
-    /*pub fn insert_station_changes(&self, stations: &[StationHistoryCurrent]) -> Result<(),Box<dyn std::error::Error>> {
-        let mut params = params!{
-            "x" => "x"
-        };
-        let mut query = String::from("INSERT INTO StationHistory(Name,Url,Homepage,Favicon,Country,SubCountry,Language,Tags,IP,StationUuid,ChangeUuid) VALUES");
-        let mut i = 0;
-        for station in stations {
-            if i > 0 {
-                query.push_str(",");
-            }
-            query.push_str(&format!("(:name{i},:url{i},:homepage{i},:favicon{i},:country{i},:state{i},:language{i},:tags{i},:ip{i},:stationuuid{i},:changeuuid{i})",i=i));
-            params.push((format!("name{i}",i=i), Value::from(station.name.clone())));
-            params.push((format!("url{i}",i=i), Value::from(station.url.clone())));
-            params.push((format!("homepage{i}",i=i), Value::from(station.homepage.clone())));
-            params.push((format!("favicon{i}",i=i), Value::from(station.favicon.clone())));
-
-            params.push((format!("country{i}",i=i), Value::from(station.country.clone())));
-            params.push((format!("state{i}",i=i), Value::from(station.state.clone())));
-            params.push((format!("language{i}",i=i), Value::from(station.language.clone())));
-            params.push((format!("tags{i}",i=i), Value::from(station.tags.clone())));
-
-            params.push((format!("ip{i}",i=i), Value::from(station.ip.clone())));
-            params.push((format!("stationuuid{i}",i=i), Value::from(station.stationuuid.clone())));
-            params.push((format!("changeuuid{i}",i=i), Value::from(station.changeuuid.clone())));
-
-            i = i+1;
-        }
-        self.pool.prep_exec(query, params)?;
-        Ok(())
-    }*/
 
     pub fn station_exists(&self, stationuuid: &str) -> Result<bool, Box<dyn std::error::Error>> {
         let params = params!{

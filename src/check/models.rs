@@ -5,7 +5,7 @@ pub struct StationItem {
     pub name: String,
     pub url: String,
     pub codec: String,
-    pub bitrate: i32,
+    pub bitrate: u32,
     pub hls: bool,
     pub check_ok: bool,
     pub urlcache: String,
@@ -20,7 +20,7 @@ pub struct StationCheckItem {
     pub check_uuid: String,
     pub source: String,
     pub codec: String,
-    pub bitrate: i32,
+    pub bitrate: u32,
     pub hls: bool,
     pub check_ok: bool,
     pub check_time: String,
@@ -31,8 +31,14 @@ pub struct StationCheckItemNew {
     pub station_uuid: String,
     pub source: String,
     pub codec: String,
-    pub bitrate: i32,
+    pub bitrate: u32,
     pub hls: bool,
     pub check_ok: bool,
     pub url: String,
+}
+
+#[derive(Clone,Debug)]
+pub struct StationOldNew {
+    pub old: StationItem,
+    pub new: StationCheckItemNew,
 }

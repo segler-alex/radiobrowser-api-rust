@@ -1,12 +1,12 @@
 use std::thread;
-use time;
-use api::db;
-use api::api_error;
-use api::data::StationHistoryCurrent;
-use api::data::StationHistoryV0;
-use api::data::StationCheck;
-use api::data::StationCheckV0;
-use api::data::Status;
+use crate::time;
+use crate::api::db;
+use crate::api::api_error;
+use crate::api::data::StationHistoryCurrent;
+use crate::api::data::StationHistoryV0;
+use crate::api::data::StationCheck;
+use crate::api::data::StationCheckV0;
+use crate::api::data::Status;
 
 pub fn run(connection: db::Connection, mirrors: Vec<String>, pull_interval: u64){
     thread::spawn(move || {
@@ -87,12 +87,6 @@ fn pull_server(connection: &db::Connection, server: &str) -> Result<(),Box<dyn s
     let list = pull_history(server, api_version, lastid)?;
     let len = list.len();
 
-    /*if connection.is_empty()? {
-        println!("Initial sync ({})..", list.len());
-        let chunksize = 10;
-        connection.insert_station_changes(&list[0..chunksize])?;
-    }else{*/
-    
     trace!("Incremental station change sync ({})..", list.len());
     let mut station_change_count = 0;
     for station in list {
@@ -100,14 +94,10 @@ fn pull_server(connection: &db::Connection, server: &str) -> Result<(),Box<dyn s
         connection.insert_station_by_change(station)?;
         station_change_count = station_change_count + 1;
 
-        if station_change_count % 100 == 0 {
-            connection.set_pull_server_lastid(server, &changeuuid)?;
-        }
-        if station_change_count == len {
+        if station_change_count % 100 == 0 || station_change_count == len {
             connection.set_pull_server_lastid(server, &changeuuid)?;
         }
     }
-    //}
 
     let lastcheckid = connection.get_pull_server_lastcheckid(server);
     let list_checks = pull_checks(server, api_version, lastcheckid)?;
@@ -121,10 +111,7 @@ fn pull_server(connection: &db::Connection, server: &str) -> Result<(),Box<dyn s
         connection.insert_pulled_station_check(check)?;
         station_check_count = station_check_count + 1;
 
-        if station_check_count % 100 == 0 {
-            connection.set_pull_server_lastcheckid(server, &changeuuid)?;
-        }
-        if station_check_count == len {
+        if station_check_count % 100 == 0 || station_check_count == len {
             connection.set_pull_server_lastcheckid(server, &changeuuid)?;
         }
     }

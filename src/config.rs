@@ -7,6 +7,8 @@ use hostname::get_hostname;
 pub struct Config {
     pub listen_host: String,
     pub listen_port: i32,
+    pub prometheus_exporter: bool,
+    pub prometheus_exporter_prefix: String,
     pub connection_string: String,
     pub update_caches_interval: u64,
     pub ignore_migration_errors: bool,
@@ -176,6 +178,19 @@ pub fn load_config() -> Config {
                 .help("listening port")
                 .env("PORT")
                 .takes_value(true),
+        ).arg(
+            Arg::with_name("prometheus-exporter")
+                .short("e")
+                .long("prometheus-exporter")
+                .value_name("PROMETHEUS_EXPORTER")
+                .takes_value(true)
+                .help("export statistics through a prometheus compatible exporter"),
+        ).arg(
+            Arg::with_name("prometheus-exporter-prefix")
+                .long("prometheus-exporter-prefix")
+                .value_name("PROMETHEUS_EXPORTER_PREFIX")
+                .takes_value(true)
+                .help("prefix for all exported values on /metrics"),
         ).arg(
             Arg::with_name("threads")
                 .short("t")
@@ -369,6 +384,10 @@ pub fn load_config() -> Config {
     let listen_host: String =
         get_option_string(&matches, &config, "listen-host", String::from("127.0.0.1"));
     let listen_port: i32 = get_option_number(&matches, &config, "listen-port", 8080) as i32;
+
+    let prometheus_exporter: bool = get_option_bool(&matches, &config, "prometheus-exporter", true);
+    let prometheus_exporter_prefix: String = get_option_string(&matches, &config, "prometheus-exporter-prefix", String::from("radio_browser_"));
+
     let server_url: String = get_option_string(
         &matches,
         &config,
@@ -410,6 +429,8 @@ pub fn load_config() -> Config {
     Config {
         listen_host,
         listen_port,
+        prometheus_exporter,
+        prometheus_exporter_prefix,
         connection_string,
         update_caches_interval,
         ignore_migration_errors,
