@@ -1,16 +1,16 @@
 # radiobrowser-api-rust
-This is the radio browser server part, that provides the api on http://www.radio-browser.info
+This is the radio browser server part providing the API on http://www.radio-browser.info
 
-Send me feature requests, bug reports or extend it yourself. I licenced it freely, you could also start your own server if you wish.
+Send me feature requests, bug reports or extend it yourself. I license it freely, you could also start your own server if you wish.
 
-You can find the api documentation on http://api.radio-browser.info
+You can find the API documentation on http://www.radio-browser.info/webservice
 
 ## Setup
 You can do a native setup or a docker setup
 
 ### easy all in one docker setup with automatic tls from lets encrypt
 * This has been tested on ubuntu 18.04
-* Automatic redirect from http to https
+* Automatic redirect from HTTP to HTTPS
 * Automatic generation and update of lets encrypt certificates
 * Automatic start on reboot
 * Automatic fetch of station changes and check information from main server at http://www.radio-browser.info/webservice
@@ -91,7 +91,7 @@ xdg-open http://localhost/webservice/xml/countries
 # or just open the link with your favourite browser
 ```
 
-If you want to enable SSL just follow this guide:
+If you want to enable SSL, just follow this guide:
 https://certbot.eff.org/
 
 ### docker setup
