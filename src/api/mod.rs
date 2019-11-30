@@ -376,12 +376,16 @@ fn handle_connection_internal(connection: &db::Connection, connection_new: &Mysq
     let param_seconds: u32 = ppp.get_number("seconds", 0);
     let param_url: Option<String> = ppp.get_string("url");
 
+    use percent_encoding::{percent_decode_str};
     trace!("content_type: {}", content_type);
-
     let parts : Vec<&str> = request.raw_url().split('?').collect();
-    let items : Vec<&str> = parts[0].split('/').collect();
+    let items : Vec<String> = parts[0].split('/').map(|item| {
+        let x = percent_decode_str(item);
+        let y = x.decode_utf8_lossy();
+        y.into_owned()
+    }).collect();
     if items.len() == 2 {
-        let file_name = items[1];
+        let file_name: &str = &items[1];
         match file_name {
             "metrics" => {
                 if prometheus_exporter_enabled {
@@ -412,8 +416,8 @@ fn handle_connection_internal(connection: &db::Connection, connection_new: &Mysq
             _ => Ok(rouille::Response::empty_404()),
         }
     } else if items.len() == 3 {
-        let format = items[1];
-        let command = items[2];
+        let format:&str = &items[1];
+        let command:&str = &items[2];
         let filter : Option<String> = None;
 
         match command {
@@ -431,9 +435,9 @@ fn handle_connection_internal(connection: &db::Connection, connection_new: &Mysq
             _ => Ok(rouille::Response::empty_404()),
         }
     } else if items.len() == 4 {
-        let format = items[1];
-        let command = items[2];
-        let parameter = items[3];
+        let format:&str = &items[1];
+        let command:&str = &items[2];
+        let parameter:&str = &items[3];
 
         match command {
             "languages" => Ok(add_cors(encode_extra(connection.get_extra("LanguageCache", "LanguageName", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format, "language"))),
@@ -463,10 +467,10 @@ fn handle_connection_internal(connection: &db::Connection, connection_new: &Mysq
             _ => Ok(rouille::Response::empty_404()),
         }
     } else if items.len() == 5 {
-        let format = items[1];
-        let command = items[2];
-        let parameter = items[3];
-        let search = items[4];
+        let format:&str = &items[1];
+        let command:&str = &items[2];
+        let parameter:&str = &items[3];
+        let search:&str = &items[4];
         if format == "v2" {
             // deprecated
             let format = command;
