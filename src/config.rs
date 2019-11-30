@@ -1,8 +1,6 @@
 use clap::{App, Arg};
 use std::fs;
 
-use hostname::get_hostname;
-
 #[derive(Debug)]
 pub struct Config {
     pub listen_host: String,
@@ -123,7 +121,7 @@ fn get_hosts_from_config(config: &toml::Value) -> Vec<String> {
 }
 
 pub fn load_config() -> Config {
-    let hostname: String = get_hostname().unwrap_or("".to_string());
+    let hostname_str: String = hostname::get().map(|os_string| os_string.to_string_lossy().into_owned()).unwrap_or("".to_string());
 
     let matches = App::new("stream-check")
         .version(crate_version!())
@@ -412,7 +410,7 @@ pub fn load_config() -> Config {
     let tcp_timeout: u64 = get_option_number(&matches, &config, "tcp-timeout", 10) as u64;
     let max_depth: u8 = get_option_number(&matches, &config, "max-depth", 5) as u8;
     let retries: u8 = get_option_number(&matches, &config, "retries", 5) as u8;
-    let source: String = get_option_string(&matches, &config, "source", hostname);
+    let source: String = get_option_string(&matches, &config, "source", hostname_str);
     let useragent = get_option_string(&matches, &config, "useragent", String::from("stream-check/0.1"));
     let mut servers_pull = vec![];
     let mirrors = matches.values_of("mirror");
