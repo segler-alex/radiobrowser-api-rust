@@ -2,15 +2,13 @@
 pub struct ExtraInfo {
     name: String,
     stationcount: u32,
-    stationcountworking: u32,
 }
 
 impl ExtraInfo {
-    pub fn new(name: String, stationcount:u32, stationcountworking: u32) -> Self {
+    pub fn new(name: String, stationcount:u32) -> Self {
         return ExtraInfo{
             name,
             stationcount,
-            stationcountworking,
         };
     }
 

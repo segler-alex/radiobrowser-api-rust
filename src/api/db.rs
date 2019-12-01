@@ -1094,9 +1094,9 @@ impl Connection {
         let mut items = vec![];
         let reverse_string = if reverse { "DESC" } else { "ASC" };
         let hidebroken_string = if hidebroken {
-            " AND LastCheckOK=TRUE"
+            "StationCountWorking as stationcount"
         } else {
-            ""
+            "StationCount as stationcount"
         };
         let search_string = match search {
             Some(c) => {
@@ -1105,7 +1105,7 @@ impl Connection {
             }
             None => "".to_string(),
         };
-        let mut stmt = self.pool.prepare(format!("SELECT {column_name} AS name, StationCount as stationcount, StationCountWorking FROM {table_name} WHERE {column_name} <> '' {search} {hidebroken} ORDER BY {order} {reverse}",search = search_string, order = order, reverse = reverse_string, hidebroken = hidebroken_string, table_name = table_name, column_name = column_name)).unwrap();
+        let mut stmt = self.pool.prepare(format!("SELECT {column_name} AS name, {hidebroken} FROM {table_name} WHERE {column_name} <> '' {search} HAVING stationcount > 0 ORDER BY {order} {reverse}",search = search_string, order = order, reverse = reverse_string, hidebroken = hidebroken_string, table_name = table_name, column_name = column_name)).unwrap();
         let my_results = stmt.execute(params);
         for my_result in my_results {
             for my_row in my_result {
@@ -1113,7 +1113,6 @@ impl Connection {
                 items.push(ExtraInfo::new(
                     row_unwrapped.take(0).unwrap_or("".into()),
                     row_unwrapped.take(1).unwrap_or(0),
-                    row_unwrapped.take(2).unwrap_or(0),
                 ));
             }
         }
@@ -1121,15 +1120,16 @@ impl Connection {
     }
 }
 
+/// Get currently cached items from table
 fn get_cached_items(
     pool: &mysql::Pool,
     table_name: &str,
     column_name: &str,
-) -> HashMap<String, u32> {
+) -> HashMap<String, (u32, u32)> {
     let mut items = HashMap::new();
     let mut my_stmt = pool
         .prepare(format!(
-            "SELECT {column_name},StationCount FROM {table_name}",
+            "SELECT {column_name},StationCount, StationCountWorking FROM {table_name}",
             table_name = table_name,
             column_name = column_name
         )).unwrap();
@@ -1140,18 +1140,21 @@ fn get_cached_items(
             let mut row_unwrapped = my_row.unwrap();
             let key: String = row_unwrapped.take(0).unwrap_or("".into());
             let value: u32 = row_unwrapped.take(1).unwrap_or(0);
+            let value_working: u32 = row_unwrapped.take(2).unwrap_or(0);
             let lower = key.to_lowercase();
-            items.insert(lower, value);
+            items.insert(lower, (value, value_working));
         }
     }
     items
 }
 
-fn get_stations_multi_items(pool: &mysql::Pool, column_name: &str) -> HashMap<String, u32> {
+/// Get items from a single column from Station table, add number of occurences
+/// Supports columns with multiple values that are split by komma
+fn get_stations_multi_items(pool: &mysql::Pool, column_name: &str) -> HashMap<String, (u32,u32)> {
     let mut items = HashMap::new();
     let mut my_stmt = pool
         .prepare(format!(
-            "SELECT {column_name} FROM Station",
+            "SELECT {column_name}, LastCheckOK FROM Station",
             column_name = column_name
         )).unwrap();
     let my_results = my_stmt.execute(());
@@ -1160,12 +1163,16 @@ fn get_stations_multi_items(pool: &mysql::Pool, column_name: &str) -> HashMap<St
         for my_row in my_result {
             let mut row_unwrapped = my_row.unwrap();
             let tags_str: String = row_unwrapped.take(0).unwrap_or("".into());
+            let ok: bool = row_unwrapped.take(1).unwrap_or(false);
             let tags_arr = tags_str.split(',');
             for single_tag in tags_arr {
                 let single_tag_trimmed = single_tag.trim().to_lowercase();
                 if single_tag_trimmed != "" {
-                    let counter = items.entry(single_tag_trimmed).or_insert(0);
-                    *counter += 1;
+                    let counter = items.entry(single_tag_trimmed).or_insert((0,0));
+                    counter.0 += 1;
+                    if ok{
+                        counter.1 += 1;
+                    }
                 }
             }
         }
@@ -1177,16 +1184,17 @@ fn update_cache_item(
     pool: &mysql::Pool,
     tag: &String,
     count: u32,
+    count_working: u32,
     table_name: &str,
     column_name: &str,
 ) {
     let mut my_stmt = pool
         .prepare(format!(
-            r"UPDATE {table_name} SET StationCount=? WHERE {column_name}=?",
+            r"UPDATE {table_name} SET StationCount=?, StationCountWorking=? WHERE {column_name}=?",
             table_name = table_name,
             column_name = column_name
         )).unwrap();
-    let params = (count, tag);
+    let params = (count, count_working, tag);
     let result = my_stmt.execute(params);
     match result {
         Ok(_) => {}
@@ -1198,18 +1206,18 @@ fn update_cache_item(
 
 fn insert_to_cache(
     pool: &mysql::Pool,
-    tags: HashMap<&String, u32>,
+    tags: HashMap<&String, (u32,u32)>,
     table_name: &str,
     column_name: &str,
 ) {
     let query = format!(
-        "INSERT INTO {table_name}({column_name},StationCount) VALUES(?,?)",
+        "INSERT INTO {table_name}({column_name},StationCount,StationCountWorking) VALUES(?,?,?)",
         table_name = table_name,
         column_name = column_name
     );
     let mut my_stmt = pool.prepare(query.trim_matches(',')).unwrap();
     for item in tags.iter() {
-        let result = my_stmt.execute((item.0, item.1));
+        let result = my_stmt.execute((item.0, (item.1).0, (item.1).1));
         match result {
             Ok(_) => {}
             Err(err) => {
@@ -1265,23 +1273,23 @@ pub fn refresh_cache_items(
     }
     remove_from_cache(pool, to_delete, cache_table_name, cache_column_name);
 
-    let mut to_insert: HashMap<&String, u32> = HashMap::new();
+    let mut to_insert: HashMap<&String, (u32,u32)> = HashMap::new();
     for item_current in items_current.keys() {
         if !items_cached.contains_key(item_current) {
-            //self.insert_tag(tag_current, *tags_current.get(tag_current).unwrap_or(&0));
             if item_current.len() < max_cache_item_len {
-                to_insert.insert(item_current, *items_current.get(item_current).unwrap_or(&0));
+                to_insert.insert(item_current, *items_current.get(item_current).unwrap_or(&(0,0)));
             }else{
                 warn!("cached '{}' item too long: '{}'", station_column_name, item_current);
             }
         } else {
-            let value_new = *items_current.get(item_current).unwrap_or(&0);
-            let value_old = *items_cached.get(item_current).unwrap_or(&0);
+            let value_new = *items_current.get(item_current).unwrap_or(&(0,0));
+            let value_old = *items_cached.get(item_current).unwrap_or(&(0,0));
             if value_old != value_new {
                 update_cache_item(
                     pool,
                     item_current,
-                    value_new,
+                    value_new.0,
+                    value_new.1,
                     cache_table_name,
                     cache_column_name,
                 );
@@ -1297,16 +1305,6 @@ pub fn refresh_cache_items(
         items_current.len(),
         changed
     );
-    //let to_add = tags_stations.difference(&tags_cached);
-    /*for item_to_add in to_add {
-        self.insert_tag(item_to_add);
-    }*/
-    /*let x = to_add.collect::<Vec<&String>>();
-    self.insert_tags(x);
-    let to_delete = tags_cached.difference(&tags_stations);
-    for item_to_delete in to_delete {
-        self.remove_tag(item_to_delete);
-    }*/
     RefreshCacheStatus{
         old_items: items_cached.len(),
         new_items: items_current.len(),
@@ -1323,7 +1321,7 @@ fn start_refresh_worker(connection_string: String, update_caches_interval: u64) 
                     trace!("REFRESH START");
                     let tags = refresh_cache_items(&p, "TagCache", "TagName", "Tags");
                     let languages = refresh_cache_items(&p, "LanguageCache", "LanguageName", "Language");
-                    debug!("Refresh(Tags={}->{}, Languages={}->{})", tags.old_items, tags.new_items, languages.old_items, languages.new_items);
+                    debug!("Refresh(Tags={}->{} changed={}, Languages={}->{} changed={})", tags.old_items, tags.new_items, tags.changed_items, languages.old_items, languages.new_items, languages.changed_items);
                 }
                 Err(e) => error!("{}", e),
             }
