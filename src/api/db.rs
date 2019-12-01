@@ -253,7 +253,7 @@ impl Connection {
         let mut query: String = String::from("UPDATE Station SET
             LastCheckTime=:checktime,
             LastCheckOkTime=:checktime,
-            LastCheckOk=:checkok,
+            LastCheckOK=:checkok,
             Codec=:codec,
             Bitrate=:bitrate,
             Hls=:hls,
@@ -262,7 +262,7 @@ impl Connection {
         if stationcheck.ok == 0 {
             query = format!("UPDATE Station SET
                 LastCheckTime=:checktime,
-                LastCheckOk=:checkok,
+                LastCheckOK=:checkok,
                 Codec=:codec,
                 Bitrate=:bitrate,
                 Hls=:hls,

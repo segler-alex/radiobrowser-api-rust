@@ -26,7 +26,7 @@ impl MysqlConnection {
             for row_ in result {
                 let mut row = row_.unwrap();
                 let hls: i32 = row.take_opt("Hls").unwrap_or(Ok(0)).unwrap_or(0);
-                let ok: i32 = row.take_opt("LastCheckOk").unwrap_or(Ok(0)).unwrap_or(0);
+                let ok: i32 = row.take_opt("LastCheckOK").unwrap_or(Ok(0)).unwrap_or(0);
                 let s = StationItem {
                     id:              row.take("StationID").unwrap(),
                     uuid:            row.take("StationUuid").unwrap_or("".to_string()),
@@ -96,7 +96,7 @@ impl DbConnection for MysqlConnection {
     }
 
     fn delete_were_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>> {
-        let delete_were_working_query = "DELETE FROM Station WHERE LastCheckOk=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < NOW() - INTERVAL :hours HOUR";
+        let delete_were_working_query = "DELETE FROM Station WHERE LastCheckOK=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < NOW() - INTERVAL :hours HOUR";
         let mut delete_were_working_stmt = self.pool.prepare(delete_were_working_query)?;
         delete_were_working_stmt.execute(params!(hours))?;
         Ok(())
@@ -143,7 +143,7 @@ impl DbConnection for MysqlConnection {
     }
 
     fn get_deletable_were_working(&self, hours: u32) -> Result<u64, Box<dyn Error>> {
-        self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOk=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < NOW() - INTERVAL :hours HOUR", params!(hours))
+        self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOK=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < NOW() - INTERVAL :hours HOUR", params!(hours))
     }
 
     fn insert_checks(&mut self, list: Vec<&StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
@@ -167,10 +167,10 @@ impl DbConnection for MysqlConnection {
     }
 
     fn update_stations(&mut self, list: Vec<&StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
-        let query_update_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOkTime=NOW(),LastCheckOk=?,Codec=?,Bitrate=?,UrlCache=? WHERE StationUuid=?";
+        let query_update_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOkTime=NOW(),LastCheckOK=?,Codec=?,Bitrate=?,UrlCache=? WHERE StationUuid=?";
         let mut stmt_update_ok = self.pool.prepare(query_update_ok)?;
         
-        let query_update_not_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOk=?,Codec=?,Bitrate=?,UrlCache=? WHERE StationUuid=?";
+        let query_update_not_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOK=?,Codec=?,Bitrate=?,UrlCache=? WHERE StationUuid=?";
         let mut stmt_update_not_ok = self.pool.prepare(query_update_not_ok)?;
 
         for item in list {
@@ -184,7 +184,7 @@ impl DbConnection for MysqlConnection {
     }
 
     fn get_stations_to_check(&mut self, hours: u32, itemcount: u32) -> Vec<StationItem> {
-        let query = format!("SELECT StationID,StationUuid,Name,Codec,Bitrate,Hls,LastCheckOk,UrlCache,Url,Favicon,Homepage FROM Station WHERE LastCheckTime IS NULL OR LastCheckTime < NOW() - INTERVAL {} HOUR ORDER BY RAND() LIMIT {}", hours, itemcount);
+        let query = format!("SELECT StationID,StationUuid,Name,Codec,Bitrate,Hls,LastCheckOK,UrlCache,Url,Favicon,Homepage FROM Station WHERE LastCheckTime IS NULL OR LastCheckTime < NOW() - INTERVAL {} HOUR ORDER BY RAND() LIMIT {}", hours, itemcount);
         self.get_stations_query(query)
     }
 }
