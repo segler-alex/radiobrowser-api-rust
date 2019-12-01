@@ -8,9 +8,11 @@ services:
       - "traefik.http.routers.api.rule=Host(`${SOURCE}`)"
       - "traefik.http.routers.api.entrypoints=web"
       - "traefik.http.routers.api.middlewares=redirecttls"
+      - "traefik.http.middlewares.compress.compress=true"
       - "traefik.http.middlewares.redirecttls.redirectscheme.scheme=https"
       - "traefik.http.routers.apitls.rule=Host(`${SOURCE}`)"
       - "traefik.http.routers.apitls.entrypoints=websecure"
+      - "traefik.http.routers.apitls.middlewares=compress"
       - "traefik.http.routers.apitls.tls.certresolver=letsencrypt"
     deploy:
       replicas: 1

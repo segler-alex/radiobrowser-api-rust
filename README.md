@@ -18,6 +18,7 @@ You can do a native setup or a docker setup
 ```bash
 # checkout this project
 git clone https://github.com/segler-alex/radiobrowser-api-rust.git
+git checkout stable
 cd radiobrowser-api-rust
 # create database save directory
 mkdir -p dbdata
