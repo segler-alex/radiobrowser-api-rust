@@ -60,7 +60,7 @@ fn get_only_first(mut stations: Vec<Station>) -> Option<Station>{
 }
 
 fn dns_resolve(format : &str) -> rouille::Response {
-    let hostname = "api.radio-browser.info";
+    let hostname = "all.api.radio-browser.info";
     let ips: Vec<std::net::IpAddr> = lookup_host(hostname).unwrap();
     let mut list: Vec<ServerEntry> = Vec::new();
     for ip in ips {
