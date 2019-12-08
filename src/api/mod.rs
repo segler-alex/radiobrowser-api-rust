@@ -248,7 +248,7 @@ fn get_status(connection_new: &MysqlConnection) -> Result<Status, Box<dyn std::e
     Ok(
         Status::new(
             1,
-            version.to_string(),
+            Some(version.to_string()),
             "OK".to_string(),
             connection_new.get_station_count_working()?,
             connection_new.get_station_count_broken()?,
@@ -403,8 +403,10 @@ fn handle_connection_internal(connection: &db::Connection, connection_new: &Mysq
                 let mut handlebars = Handlebars::new();
                 let y = handlebars.register_template_file("docs.hbs", &format!("{}/{}",static_dir,"docs.hbs"));
                 if y.is_ok() {
+                    let pkg_version = env!("CARGO_PKG_VERSION");
                     let mut data = Map::new();
                     data.insert(String::from("API_SERVER"), to_json(format!("http://{name}",name = header_host)));
+                    data.insert(String::from("SERVER_VERSION"), to_json(format!("{version}",version = pkg_version)));
                     let rendered = handlebars.render("docs.hbs", &data);
                     match rendered {
                         Ok(rendered) => Ok(rouille::Response::html(rendered).with_no_cache()),

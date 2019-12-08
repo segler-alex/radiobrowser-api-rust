@@ -596,7 +596,7 @@ impl Connection {
             }
         }
         if countrycode.is_some() {
-            query.push_str(" AND CountryCode=:countrycode");
+            query.push_str(" AND UPPER(CountryCode)=UPPER(:countrycode)");
         }
         if state.is_some() {
             if state_exact {
@@ -622,6 +622,7 @@ impl Connection {
         let mut params = params!{
             "name" => name.unwrap_or_default(),
             "country" => country.unwrap_or_default(),
+            "countrycode" => countrycode.unwrap_or_default(),
             "state" => state.unwrap_or_default(),
             "language" => language.unwrap_or_default(),
             "tag" => tag.unwrap_or_default(),
