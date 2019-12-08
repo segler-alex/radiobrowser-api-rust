@@ -1465,7 +1465,7 @@ dependencies = [
 
 [[package]]
 name = "radiobrowser-api-rust"
-version = "0.1.0"
+version = "0.5.0"
 dependencies = [
  "av-stream-info-rust 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
