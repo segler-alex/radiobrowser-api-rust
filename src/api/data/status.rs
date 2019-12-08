@@ -1,6 +1,7 @@
 #[derive(Serialize, Deserialize)]
 pub struct Status {
     pub supported_version: u32,
+    pub software_version: String,
     status: String,
     stations: u64,
     stations_broken: u64,
@@ -14,6 +15,7 @@ pub struct Status {
 impl Status{
     pub fn new(
         supported_version: u32,
+        software_version: String,
         status: String,
         stations: u64,
         stations_broken: u64,
@@ -25,6 +27,7 @@ impl Status{
     ) -> Self {
         Status{
             supported_version,
+            software_version,
             status,
             stations,
             stations_broken,
@@ -42,6 +45,8 @@ impl Status{
         {
             xml.begin_elem("stats")?;
             let s = self.status.clone();
+                xml.attr_esc("supported_version", &self.supported_version.to_string())?;
+                xml.attr_esc("software_version", &self.software_version)?;
                 xml.attr_esc("status", &s)?;
                 xml.attr_esc("stations", &self.stations.to_string())?;
                 xml.attr_esc("stations_broken", &self.stations_broken.to_string())?;

@@ -244,9 +244,11 @@ pub fn run(connection: db::Connection, connection_new: MysqlConnection, host : S
 }
 
 fn get_status(connection_new: &MysqlConnection) -> Result<Status, Box<dyn std::error::Error>> {
+    let version = env!("CARGO_PKG_VERSION");
     Ok(
         Status::new(
             1,
+            version.to_string(),
             "OK".to_string(),
             connection_new.get_station_count_working()?,
             connection_new.get_station_count_broken()?,
