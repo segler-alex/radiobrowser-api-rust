@@ -38,6 +38,7 @@
               <div role="separator" class="dropdown-divider"></div>
             </li>
             <li><a class="dropdown-item" href="#Server_stats">Server stats</a></li>
+            <li><a class="dropdown-item" href="#server_mirrors">Server mirrors</a></li>
           </ul>
         </li>
         <li class="nav-item dropdown">
@@ -1371,6 +1372,63 @@
       <div class="h5 mt-2">Example:</div>
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/xml/stats" target="_blank">{{ API_SERVER }}/xml/stats</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="server_mirrors">
+      <h1 class="display-4">Server mirrors</h1>
+      <p class="lead ">List of server mirrors. Does a dns lookup of all.api.radio-browser.info and then a reverse dns lookup for every result it got from the first request. This should be done on the client. ONLY USE THIS, if your client is not able to do dns lookups. 
+        supported output formats: JSON</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>{{ API_SERVER }}/json/stats</li>
+        </ul>
+      </div>
+      <div class="h5">Result JSON:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+[
+    {
+        "ip": "95.179.139.106",
+        "name": "nl1.api.radio-browser.info"
+    },
+    {
+        "ip": "91.132.145.114",
+        "name": "de2.api.radio-browser.info"
+    },
+    {
+        "ip": "45.77.62.161",
+        "name": "fr1.api.radio-browser.info"
+    },
+    {
+        "ip": "188.68.62.16",
+        "name": "de1.api.radio-browser.info"
+    },
+    {
+        "ip": "2a03:4000:37:42:c4fe:4cff:fea7:8941",
+        "name": "de2.api.radio-browser.info"
+    },
+    {
+        "ip": "2a03:4000:6:8077::1",
+        "name": "de1.api.radio-browser.info"
+    },
+    {
+        "ip": "2001:19f0:6801:19d7:5400:2ff:fe71:bdb7",
+        "name": "fr1.api.radio-browser.info"
+    },
+    {
+        "ip": "2001:19f0:5001:32a4:5400:2ff:fe37:75c2",
+        "name": "nl1.api.radio-browser.info"
+    }
+]
+              </pre>
+      </div>
+
+      <div class="h5 mt-2">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="{{ API_SERVER }}/json/servers" target="_blank">{{ API_SERVER }}/json/servers</a></li>
       </ul>
     </div>
   </div>
