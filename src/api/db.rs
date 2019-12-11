@@ -54,6 +54,11 @@ impl Connection {
         Ok(count == 0)
     }*/
 
+    fn fix_multi_field(value: &str) -> String {
+        let values: Vec<String> = value.split(",").map(|v| v.trim().to_lowercase().to_string()).collect();
+        values.join(",")
+    }
+
     pub fn update_station(&self, station: Station) -> Result<(),Box<dyn std::error::Error>> {
         let query = format!("UPDATE Station SET Name=:name,Url=:url,Homepage=:homepage,
             Favicon=:favicon,Country=:country,Subcountry=:state,Language=:language,
@@ -66,8 +71,8 @@ impl Connection {
             "favicon" => station.favicon,
             "country" => station.country,
             "state" => station.state,
-            "language" => station.language,
-            "tags" => station.tags,
+            "language" => Connection::fix_multi_field(&station.language),
+            "tags" => Connection::fix_multi_field(&station.tags),
             "changeuuid" => station.changeuuid,
             "stationuuid" => &station.stationuuid,
             "urlcache" => "",
@@ -90,8 +95,8 @@ impl Connection {
             "country" => station.country,
             "countrycode" => station.countrycode,
             "state" => station.state,
-            "language" => station.language,
-            "tags" => station.tags,
+            "language" => Connection::fix_multi_field(&station.language),
+            "tags" => Connection::fix_multi_field(&station.tags),
             "changeuuid" => station.changeuuid,
             "stationuuid" => station.stationuuid,
         };
@@ -128,8 +133,8 @@ impl Connection {
             "country" => country.unwrap_or_default(),
             "countrycode" => countrycode.unwrap_or_default(),
             "state" => state.unwrap_or_default(),
-            "language" => language.unwrap_or_default(),
-            "tags" => tags.unwrap_or_default(),
+            "language" => Connection::fix_multi_field(&language.unwrap_or_default()),
+            "tags" => Connection::fix_multi_field(&tags.unwrap_or_default()),
             "changeuuid" => changeuuid,
             "stationuuid" => stationuuid.clone(),
         };
