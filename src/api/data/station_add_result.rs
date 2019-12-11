@@ -6,7 +6,7 @@ pub struct StationAddResult {
 }
 
 impl StationAddResult {
-    pub fn new_ok(id: u64, stationuuid: String) -> StationAddResult {
+    pub fn new_ok(stationuuid: String) -> StationAddResult {
         StationAddResult{
             ok: true,
             message: "added station successfully".to_string(),

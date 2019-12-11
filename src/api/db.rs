@@ -26,7 +26,7 @@ pub struct Connection {
 impl Connection {
     const COLUMNS: &'static str =
         "StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,UrlCache,
-    Tags,Country,CountryCode,Subcountry,Language,Votes,NegativeVotes,
+    Tags,Country,CountryCode,Subcountry,Language,Votes,
     Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated,
     Ip,Codec,Bitrate,Hls,LastCheckOK,
     LastCheckTime,
@@ -140,7 +140,7 @@ impl Connection {
                 let id = results.last_insert_id();
                 let backup_result = self.backup_station_by_id(id);
                 match backup_result {
-                    Ok(_) => StationAddResult::new_ok(id, stationuuid),
+                    Ok(_) => StationAddResult::new_ok(stationuuid),
                     Err(err) => StationAddResult::new_err(&err.to_string())
                 }
             },
@@ -149,8 +149,8 @@ impl Connection {
     }
 
     fn backup_station_by_id(&self, stationid: u64) -> Result<(),Box<dyn std::error::Error>>{
-        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid)
-                                SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid FROM Station WHERE StationID=:id");
+        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,IP,StationUuid,ChangeUuid)
+                                SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,IP,StationUuid,ChangeUuid FROM Station WHERE StationID=:id");
         let params = params!{
             "id" => stationid,
         };
@@ -161,8 +161,8 @@ impl Connection {
     }
 
     fn backup_station_by_uuid(&self, stationuuid: &str) -> Result<(),Box<dyn std::error::Error>>{
-        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid)
-                                SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,NegativeVotes,Creation,IP,StationUuid,ChangeUuid FROM Station WHERE StationUuid=:stationuuid");
+        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,IP,StationUuid,ChangeUuid)
+                                SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,IP,StationUuid,ChangeUuid FROM Station WHERE StationUuid=:stationuuid");
         let params = params!{
             "stationuuid" => stationuuid,
         };
@@ -436,6 +436,7 @@ impl Connection {
             "clicktimestamp" => "ClickTimestamp",
             "clickcount" => "clickcount",
             "clicktrend" => "ClickTrend",
+            "random" => "RAND()",
             _ => "Name",
         }
     }
@@ -810,7 +811,7 @@ impl Connection {
                 Favicon,Tags,
                 Country,Subcountry,
                 Language,Votes,
-                NegativeVotes,Creation,Ip from StationHistory WHERE 1=:mynumber {changeuuid_str} {stationuuid} ORDER BY Creation ASC", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str);
+                Creation,Ip from StationHistory WHERE 1=:mynumber {changeuuid_str} {stationuuid} ORDER BY Creation ASC", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str);
         let results = self.pool.prep_exec(query, params! {
             "mynumber" => 1,
             "stationuuid" => stationuuid.unwrap_or(String::from("")),
@@ -1468,6 +1469,14 @@ r#"ALTER TABLE `Station` DROP COLUMN CountryCode"#);
     migrations.add_migration("20190816_010900_AddStationHistoryCountryCode",
 r#"ALTER TABLE `StationHistory` ADD COLUMN CountryCode varchar(2)"#, 
 r#"ALTER TABLE `StationHistory` DROP COLUMN CountryCode"#);
+
+    migrations.add_migration("20191211_210000_Remove_Station_NegativeVotes",
+r#"ALTER TABLE `Station` DROP COLUMN NegativeVotes"#,
+r#"ALTER TABLE `Station` ADD COLUMN NegativeVotes int(11) DEFAULT '0'"#);
+
+migrations.add_migration("20191211_210500_Remove_StationHistory_NegativeVotes",
+r#"ALTER TABLE `StationHistory` DROP COLUMN NegativeVotes"#,
+r#"ALTER TABLE `StationHistory` ADD COLUMN NegativeVotes int(11) DEFAULT '0'"#);
 
     migrations.do_migrations(ignore_migration_errors, allow_database_downgrade)?;
 

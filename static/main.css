@@ -21,3 +21,7 @@ body {
   font-weight: bold;
   color: rgb(116, 116, 116);
 }
+
+.result {
+  margin: 20px;
+}
