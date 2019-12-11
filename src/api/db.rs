@@ -429,7 +429,6 @@ impl Connection {
             "state" => "Subcountry",
             "language" => "Language",
             "votes" => "Votes",
-            "negativevotes" => "NegativeVotes",
             "codec" => "Codec",
             "bitrate" => "Bitrate",
             "lastcheckok" => "LastCheckOK",
@@ -866,7 +865,6 @@ impl Connection {
                         .unwrap_or(Ok("".to_string()))
                         .unwrap_or("".to_string()),
                     row.take_opt("Votes").unwrap_or(Ok(0)).unwrap_or(0),
-                    row.take_opt("NegativeVotes").unwrap_or(Ok(0)).unwrap_or(0),
                     row
                         .take_opt("CreationFormated")
                         .unwrap_or(Ok("".to_string()))
@@ -944,7 +942,6 @@ impl Connection {
                         .unwrap_or(Ok("".to_string()))
                         .unwrap_or("".to_string()),
                     row.take_opt("Votes").unwrap_or(Ok(0)).unwrap_or(0),
-                    row.take_opt("NegativeVotes").unwrap_or(Ok(0)).unwrap_or(0),
                     row
                         .take_opt("Creation")
                         .unwrap_or(Ok("".to_string()))

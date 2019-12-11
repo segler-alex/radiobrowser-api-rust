@@ -46,7 +46,6 @@ pub struct Station {
     pub state: String,
     pub language: String,
     pub votes: i32,
-    pub negativevotes: i32,
     pub lastchangetime: String,
     pub ip: String,
     pub codec: String,
@@ -76,7 +75,6 @@ impl Station {
         state: String,
         language: String,
         votes: i32,
-        negativevotes: i32,
         lastchangetime: String,
         ip: String,
         codec: String,
@@ -104,7 +102,6 @@ impl Station {
             state,
             language,
             votes,
-            negativevotes,
             lastchangetime,
             ip,
             codec,
@@ -150,8 +147,6 @@ impl Station {
             xml.attr_esc("language", &entry.language)?;
             let station_votes_str = format!("{}", entry.votes);
             xml.attr_esc("votes", &station_votes_str)?;
-            let station_negativevotes_str = format!("{}", entry.negativevotes);
-            xml.attr_esc("negativevotes", &station_negativevotes_str)?;
             let station_lastchangetime_str = format!("{}", entry.lastchangetime);
             xml.attr_esc("lastchangetime", &station_lastchangetime_str)?;
             xml.attr_esc("ip", &entry.ip)?;
@@ -277,10 +272,6 @@ impl Station {
         schema:value "{votes}"
     ] ;
     schema:PropertyValue [
-        schema:name "negativevotes" ;
-        schema:value "{negativevotes}"
-    ] ;
-    schema:PropertyValue [
         schema:name "lastchangetime" ;
         schema:value "{lastchangetime}"
     ] ;
@@ -341,7 +332,6 @@ impl Station {
             state = self.state,
             language = self.language,
             votes = self.votes,
-            negativevotes = self.negativevotes,
             ip = self.ip,
             codec = self.codec,
             bitrate = self.bitrate,
@@ -419,7 +409,6 @@ impl From<&StationHistoryCurrent> for Station {
             state: item.state.clone(),
             language: item.language.clone(),
             votes: item.votes,
-            negativevotes: item.negativevotes,
             lastchangetime: item.lastchangetime.clone(),
             ip: item.ip.clone(),
             bitrate: 0,

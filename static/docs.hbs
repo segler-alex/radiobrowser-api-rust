@@ -608,7 +608,7 @@
             <td>order</td>
             <td>name</td>
             <td>
-              name, url, homepage, favicon, tags, country, state, language, votes, negativevotes, codec, bitrate, lastcheckok, lastchecktime, clicktimestamp, clickcount, clicktrend
+              name, url, homepage, favicon, tags, country, state, language, votes, codec, bitrate, lastcheckok, lastchecktime, clicktimestamp, clickcount, clicktrend
             </td>
             <td>name of the attribute the result list will be sorted by</td>
           </tr>
@@ -668,7 +668,7 @@
             <td>order</td>
             <td>name</td>
             <td>
-              name, url, homepage, favicon, tags, country, state, language, votes, negativevotes, codec, bitrate, lastcheckok, lastchecktime, clicktimestamp, clickcount, clicktrend
+              name, url, homepage, favicon, tags, country, state, language, votes, codec, bitrate, lastcheckok, lastchecktime, clicktimestamp, clickcount, clicktrend
             </td>
             <td>name of the attribute the result list will be sorted by</td>
           </tr>
@@ -934,7 +934,7 @@
             <td>order</td>
             <td>name</td>
             <td>
-              name, url, homepage, favicon, tags, country, state, language, votes, negativevotes, codec, bitrate, lastcheckok, lastchecktime, clicktimestamp, clickcount, clicktrend
+              name, url, homepage, favicon, tags, country, state, language, votes, codec, bitrate, lastcheckok, lastchecktime, clicktimestamp, clickcount, clicktrend
             </td>
             <td>OPTIONAL, name of the attribute the result list will be sorted by</td>
           </tr>
@@ -1193,20 +1193,16 @@
       </div>
       <div class="h5">Result JSON:</div>
       <div class="well well-sm bg-light border border-secondary rounded">
-        <pre class="mt-4">
-            {
-              "ok": "true",
-              "message": "voted for station successfully"
-            }
-                </pre>
+        <pre class="mt-4">{
+  "ok": true,
+  "message": "voted for station successfully"
+}</pre>
       </div>
       <div class="h5 mt-2">Result XML:</div>
       <div class="well well-sm bg-light border border-secondary rounded">
-        <pre class="mt-4">
-            &lt;result&gt;
-              &lt;status ok=&quot;true&quot; message=&quot;voted for station successfully&quot;/&gt;
-            &lt;/result&gt;
-                </pre>
+        <pre class="mt-4">&lt;result&gt;
+  &lt;status ok=&quot;true&quot; message=&quot;voted for station successfully&quot;/&gt;
+&lt;/result&gt;</pre>
       </div>
       <div class="h5 mt-2">Example:</div>
       <ul class="list-unstyled ml-4">
@@ -1265,6 +1261,11 @@
             <td>The name of the country where the radio station is located</td>
           </tr>
           <tr>
+            <td>countrycode</td>
+            <td>AT</td>
+            <td>The 2 letter countrycode of the country where the radio station is located</td>
+          </tr>
+          <tr>
             <td>state</td>
             <td>Vienna</td>
             <td>The name of the part of the country where the station is located</td>
@@ -1283,36 +1284,20 @@
       </table>
       <div class="h5">Result JSON:</div>
       <div class="well well-sm bg-light border border-secondary rounded">
-        <pre class="mt-4">
-          {
-            "ok": "true",
-            "message": "station was added",
-            "id": "123",
-            "stream_check_ok": "true",
-            "stream_check_bitrate": "128",
-            "stream_check_codec": "MP3",
-            "favicon_check_done": "true",
-            "favicon_check_ok": "true",
-            "favicon_check_url": "http://url.to.image/image.png"
-          }
-              </pre>
+        <pre class="mt-4">{
+  "ok": true,
+  "message": "station was added",
+  "uuid": "550e8400-e29b-11d4-a716-446655440000"
+}</pre>
       </div>
 
       <div class="h5 mt-2">Result XML:</div>
       <div class="well well-sm bg-light border border-secondary rounded">
-        <pre class="mt-4">
-              &lt;result&gt;
-              &lt;status ok=&quot;true&quot;
-              message=&quot;station was added&quot;
-              id=&quot;123&quot;
-              stream_check_ok=&quot;true&quot;
-              stream_check_bitrate=&quot;128&quot;
-              stream_check_codec=&quot;MP3&quot;
-              favicon_check_done=&quot;true&quot;
-              favicon_check_ok=&quot;true&quot;
-              favicon_check_url=&quot;http://url.to.image/image.png&quot;/&gt;
-              &lt;/result&gt;
-              </pre>
+        <pre class="mt-4">&lt;result&gt;
+  &lt;status ok=&quot;true&quot;
+  message=&quot;station was added&quot;
+  uuid=&quot;550e8400-e29b-11d4-a716-446655440000&quot;
+&lt;/result&gt;</pre>
       </div>
 
       <div class="h5 mt-2">Example:</div>
@@ -1335,39 +1320,35 @@
       </div>
       <div class="h5">Result JSON:</div>
       <div class="well well-sm bg-light border border-secondary rounded">
-        <pre class="mt-4">
-          {
-              &quot;supported_version&quot;: 1,
-              &quot;software_version&quot;: &quot;0.5.0&quot;,
-              &quot;status&quot;: &quot;OK&quot;,
-              &quot;stations&quot;: &quot;4047&quot;,
-              &quot;stations_broken&quot;: &quot;45&quot;,
-              &quot;tags&quot;: &quot;677&quot;,
-              &quot;clicks_last_hour&quot;: &quot;65&quot;,
-              &quot;clicks_last_day&quot;: &quot;1822&quot;,
-              &quot;languages&quot;: &quot;59&quot;,
-              &quot;countries&quot;: &quot;81&quot;
-          }
-              </pre>
+        <pre class="mt-4">{
+  &quot;supported_version&quot;: 1,
+  &quot;software_version&quot;: &quot;0.5.0&quot;,
+  &quot;status&quot;: &quot;OK&quot;,
+  &quot;stations&quot;: 4047,
+  &quot;stations_broken&quot;: 45,
+  &quot;tags&quot;: 677,
+  &quot;clicks_last_hour&quot;: 65,
+  &quot;clicks_last_day&quot;: 1822,
+  &quot;languages&quot;: 59,
+  &quot;countries&quot;: 81
+}</pre>
       </div>
 
       <div class="h5 mt-2">Result XML:</div>
       <div class="well well-sm bg-light border border-secondary rounded">
-        <pre class="mt-4">
-          &lt;result&gt;
-            &lt;stats
-              status=&quot;OK&quot;
-              supported_version=&quot;1&quot;
-              software_version=&quot;0.5.0&quot;
-              stations=&quot;4047&quot;
-              stations_broken=&quot;45&quot;
-              tags=&quot;677&quot;
-              clicks_last_hour=&quot;66&quot;
-              clicks_last_day=&quot;1824&quot;
-              languages=&quot;59&quot;
-              countries=&quot;81&quot;/&gt;
-          &lt;/result&gt;
-              </pre>
+        <pre class="mt-4">&lt;result&gt;
+  &lt;stats
+    status=&quot;OK&quot;
+    supported_version=&quot;1&quot;
+    software_version=&quot;0.5.0&quot;
+    stations=&quot;4047&quot;
+    stations_broken=&quot;45&quot;
+    tags=&quot;677&quot;
+    clicks_last_hour=&quot;66&quot;
+    clicks_last_day=&quot;1824&quot;
+    languages=&quot;59&quot;
+    countries=&quot;81&quot;/&gt;
+&lt;/result&gt;</pre>
       </div>
 
       <div class="h5 mt-2">Example:</div>
@@ -1389,8 +1370,7 @@
       </div>
       <div class="h5">Result JSON:</div>
       <div class="well well-sm bg-light border border-secondary rounded">
-        <pre class="mt-4">
-[
+        <pre class="mt-4">[
     {
         "ip": "95.179.139.106",
         "name": "nl1.api.radio-browser.info"
@@ -1423,8 +1403,7 @@
         "ip": "2001:19f0:5001:32a4:5400:2ff:fe37:75c2",
         "name": "nl1.api.radio-browser.info"
     }
-]
-              </pre>
+]</pre>
       </div>
 
       <div class="h5 mt-2">Example:</div>

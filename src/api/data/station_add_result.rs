@@ -2,14 +2,7 @@
 pub struct StationAddResult {
     ok: bool,
     message: String,
-    id: u64,
-    uuid: String,
-    stream_check_ok: bool,
-    stream_check_bitrate: u32,
-    stream_check_codec: String,
-    favicon_check_done: bool,
-    favicon_check_ok: bool,
-    favicon_check_url: String,
+    uuid: String
 }
 
 impl StationAddResult {
@@ -17,14 +10,7 @@ impl StationAddResult {
         StationAddResult{
             ok: true,
             message: "added station successfully".to_string(),
-            id: id,
             uuid: stationuuid,
-            stream_check_ok: false,
-            stream_check_bitrate: 0,
-            stream_check_codec: "".to_string(),
-            favicon_check_done: false,
-            favicon_check_ok: false,
-            favicon_check_url: "".to_string(),
         }
     }
 
@@ -32,14 +18,7 @@ impl StationAddResult {
         StationAddResult{
             ok: false,
             message: err.to_string(),
-            id: 0,
             uuid: "".to_string(),
-            stream_check_ok: false,
-            stream_check_bitrate: 0,
-            stream_check_codec: "".to_string(),
-            favicon_check_done: false,
-            favicon_check_ok: false,
-            favicon_check_url: "".to_string(),
         }
     }
 
@@ -49,14 +28,7 @@ impl StationAddResult {
         xml.begin_elem("status")?;
         xml.attr_esc("ok", &self.ok.to_string())?;
         xml.attr_esc("message", &self.ok.to_string())?;
-        xml.attr_esc("id", &self.id.to_string())?;
         xml.attr_esc("uuid", &self.uuid)?;
-        xml.attr_esc("stream_check_ok", &self.stream_check_ok.to_string())?;
-        xml.attr_esc("stream_check_bitrate", &self.stream_check_bitrate.to_string())?;
-        xml.attr_esc("stream_check_codec", &self.stream_check_codec)?;
-        xml.attr_esc("favicon_check_done", &self.favicon_check_done.to_string())?;
-        xml.attr_esc("favicon_check_ok", &self.favicon_check_ok.to_string())?;
-        xml.attr_esc("favicon_check_url", &self.favicon_check_url.to_string())?;
         xml.end_elem()?;
         xml.end_elem()?;
         xml.close()?;
