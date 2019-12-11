@@ -36,8 +36,7 @@ pub struct Station {
     pub stationuuid: String,
     pub name: String,
     pub url: String,
-    #[serde(skip_serializing)]
-    pub urlcache: String,
+    pub url_resolved: String,
     pub homepage: String,
     pub favicon: String,
     pub tags: String,
@@ -66,7 +65,7 @@ impl Station {
         stationuuid: String,
         name: String,
         url: String,
-        urlcache: String,
+        url_resolved: String,
         homepage: String,
         favicon: String,
         tags: String,
@@ -93,7 +92,7 @@ impl Station {
             stationuuid,
             name,
             url,
-            urlcache,
+            url_resolved,
             homepage,
             favicon,
             tags,
@@ -123,7 +122,7 @@ impl Station {
             id: station.id,
             stationuuid: station.stationuuid,
             name: station.name,
-            url: station.urlcache,
+            url: station.url_resolved,
         };
     }
 
@@ -138,6 +137,7 @@ impl Station {
             xml.attr_esc("stationuuid", &entry.stationuuid)?;
             xml.attr_esc("name", &entry.name)?;
             xml.attr_esc("url", &entry.url)?;
+            xml.attr_esc("url_resolved", &entry.url_resolved)?;
             xml.attr_esc("homepage", &entry.homepage)?;
             xml.attr_esc("favicon", &entry.favicon)?;
             xml.attr_esc("tags", &entry.tags)?;
@@ -183,7 +183,7 @@ impl Station {
             j.push_str(&item.name);
             j.push_str("\r\n");
             if use_cached_url {
-                j.push_str(&item.urlcache);
+                j.push_str(&item.url_resolved);
             } else {
                 j.push_str(&item.url);
             }
@@ -207,7 +207,7 @@ impl Station {
             j.push_str(&i_str);
             j.push_str("=");
             if use_cached_url {
-                j.push_str(&item.urlcache);
+                j.push_str(&item.url_resolved);
             } else {
                 j.push_str(&item.url);
             }
@@ -420,7 +420,7 @@ impl From<&StationHistoryCurrent> for Station {
             lastcheckok: 0,
             lastcheckoktime: String::from(""),
             lastchecktime: String::from(""),
-            urlcache: String::from(""),
+            url_resolved: String::from(""),
         }
     }
 }
