@@ -3,15 +3,15 @@ This is the radio browser server part providing the API on http://www.radio-brow
 
 Send me feature requests, bug reports or extend it yourself. I license it freely, you could also start your own server if you wish.
 
-You can find the API documentation on http://www.radio-browser.info/webservice
+You can find the API documentation on http://www.radio-browser.info/gui/#!/api
 
 ## Setup
 You can do a native setup or a docker setup
 
-### easy all in one docker setup with automatic tls from lets encrypt
-* This has been tested on ubuntu 18.04
+### easy all-in-one docker setup with automatic TLS from Let's Encrypt
+* This has been tested on Ubuntu 18.04
 * Automatic redirect from HTTP to HTTPS
-* Automatic generation and update of lets encrypt certificates
+* Automatic generation and update of Let's Encrypt certificates
 * Automatic start on reboot
 * Automatic fetch of station changes and check information from main server at http://api.radio-browser.info
 

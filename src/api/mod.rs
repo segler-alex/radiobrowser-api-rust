@@ -113,8 +113,8 @@ fn encode_message(status: Result<String,String>, format : &str) -> rouille::Resp
     match format {
         "json" => {
             match status {
-                Ok(message) => rouille::Response::text(serde_json::to_string(&ResultMessage::new(true,message).serialize_xml().unwrap()).unwrap()),
-                Err(message) => rouille::Response::text(serde_json::to_string(&ResultMessage::new(false,message).serialize_xml().unwrap()).unwrap()),
+                Ok(message) => rouille::Response::text(serde_json::to_string(&ResultMessage::new(true,message)).unwrap()),
+                Err(message) => rouille::Response::text(serde_json::to_string(&ResultMessage::new(false,message)).unwrap()),
             }.with_no_cache().with_unique_header("Content-Type","application/json")
         },
         "xml" => {

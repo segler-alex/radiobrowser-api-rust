@@ -13,7 +13,6 @@ pub struct StationHistoryV0 {
     state: String,
     language: String,
     votes: String,
-    negativevotes: String,
     lastchangetime: String,
     ip: String,
 }
@@ -33,7 +32,6 @@ pub struct StationHistoryCurrent {
     pub state: String,
     pub language: String,
     pub votes: i32,
-    pub negativevotes: i32,
     pub lastchangetime: String,
     pub ip: String,
 }
@@ -54,7 +52,6 @@ impl From<StationHistoryV0> for StationHistoryCurrent {
             state: item.state,
             language: item.language,
             votes: item.votes.parse().unwrap(),
-            negativevotes: item.negativevotes.parse().unwrap(),
             lastchangetime: item.lastchangetime,
             ip: item.ip,
         }
@@ -77,7 +74,6 @@ impl From<&StationHistoryV0> for StationHistoryCurrent {
             state: item.state.clone(),
             language: item.language.clone(),
             votes: item.votes.parse().unwrap(),
-            negativevotes: item.negativevotes.parse().unwrap(),
             lastchangetime: item.lastchangetime.clone(),
             ip: item.ip.clone(),
         }
@@ -99,7 +95,6 @@ impl StationHistoryCurrent {
         state: String,
         language: String,
         votes: i32,
-        negativevotes: i32,
         lastchangetime: String,
         ip: String,
     ) -> Self {
@@ -117,7 +112,6 @@ impl StationHistoryCurrent {
             state,
             language,
             votes,
-            negativevotes,
             lastchangetime,
             ip,
         }
@@ -141,8 +135,6 @@ impl StationHistoryCurrent {
             xml.attr_esc("language", &entry.language)?;
             let station_votes_str = format!("{}", entry.votes);
             xml.attr_esc("votes", &station_votes_str)?;
-            let station_negativevotes_str = format!("{}", entry.negativevotes);
-            xml.attr_esc("negativevotes", &station_negativevotes_str)?;
             let station_lastchangetime_str = format!("{}", entry.lastchangetime);
             xml.attr_esc("lastchangetime", &station_lastchangetime_str)?;
             xml.attr_esc("ip", &entry.ip)?;

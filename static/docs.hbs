@@ -38,7 +38,7 @@
               <div role="separator" class="dropdown-divider"></div>
             </li>
             <li><a class="dropdown-item" href="#Server_stats">Server stats</a></li>
-            <li><a class="dropdown-item" href="#server_mirrors">Server mirrors</a></li>
+            <li><a class="dropdown-item" href="#Server_mirrors">Server mirrors</a></li>
           </ul>
         </li>
         <li class="nav-item dropdown">
@@ -608,7 +608,7 @@
             <td>order</td>
             <td>name</td>
             <td>
-              name, url, homepage, favicon, tags, country, state, language, votes, negativevotes, codec, bitrate, lastcheckok, lastchecktime, clicktimestamp, clickcount, clicktrend
+              name, url, homepage, favicon, tags, country, state, language, votes, codec, bitrate, lastcheckok, lastchecktime, clicktimestamp, clickcount, clicktrend, random
             </td>
             <td>name of the attribute the result list will be sorted by</td>
           </tr>
@@ -632,6 +632,47 @@
           </tr>
         </tbody>
       </table>
+      <div class="h5">Result JSON:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4 result"><code>[
+  {
+    "changeuuid": "617dcfc1-bd2f-11e9-acb2-52543be04c81",
+    "stationuuid": "617dcf8c-bd2f-11e9-acb2-52543be04c81",
+    "name": "Radio Amistad",
+    "url": "http://srv0410.radiostreaming.es:8026/;",
+    "url_resolved": "http://srv0410.radiostreaming.es:8026/;",
+    "homepage": "http://www.rtvamistad.net",
+    "favicon": "https://www.rtvamistad.net/wp-content/uploads/2018/05/logopaloma_32x32.png",
+    "tags": "christian,cristiana",
+    "country": "Spain",
+    "countrycode": "ES",
+    "state": "Barcelona",
+    "language": "spanish",
+    "votes": 0,
+    "lastchangetime": "2019-12-11 19:51:04",
+    "ip": "",
+    "codec": "MP3",
+    "bitrate": 128,
+    "hls": 0,
+    "lastcheckok": 1,
+    "lastchecktime": "2019-12-11 04:14:45",
+    "lastcheckoktime": "2019-12-11 04:14:45",
+    "clicktimestamp": "",
+    "clickcount": 0,
+    "clicktrend": 0
+  },
+  {
+    ...
+  },
+]</code></pre>
+      </div>
+
+      <div class="h5 mt-2">Result XML:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4 result">
+&lt;result&gt;&#10;  &lt;station&#10;    changeuuid=&quot;9620f27f-0601-11e8-ae97-52543be04c81&quot;&#10;    stationuuid=&quot;9620f27c-0601-11e8-ae97-52543be04c81&quot;&#10;    name=&quot;CHRK &amp;quot;Giant 101.9&amp;quot; Sydney, NS&quot;&#10;    url=&quot;http://newcap.leanstream.co/CHRKFM&quot;&#10;    url_resolved=&quot;http://newcap.leanstream.co/CHRKFM&quot;&#10;    homepage=&quot;http://www.giant1019.com/&quot;&#10;    favicon=&quot;http://media.socastsrm.com/wordpress/wp-content/blogs.dir/988/files/2017/10/159_primary_image.png&quot;&#10;    tags=&quot;contemporary hits,hot adult contemporary,cape breton,sydney&quot;&#10;    country=&quot;Canada&quot;&#10;    countrycode=&quot;CA&quot;&#10;    state=&quot;Nova Scotia&quot;&#10;    language=&quot;English&quot;&#10;    votes=&quot;0&quot;&#10;    lastchangetime=&quot;2019-12-11 19:48:31&quot;&#10;    ip=&quot;&quot;&#10;    codec=&quot;AAC+&quot;&#10;    bitrate=&quot;56&quot;&#10;    hls=&quot;0&quot;&#10;    lastcheckok=&quot;1&quot;&#10;    lastchecktime=&quot;2019-12-11 17:37:28&quot;&#10;    lastcheckoktime=&quot;2019-12-11 17:37:28&quot;&#10;    clicktimestamp=&quot;&quot;&#10;    clickcount=&quot;0&quot;&#10;    clicktrend=&quot;0&quot;&gt;&#10;  &lt;/station&gt;&#10;  ...&#10;&lt;/result&gt;
+              </pre>
+      </div>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/json/stations/byname/jazz" target="_blank">{{ API_SERVER }}/json/stations/byname/jazz</a></li>
@@ -642,6 +683,7 @@
         <li><a href="{{ API_SERVER }}/pls/stations/bytagexact/320kbps" target="_blank">{{ API_SERVER }}/pls/stations/bytagexact/320kbps</a></li>
       </ul>
     </div>
+
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_all_radio_stations">
       <h1 class="display-4">List of all radio stations</h1>
       <p class="lead">A list of all radio stations. Please use <a href="#Playable_station_url">Playable station URL</a> API call to get the real station URL and also let the click be counted, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
@@ -668,7 +710,7 @@
             <td>order</td>
             <td>name</td>
             <td>
-              name, url, homepage, favicon, tags, country, state, language, votes, negativevotes, codec, bitrate, lastcheckok, lastchecktime, clicktimestamp, clickcount, clicktrend
+              name, url, homepage, favicon, tags, country, state, language, votes, codec, bitrate, lastcheckok, lastchecktime, clicktimestamp, clickcount, clicktrend, random
             </td>
             <td>name of the attribute the result list will be sorted by</td>
           </tr>
@@ -781,15 +823,16 @@
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Playable_station_url">
       <h1 class="display-4">Playable station URL</h1>
-      <p class="lead">Returns the playable URL for the station. Any playlist (PLS, ASX, M3U) decoding will be done for you. This API call will count as a click on the station, supported output formats: JSON, XML ,PLS ,M3U</p>
+      <p class="lead">Returns the playable URL for the station. Any playlist (PLS, ASX, M3U) decoding will be done for you.
+         This API call will count as a click on the station, supported output formats: JSON, XML ,PLS ,M3U</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
         <ul class="list-unstyled ml-4">
-          <li>{{ API_SERVER }}/xml/url/stationid</li>
-          <li>{{ API_SERVER }}/json/url/stationid</li>
-          <li>{{ API_SERVER }}/pls/url/stationid</li>
-          <li>{{ API_SERVER }}/m3u/url/stationid</li>
+          <li>{{ API_SERVER }}/xml/url/stationuuid</li>
+          <li>{{ API_SERVER }}/json/url/stationuuid</li>
+          <li>{{ API_SERVER }}/pls/url/stationuuid</li>
+          <li>{{ API_SERVER }}/m3u/url/stationuuid</li>
         </ul>
       </div>
       <div class="h5">Result JSON:</div>
@@ -934,7 +977,7 @@
             <td>order</td>
             <td>name</td>
             <td>
-              name, url, homepage, favicon, tags, country, state, language, votes, negativevotes, codec, bitrate, lastcheckok, lastchecktime, clicktimestamp, clickcount, clicktrend
+              name, url, homepage, favicon, tags, country, state, language, votes, codec, bitrate, lastcheckok, lastchecktime, clicktimestamp, clickcount, clicktrend, random
             </td>
             <td>OPTIONAL, name of the attribute the result list will be sorted by</td>
           </tr>
@@ -1087,9 +1130,9 @@
       <div class="syntax">
         <ul class="list-unstyled ml-4">
           <li>{{ API_SERVER }}/json/stations/deleted</li>
-          <li>{{ API_SERVER }}/json/stations/deleted/stationid</li>
+          <li>{{ API_SERVER }}/json/stations/deleted/stationuuid</li>
           <li>{{ API_SERVER }}/xml/stations/deleted</li>
-          <li>{{ API_SERVER }}/xml/stations/deleted/stationid</li>
+          <li>{{ API_SERVER }}/xml/stations/deleted/stationuuid</li>
         </ul>
       </div>
       <div class="h5">Example:</div>
@@ -1186,27 +1229,23 @@
       <div class="h5">Syntax:</div>
       <div class="syntax">
         <ul class="list-unstyled ml-4">
-          <li>{{ API_SERVER }}/xml/vote/stationid</li>
-          <li>{{ API_SERVER }}/json/vote/stationid</li>
+          <li>{{ API_SERVER }}/xml/vote/stationuuid</li>
+          <li>{{ API_SERVER }}/json/vote/stationuuid</li>
         </ul>
 
       </div>
       <div class="h5">Result JSON:</div>
       <div class="well well-sm bg-light border border-secondary rounded">
-        <pre class="mt-4">
-            {
-              "ok": "true",
-              "message": "voted for station successfully"
-            }
-                </pre>
+        <pre class="mt-4">{
+  "ok": true,
+  "message": "voted for station successfully"
+}</pre>
       </div>
       <div class="h5 mt-2">Result XML:</div>
       <div class="well well-sm bg-light border border-secondary rounded">
-        <pre class="mt-4">
-            &lt;result&gt;
-              &lt;status ok=&quot;true&quot; message=&quot;voted for station successfully&quot;/&gt;
-            &lt;/result&gt;
-                </pre>
+        <pre class="mt-4">&lt;result&gt;
+  &lt;status ok=&quot;true&quot; message=&quot;voted for station successfully&quot;/&gt;
+&lt;/result&gt;</pre>
       </div>
       <div class="h5 mt-2">Example:</div>
       <ul class="list-unstyled ml-4">
@@ -1265,6 +1304,11 @@
             <td>The name of the country where the radio station is located</td>
           </tr>
           <tr>
+            <td>countrycode</td>
+            <td>AT</td>
+            <td>The 2 letter countrycode of the country where the radio station is located</td>
+          </tr>
+          <tr>
             <td>state</td>
             <td>Vienna</td>
             <td>The name of the part of the country where the station is located</td>
@@ -1283,36 +1327,20 @@
       </table>
       <div class="h5">Result JSON:</div>
       <div class="well well-sm bg-light border border-secondary rounded">
-        <pre class="mt-4">
-          {
-            "ok": "true",
-            "message": "station was added",
-            "id": "123",
-            "stream_check_ok": "true",
-            "stream_check_bitrate": "128",
-            "stream_check_codec": "MP3",
-            "favicon_check_done": "true",
-            "favicon_check_ok": "true",
-            "favicon_check_url": "http://url.to.image/image.png"
-          }
-              </pre>
+        <pre class="mt-4">{
+  "ok": true,
+  "message": "station was added",
+  "uuid": "550e8400-e29b-11d4-a716-446655440000"
+}</pre>
       </div>
 
       <div class="h5 mt-2">Result XML:</div>
       <div class="well well-sm bg-light border border-secondary rounded">
-        <pre class="mt-4">
-              &lt;result&gt;
-              &lt;status ok=&quot;true&quot;
-              message=&quot;station was added&quot;
-              id=&quot;123&quot;
-              stream_check_ok=&quot;true&quot;
-              stream_check_bitrate=&quot;128&quot;
-              stream_check_codec=&quot;MP3&quot;
-              favicon_check_done=&quot;true&quot;
-              favicon_check_ok=&quot;true&quot;
-              favicon_check_url=&quot;http://url.to.image/image.png&quot;/&gt;
-              &lt;/result&gt;
-              </pre>
+        <pre class="mt-4">&lt;result&gt;
+  &lt;status ok=&quot;true&quot;
+  message=&quot;station was added&quot;
+  uuid=&quot;550e8400-e29b-11d4-a716-446655440000&quot;
+&lt;/result&gt;</pre>
       </div>
 
       <div class="h5 mt-2">Example:</div>
@@ -1335,39 +1363,35 @@
       </div>
       <div class="h5">Result JSON:</div>
       <div class="well well-sm bg-light border border-secondary rounded">
-        <pre class="mt-4">
-          {
-              &quot;supported_version&quot;: 1,
-              &quot;software_version&quot;: &quot;0.5.0&quot;,
-              &quot;status&quot;: &quot;OK&quot;,
-              &quot;stations&quot;: &quot;4047&quot;,
-              &quot;stations_broken&quot;: &quot;45&quot;,
-              &quot;tags&quot;: &quot;677&quot;,
-              &quot;clicks_last_hour&quot;: &quot;65&quot;,
-              &quot;clicks_last_day&quot;: &quot;1822&quot;,
-              &quot;languages&quot;: &quot;59&quot;,
-              &quot;countries&quot;: &quot;81&quot;
-          }
-              </pre>
+        <pre class="mt-4">{
+  &quot;supported_version&quot;: 1,
+  &quot;software_version&quot;: &quot;0.5.0&quot;,
+  &quot;status&quot;: &quot;OK&quot;,
+  &quot;stations&quot;: 4047,
+  &quot;stations_broken&quot;: 45,
+  &quot;tags&quot;: 677,
+  &quot;clicks_last_hour&quot;: 65,
+  &quot;clicks_last_day&quot;: 1822,
+  &quot;languages&quot;: 59,
+  &quot;countries&quot;: 81
+}</pre>
       </div>
 
       <div class="h5 mt-2">Result XML:</div>
       <div class="well well-sm bg-light border border-secondary rounded">
-        <pre class="mt-4">
-          &lt;result&gt;
-            &lt;stats
-              status=&quot;OK&quot;
-              supported_version=&quot;1&quot;
-              software_version=&quot;0.5.0&quot;
-              stations=&quot;4047&quot;
-              stations_broken=&quot;45&quot;
-              tags=&quot;677&quot;
-              clicks_last_hour=&quot;66&quot;
-              clicks_last_day=&quot;1824&quot;
-              languages=&quot;59&quot;
-              countries=&quot;81&quot;/&gt;
-          &lt;/result&gt;
-              </pre>
+        <pre class="mt-4">&lt;result&gt;
+  &lt;stats
+    status=&quot;OK&quot;
+    supported_version=&quot;1&quot;
+    software_version=&quot;0.5.0&quot;
+    stations=&quot;4047&quot;
+    stations_broken=&quot;45&quot;
+    tags=&quot;677&quot;
+    clicks_last_hour=&quot;66&quot;
+    clicks_last_day=&quot;1824&quot;
+    languages=&quot;59&quot;
+    countries=&quot;81&quot;/&gt;
+&lt;/result&gt;</pre>
       </div>
 
       <div class="h5 mt-2">Example:</div>
@@ -1376,9 +1400,9 @@
       </ul>
     </div>
 
-    <div class="jumbotron mt-2 shadow p-3 mb-5" id="server_mirrors">
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Server_mirrors">
       <h1 class="display-4">Server mirrors</h1>
-      <p class="lead ">List of server mirrors. Does a dns lookup of all.api.radio-browser.info and then a reverse dns lookup for every result it got from the first request. This should be done on the client. ONLY USE THIS, if your client is not able to do dns lookups. 
+      <p class="lead ">A list of server mirrors. A DNS look-up of all.api.radio-browser.info is performed followed by a reverse one for every result getting from the first request. This should be done on the client. ONLY USE THIS if your client is not able to do DNS look-ups, 
         supported output formats: JSON</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
@@ -1389,8 +1413,7 @@
       </div>
       <div class="h5">Result JSON:</div>
       <div class="well well-sm bg-light border border-secondary rounded">
-        <pre class="mt-4">
-[
+        <pre class="mt-4">[
     {
         "ip": "95.179.139.106",
         "name": "nl1.api.radio-browser.info"
@@ -1423,8 +1446,7 @@
         "ip": "2001:19f0:5001:32a4:5400:2ff:fe37:75c2",
         "name": "nl1.api.radio-browser.info"
     }
-]
-              </pre>
+]</pre>
       </div>
 
       <div class="h5 mt-2">Example:</div>
