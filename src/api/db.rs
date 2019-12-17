@@ -817,7 +817,8 @@ impl Connection {
                 Country,Subcountry,
                 CountryCode,
                 Language,Votes,
-                Creation,Ip from StationHistory WHERE 1=:mynumber {changeuuid_str} {stationuuid} ORDER BY Creation ASC", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str);
+                Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated,
+                Ip from StationHistory WHERE 1=:mynumber {changeuuid_str} {stationuuid} ORDER BY Creation ASC", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str);
         let results = self.pool.prep_exec(query, params! {
             "mynumber" => 1,
             "stationuuid" => stationuuid.unwrap_or(String::from("")),
@@ -950,7 +951,7 @@ impl Connection {
                         .unwrap_or("".to_string()),
                     row.take_opt("Votes").unwrap_or(Ok(0)).unwrap_or(0),
                     row
-                        .take_opt("Creation")
+                        .take_opt("CreationFormated")
                         .unwrap_or(Ok("".to_string()))
                         .unwrap_or("".to_string()),
                     row
