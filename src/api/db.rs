@@ -815,6 +815,7 @@ impl Connection {
                 Url,Homepage,
                 Favicon,Tags,
                 Country,Subcountry,
+                CountryCode,
                 Language,Votes,
                 Creation,Ip from StationHistory WHERE 1=:mynumber {changeuuid_str} {stationuuid} ORDER BY Creation ASC", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str);
         let results = self.pool.prep_exec(query, params! {

@@ -131,6 +131,7 @@ impl StationHistoryCurrent {
             xml.attr_esc("favicon", &entry.favicon)?;
             xml.attr_esc("tags", &entry.tags)?;
             xml.attr_esc("country", &entry.country)?;
+            xml.attr_esc("countrycode", &entry.countrycode)?;
             xml.attr_esc("state", &entry.state)?;
             xml.attr_esc("language", &entry.language)?;
             let station_votes_str = format!("{}", entry.votes);
