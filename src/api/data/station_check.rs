@@ -13,6 +13,7 @@ pub struct StationCheckV0 {
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct StationCheck {
+    #[serde(skip_serializing)]
     pub id: i32,
     pub stationuuid: String,
     pub checkuuid: String,

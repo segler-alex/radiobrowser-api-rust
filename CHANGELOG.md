@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Changelog
 
+### Removed
+- "id" from /json/checks, because database id should not be exposed
+
 ### Fixed
 - Output lastchangetime and countrycode in /json/stations/changed
 
