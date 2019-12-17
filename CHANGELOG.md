@@ -8,16 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Changelog
 
-### Changed
+### Fixed
 - Output lastchangetime and countrycode in /json/stations/changed
 
 ## [0.5.1] - 2019-12-11
 ### Added
-- Added "url_resolved" field to station lists
-- Added "random" order to station lists
-- Removed "negativevotes" field from station lists
+- "url_resolved" field to station lists
+- "random" order to station lists
 
-### Changed
+### Removed
+- "negativevotes" field from station lists
+
+### Fixed
 - Fixed json result of vote endpoint
 - Clean up tag and language fields on import
 - Documentation cleanup and extensions
