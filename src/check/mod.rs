@@ -1,5 +1,3 @@
-pub mod models;
-
 mod check;
 mod favicon;
 

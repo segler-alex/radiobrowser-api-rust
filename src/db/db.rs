@@ -1,5 +1,6 @@
-use crate::check::models::StationItem;
-use crate::check::models::StationCheckItemNew;
+use crate::db::models::StationItem;
+use crate::db::models::StationCheckItem;
+use crate::db::models::StationCheckItemNew;
 use std::error::Error;
 
 pub trait DbConnection {
@@ -14,10 +15,12 @@ pub trait DbConnection {
     fn get_language_count(&self) -> Result<u64, Box<dyn Error>>;
     fn get_click_count_last_hour(&self) -> Result<u64, Box<dyn Error>>;
     fn get_click_count_last_day(&self) -> Result<u64, Box<dyn Error>>;
-    fn get_stations_to_check(&mut self, hours: u32, itemcount: u32) -> Vec<StationItem>;
+    fn get_stations_to_check(&mut self, hours: u32, itemcount: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
 
     fn insert_checks(&mut self, list: Vec<&StationCheckItemNew>) -> Result<(), Box<dyn Error>>;
+    fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32) -> Result<Vec<StationCheckItem>, Box<dyn Error>>;
     fn update_stations(&mut self, list: Vec<&StationCheckItemNew>) -> Result<(), Box<dyn Error>>;
+    fn update_station_with_check_data(&self, stationcheck: StationCheckItem) -> Result<(), Box<dyn std::error::Error>>;
     fn delete_never_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
     fn delete_were_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
     fn delete_old_checks(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;

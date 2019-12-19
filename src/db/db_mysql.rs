@@ -1,15 +1,72 @@
-use crate::check::models::StationItem;
-use crate::check::models::StationCheckItemNew;
+use crate::db::models::StationCheckItem;
+use crate::db::models::StationItem;
+use crate::db::models::StationCheckItemNew;
 use std::error::Error;
 use crate::db::DbConnection;
 use mysql;
+use mysql::Row;
+use mysql::QueryResult;
 
 #[derive(Clone)]
 pub struct MysqlConnection {
     pool: mysql::Pool,
 }
 
+impl From<Row> for StationCheckItem {
+    fn from(mut row: Row) -> Self {
+        StationCheckItem {
+            check_id:       row.take("CheckID").unwrap(),
+            station_uuid:   row.take("StationUuid").unwrap_or("".to_string()),
+            check_uuid:     row.take("CheckUuid").unwrap_or("".to_string()),
+            source:         row.take("Source").unwrap_or("".to_string()),
+            codec:          row.take_opt("Codec").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            bitrate:        row.take_opt("Bitrate").unwrap_or(Ok(0)).unwrap_or(0),
+            hls:            row.take_opt("Hls").unwrap_or(Ok(0)).unwrap_or(0) == 1,
+            check_ok:       row.take_opt("CheckOK").unwrap_or(Ok(0)).unwrap_or(0) == 1,
+            check_time:     row.take_opt("CheckTimeFormated").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            url:            row.take_opt("UrlCache").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+        }
+    }
+}
+
+impl From<Row> for StationItem {
+    fn from(mut row: Row) -> Self {
+        StationItem {
+            id:              row.take("StationID").unwrap(),
+            stationuuid:     row.take("StationUuid").unwrap_or("".to_string()),
+            name:            row.take_opt("Name").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            url:             row.take_opt("Url").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            url_resolved:    row.take_opt("UrlCache").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            codec:           row.take_opt("Codec").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            bitrate:         row.take_opt("Bitrate").unwrap_or(Ok(0)).unwrap_or(0),
+            hls:             row.take_opt("Hls").unwrap_or(Ok(0)).unwrap_or(0)==1,
+            lastcheckok:     row.take_opt("LastCheckOK").unwrap_or(Ok(0)).unwrap_or(0)==1,
+            favicon:         row.take_opt("Favicon").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            homepage:        row.take_opt("Homepage").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+        }
+    }
+}
+
 impl MysqlConnection {
+    const COLUMNS: &'static str =
+        "StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,UrlCache,
+    Tags,Country,CountryCode,Subcountry,Language,Votes,
+    Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated,
+    Ip,Codec,Bitrate,Hls,LastCheckOK,
+    LastCheckTime,
+    Date_Format(LastCheckTime,'%Y-%m-%d %H:%i:%s') AS LastCheckTimeFormated,
+    LastCheckOkTime,
+    Date_Format(LastCheckOkTime,'%Y-%m-%d %H:%i:%s') AS LastCheckOkTimeFormated,
+    ClickTimestamp,
+    Date_Format(ClickTimestamp,'%Y-%m-%d %H:%i:%s') AS ClickTimestampFormated,
+    clickcount,ClickTrend";
+
+    const COLUMNS_CHECK: &'static str =
+        "CheckID, StationUuid, CheckUuid, Source, Codec, Bitrate, Hls, CheckOK,
+    CheckTime,
+    Date_Format(CheckTime,'%Y-%m-%d %H:%i:%s') AS CheckTimeFormated,
+    UrlCache";
+
     pub fn new(connection_str: &str) -> Result<Self, Box<dyn Error>> {
         let pool = mysql::Pool::new(connection_str)?;
         Ok(
@@ -19,32 +76,13 @@ impl MysqlConnection {
         )
     }
 
-    fn get_stations_query(&mut self, query: String) -> Vec<StationItem> {
-        let mut stations: Vec<StationItem> = vec![];
-        let results = self.pool.prep_exec(query, ());
+    fn get_list_from_query_result<'a, A>(&self, results: QueryResult<'static>,) -> Result<Vec<A>, Box<dyn Error>> where A: From<Row> {
+        let mut list: Vec<A> = vec![];
         for result in results {
-            for row_ in result {
-                let mut row = row_.unwrap();
-                let hls: i32 = row.take_opt("Hls").unwrap_or(Ok(0)).unwrap_or(0);
-                let ok: i32 = row.take_opt("LastCheckOK").unwrap_or(Ok(0)).unwrap_or(0);
-                let s = StationItem {
-                    id:              row.take("StationID").unwrap(),
-                    uuid:            row.take("StationUuid").unwrap_or("".to_string()),
-                    name:            row.take_opt("Name").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    url:             row.take_opt("Url").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    urlcache:        row.take_opt("UrlCache").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    codec:           row.take_opt("Codec").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    bitrate:         row.take_opt("Bitrate").unwrap_or(Ok(0)).unwrap_or(0),
-                    hls:             hls != 0,
-                    check_ok:        ok != 0,
-                    favicon:         row.take_opt("Favicon").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                    homepage:        row.take_opt("Homepage").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-                };
-                stations.push(s);
-            }
+            let row = result?;
+            list.push(row.into());
         }
-
-        stations
+        Ok(list)
     }
 
     pub fn get_single_column_number(&self, query: &str) -> Result<u64,Box<dyn std::error::Error>> {
@@ -183,8 +221,115 @@ impl DbConnection for MysqlConnection {
         Ok(())
     }
 
-    fn get_stations_to_check(&mut self, hours: u32, itemcount: u32) -> Vec<StationItem> {
-        let query = format!("SELECT StationID,StationUuid,Name,Codec,Bitrate,Hls,LastCheckOK,UrlCache,Url,Favicon,Homepage FROM Station WHERE LastCheckTime IS NULL OR LastCheckTime < NOW() - INTERVAL {} HOUR ORDER BY RAND() LIMIT {}", hours, itemcount);
-        self.get_stations_query(query)
+    fn get_stations_to_check(&mut self, hours: u32, itemcount: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+        let query = format!("SELECT {columns} FROM Station WHERE LastCheckTime IS NULL OR LastCheckTime < NOW() - INTERVAL {interval} HOUR ORDER BY RAND() LIMIT {limit}", columns = MysqlConnection::COLUMNS, interval = hours, limit = itemcount);
+        let results = self.pool.prep_exec(query, ())?;
+        self.get_list_from_query_result(results)
+    }
+
+    fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32) -> Result<Vec<StationCheckItem>, Box<dyn Error>> {
+        let where_seconds = if seconds > 0 {
+            format!(
+                "TIMESTAMPDIFF(SECOND,CheckTime,now())<{seconds}",
+                seconds = seconds
+            )
+        } else {
+            String::from("")
+        };
+
+        let results = match stationuuid {
+            Some(uuid) => {
+                let where_checkuuid_str = if checkuuid.is_some() {
+                    " AND CheckTime>=(SELECT CheckTime FROM StationCheckHistory WHERE ChangeUuid=:checkuuid) AND ChangeUuid<>:checkuuid"
+                } else {
+                    ""
+                };
+
+                let query = format!("SELECT {columns} FROM StationCheckHistory WHERE StationUuid=? {where_checkuuid} {where_seconds} ORDER BY CheckTime", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str);
+                self.pool.prep_exec(query, (uuid,))
+            }
+            None => {
+                let where_checkuuid_str = if checkuuid.is_some() {
+                    " AND CheckTime>=(SELECT CheckTime FROM StationCheck WHERE ChangeUuid=:checkuuid) AND ChangeUuid<>:checkuuid"
+                } else {
+                    ""
+                };
+
+                let query = format!("SELECT {columns} FROM StationCheck WHERE 1=1 {where_checkuuid} {where_seconds} ORDER BY CheckTime", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str);
+                self.pool.prep_exec(query, ())
+            }
+        };
+
+        self.get_list_from_query_result(results?)
+    }
+
+    /// Select all checks that are currently in the database of a station with the given uuid
+    /// and calculate an overall status by majority vote. Ties are broken with the own vote
+    /// of the most current check
+    fn update_station_with_check_data(&self, stationcheck: StationCheckItem) -> Result<(), Box<dyn std::error::Error>> {
+        // select all checks of the station
+        let checks = self.get_checks(Some(stationcheck.station_uuid.clone()), None, 0)?;
+
+        // calculate vote
+        let all = checks.len();
+        let mut ok: usize = 0;
+        {
+            for check in checks {
+                if check.check_ok {
+                    ok += 1;
+                }
+            }
+        }
+        let result;
+        if ok == (all / 2) {
+            // on ties -> the last check counts
+            result = stationcheck.check_ok;
+        }
+        else if ok > (all / 2) {
+            // majority positive
+            result = true;
+        }
+        else
+        {
+            // majority negative
+            result = false;
+        }
+        
+        // update station with result
+        trace!("Update station {} with {}/{} checks -> {}", stationcheck.station_uuid, ok, all, result);
+        
+        let mut query: String = String::from("UPDATE Station SET
+            LastCheckTime=:checktime,
+            LastCheckOkTime=:checktime,
+            LastCheckOK=:checkok,
+            Codec=:codec,
+            Bitrate=:bitrate,
+            Hls=:hls,
+            UrlCache=:urlcache
+            WHERE StationUuid=:stationuuid");
+        if result {
+            query = format!("UPDATE Station SET
+                LastCheckTime=:checktime,
+                LastCheckOK=:checkok,
+                Codec=:codec,
+                Bitrate=:bitrate,
+                Hls=:hls,
+                UrlCache=:urlcache
+                WHERE StationUuid=:stationuuid");
+        }
+
+        // insert into StationCheck
+        let params = params!{
+            "checktime" => &stationcheck.check_time,
+            "checkok" => result,
+            "codec" => &stationcheck.codec,
+            "bitrate" => stationcheck.bitrate,
+            "hls" => stationcheck.hls,
+            "urlcache" => &stationcheck.url,
+            "stationuuid" => &stationcheck.station_uuid,
+        };
+        let mut my_stmt = self.pool.prepare(query)?;
+        my_stmt.execute(params)?;
+        Ok(())
     }
 }
