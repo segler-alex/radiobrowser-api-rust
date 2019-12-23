@@ -218,7 +218,7 @@ impl Connection {
         Ok(count > 0)
     }
 
-    pub fn insert_pulled_station_check(&self, stationcheck: StationCheck) -> Result<(),Box<dyn std::error::Error>> {
+    pub fn insert_pulled_station_check(&self, stationcheck: &StationCheck) -> Result<(),Box<dyn std::error::Error>> {
         // delete from stationcheck if exists
         let params_delete = params!{
             "stationuuid" => &stationcheck.stationuuid,
@@ -231,13 +231,13 @@ impl Connection {
         let params_insert = params!{
             "stationuuid" => &stationcheck.stationuuid,
             "checkuuid" => &stationcheck.checkuuid,
-            "source" => stationcheck.source,
-            "codec" => stationcheck.codec,
+            "source" => &stationcheck.source,
+            "codec" => &stationcheck.codec,
             "bitrate" => stationcheck.bitrate,
             "hls" => stationcheck.hls,
             "checkok" => stationcheck.ok,
-            "checktime" => stationcheck.timestamp,
-            "urlcache" => stationcheck.urlcache,
+            "checktime" => &stationcheck.timestamp,
+            "urlcache" => &stationcheck.urlcache,
         };
         let query = format!("INSERT INTO StationCheck(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) 
                     VALUES(:stationuuid, :checkuuid, :source, :codec, :bitrate, :hls, :checkok, :checktime, :urlcache)");
@@ -251,42 +251,6 @@ impl Connection {
 
             self.pool.prep_exec(query, params_insert)?;
         }
-        Ok(())
-    }
-
-    pub fn update_station_with_check_data(&self, stationcheck: &StationCheck) -> Result<(), Box<dyn std::error::Error>> {
-        let mut query: String = String::from("UPDATE Station SET
-            LastCheckTime=:checktime,
-            LastCheckOkTime=:checktime,
-            LastCheckOK=:checkok,
-            Codec=:codec,
-            Bitrate=:bitrate,
-            Hls=:hls,
-            UrlCache=:urlcache
-            WHERE StationUuid=:stationuuid");
-        if stationcheck.ok == 0 {
-            query = format!("UPDATE Station SET
-                LastCheckTime=:checktime,
-                LastCheckOK=:checkok,
-                Codec=:codec,
-                Bitrate=:bitrate,
-                Hls=:hls,
-                UrlCache=:urlcache
-                WHERE StationUuid=:stationuuid");
-        }
-
-        // insert into StationCheck
-        let params = params!{
-            "checktime" => &stationcheck.timestamp,
-            "checkok" => stationcheck.ok,
-            "codec" => &stationcheck.codec,
-            "bitrate" => stationcheck.bitrate,
-            "hls" => stationcheck.hls,
-            "urlcache" => &stationcheck.urlcache,
-            "stationuuid" => &stationcheck.stationuuid,
-        };
-        let mut my_stmt = self.pool.prepare(query)?;
-        my_stmt.execute(params)?;
         Ok(())
     }
 

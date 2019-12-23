@@ -1,3 +1,4 @@
+use crate::db::models::StationCheckItemNew;
 use std::thread;
 use crate::time;
 use crate::api::db;
@@ -7,12 +8,13 @@ use crate::api::data::StationHistoryV0;
 use crate::api::data::StationCheck;
 use crate::api::data::StationCheckV0;
 use crate::api::data::Status;
+use crate::db::DbConnection;
 
-pub fn run(connection: db::Connection, mirrors: Vec<String>, pull_interval: u64){
+pub fn run<A: 'static>(connection: db::Connection, connection_new: A, mirrors: Vec<String>, pull_interval: u64) where A: DbConnection, A: std::marker::Send {
     thread::spawn(move || {
         loop {
             for server in mirrors.iter() {
-                let result = pull_server(&connection, &server);
+                let result = pull_server(&connection, &connection_new, &server);
                 match result {
                     Ok(_) => {
                     },
@@ -81,7 +83,7 @@ fn pull_checks(server: &str, api_version: u32, lastid: Option<String>) -> Result
     }
 }
 
-fn pull_server(connection: &db::Connection, server: &str) -> Result<(),Box<dyn std::error::Error>> {
+fn pull_server<A>(connection: &db::Connection, connection_new: &A, server: &str) -> Result<(),Box<dyn std::error::Error>> where A: DbConnection {
     let api_version = get_remote_version(server)?;
     let lastid = connection.get_pull_server_lastid(server);
     let list = pull_history(server, api_version, lastid)?;
@@ -107,8 +109,8 @@ fn pull_server(connection: &db::Connection, server: &str) -> Result<(),Box<dyn s
     let mut station_check_count = 0;
     for check in list_checks {
         let changeuuid = check.checkuuid.clone();
-        connection.update_station_with_check_data(&check)?;
-        connection.insert_pulled_station_check(check)?;
+        connection.insert_pulled_station_check(&check)?;
+        connection_new.update_station_with_check_data(vec![&check.into()])?;
         station_check_count = station_check_count + 1;
 
         if station_check_count % 100 == 0 || station_check_count == len {
@@ -118,4 +120,18 @@ fn pull_server(connection: &db::Connection, server: &str) -> Result<(),Box<dyn s
 
     info!("Pull from '{}' OK (Added station changes: {}, Added station checks: {})", server, station_change_count, station_check_count);
     Ok(())
+}
+
+impl From<StationCheck> for StationCheckItemNew {
+    fn from(item: StationCheck) -> Self {
+        StationCheckItemNew {
+            station_uuid: item.stationuuid,
+            check_ok: item.ok == 1,
+            bitrate: item.bitrate,
+            codec: item.codec,
+            hls: item.hls == 1,
+            source: item.source,
+            url: item.urlcache,
+        }
+    }
 }

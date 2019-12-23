@@ -207,7 +207,7 @@ impl DbConnection for MysqlConnection {
     /// Select all checks that are currently in the database of a station with the given uuid
     /// and calculate an overall status by majority vote. Ties are broken with the own vote
     /// of the most current check
-    fn update_station_with_check_data(&mut self, list: Vec<&StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
+    fn update_station_with_check_data(&self, list: Vec<&StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
         let query_update_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOkTime=NOW(),LastCheckOK=:checkok,Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache WHERE StationUuid=:stationuuid";
         let mut stmt_update_ok = self.pool.prepare(query_update_ok)?;
         
