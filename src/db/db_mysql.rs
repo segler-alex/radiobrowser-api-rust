@@ -204,18 +204,62 @@ impl DbConnection for MysqlConnection {
         Ok(())
     }
 
-    fn update_stations(&mut self, list: Vec<&StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
-        let query_update_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOkTime=NOW(),LastCheckOK=?,Codec=?,Bitrate=?,UrlCache=? WHERE StationUuid=?";
+    /// Select all checks that are currently in the database of a station with the given uuid
+    /// and calculate an overall status by majority vote. Ties are broken with the own vote
+    /// of the most current check
+    fn update_station_with_check_data(&mut self, list: Vec<&StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
+        let query_update_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOkTime=NOW(),LastCheckOK=:checkok,Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache WHERE StationUuid=:stationuuid";
         let mut stmt_update_ok = self.pool.prepare(query_update_ok)?;
         
-        let query_update_not_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOK=?,Codec=?,Bitrate=?,UrlCache=? WHERE StationUuid=?";
+        let query_update_not_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOK=:checkok,Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache WHERE StationUuid=:stationuuid";
         let mut stmt_update_not_ok = self.pool.prepare(query_update_not_ok)?;
 
         for item in list {
-            if item.check_ok{
-                stmt_update_ok.execute((&item.check_ok,&item.codec,&item.bitrate,&item.url,&item.station_uuid))?;
+            // select all checks of the station
+            let checks = self.get_checks(Some(item.station_uuid.clone()), None, 0)?;
+
+            // calculate vote
+            let all = checks.len();
+            let mut ok: usize = 0;
+            {
+                for check in checks {
+                    if check.check_ok {
+                        ok += 1;
+                    }
+                }
+            }
+            let result;
+            if ok == (all / 2) {
+                // on ties -> the last check counts
+                result = item.check_ok;
+            }
+            else if ok > (all / 2) {
+                // majority positive
+                result = true;
+            }
+            else
+            {
+                // majority negative
+                result = false;
+            }
+
+            // update station with result
+            trace!("Update station {} with {}/{} checks -> {}", item.station_uuid, ok, all, result);
+
+            // insert into StationCheck
+            let params = params!{
+                "checkok" => result,
+                "codec" => &item.codec,
+                "bitrate" => item.bitrate,
+                "hls" => item.hls,
+                "urlcache" => &item.url,
+                "stationuuid" => &item.station_uuid,
+            };
+
+            if result {
+                stmt_update_ok.execute(params)?;
             } else {
-                stmt_update_not_ok.execute((&item.check_ok,&item.codec,&item.bitrate,&item.url,&item.station_uuid))?;
+                stmt_update_not_ok.execute(params)?;
             }
         }
         Ok(())
@@ -261,75 +305,5 @@ impl DbConnection for MysqlConnection {
         };
 
         self.get_list_from_query_result(results?)
-    }
-
-    /// Select all checks that are currently in the database of a station with the given uuid
-    /// and calculate an overall status by majority vote. Ties are broken with the own vote
-    /// of the most current check
-    fn update_station_with_check_data(&self, stationcheck: StationCheckItem) -> Result<(), Box<dyn std::error::Error>> {
-        // select all checks of the station
-        let checks = self.get_checks(Some(stationcheck.station_uuid.clone()), None, 0)?;
-
-        // calculate vote
-        let all = checks.len();
-        let mut ok: usize = 0;
-        {
-            for check in checks {
-                if check.check_ok {
-                    ok += 1;
-                }
-            }
-        }
-        let result;
-        if ok == (all / 2) {
-            // on ties -> the last check counts
-            result = stationcheck.check_ok;
-        }
-        else if ok > (all / 2) {
-            // majority positive
-            result = true;
-        }
-        else
-        {
-            // majority negative
-            result = false;
-        }
-        
-        // update station with result
-        trace!("Update station {} with {}/{} checks -> {}", stationcheck.station_uuid, ok, all, result);
-        
-        let mut query: String = String::from("UPDATE Station SET
-            LastCheckTime=:checktime,
-            LastCheckOkTime=:checktime,
-            LastCheckOK=:checkok,
-            Codec=:codec,
-            Bitrate=:bitrate,
-            Hls=:hls,
-            UrlCache=:urlcache
-            WHERE StationUuid=:stationuuid");
-        if result {
-            query = format!("UPDATE Station SET
-                LastCheckTime=:checktime,
-                LastCheckOK=:checkok,
-                Codec=:codec,
-                Bitrate=:bitrate,
-                Hls=:hls,
-                UrlCache=:urlcache
-                WHERE StationUuid=:stationuuid");
-        }
-
-        // insert into StationCheck
-        let params = params!{
-            "checktime" => &stationcheck.check_time,
-            "checkok" => result,
-            "codec" => &stationcheck.codec,
-            "bitrate" => stationcheck.bitrate,
-            "hls" => stationcheck.hls,
-            "urlcache" => &stationcheck.url,
-            "stationuuid" => &stationcheck.station_uuid,
-        };
-        let mut my_stmt = self.pool.prepare(query)?;
-        my_stmt.execute(params)?;
-        Ok(())
     }
 }

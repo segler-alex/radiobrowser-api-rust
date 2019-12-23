@@ -19,8 +19,7 @@ pub trait DbConnection {
 
     fn insert_checks(&mut self, list: Vec<&StationCheckItemNew>) -> Result<(), Box<dyn Error>>;
     fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32) -> Result<Vec<StationCheckItem>, Box<dyn Error>>;
-    fn update_stations(&mut self, list: Vec<&StationCheckItemNew>) -> Result<(), Box<dyn Error>>;
-    fn update_station_with_check_data(&self, stationcheck: StationCheckItem) -> Result<(), Box<dyn std::error::Error>>;
+    fn update_station_with_check_data(&mut self, list: Vec<&StationCheckItemNew>) -> Result<(), Box<dyn Error>>;
     fn delete_never_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
     fn delete_were_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
     fn delete_old_checks(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
