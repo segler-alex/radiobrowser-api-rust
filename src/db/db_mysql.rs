@@ -344,4 +344,42 @@ impl DbConnection for MysqlConnection {
         }
         Ok(items)
     }
+
+    fn get_1_n(
+        &self,
+        column: &str,
+        search: Option<String>,
+        order: String,
+        reverse: bool,
+        hidebroken: bool,
+    ) -> Result<Vec<ExtraInfo>, Box<dyn Error>> {
+        let query: String;
+        let reverse_string = if reverse { "DESC" } else { "ASC" };
+        let hidebroken_string = if hidebroken {
+            " AND LastCheckOK=TRUE"
+        } else {
+            ""
+        };
+        let result = match search {
+            Some(value) => {
+                query = format!("SELECT {column} AS name,COUNT(*) AS stationcount FROM Station WHERE {column} LIKE CONCAT('%',?,'%') AND {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
+                self.pool.prep_exec(query, (value,))
+            }
+            None => {
+                query = format!("SELECT {column} AS name,COUNT(*) AS stationcount FROM Station WHERE {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
+                self.pool.prep_exec(query, ())
+            }
+        };
+
+        let stations: Vec<ExtraInfo> = result
+            .map(|result| {
+                result
+                    .map(|x| x.unwrap())
+                    .map(|row| {
+                        let (name, stationcount) = mysql::from_row(row);
+                        ExtraInfo::new(name, stationcount)
+                    }).collect() // Collect payments so now `QueryResult` is mapped to `Vec<Payment>`
+            }).unwrap(); // Unwrap `Vec<Payment>`
+        Ok(stations)
+    }
 }

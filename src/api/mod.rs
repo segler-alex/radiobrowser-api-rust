@@ -20,7 +20,6 @@ use crate::api::data::ResultMessage;
 use crate::api::data::StationCachedInfo;
 use crate::api::data::StationHistoryCurrent;
 use crate::api::data::Station;
-use crate::api::data::Result1n;
 use crate::db::models::ExtraInfo;
 use crate::api::data::State;
 use crate::api::data::StationCheck;
@@ -77,20 +76,6 @@ fn dns_resolve(format : &str) -> rouille::Response {
                 .with_unique_header("Content-Type","application/json")
         },
         _ => rouille::Response::empty_404()
-    }
-}
-
-fn encode_result1n(type_str: &str, list : Vec<Result1n>, format : &str) -> rouille::Response {
-    match format {
-        "json" => {
-            let j = serde_json::to_string(&list).unwrap();
-            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
-        },
-        "xml" => {
-            let j = Result1n::serialize_result1n_list(type_str, list).unwrap();
-            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
-        },
-        _ => rouille::Response::empty_406()
     }
 }
 
@@ -425,10 +410,10 @@ fn handle_connection_internal<A>(connection: &db::Connection, connection_new: &A
 
         match command {
             "languages" => Ok(add_cors(encode_extra(connection_new.get_extra("LanguageCache", "LanguageName", filter, param_order, param_reverse, param_hidebroken)?, format, "language"))),
-            "countries" => Ok(add_cors(encode_result1n(command, connection.get_1_n("Country", filter, param_order, param_reverse, param_hidebroken), format))),
-            "countrycodes" => Ok(add_cors(encode_result1n(command, connection.get_1_n("CountryCode", filter, param_order, param_reverse, param_hidebroken), format))),
+            "countries" => Ok(add_cors(encode_extra(connection_new.get_1_n("Country", filter, param_order, param_reverse, param_hidebroken)?, format, "country"))),
+            "countrycodes" => Ok(add_cors(encode_extra(connection_new.get_1_n("CountryCode", filter, param_order, param_reverse, param_hidebroken)?, format, "countrycode"))),
             "states" => Ok(add_cors(encode_states(connection.get_states(None, filter, param_order, param_reverse, param_hidebroken), format))),
-            "codecs" => Ok(add_cors(encode_result1n(command, connection.get_1_n("Codec", filter, param_order, param_reverse, param_hidebroken), format))),
+            "codecs" => Ok(add_cors(encode_extra(connection_new.get_1_n("Codec", filter, param_order, param_reverse, param_hidebroken)?, format, "codec"))),
             "tags" => Ok(add_cors(encode_extra(connection_new.get_extra("TagCache", "TagName", filter, param_order, param_reverse, param_hidebroken)?, format, "tag"))),
             "stations" => Ok(add_cors(Station::get_response(connection.get_stations_by_all(&param_order, param_reverse, param_hidebroken, param_offset, param_limit), format))),
             "servers" => Ok(add_cors(dns_resolve(format))),
@@ -444,9 +429,9 @@ fn handle_connection_internal<A>(connection: &db::Connection, connection_new: &A
 
         match command {
             "languages" => Ok(add_cors(encode_extra(connection_new.get_extra("LanguageCache", "LanguageName", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "language"))),
-            "countries" => Ok(add_cors(encode_result1n(command, connection.get_1_n("Country", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format))),
-            "countrycodes" => Ok(add_cors(encode_result1n(command, connection.get_1_n("CountryCode", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format))),
-            "codecs" => Ok(add_cors(encode_result1n(command, connection.get_1_n("Codec", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format))),
+            "countries" => Ok(add_cors(encode_extra(connection_new.get_1_n("Country", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "country"))),
+            "countrycodes" => Ok(add_cors(encode_extra(connection_new.get_1_n("CountryCode", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "countrycode"))),
+            "codecs" => Ok(add_cors(encode_extra(connection_new.get_1_n("Codec", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "codec"))),
             "tags" => Ok(add_cors(encode_extra(connection_new.get_extra("TagCache", "TagName", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "tag"))),
             "states" => Ok(add_cors(encode_states(connection.get_states(None, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format))),
             "vote" => Ok(add_cors(encode_message(connection.vote_for_station(&remote_ip, get_only_first(connection.get_station_by_id_or_uuid(parameter))), format))),

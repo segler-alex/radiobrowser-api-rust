@@ -19,7 +19,8 @@ pub trait DbConnection {
     fn get_stations_to_check(&mut self, hours: u32, itemcount: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
 
     fn get_extra(&self, table_name: &str, column_name: &str, search: Option<String>, order: String, reverse: bool, hidebroken: bool) -> Result<Vec<ExtraInfo>, Box<dyn Error>>;
-
+    fn get_1_n(&self, column: &str, search: Option<String>, order: String, reverse: bool, hidebroken: bool) -> Result<Vec<ExtraInfo>, Box<dyn Error>>;
+    
     fn insert_checks(&self, list: &Vec<&StationCheckItemNew>) -> Result<(), Box<dyn Error>>;
     fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32) -> Result<Vec<StationCheckItem>, Box<dyn Error>>;
     fn update_station_with_check_data(&self, list: &Vec<&StationCheckItemNew>) -> Result<(), Box<dyn Error>>;
