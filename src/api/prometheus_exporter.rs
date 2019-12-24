@@ -1,10 +1,9 @@
 use crate::db::DbConnection;
-use crate::db::MysqlConnection;
 
-pub fn render(
-    connection_new: &MysqlConnection,
+pub fn render<A>(
+    connection_new: &A,
     prefix: &str,
-) -> Result<rouille::Response, Box<dyn std::error::Error>> {
+) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
     let clicks_last_hour = connection_new.get_click_count_last_hour()?;
     let stations_broken = connection_new.get_station_count_broken()?;
     let stations_working = connection_new.get_station_count_working()?;

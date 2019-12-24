@@ -81,12 +81,12 @@ fn check_for_change(
     }
 }
 
-fn update_station(
-    conn: &mut db::MysqlConnection,
+fn update_station<A>(
+    conn: &A,
     old: &models::StationItem,
     new_item: &StationCheckItemNew,
     new_favicon: &str,
-) {
+) where A: db::DbConnection {
     let list_new = vec!(new_item);
     let result = conn.insert_checks(&list_new);
     if let Err(err) = result {

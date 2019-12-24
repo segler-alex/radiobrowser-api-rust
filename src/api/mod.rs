@@ -4,7 +4,6 @@ extern crate serde;
 extern crate serde_json;
 extern crate dns_lookup;
 
-use crate::db::MysqlConnection;
 use crate::db::DbConnection;
 
 pub mod db;
@@ -227,7 +226,7 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Re
     }
 }
 
-pub fn run(connection: db::Connection, connection_new: MysqlConnection, host : String, port : i32, threads : usize, server_name: &str, static_dir: &str, log_dir: &str, mirrors: Vec<String>, mirror_pull_interval: u64, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) {
+pub fn run<A: 'static +  std::clone::Clone>(connection: db::Connection, connection_new: A, host : String, port : i32, threads : usize, server_name: &str, static_dir: &str, log_dir: &str, mirrors: Vec<String>, mirror_pull_interval: u64, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) where A: DbConnection, A: std::marker::Send, A: std::marker::Sync {
     let listen_str = format!("{}:{}", host, port);
     info!("Listen on {} with {} threads", listen_str, threads);
     let x : Option<usize> = Some(threads);
@@ -243,7 +242,7 @@ pub fn run(connection: db::Connection, connection_new: MysqlConnection, host : S
     });
 }
 
-fn get_status(connection_new: &MysqlConnection) -> Result<Status, Box<dyn std::error::Error>> {
+fn get_status<A>(connection_new: &A) -> Result<Status, Box<dyn std::error::Error>> where A: DbConnection {
     let version = env!("CARGO_PKG_VERSION");
     Ok(
         Status::new(
@@ -303,7 +302,7 @@ fn log_to_file(file_name: &str, line: &str) {
     }
 }
 
-fn handle_connection(connection: &db::Connection, connection_new: &MysqlConnection, request: &rouille::Request, server_name: &str, static_dir: &str, log_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) -> rouille::Response {
+fn handle_connection<A>(connection: &db::Connection, connection_new: &A, request: &rouille::Request, server_name: &str, static_dir: &str, log_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) -> rouille::Response where A: DbConnection {
     let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
     let referer: String = request.header("Referer").unwrap_or(&"-".to_string()).to_string();
     let user_agent: String = request.header("User-agent").unwrap_or(&"-".to_string()).to_string();
@@ -330,7 +329,7 @@ fn handle_connection(connection: &db::Connection, connection_new: &MysqlConnecti
     })
 }
 
-fn handle_connection_internal(connection: &db::Connection, connection_new: &MysqlConnection, request: &rouille::Request, server_name: &str, static_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) -> Result<rouille::Response, Box<dyn std::error::Error>> {
+fn handle_connection_internal<A>(connection: &db::Connection, connection_new: &A, request: &rouille::Request, server_name: &str, static_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
     if request.method() != "POST" && request.method() != "GET" {
         return Ok(rouille::Response::empty_404());
     }
@@ -391,7 +390,7 @@ fn handle_connection_internal(connection: &db::Connection, connection_new: &Mysq
         match file_name {
             "metrics" => {
                 if prometheus_exporter_enabled {
-                    Ok(prometheus_exporter::render(&connection_new, prometheus_exporter_prefix)?)
+                    Ok(prometheus_exporter::render(connection_new, prometheus_exporter_prefix)?)
                 }else{
                     Ok(rouille::Response::text("Exporter not enabled!").with_status_code(423))
                 }
