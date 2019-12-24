@@ -5,7 +5,6 @@ use crate::api::data::StationHistoryCurrent;
 use crate::api::data::StationAddResult;
 use crate::api::data::Station;
 use crate::api::data::Result1n;
-use crate::api::data::ExtraInfo;
 use crate::api::data::State;
 use crate::api::data::StationCheck;
 use mysql::QueryResult;
@@ -1049,44 +1048,6 @@ impl Connection {
             }
         }
         states
-    }
-
-    pub fn get_extra(
-        &self,
-        table_name: &str,
-        column_name: &str,
-        search: Option<String>,
-        order: String,
-        reverse: bool,
-        hidebroken: bool,
-    ) -> Vec<ExtraInfo> {
-        let mut params: Vec<Value> = Vec::with_capacity(1);
-        let mut items = vec![];
-        let reverse_string = if reverse { "DESC" } else { "ASC" };
-        let hidebroken_string = if hidebroken {
-            "StationCountWorking as stationcount"
-        } else {
-            "StationCount as stationcount"
-        };
-        let search_string = match search {
-            Some(c) => {
-                params.push((format!("%{}%", c)).into());
-                format!(" AND {} LIKE ?", column_name)
-            }
-            None => "".to_string(),
-        };
-        let mut stmt = self.pool.prepare(format!("SELECT {column_name} AS name, {hidebroken} FROM {table_name} WHERE {column_name} <> '' {search} HAVING stationcount > 0 ORDER BY {order} {reverse}",search = search_string, order = order, reverse = reverse_string, hidebroken = hidebroken_string, table_name = table_name, column_name = column_name)).unwrap();
-        let my_results = stmt.execute(params);
-        for my_result in my_results {
-            for my_row in my_result {
-                let mut row_unwrapped = my_row.unwrap();
-                items.push(ExtraInfo::new(
-                    row_unwrapped.take(0).unwrap_or("".into()),
-                    row_unwrapped.take(1).unwrap_or(0),
-                ));
-            }
-        }
-        items
     }
 }
 
