@@ -110,7 +110,10 @@ fn pull_server<A>(connection: &db::Connection, connection_new: &A, server: &str)
     for check in list_checks {
         let changeuuid = check.checkuuid.clone();
         connection.insert_pulled_station_check(&check)?;
-        connection_new.update_station_with_check_data(vec![&check.into()])?;
+        let value = check.into();
+        let list = vec![&value];
+        connection_new.insert_checks(&list)?;
+        connection_new.update_station_with_check_data(&list)?;
         station_check_count = station_check_count + 1;
 
         if station_check_count % 100 == 0 || station_check_count == len {

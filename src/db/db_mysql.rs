@@ -184,7 +184,7 @@ impl DbConnection for MysqlConnection {
         self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOK=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < NOW() - INTERVAL :hours HOUR", params!(hours))
     }
 
-    fn insert_checks(&mut self, list: Vec<&StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
+    fn insert_checks(&self, list: &Vec<&StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
         let query_delete_old_station_checks = "DELETE FROM StationCheck WHERE StationUuid=:stationuuid AND Source=:source";
         let query_insert_station_check = "INSERT INTO StationCheck(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) VALUES(?,UUID(),?,?,?,?,?,NOW(),?)";
         let query_insert_station_check_history = "INSERT INTO StationCheckHistory(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) VALUES(?,UUID(),?,?,?,?,?,NOW(),?)";
@@ -207,7 +207,7 @@ impl DbConnection for MysqlConnection {
     /// Select all checks that are currently in the database of a station with the given uuid
     /// and calculate an overall status by majority vote. Ties are broken with the own vote
     /// of the most current check
-    fn update_station_with_check_data(&self, list: Vec<&StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
+    fn update_station_with_check_data(&self, list: &Vec<&StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
         let query_update_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOkTime=NOW(),LastCheckOK=:checkok,Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache WHERE StationUuid=:stationuuid";
         let mut stmt_update_ok = self.pool.prepare(query_update_ok)?;
         

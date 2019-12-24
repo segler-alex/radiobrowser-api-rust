@@ -87,11 +87,12 @@ fn update_station(
     new_item: &StationCheckItemNew,
     new_favicon: &str,
 ) {
-    let result = conn.insert_checks(vec!(&new_item));
+    let list_new = vec!(new_item);
+    let result = conn.insert_checks(&list_new);
     if let Err(err) = result {
         debug!("Insert check error {}", err);
     }
-    let result = conn.update_station_with_check_data(vec!(&new_item));
+    let result = conn.update_station_with_check_data(&list_new);
     if let Err(err) = result {
         debug!("Update station error {}", err);
     }
