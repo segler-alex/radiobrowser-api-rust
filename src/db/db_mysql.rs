@@ -415,18 +415,16 @@ impl DbConnection for MysqlConnection {
         };
 
         let mut my_stmt = self.pool.prepare(format!(r"SELECT Subcountry AS name,Country,COUNT(*) AS stationcount FROM Station WHERE Subcountry <> '' {country} {search} {hidebroken} GROUP BY Subcountry, Country ORDER BY {order} {reverse}",hidebroken = hidebroken_string, order = order, country = country_string, reverse = reverse_string, search = search_string))?;
-        let my_results = my_stmt.execute(params);
+        let result = my_stmt.execute(params)?;
         let mut states: Vec<State> = vec![];
 
-        for my_result in my_results {
-            for my_row in my_result {
-                let mut row_unwrapped = my_row.unwrap();
-                states.push(State::new(
-                    row_unwrapped.take(0).unwrap_or("".into()),
-                    row_unwrapped.take(1).unwrap_or("".into()),
-                    row_unwrapped.take(2).unwrap_or(0),
-                ));
-            }
+        for row in result {
+            let mut row_unwrapped = row?;
+            states.push(State::new(
+                row_unwrapped.take(0).unwrap_or("".into()),
+                row_unwrapped.take(1).unwrap_or("".into()),
+                row_unwrapped.take(2).unwrap_or(0),
+            ));
         }
         Ok(states)
     }
