@@ -1,3 +1,4 @@
+use crate::db::models::State;
 use crate::db::models::ExtraInfo;
 use crate::db::models::StationCheckItem;
 use crate::db::models::StationItem;
@@ -381,5 +382,52 @@ impl DbConnection for MysqlConnection {
                     }).collect() // Collect payments so now `QueryResult` is mapped to `Vec<Payment>`
             }).unwrap(); // Unwrap `Vec<Payment>`
         Ok(stations)
+    }
+
+    fn get_states(
+        &self,
+        country: Option<String>,
+        search: Option<String>,
+        order: String,
+        reverse: bool,
+        hidebroken: bool,
+    ) -> Result<Vec<State>, Box<dyn Error>> {
+        let mut params: Vec<Value> = Vec::with_capacity(1);
+        let reverse_string = if reverse { "DESC" } else { "ASC" };
+        let hidebroken_string = if hidebroken {
+            " AND LastCheckOK=TRUE"
+        } else {
+            ""
+        };
+        let country_string = match country {
+            Some(c) => {
+                params.push(c.into());
+                format!(" AND Country=?")
+            }
+            None => "".to_string(),
+        };
+        let search_string = match search {
+            Some(c) => {
+                params.push((format!("%{}%", c)).into());
+                format!(" AND Subcountry LIKE ?")
+            }
+            None => "".to_string(),
+        };
+
+        let mut my_stmt = self.pool.prepare(format!(r"SELECT Subcountry AS name,Country,COUNT(*) AS stationcount FROM Station WHERE Subcountry <> '' {country} {search} {hidebroken} GROUP BY Subcountry, Country ORDER BY {order} {reverse}",hidebroken = hidebroken_string, order = order, country = country_string, reverse = reverse_string, search = search_string))?;
+        let my_results = my_stmt.execute(params);
+        let mut states: Vec<State> = vec![];
+
+        for my_result in my_results {
+            for my_row in my_result {
+                let mut row_unwrapped = my_row.unwrap();
+                states.push(State::new(
+                    row_unwrapped.take(0).unwrap_or("".into()),
+                    row_unwrapped.take(1).unwrap_or("".into()),
+                    row_unwrapped.take(2).unwrap_or(0),
+                ));
+            }
+        }
+        Ok(states)
     }
 }

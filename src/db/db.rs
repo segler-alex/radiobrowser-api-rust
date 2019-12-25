@@ -1,3 +1,4 @@
+use crate::db::models::State;
 use crate::db::models::ExtraInfo;
 use crate::db::models::StationItem;
 use crate::db::models::StationCheckItem;
@@ -20,7 +21,8 @@ pub trait DbConnection {
 
     fn get_extra(&self, table_name: &str, column_name: &str, search: Option<String>, order: String, reverse: bool, hidebroken: bool) -> Result<Vec<ExtraInfo>, Box<dyn Error>>;
     fn get_1_n(&self, column: &str, search: Option<String>, order: String, reverse: bool, hidebroken: bool) -> Result<Vec<ExtraInfo>, Box<dyn Error>>;
-    
+    fn get_states(&self, country: Option<String>, search: Option<String>, order: String, reverse: bool, hidebroken: bool) -> Result<Vec<State>, Box<dyn Error>>;
+
     fn insert_checks(&self, list: &Vec<&StationCheckItemNew>) -> Result<(), Box<dyn Error>>;
     fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32) -> Result<Vec<StationCheckItem>, Box<dyn Error>>;
     fn update_station_with_check_data(&self, list: &Vec<&StationCheckItemNew>) -> Result<(), Box<dyn Error>>;
