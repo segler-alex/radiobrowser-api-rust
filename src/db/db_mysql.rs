@@ -370,17 +370,14 @@ impl DbConnection for MysqlConnection {
                 query = format!("SELECT {column} AS name,COUNT(*) AS stationcount FROM Station WHERE {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
                 self.pool.prep_exec(query, ())
             }
-        };
+        }?;
 
-        let stations: Vec<ExtraInfo> = result
-            .map(|result| {
-                result
-                    .map(|x| x.unwrap())
-                    .map(|row| {
-                        let (name, stationcount) = mysql::from_row(row);
-                        ExtraInfo::new(name, stationcount)
-                    }).collect() // Collect payments so now `QueryResult` is mapped to `Vec<Payment>`
-            }).unwrap(); // Unwrap `Vec<Payment>`
+        let mut stations = vec!();
+        for row in result {
+            let row = row?;
+            let (name, stationcount) = mysql::from_row_opt(row)?;
+            stations.push(ExtraInfo::new(name, stationcount));
+        }
         Ok(stations)
     }
 
@@ -419,12 +416,9 @@ impl DbConnection for MysqlConnection {
         let mut states: Vec<State> = vec![];
 
         for row in result {
-            let mut row_unwrapped = row?;
-            states.push(State::new(
-                row_unwrapped.take(0).unwrap_or("".into()),
-                row_unwrapped.take(1).unwrap_or("".into()),
-                row_unwrapped.take(2).unwrap_or(0),
-            ));
+            let row_unwrapped = row?;
+            let (name, country, stationcount) = mysql::from_row_opt(row_unwrapped)?;
+            states.push(State::new(name, country, stationcount));
         }
         Ok(states)
     }
