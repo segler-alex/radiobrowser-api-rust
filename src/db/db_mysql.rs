@@ -219,7 +219,7 @@ impl DbConnection for MysqlConnection {
 
         for item in list {
             // select all checks of the station
-            let checks = self.get_checks(Some(item.station_uuid.clone()), None, 0)?;
+            let checks = self.get_checks(Some(item.station_uuid.clone()), None, 0, false)?;
 
             // calculate vote
             let all = checks.len();
@@ -274,7 +274,8 @@ impl DbConnection for MysqlConnection {
         self.get_list_from_query_result(results)
     }
 
-    fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32) -> Result<Vec<StationCheckItem>, Box<dyn Error>> {
+    fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32, include_history: bool) -> Result<Vec<StationCheckItem>, Box<dyn Error>> {
+        let table_name = if include_history { "StationCheckHistory" } else { "StationCheck" };
         let where_seconds = if seconds > 0 {
             format!(
                 "TIMESTAMPDIFF(SECOND,CheckTime,now())<{seconds}",
@@ -287,22 +288,22 @@ impl DbConnection for MysqlConnection {
         let results = match stationuuid {
             Some(uuid) => {
                 let where_checkuuid_str = if checkuuid.is_some() {
-                    " AND CheckTime>=(SELECT CheckTime FROM StationCheckHistory WHERE ChangeUuid=:checkuuid) AND ChangeUuid<>:checkuuid"
+                    " AND CheckTime>=(SELECT CheckTime FROM {table_name} WHERE ChangeUuid=:checkuuid) AND ChangeUuid<>:checkuuid"
                 } else {
                     ""
                 };
 
-                let query = format!("SELECT {columns} FROM StationCheckHistory WHERE StationUuid=? {where_checkuuid} {where_seconds} ORDER BY CheckTime", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str);
+                let query = format!("SELECT {columns} FROM {table_name} WHERE StationUuid=? {where_checkuuid} {where_seconds} ORDER BY CheckTime", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name);
                 self.pool.prep_exec(query, (uuid,))
             }
             None => {
                 let where_checkuuid_str = if checkuuid.is_some() {
-                    " AND CheckTime>=(SELECT CheckTime FROM StationCheck WHERE ChangeUuid=:checkuuid) AND ChangeUuid<>:checkuuid"
+                    " AND CheckTime>=(SELECT CheckTime FROM {table_name} WHERE ChangeUuid=:checkuuid) AND ChangeUuid<>:checkuuid"
                 } else {
                     ""
                 };
 
-                let query = format!("SELECT {columns} FROM StationCheck WHERE 1=1 {where_checkuuid} {where_seconds} ORDER BY CheckTime", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str);
+                let query = format!("SELECT {columns} FROM {table_name} WHERE 1=1 {where_checkuuid} {where_seconds} ORDER BY CheckTime", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name);
                 self.pool.prep_exec(query, ())
             }
         };
