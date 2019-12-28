@@ -55,7 +55,7 @@ impl MysqlConnection {
         "StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,UrlCache,
     Tags,Country,CountryCode,Subcountry,Language,Votes,
     Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated,
-    Ip,Codec,Bitrate,Hls,LastCheckOK,
+    Codec,Bitrate,Hls,LastCheckOK,
     LastCheckTime,
     Date_Format(LastCheckTime,'%Y-%m-%d %H:%i:%s') AS LastCheckTimeFormated,
     LastCheckOkTime,

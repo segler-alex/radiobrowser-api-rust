@@ -25,7 +25,7 @@ impl Connection {
         "StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,UrlCache,
     Tags,Country,CountryCode,Subcountry,Language,Votes,
     Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated,
-    Ip,Codec,Bitrate,Hls,LastCheckOK,
+    Codec,Bitrate,Hls,LastCheckOK,
     LastCheckTime,
     Date_Format(LastCheckTime,'%Y-%m-%d %H:%i:%s') AS LastCheckTimeFormated,
     LastCheckOkTime,
@@ -151,8 +151,8 @@ impl Connection {
     }
 
     fn backup_station_by_id(&self, stationid: u64) -> Result<(),Box<dyn std::error::Error>>{
-        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,IP,StationUuid,ChangeUuid)
-                                SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,IP,StationUuid,ChangeUuid FROM Station WHERE StationID=:id");
+        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid)
+                                SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid FROM Station WHERE StationID=:id");
         let params = params!{
             "id" => stationid,
         };
@@ -163,8 +163,8 @@ impl Connection {
     }
 
     fn backup_station_by_uuid(&self, stationuuid: &str) -> Result<(),Box<dyn std::error::Error>>{
-        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,IP,StationUuid,ChangeUuid)
-                                SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,IP,StationUuid,ChangeUuid FROM Station WHERE StationUuid=:stationuuid");
+        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid)
+                                SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid FROM Station WHERE StationUuid=:stationuuid");
         let params = params!{
             "stationuuid" => stationuuid,
         };
@@ -839,10 +839,6 @@ impl Connection {
                         .unwrap_or(Ok("".to_string()))
                         .unwrap_or("".to_string()),
                     row
-                        .take_opt("Ip")
-                        .unwrap_or(Ok("".to_string()))
-                        .unwrap_or("".to_string()),
-                    row
                         .take_opt("Codec")
                         .unwrap_or(Ok("".to_string()))
                         .unwrap_or("".to_string()),
@@ -913,10 +909,6 @@ impl Connection {
                     row.take_opt("Votes").unwrap_or(Ok(0)).unwrap_or(0),
                     row
                         .take_opt("CreationFormated")
-                        .unwrap_or(Ok("".to_string()))
-                        .unwrap_or("".to_string()),
-                    row
-                        .take_opt("Ip")
                         .unwrap_or(Ok("".to_string()))
                         .unwrap_or("".to_string()),
                 );
@@ -1322,6 +1314,14 @@ r#"ALTER TABLE `Station` ADD COLUMN NegativeVotes int(11) DEFAULT '0'"#);
 migrations.add_migration("20191211_210500_Remove_StationHistory_NegativeVotes",
 r#"ALTER TABLE `StationHistory` DROP COLUMN NegativeVotes"#,
 r#"ALTER TABLE `StationHistory` ADD COLUMN NegativeVotes int(11) DEFAULT '0'"#);
+
+migrations.add_migration("20191228_123000_Remove_StationHistory_IP",
+r#"ALTER TABLE `Station` DROP COLUMN IP"#,
+r#"ALTER TABLE `Station` ADD COLUMN varchar(50) NOT NULL DEFAULT ''"#);
+
+migrations.add_migration("20191228_123200_Remove_StationHistory_IP",
+r#"ALTER TABLE `StationHistory` DROP COLUMN IP"#,
+r#"ALTER TABLE `StationHistory` ADD COLUMN varchar(50) NOT NULL DEFAULT ''"#);
 
     migrations.do_migrations(ignore_migration_errors, allow_database_downgrade)?;
 
