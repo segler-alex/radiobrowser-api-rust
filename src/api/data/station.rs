@@ -192,6 +192,7 @@ impl Station {
         let mut j = String::with_capacity(200 * list.len());
         j.push_str("[playlist]\r\n");
         let mut i = 1;
+        j.push_str(&format!("NumberOfEntries={}\r\n", list.len()));
         for item in list {
             let i_str = i.to_string();
             j.push_str("File");
