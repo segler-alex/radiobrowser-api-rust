@@ -187,84 +187,155 @@ impl DbConnection for MysqlConnection {
         self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOK=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < NOW() - INTERVAL :hours HOUR", params!(hours))
     }
 
-    fn insert_checks(&self, list: &Vec<&StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
-        let query_delete_old_station_checks = "DELETE FROM StationCheck WHERE StationUuid=:stationuuid AND Source=:source";
-        let query_insert_station_check = "INSERT INTO StationCheck(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) VALUES(?,UUID(),?,?,?,?,?,NOW(),?)";
-        let query_insert_station_check_history = "INSERT INTO StationCheckHistory(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) VALUES(?,UUID(),?,?,?,?,?,NOW(),?)";
-
-        let mut stmt_delete_old_station_checks = self.pool.prepare(query_delete_old_station_checks)?;
-        let mut stmt_insert_station_check = self.pool.prepare(query_insert_station_check)?;
-        let mut stmt_insert_station_check_history = self.pool.prepare(query_insert_station_check_history)?;
-
-        for item in list {
-            stmt_delete_old_station_checks.execute(params!(
-                "stationuuid" => &item.station_uuid,
-                "source" => &item.source
-            ))?;
-            stmt_insert_station_check.execute((&item.station_uuid,&item.source,&item.codec,&item.bitrate,&item.hls,&item.check_ok,&item.url))?;
-            stmt_insert_station_check_history.execute((&item.station_uuid,&item.source,&item.codec,&item.bitrate,&item.hls,&item.check_ok,&item.url))?;
+    fn get_pull_server_lastid(&self, server: &str) -> Option<String> {
+        let query: String = format!("SELECT lastid FROM PullServers WHERE name=:name");
+        let results = self.pool.prep_exec(query, params!{
+            "name" => server
+        });
+        match results {
+            Ok(results) => {
+                for result in results {
+                    if let Ok(mut result) = result {
+                        let lastid = result.take_opt("lastid");
+                        if let Some(lastid) = lastid {
+                            if let Ok(lastid) = lastid {
+                                return Some(lastid);
+                            }
+                        }
+                    }
+                };
+                None
+            },
+            _ => None
         }
+    }
+
+    fn set_pull_server_lastid(&self, server: &str, lastid: &str) -> Result<(),Box<dyn std::error::Error>> {
+        let params = params!{
+            "name" => server,
+            "lastid" => lastid,
+        };
+        let query_update: String = format!("UPDATE PullServers SET lastid=:lastid WHERE name=:name");
+        let results_update = self.pool.prep_exec(query_update, &params)?;
+        if results_update.affected_rows() == 0 {
+            let query_insert: String = format!("INSERT INTO PullServers(name, lastid) VALUES(:name,:lastid)");
+            self.pool.prep_exec(query_insert, &params)?;
+        }
+        Ok(())
+    }
+
+    fn get_pull_server_lastcheckid(&self, server: &str) -> Option<String> {
+        let query: String = format!("SELECT lastcheckid FROM PullServers WHERE name=:name");
+        let results = self.pool.prep_exec(query, params!{
+            "name" => server
+        });
+        match results {
+            Ok(results) => {
+                for result in results {
+                    if let Ok(mut result) = result {
+                        let lastcheckid = result.take_opt("lastcheckid");
+                        if let Some(lastcheckid) = lastcheckid {
+                            if let Ok(lastcheckid) = lastcheckid {
+                                return Some(lastcheckid);
+                            }
+                        }
+                    }
+                };
+                None
+            },
+            _ => None
+        }
+    }
+
+    fn set_pull_server_lastcheckid(&self, server: &str, lastcheckid: &str) -> Result<(),Box<dyn std::error::Error>> {
+        let params = params!{
+            "name" => server,
+            "lastcheckid" => lastcheckid,
+        };
+        let query_update: String = format!("UPDATE PullServers SET lastcheckid=:lastcheckid WHERE name=:name");
+        let results_update = self.pool.prep_exec(query_update, &params)?;
+        if results_update.affected_rows() == 0 {
+            let query_insert: String = format!("INSERT INTO PullServers(name, lastcheckid) VALUES(:name,:lastcheckid)");
+            self.pool.prep_exec(query_insert, &params)?;
+        }
+        Ok(())
+    }
+
+    fn insert_checks(&self, list: &Vec<StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
+        trace!("insert_checks #1");
+        
+        let mut delete_station_check_params: Vec<Value> = vec![];
+        let mut delete_station_check_query = vec![];
+        let mut insert_station_check_params: Vec<Value> = vec![];
+        let mut insert_station_check_query = vec![];
+        for item in list {
+            delete_station_check_params.push(item.station_uuid.clone().into());
+            delete_station_check_params.push(item.source.clone().into());
+            delete_station_check_query.push("(StationUuid=? AND Source=?)");
+  
+            insert_station_check_params.push(item.station_uuid.clone().into());
+            insert_station_check_params.push(item.source.clone().into());
+            insert_station_check_params.push(item.codec.clone().into());
+            insert_station_check_params.push(item.bitrate.into());
+            insert_station_check_params.push(item.hls.into());
+            insert_station_check_params.push(item.check_ok.into());
+            insert_station_check_params.push(item.url.clone().into());
+            insert_station_check_query.push("(?,UUID(),?,?,?,?,?,NOW(),?)");
+        }
+
+        let query_delete_old_station_checks = format!("DELETE FROM StationCheck WHERE {}", delete_station_check_query.join(" OR "));
+        let mut stmt_delete_old_station_checks = self.pool.prepare(query_delete_old_station_checks)?;
+        stmt_delete_old_station_checks.execute(delete_station_check_params)?;
+
+        let insert_station_check_params_str = insert_station_check_query.join(",");
+
+        let query_insert_station_check = format!("INSERT INTO StationCheck(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) VALUES{}", insert_station_check_params_str);
+        let mut stmt_insert_station_check = self.pool.prepare(query_insert_station_check)?;
+        stmt_insert_station_check.execute(&insert_station_check_params)?;
+
+        let query_insert_station_check_history = format!("INSERT INTO StationCheckHistory(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) VALUES{}", insert_station_check_params_str);
+        let mut stmt_insert_station_check_history = self.pool.prepare(query_insert_station_check_history)?;
+        stmt_insert_station_check_history.execute(insert_station_check_params)?;
+
+        trace!("insert_checks #2");
         Ok(())
     }
 
     /// Select all checks that are currently in the database of a station with the given uuid
     /// and calculate an overall status by majority vote. Ties are broken with the own vote
     /// of the most current check
-    fn update_station_with_check_data(&self, list: &Vec<&StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
-        let query_update_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOkTime=NOW(),LastCheckOK=:checkok,Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache WHERE StationUuid=:stationuuid";
+    fn update_station_with_check_data(&self, list: &Vec<StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
+        let query_update_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOkTime=NOW(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache WHERE StationUuid=:stationuuid";
         let mut stmt_update_ok = self.pool.prepare(query_update_ok)?;
         
-        let query_update_not_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOK=:checkok,Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache WHERE StationUuid=:stationuuid";
-        let mut stmt_update_not_ok = self.pool.prepare(query_update_not_ok)?;
-
+        let mut list_station_uuid = vec![];
+        let mut list_station_uuid_query = vec![];
+        trace!("update_station_with_check_data(): #1");
         for item in list {
-            // select all checks of the station
-            let checks = self.get_checks(Some(item.station_uuid.clone()), None, 0, false)?;
-
-            // calculate vote
-            let all = checks.len();
-            let mut ok: usize = 0;
-            {
-                for check in checks {
-                    if check.check_ok {
-                        ok += 1;
-                    }
-                }
-            }
-            let result;
-            if ok == (all / 2) {
-                // on ties -> the last check counts
-                result = item.check_ok;
-            }
-            else if ok > (all / 2) {
-                // majority positive
-                result = true;
-            }
-            else
-            {
-                // majority negative
-                result = false;
-            }
-
-            // update station with result
-            trace!("Update station {} with {}/{} checks -> {}", item.station_uuid, ok, all, result);
-
-            // insert into StationCheck
             let params = params!{
-                "checkok" => result,
                 "codec" => &item.codec,
                 "bitrate" => item.bitrate,
                 "hls" => item.hls,
                 "urlcache" => &item.url,
                 "stationuuid" => &item.station_uuid,
             };
-
-            if result {
+            if item.check_ok {
                 stmt_update_ok.execute(params)?;
-            } else {
-                stmt_update_not_ok.execute(params)?;
             }
+
+            list_station_uuid.push(&item.station_uuid);
+            list_station_uuid_query.push("?");
         }
+
+        trace!("update_station_with_check_data(): #3");
+
+        let query_in = list_station_uuid_query.join(",");
+        let query_update_check_ok = format!("UPDATE Station st SET LastCheckTime=NOW(),LastCheckOk=(SELECT round(avg(CheckOk)) AS result FROM StationCheck sc WHERE sc.StationUuid=st.StationUuid GROUP BY StationUuid) WHERE StationUuid IN ({uuids});", uuids = query_in);
+        let mut stmt_update_check_ok = self.pool.prepare(query_update_check_ok)?;
+
+        stmt_update_check_ok.execute(list_station_uuid)?;
+        trace!("update_station_with_check_data(): #4");
+
         Ok(())
     }
 

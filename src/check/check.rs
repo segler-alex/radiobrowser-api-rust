@@ -84,9 +84,18 @@ fn check_for_change(
 fn update_station<A>(
     conn: &A,
     old: &models::StationItem,
-    new_item: &StationCheckItemNew,
+    new_item: StationCheckItemNew,
     new_favicon: &str,
 ) where A: db::DbConnection {
+    // output debug
+    let (changed, change_str) = check_for_change(&old, &new_item, new_favicon);
+    if changed {
+        debug!("{}", change_str.red());
+    } else {
+        debug!("{}", change_str.dimmed());
+    }
+
+    // do real insert
     let list_new = vec!(new_item);
     let result = conn.insert_checks(&list_new);
     if let Err(err) = result {
@@ -95,12 +104,6 @@ fn update_station<A>(
     let result = conn.update_station_with_check_data(&list_new);
     if let Err(err) = result {
         debug!("Update station error {}", err);
-    }
-    let (changed, change_str) = check_for_change(&old, &new_item, new_favicon);
-    if changed {
-        debug!("{}", change_str.red());
-    } else {
-        debug!("{}", change_str.dimmed());
     }
 }
 
@@ -227,9 +230,9 @@ pub fn dbcheck(
                         if favicon_checks {
                             let new_favicon =
                                 favicon::check(&station.homepage, &station.favicon, &useragent, timeout);
-                            update_station(&mut conn, &station, &new_item, &new_favicon);
+                            update_station(&mut conn, &station, new_item, &new_favicon);
                         } else {
-                            update_station(&mut conn, &station, &new_item, &station.favicon);
+                            update_station(&mut conn, &station, new_item, &station.favicon);
                         }
                     }
                 },

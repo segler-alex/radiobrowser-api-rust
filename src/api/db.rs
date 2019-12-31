@@ -206,51 +206,6 @@ impl Connection {
         Ok(())
     }
 
-    pub fn stationcheck_exists_in_history(&self, checkuuid: &str) -> Result<bool, Box<dyn std::error::Error>> {
-        let params = params!{
-            "checkuuid" => checkuuid,
-        };
-        let result = self.pool.prep_exec("SELECT COUNT(*) FROM StationCheckHistory WHERE CheckUuid=:checkuuid", params)?;
-        let count = self.get_single_column_number_intern(result)?;
-        Ok(count > 0)
-    }
-
-    pub fn insert_pulled_station_check(&self, stationcheck: &StationCheck) -> Result<(),Box<dyn std::error::Error>> {
-        // delete from stationcheck if exists
-        let params_delete = params!{
-            "stationuuid" => &stationcheck.stationuuid,
-            "source" => &stationcheck.source,
-        };
-        let query_current = format!("DELETE FROM StationCheck WHERE StationUuid=:stationuuid AND Source=:source");
-        self.pool.prep_exec(query_current, &params_delete)?;
-
-        // insert into StationCheck
-        let params_insert = params!{
-            "stationuuid" => &stationcheck.stationuuid,
-            "checkuuid" => &stationcheck.checkuuid,
-            "source" => &stationcheck.source,
-            "codec" => &stationcheck.codec,
-            "bitrate" => stationcheck.bitrate,
-            "hls" => stationcheck.hls,
-            "checkok" => stationcheck.ok,
-            "checktime" => &stationcheck.timestamp,
-            "urlcache" => &stationcheck.urlcache,
-        };
-        let query = format!("INSERT INTO StationCheck(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) 
-                    VALUES(:stationuuid, :checkuuid, :source, :codec, :bitrate, :hls, :checkok, :checktime, :urlcache)");
-        self.pool.prep_exec(query, &params_insert)?;
-
-        // insert into StationCheckHistory if not already there with same id
-        let checkid_exists_in_history = self.stationcheck_exists_in_history(&stationcheck.checkuuid)?;
-        if !checkid_exists_in_history {
-            let query = format!("INSERT INTO StationCheckHistory(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) 
-                        VALUES(:stationuuid, :checkuuid, :source, :codec, :bitrate, :hls, :checkok, :checktime, :urlcache)");
-
-            self.pool.prep_exec(query, params_insert)?;
-        }
-        Ok(())
-    }
-
     pub fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32) -> Vec<StationCheck> {
         let where_seconds = if seconds > 0 {
             format!(
@@ -308,80 +263,6 @@ impl Connection {
             hidebroken = hidebroken_string, offset = offset, limit = limit);
         let results = self.pool.prep_exec(query, ());
         self.get_stations(results)
-    }
-
-    pub fn get_pull_server_lastid(&self, server: &str) -> Option<String> {
-        let query: String = format!("SELECT lastid FROM PullServers WHERE name=:name");
-        let results = self.pool.prep_exec(query, params!{
-            "name" => server
-        });
-        match results {
-            Ok(results) => {
-                for result in results {
-                    if let Ok(mut result) = result {
-                        let lastid = result.take_opt("lastid");
-                        if let Some(lastid) = lastid {
-                            if let Ok(lastid) = lastid {
-                                return Some(lastid);
-                            }
-                        }
-                    }
-                };
-                None
-            },
-            _ => None
-        }
-    }
-
-    pub fn get_pull_server_lastcheckid(&self, server: &str) -> Option<String> {
-        let query: String = format!("SELECT lastcheckid FROM PullServers WHERE name=:name");
-        let results = self.pool.prep_exec(query, params!{
-            "name" => server
-        });
-        match results {
-            Ok(results) => {
-                for result in results {
-                    if let Ok(mut result) = result {
-                        let lastcheckid = result.take_opt("lastcheckid");
-                        if let Some(lastcheckid) = lastcheckid {
-                            if let Ok(lastcheckid) = lastcheckid {
-                                return Some(lastcheckid);
-                            }
-                        }
-                    }
-                };
-                None
-            },
-            _ => None
-        }
-    }
-
-    pub fn set_pull_server_lastid(&self, server: &str, lastid: &str) -> Result<(),Box<dyn std::error::Error>> {
-        let params = params!{
-            "name" => server,
-            "lastid" => lastid,
-        };
-        let query_update: String = format!("UPDATE PullServers SET lastid=:lastid WHERE name=:name");
-        let results_update = self.pool.prep_exec(query_update, &params)?;
-        if results_update.affected_rows() == 0 {
-            let query_insert: String = format!("INSERT INTO PullServers(name, lastid) VALUES(:name,:lastid)");
-            self.pool.prep_exec(query_insert, &params)?;
-        }
-        Ok(())
-    }
-
-    pub fn set_pull_server_lastcheckid(&self, server: &str, lastcheckid: &str) -> Result<(),Box<dyn std::error::Error>> {
-        let params = params!{
-            "name" => server,
-            "lastcheckid" => lastcheckid,
-        };
-        let query_update: String = format!("UPDATE PullServers SET lastcheckid=:lastcheckid WHERE name=:name");
-        let results_update = self.pool.prep_exec(query_update, &params)?;
-        if results_update.affected_rows() == 0 {
-            let query_insert: String = format!("INSERT INTO PullServers(name, lastcheckid) VALUES(:name,:lastcheckid)");
-            self.pool.prep_exec(query_insert, &params)?;
-        }
-        Ok(())
     }
 
     pub fn filter_order(&self, order: &str) -> &str {

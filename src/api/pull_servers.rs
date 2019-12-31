@@ -85,7 +85,7 @@ fn pull_checks(server: &str, api_version: u32, lastid: Option<String>) -> Result
 
 fn pull_server<A>(connection: &db::Connection, connection_new: &A, server: &str) -> Result<(),Box<dyn std::error::Error>> where A: DbConnection {
     let api_version = get_remote_version(server)?;
-    let lastid = connection.get_pull_server_lastid(server);
+    let lastid = connection_new.get_pull_server_lastid(server);
     let list = pull_history(server, api_version, lastid)?;
     let len = list.len();
 
@@ -97,27 +97,29 @@ fn pull_server<A>(connection: &db::Connection, connection_new: &A, server: &str)
         station_change_count = station_change_count + 1;
 
         if station_change_count % 100 == 0 || station_change_count == len {
-            connection.set_pull_server_lastid(server, &changeuuid)?;
+            connection_new.set_pull_server_lastid(server, &changeuuid)?;
         }
     }
 
-    let lastcheckid = connection.get_pull_server_lastcheckid(server);
+    let lastcheckid = connection_new.get_pull_server_lastcheckid(server);
     let list_checks = pull_checks(server, api_version, lastcheckid)?;
     let len = list_checks.len();
 
     trace!("Incremental checks sync ({})..", list_checks.len());
     let mut station_check_count = 0;
+    let mut list_checks_converted = vec![];
     for check in list_checks {
         let changeuuid = check.checkuuid.clone();
-        connection.insert_pulled_station_check(&check)?;
-        let value = check.into();
-        let list = vec![&value];
-        connection_new.insert_checks(&list)?;
-        connection_new.update_station_with_check_data(&list)?;
+        let value: StationCheckItemNew = check.into();
+        list_checks_converted.push(value);
         station_check_count = station_check_count + 1;
 
-        if station_check_count % 100 == 0 || station_check_count == len {
-            connection.set_pull_server_lastcheckid(server, &changeuuid)?;
+        if station_check_count % 1000 == 0 || station_check_count == len {
+            trace!("Insert 1000 checks..");
+            connection_new.insert_checks(&list_checks_converted)?;
+            connection_new.update_station_with_check_data(&list_checks_converted)?;
+            connection_new.set_pull_server_lastcheckid(server, &changeuuid)?;
+            trace!("..done");            
         }
     }
 
