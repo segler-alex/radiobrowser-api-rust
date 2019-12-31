@@ -84,6 +84,8 @@ fn pull_checks(server: &str, api_version: u32, lastid: Option<String>) -> Result
 }
 
 fn pull_server<A>(connection: &db::Connection, connection_new: &A, server: &str) -> Result<(),Box<dyn std::error::Error>> where A: DbConnection {
+    let chunksize = 1000;
+
     let api_version = get_remote_version(server)?;
     let lastid = connection_new.get_pull_server_lastid(server);
     let list = pull_history(server, api_version, lastid)?;
@@ -96,8 +98,10 @@ fn pull_server<A>(connection: &db::Connection, connection_new: &A, server: &str)
         connection.insert_station_by_change(station)?;
         station_change_count = station_change_count + 1;
 
-        if station_change_count % 100 == 0 || station_change_count == len {
+        if station_change_count % chunksize == 0 || station_change_count == len {
+            trace!("Insert {} station changes..", chunksize);
             connection_new.set_pull_server_lastid(server, &changeuuid)?;
+            trace!("..done");
         }
     }
 
@@ -114,8 +118,8 @@ fn pull_server<A>(connection: &db::Connection, connection_new: &A, server: &str)
         list_checks_converted.push(value);
         station_check_count = station_check_count + 1;
 
-        if station_check_count % 1000 == 0 || station_check_count == len {
-            trace!("Insert 1000 checks..");
+        if station_check_count % chunksize == 0 || station_check_count == len {
+            trace!("Insert {} checks..", chunksize);
             connection_new.insert_checks(&list_checks_converted)?;
             connection_new.update_station_with_check_data(&list_checks_converted)?;
             connection_new.set_pull_server_lastcheckid(server, &changeuuid)?;

@@ -263,6 +263,8 @@ impl DbConnection for MysqlConnection {
 
     fn insert_checks(&self, list: &Vec<StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
         trace!("insert_checks #1");
+
+        let mut transaction = self.pool.start_transaction(false, None, None)?;
         
         let mut delete_station_check_params: Vec<Value> = vec![];
         let mut delete_station_check_query = vec![];
@@ -283,19 +285,27 @@ impl DbConnection for MysqlConnection {
             insert_station_check_query.push("(?,UUID(),?,?,?,?,?,NOW(),?)");
         }
 
-        let query_delete_old_station_checks = format!("DELETE FROM StationCheck WHERE {}", delete_station_check_query.join(" OR "));
-        let mut stmt_delete_old_station_checks = self.pool.prepare(query_delete_old_station_checks)?;
-        stmt_delete_old_station_checks.execute(delete_station_check_params)?;
+        {
+            let query_delete_old_station_checks = format!("DELETE FROM StationCheck WHERE {}", delete_station_check_query.join(" OR "));
+            let mut stmt_delete_old_station_checks = transaction.prepare(query_delete_old_station_checks)?;
+            stmt_delete_old_station_checks.execute(delete_station_check_params)?;
+        }
 
         let insert_station_check_params_str = insert_station_check_query.join(",");
 
-        let query_insert_station_check = format!("INSERT INTO StationCheck(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) VALUES{}", insert_station_check_params_str);
-        let mut stmt_insert_station_check = self.pool.prepare(query_insert_station_check)?;
-        stmt_insert_station_check.execute(&insert_station_check_params)?;
+        {
+            let query_insert_station_check = format!("INSERT INTO StationCheck(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) VALUES{}", insert_station_check_params_str);
+            let mut stmt_insert_station_check = transaction.prepare(query_insert_station_check)?;
+            stmt_insert_station_check.execute(&insert_station_check_params)?;
+        }
 
-        let query_insert_station_check_history = format!("INSERT INTO StationCheckHistory(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) VALUES{}", insert_station_check_params_str);
-        let mut stmt_insert_station_check_history = self.pool.prepare(query_insert_station_check_history)?;
-        stmt_insert_station_check_history.execute(insert_station_check_params)?;
+        {
+            let query_insert_station_check_history = format!("INSERT INTO StationCheckHistory(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) VALUES{}", insert_station_check_params_str);
+            let mut stmt_insert_station_check_history = transaction.prepare(query_insert_station_check_history)?;
+            stmt_insert_station_check_history.execute(insert_station_check_params)?;
+        }
+
+        transaction.commit()?;
 
         trace!("insert_checks #2");
         Ok(())
@@ -305,35 +315,43 @@ impl DbConnection for MysqlConnection {
     /// and calculate an overall status by majority vote. Ties are broken with the own vote
     /// of the most current check
     fn update_station_with_check_data(&self, list: &Vec<StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
-        let query_update_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOkTime=NOW(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache WHERE StationUuid=:stationuuid";
-        let mut stmt_update_ok = self.pool.prepare(query_update_ok)?;
-        
+        let mut transaction = self.pool.start_transaction(false, None, None)?;
+
         let mut list_station_uuid = vec![];
         let mut list_station_uuid_query = vec![];
-        trace!("update_station_with_check_data(): #1");
-        for item in list {
-            let params = params!{
-                "codec" => &item.codec,
-                "bitrate" => item.bitrate,
-                "hls" => item.hls,
-                "urlcache" => &item.url,
-                "stationuuid" => &item.station_uuid,
-            };
-            if item.check_ok {
-                stmt_update_ok.execute(params)?;
-            }
 
-            list_station_uuid.push(&item.station_uuid);
-            list_station_uuid_query.push("?");
+        {
+            let query_update_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOkTime=NOW(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache WHERE StationUuid=:stationuuid";
+            let mut stmt_update_ok = transaction.prepare(query_update_ok)?;
+            
+            trace!("update_station_with_check_data(): #1");
+            for item in list {
+                let params = params!{
+                    "codec" => &item.codec,
+                    "bitrate" => item.bitrate,
+                    "hls" => item.hls,
+                    "urlcache" => &item.url,
+                    "stationuuid" => &item.station_uuid,
+                };
+                if item.check_ok {
+                    stmt_update_ok.execute(params)?;
+                }
+
+                list_station_uuid.push(&item.station_uuid);
+                list_station_uuid_query.push("?");
+            }
         }
 
         trace!("update_station_with_check_data(): #3");
+        {
+            let query_in = list_station_uuid_query.join(",");
+            let query_update_check_ok = format!("UPDATE Station st SET LastCheckTime=NOW(),LastCheckOk=(SELECT round(avg(CheckOk)) AS result FROM StationCheck sc WHERE sc.StationUuid=st.StationUuid GROUP BY StationUuid) WHERE StationUuid IN ({uuids});", uuids = query_in);
+            let mut stmt_update_check_ok = transaction.prepare(query_update_check_ok)?;
 
-        let query_in = list_station_uuid_query.join(",");
-        let query_update_check_ok = format!("UPDATE Station st SET LastCheckTime=NOW(),LastCheckOk=(SELECT round(avg(CheckOk)) AS result FROM StationCheck sc WHERE sc.StationUuid=st.StationUuid GROUP BY StationUuid) WHERE StationUuid IN ({uuids});", uuids = query_in);
-        let mut stmt_update_check_ok = self.pool.prepare(query_update_check_ok)?;
+            stmt_update_check_ok.execute(list_station_uuid)?;
+        }
 
-        stmt_update_check_ok.execute(list_station_uuid)?;
+        transaction.commit()?;
         trace!("update_station_with_check_data(): #4");
 
         Ok(())
