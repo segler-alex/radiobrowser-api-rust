@@ -46,7 +46,6 @@ pub struct Station {
     pub language: String,
     pub votes: i32,
     pub lastchangetime: String,
-    pub ip: String,
     pub codec: String,
     pub bitrate: u32,
     pub hls: i8,
@@ -75,7 +74,6 @@ impl Station {
         language: String,
         votes: i32,
         lastchangetime: String,
-        ip: String,
         codec: String,
         bitrate: u32,
         hls: i8,
@@ -102,7 +100,6 @@ impl Station {
             language,
             votes,
             lastchangetime,
-            ip,
             codec,
             bitrate,
             hls,
@@ -149,7 +146,6 @@ impl Station {
             xml.attr_esc("votes", &station_votes_str)?;
             let station_lastchangetime_str = format!("{}", entry.lastchangetime);
             xml.attr_esc("lastchangetime", &station_lastchangetime_str)?;
-            xml.attr_esc("ip", &entry.ip)?;
             xml.attr_esc("codec", &entry.codec)?;
             let station_bitrate = format!("{}", entry.bitrate);
             xml.attr_esc("bitrate", &station_bitrate)?;
@@ -196,6 +192,7 @@ impl Station {
         let mut j = String::with_capacity(200 * list.len());
         j.push_str("[playlist]\r\n");
         let mut i = 1;
+        j.push_str(&format!("NumberOfEntries={}\r\n", list.len()));
         for item in list {
             let i_str = i.to_string();
             j.push_str("File");
@@ -276,10 +273,6 @@ impl Station {
         schema:value "{lastchangetime}"
     ] ;
     schema:PropertyValue [
-        schema:name "ip" ;
-        schema:value "{ip}"
-    ] ;
-    schema:PropertyValue [
         schema:name "codec" ;
         schema:value "{codec}"
     ] ;
@@ -332,7 +325,6 @@ impl Station {
             state = self.state,
             language = self.language,
             votes = self.votes,
-            ip = self.ip,
             codec = self.codec,
             bitrate = self.bitrate,
             hls = self.hls,
@@ -410,7 +402,6 @@ impl From<&StationHistoryCurrent> for Station {
             language: item.language.clone(),
             votes: item.votes,
             lastchangetime: item.lastchangetime.clone(),
-            ip: item.ip.clone(),
             bitrate: 0,
             clickcount: 0,
             clicktimestamp: String::from(""),

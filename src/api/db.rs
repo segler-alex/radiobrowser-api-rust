@@ -4,9 +4,6 @@ extern crate xml_writer;
 use crate::api::data::StationHistoryCurrent;
 use crate::api::data::StationAddResult;
 use crate::api::data::Station;
-use crate::api::data::Result1n;
-use crate::api::data::ExtraInfo;
-use crate::api::data::State;
 use crate::api::data::StationCheck;
 use mysql::QueryResult;
 use mysql::Value;
@@ -28,7 +25,7 @@ impl Connection {
         "StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,UrlCache,
     Tags,Country,CountryCode,Subcountry,Language,Votes,
     Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated,
-    Ip,Codec,Bitrate,Hls,LastCheckOK,
+    Codec,Bitrate,Hls,LastCheckOK,
     LastCheckTime,
     Date_Format(LastCheckTime,'%Y-%m-%d %H:%i:%s') AS LastCheckTimeFormated,
     LastCheckOkTime,
@@ -43,68 +40,9 @@ impl Connection {
     Date_Format(CheckTime,'%Y-%m-%d %H:%i:%s') AS CheckTimeFormated,
     UrlCache";
 
-    pub fn get_single_column_number_intern(&self, mut results: QueryResult<'static>) -> Result<u64,Box<dyn std::error::Error>> {
-        let mut result_row = results.next().unwrap()?;
-        let count: u64 = result_row.take(0).unwrap();
-        Ok(count)
-    }
-
-    /*pub fn is_empty(&self) -> Result<bool, Box<dyn std::error::Error>> {
-        let count = self.get_single_column_number(r#"SELECT COUNT(*) FROM StationHistory"#)?;
-        Ok(count == 0)
-    }*/
-
     fn fix_multi_field(value: &str) -> String {
         let values: Vec<String> = value.split(",").map(|v| v.trim().to_lowercase().to_string()).collect();
         values.join(",")
-    }
-
-    pub fn update_station(&self, station: Station) -> Result<(),Box<dyn std::error::Error>> {
-        let query = format!("UPDATE Station SET Name=:name,Url=:url,Homepage=:homepage,
-            Favicon=:favicon,Country=:country,Subcountry=:state,Language=:language,
-            Tags=:tags,ChangeUuid=:changeuuid,UrlCache=:urlcache
-            WHERE StationUuid=:stationuuid");
-        let params = params!{
-            "name" => station.name,
-            "url" => station.url,
-            "homepage" => station.homepage,
-            "favicon" => station.favicon,
-            "country" => station.country,
-            "state" => station.state,
-            "language" => Connection::fix_multi_field(&station.language),
-            "tags" => Connection::fix_multi_field(&station.tags),
-            "changeuuid" => station.changeuuid,
-            "stationuuid" => &station.stationuuid,
-            "urlcache" => "",
-        };
-
-        self.pool.prep_exec(query, params)?;
-        self.backup_station_by_uuid(&station.stationuuid)?;
-
-        Ok(())
-    }
-
-    pub fn add_station(&self, station: Station) -> Result<u64,Box<dyn std::error::Error>> {
-        let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache) 
-                                VALUES(:name, :url, :homepage, :favicon, :country, :countrycode, :state, :language, :tags, :changeuuid, :stationuuid, '')");
-        let params = params!{
-            "name" => station.name,
-            "url" => station.url,
-            "homepage" => station.homepage,
-            "favicon" => station.favicon,
-            "country" => station.country,
-            "countrycode" => station.countrycode,
-            "state" => station.state,
-            "language" => Connection::fix_multi_field(&station.language),
-            "tags" => Connection::fix_multi_field(&station.tags),
-            "changeuuid" => station.changeuuid,
-            "stationuuid" => station.stationuuid,
-        };
-
-        let results = self.pool.prep_exec(query, params)?;
-        let id = results.last_insert_id();
-        self.backup_station_by_id(id)?;
-        Ok(id)
     }
 
     pub fn add_station_opt(&self, name: Option<String>, url: Option<String>, homepage: Option<String>, favicon: Option<String>,
@@ -141,9 +79,8 @@ impl Connection {
 
         let results = self.pool.prep_exec(query, params);
         match results {
-            Ok(results) => {
-                let id = results.last_insert_id();
-                let backup_result = self.backup_station_by_id(id);
+            Ok(_) => {
+                let backup_result = self.backup_stations_by_uuid(&(vec![stationuuid.clone()]));
                 match backup_result {
                     Ok(_) => StationAddResult::new_ok(stationuuid),
                     Err(err) => StationAddResult::new_err(&err.to_string())
@@ -153,140 +90,18 @@ impl Connection {
         }
     }
 
-    fn backup_station_by_id(&self, stationid: u64) -> Result<(),Box<dyn std::error::Error>>{
-        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,IP,StationUuid,ChangeUuid)
-                                SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,IP,StationUuid,ChangeUuid FROM Station WHERE StationID=:id");
-        let params = params!{
-            "id" => stationid,
-        };
-
-        self.pool.prep_exec(query, params)?;
-        
-        Ok(())
-    }
-
-    fn backup_station_by_uuid(&self, stationuuid: &str) -> Result<(),Box<dyn std::error::Error>>{
-        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,IP,StationUuid,ChangeUuid)
-                                SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,IP,StationUuid,ChangeUuid FROM Station WHERE StationUuid=:stationuuid");
-        let params = params!{
-            "stationuuid" => stationuuid,
-        };
-
-        self.pool.prep_exec(query, params)?;
-        
-        Ok(())
-    }
-
-    pub fn station_exists(&self, stationuuid: &str) -> Result<bool, Box<dyn std::error::Error>> {
-        let params = params!{
-            "stationuuid" => stationuuid,
-        };
-        let result = self.pool.prep_exec("SELECT COUNT(*) FROM Station WHERE StationUuid=:stationuuid", params)?;
-        let count = self.get_single_column_number_intern(result)?;
-        Ok(count > 0)
-    }
-
-    pub fn stationchange_exists(&self, changeuuid: &str) -> Result<bool, Box<dyn std::error::Error>> {
-        let params = params!{
-            "changeuuid" => changeuuid,
-        };
-        let result = self.pool.prep_exec("SELECT COUNT(*) FROM StationHistory WHERE ChangeUuid=:changeuuid", params)?;
-        let count = self.get_single_column_number_intern(result)?;
-        Ok(count > 0)
-    }
-
-    pub fn insert_station_by_change(&self, stationchange: StationHistoryCurrent) -> Result<(),Box<dyn std::error::Error>> {
-        //self.insert_station_change(&stationchange)?;
-        let changeexists = self.stationchange_exists(&stationchange.changeuuid)?;
-        if !changeexists {
-            let exists = self.station_exists(&stationchange.stationuuid)?;
-            if exists {
-                self.update_station((&stationchange).into())?;
-            }else{
-                self.add_station((&stationchange).into())?;
-            }
-        }
-        Ok(())
-    }
-
-    pub fn stationcheck_exists_in_history(&self, checkuuid: &str) -> Result<bool, Box<dyn std::error::Error>> {
-        let params = params!{
-            "checkuuid" => checkuuid,
-        };
-        let result = self.pool.prep_exec("SELECT COUNT(*) FROM StationCheckHistory WHERE CheckUuid=:checkuuid", params)?;
-        let count = self.get_single_column_number_intern(result)?;
-        Ok(count > 0)
-    }
-
-    pub fn insert_pulled_station_check(&self, stationcheck: StationCheck) -> Result<(),Box<dyn std::error::Error>> {
-        // delete from stationcheck if exists
-        let params_delete = params!{
-            "stationuuid" => &stationcheck.stationuuid,
-            "source" => &stationcheck.source,
-        };
-        let query_current = format!("DELETE FROM StationCheck WHERE StationUuid=:stationuuid AND Source=:source");
-        self.pool.prep_exec(query_current, &params_delete)?;
-
-        // insert into StationCheck
-        let params_insert = params!{
-            "stationuuid" => &stationcheck.stationuuid,
-            "checkuuid" => &stationcheck.checkuuid,
-            "source" => stationcheck.source,
-            "codec" => stationcheck.codec,
-            "bitrate" => stationcheck.bitrate,
-            "hls" => stationcheck.hls,
-            "checkok" => stationcheck.ok,
-            "checktime" => stationcheck.timestamp,
-            "urlcache" => stationcheck.urlcache,
-        };
-        let query = format!("INSERT INTO StationCheck(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) 
-                    VALUES(:stationuuid, :checkuuid, :source, :codec, :bitrate, :hls, :checkok, :checktime, :urlcache)");
-        self.pool.prep_exec(query, &params_insert)?;
-
-        // insert into StationCheckHistory if not already there with same id
-        let checkid_exists_in_history = self.stationcheck_exists_in_history(&stationcheck.checkuuid)?;
-        if !checkid_exists_in_history {
-            let query = format!("INSERT INTO StationCheckHistory(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) 
-                        VALUES(:stationuuid, :checkuuid, :source, :codec, :bitrate, :hls, :checkok, :checktime, :urlcache)");
-
-            self.pool.prep_exec(query, params_insert)?;
-        }
-        Ok(())
-    }
-
-    pub fn update_station_with_check_data(&self, stationcheck: &StationCheck) -> Result<(), Box<dyn std::error::Error>> {
-        let mut query: String = String::from("UPDATE Station SET
-            LastCheckTime=:checktime,
-            LastCheckOkTime=:checktime,
-            LastCheckOK=:checkok,
-            Codec=:codec,
-            Bitrate=:bitrate,
-            Hls=:hls,
-            UrlCache=:urlcache
-            WHERE StationUuid=:stationuuid");
-        if stationcheck.ok == 0 {
-            query = format!("UPDATE Station SET
-                LastCheckTime=:checktime,
-                LastCheckOK=:checkok,
-                Codec=:codec,
-                Bitrate=:bitrate,
-                Hls=:hls,
-                UrlCache=:urlcache
-                WHERE StationUuid=:stationuuid");
+    fn backup_stations_by_uuid(&self, stationuuids: &Vec<String>) -> Result<(),Box<dyn std::error::Error>>{
+        let mut insert_params: Vec<Value> = vec![];
+        let mut insert_query = vec![];
+        for stationuuid in stationuuids {
+            insert_params.push(stationuuid.into());
+            insert_query.push("?");
         }
 
-        // insert into StationCheck
-        let params = params!{
-            "checktime" => &stationcheck.timestamp,
-            "checkok" => stationcheck.ok,
-            "codec" => &stationcheck.codec,
-            "bitrate" => stationcheck.bitrate,
-            "hls" => stationcheck.hls,
-            "urlcache" => &stationcheck.urlcache,
-            "stationuuid" => &stationcheck.stationuuid,
-        };
-        let mut my_stmt = self.pool.prepare(query)?;
-        my_stmt.execute(params)?;
+        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid)
+                                                 SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid FROM Station WHERE StationUuid IN ({})", insert_query.join(","));
+        let mut stmt = self.pool.prepare(query)?;
+        stmt.execute(insert_params)?;
         Ok(())
     }
 
@@ -347,80 +162,6 @@ impl Connection {
             hidebroken = hidebroken_string, offset = offset, limit = limit);
         let results = self.pool.prep_exec(query, ());
         self.get_stations(results)
-    }
-
-    pub fn get_pull_server_lastid(&self, server: &str) -> Option<String> {
-        let query: String = format!("SELECT lastid FROM PullServers WHERE name=:name");
-        let results = self.pool.prep_exec(query, params!{
-            "name" => server
-        });
-        match results {
-            Ok(results) => {
-                for result in results {
-                    if let Ok(mut result) = result {
-                        let lastid = result.take_opt("lastid");
-                        if let Some(lastid) = lastid {
-                            if let Ok(lastid) = lastid {
-                                return Some(lastid);
-                            }
-                        }
-                    }
-                };
-                None
-            },
-            _ => None
-        }
-    }
-
-    pub fn get_pull_server_lastcheckid(&self, server: &str) -> Option<String> {
-        let query: String = format!("SELECT lastcheckid FROM PullServers WHERE name=:name");
-        let results = self.pool.prep_exec(query, params!{
-            "name" => server
-        });
-        match results {
-            Ok(results) => {
-                for result in results {
-                    if let Ok(mut result) = result {
-                        let lastcheckid = result.take_opt("lastcheckid");
-                        if let Some(lastcheckid) = lastcheckid {
-                            if let Ok(lastcheckid) = lastcheckid {
-                                return Some(lastcheckid);
-                            }
-                        }
-                    }
-                };
-                None
-            },
-            _ => None
-        }
-    }
-
-    pub fn set_pull_server_lastid(&self, server: &str, lastid: &str) -> Result<(),Box<dyn std::error::Error>> {
-        let params = params!{
-            "name" => server,
-            "lastid" => lastid,
-        };
-        let query_update: String = format!("UPDATE PullServers SET lastid=:lastid WHERE name=:name");
-        let results_update = self.pool.prep_exec(query_update, &params)?;
-        if results_update.affected_rows() == 0 {
-            let query_insert: String = format!("INSERT INTO PullServers(name, lastid) VALUES(:name,:lastid)");
-            self.pool.prep_exec(query_insert, &params)?;
-        }
-        Ok(())
-    }
-
-    pub fn set_pull_server_lastcheckid(&self, server: &str, lastcheckid: &str) -> Result<(),Box<dyn std::error::Error>> {
-        let params = params!{
-            "name" => server,
-            "lastcheckid" => lastcheckid,
-        };
-        let query_update: String = format!("UPDATE PullServers SET lastcheckid=:lastcheckid WHERE name=:name");
-        let results_update = self.pool.prep_exec(query_update, &params)?;
-        if results_update.affected_rows() == 0 {
-            let query_insert: String = format!("INSERT INTO PullServers(name, lastcheckid) VALUES(:name,:lastcheckid)");
-            self.pool.prep_exec(query_insert, &params)?;
-        }
-        Ok(())
     }
 
     pub fn filter_order(&self, order: &str) -> &str {
@@ -878,10 +619,6 @@ impl Connection {
                         .unwrap_or(Ok("".to_string()))
                         .unwrap_or("".to_string()),
                     row
-                        .take_opt("Ip")
-                        .unwrap_or(Ok("".to_string()))
-                        .unwrap_or("".to_string()),
-                    row
                         .take_opt("Codec")
                         .unwrap_or(Ok("".to_string()))
                         .unwrap_or("".to_string()),
@@ -954,10 +691,6 @@ impl Connection {
                         .take_opt("CreationFormated")
                         .unwrap_or(Ok("".to_string()))
                         .unwrap_or("".to_string()),
-                    row
-                        .take_opt("Ip")
-                        .unwrap_or(Ok("".to_string()))
-                        .unwrap_or("".to_string()),
                 );
                 changes.push(s);
             }
@@ -1000,129 +733,6 @@ impl Connection {
         }
 
         checks
-    }
-
-    pub fn get_1_n(
-        &self,
-        column: &str,
-        search: Option<String>,
-        order: String,
-        reverse: bool,
-        hidebroken: bool,
-    ) -> Vec<Result1n> {
-        let query: String;
-        let reverse_string = if reverse { "DESC" } else { "ASC" };
-        let hidebroken_string = if hidebroken {
-            " AND LastCheckOK=TRUE"
-        } else {
-            ""
-        };
-        let result = match search {
-            Some(value) => {
-                query = format!("SELECT {column} AS name,COUNT(*) AS stationcount FROM Station WHERE {column} LIKE CONCAT('%',?,'%') AND {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
-                self.pool.prep_exec(query, (value,))
-            }
-            None => {
-                query = format!("SELECT {column} AS name,COUNT(*) AS stationcount FROM Station WHERE {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
-                self.pool.prep_exec(query, ())
-            }
-        };
-
-        let stations: Vec<Result1n> = result
-            .map(|result| {
-                result
-                    .map(|x| x.unwrap())
-                    .map(|row| {
-                        let (name, stationcount) = mysql::from_row(row);
-                        Result1n::new(name, stationcount)
-                    }).collect() // Collect payments so now `QueryResult` is mapped to `Vec<Payment>`
-            }).unwrap(); // Unwrap `Vec<Payment>`
-        stations
-    }
-
-    pub fn get_states(
-        &self,
-        country: Option<String>,
-        search: Option<String>,
-        order: String,
-        reverse: bool,
-        hidebroken: bool,
-    ) -> Vec<State> {
-        let mut params: Vec<Value> = Vec::with_capacity(1);
-        let reverse_string = if reverse { "DESC" } else { "ASC" };
-        let hidebroken_string = if hidebroken {
-            " AND LastCheckOK=TRUE"
-        } else {
-            ""
-        };
-        let country_string = match country {
-            Some(c) => {
-                params.push(c.into());
-                format!(" AND Country=?")
-            }
-            None => "".to_string(),
-        };
-        let search_string = match search {
-            Some(c) => {
-                params.push((format!("%{}%", c)).into());
-                format!(" AND Subcountry LIKE ?")
-            }
-            None => "".to_string(),
-        };
-
-        let mut my_stmt = self.pool.prepare(format!(r"SELECT Subcountry AS name,Country,COUNT(*) AS stationcount FROM Station WHERE Subcountry <> '' {country} {search} {hidebroken} GROUP BY Subcountry, Country ORDER BY {order} {reverse}",hidebroken = hidebroken_string, order = order, country = country_string, reverse = reverse_string, search = search_string)).unwrap();
-        let my_results = my_stmt.execute(params);
-        let mut states: Vec<State> = vec![];
-
-        for my_result in my_results {
-            for my_row in my_result {
-                let mut row_unwrapped = my_row.unwrap();
-                states.push(State::new(
-                    row_unwrapped.take(0).unwrap_or("".into()),
-                    row_unwrapped.take(1).unwrap_or("".into()),
-                    row_unwrapped.take(2).unwrap_or(0),
-                ));
-            }
-        }
-        states
-    }
-
-    pub fn get_extra(
-        &self,
-        table_name: &str,
-        column_name: &str,
-        search: Option<String>,
-        order: String,
-        reverse: bool,
-        hidebroken: bool,
-    ) -> Vec<ExtraInfo> {
-        let mut params: Vec<Value> = Vec::with_capacity(1);
-        let mut items = vec![];
-        let reverse_string = if reverse { "DESC" } else { "ASC" };
-        let hidebroken_string = if hidebroken {
-            "StationCountWorking as stationcount"
-        } else {
-            "StationCount as stationcount"
-        };
-        let search_string = match search {
-            Some(c) => {
-                params.push((format!("%{}%", c)).into());
-                format!(" AND {} LIKE ?", column_name)
-            }
-            None => "".to_string(),
-        };
-        let mut stmt = self.pool.prepare(format!("SELECT {column_name} AS name, {hidebroken} FROM {table_name} WHERE {column_name} <> '' {search} HAVING stationcount > 0 ORDER BY {order} {reverse}",search = search_string, order = order, reverse = reverse_string, hidebroken = hidebroken_string, table_name = table_name, column_name = column_name)).unwrap();
-        let my_results = stmt.execute(params);
-        for my_result in my_results {
-            for my_row in my_result {
-                let mut row_unwrapped = my_row.unwrap();
-                items.push(ExtraInfo::new(
-                    row_unwrapped.take(0).unwrap_or("".into()),
-                    row_unwrapped.take(1).unwrap_or(0),
-                ));
-            }
-        }
-        items
     }
 }
 
@@ -1484,6 +1094,18 @@ r#"ALTER TABLE `Station` ADD COLUMN NegativeVotes int(11) DEFAULT '0'"#);
 migrations.add_migration("20191211_210500_Remove_StationHistory_NegativeVotes",
 r#"ALTER TABLE `StationHistory` DROP COLUMN NegativeVotes"#,
 r#"ALTER TABLE `StationHistory` ADD COLUMN NegativeVotes int(11) DEFAULT '0'"#);
+
+migrations.add_migration("20191228_123000_Remove_StationHistory_IP",
+r#"ALTER TABLE `Station` DROP COLUMN IP"#,
+r#"ALTER TABLE `Station` ADD COLUMN IP varchar(50) NOT NULL DEFAULT ''"#);
+
+migrations.add_migration("20191228_123200_Remove_StationHistory_IP",
+r#"ALTER TABLE `StationHistory` DROP COLUMN IP"#,
+r#"ALTER TABLE `StationHistory` ADD COLUMN IP varchar(50) NOT NULL DEFAULT ''"#);
+
+migrations.add_migration("20200101_160000_Add_Station_LastLocalCheckTime",
+r#"ALTER TABLE `Station` ADD COLUMN LastLocalCheckTime DATETIME"#,
+r#"ALTER TABLE `Station` DROP COLUMN LastLocalCheckTime"#);
 
     migrations.do_migrations(ignore_migration_errors, allow_database_downgrade)?;
 

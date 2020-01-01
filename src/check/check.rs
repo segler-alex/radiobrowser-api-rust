@@ -1,5 +1,7 @@
-use crate::check::models::StationItem;
-use crate::check::models::StationOldNew;
+use crate::db::models;
+use crate::db::models::StationItem;
+use crate::db::models::StationCheckItemNew;
+
 use crate::thread;
 use threadpool::ThreadPool;
 
@@ -12,13 +14,16 @@ use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
 
-use crate::check::models;
-use crate::check::models::StationCheckItemNew;
-
 use crate::db;
 use crate::db::DbConnection;
 
 use colored::*;
+
+#[derive(Clone,Debug)]
+pub struct StationOldNew {
+    pub old: StationItem,
+    pub new: StationCheckItemNew,
+}
 
 fn check_for_change(
     old: &models::StationItem,
@@ -28,7 +33,7 @@ fn check_for_change(
     let mut retval = false;
     let mut result = String::from("");
 
-    if old.check_ok != new.check_ok {
+    if old.lastcheckok != new.check_ok {
         if new.check_ok {
             result.push('+');
             result.red();
@@ -65,7 +70,7 @@ fn check_for_change(
         result.push_str(&format!(" favicon: {} -> {}", old.favicon, new_favicon));
         retval = true;
     }
-    if old.check_ok != new.check_ok {
+    if old.lastcheckok != new.check_ok {
         if new.check_ok {
             return (retval, result.green().to_string());
         } else {
@@ -76,25 +81,29 @@ fn check_for_change(
     }
 }
 
-fn update_station(
-    conn: &mut db::MysqlConnection,
+fn update_station<A>(
+    conn: &A,
     old: &models::StationItem,
-    new_item: &StationCheckItemNew,
+    new_item: StationCheckItemNew,
     new_favicon: &str,
-) {
-    let result = conn.insert_checks(vec!(&new_item));
-    if let Err(err) = result {
-        debug!("Insert check error {}", err);
-    }
-    let result = conn.update_stations(vec!(&new_item));
-    if let Err(err) = result {
-        debug!("Update station error {}", err);
-    }
+) where A: db::DbConnection {
+    // output debug
     let (changed, change_str) = check_for_change(&old, &new_item, new_favicon);
     if changed {
         debug!("{}", change_str.red());
     } else {
         debug!("{}", change_str.dimmed());
+    }
+
+    // do real insert
+    let list_new = vec!(new_item);
+    let result = conn.insert_checks(&list_new);
+    if let Err(err) = result {
+        debug!("Insert check error {}", err);
+    }
+    let result = conn.update_station_with_check_data(&list_new, true);
+    if let Err(err) = result {
+        debug!("Update station error {}", err);
     }
 }
 
@@ -148,7 +157,7 @@ fn dbcheck_internal(
                             codec.push_str(&video);
                         }
                         let new_item_ok = StationCheckItemNew {
-                            station_uuid: station.uuid.clone(),
+                            station_uuid: station.stationuuid.clone(),
                             source: source.clone(),
                             codec: codec,
                             bitrate: item.Bitrate as u32,
@@ -169,7 +178,7 @@ fn dbcheck_internal(
                 }
             }
             let new_item_broken: StationCheckItemNew = StationCheckItemNew {
-                station_uuid: station.uuid.clone(),
+                station_uuid: station.stationuuid.clone(),
                 source: source.clone(),
                 codec: "".to_string(),
                 bitrate: 0,
@@ -205,23 +214,30 @@ pub fn dbcheck(
     match conn {
         Ok(mut conn) => {
             let stations = conn.get_stations_to_check(24, stations_count);
-            let useragent = String::from(useragent);
+            match stations {
+                Ok(stations) => {
+                    let useragent = String::from(useragent);
 
-            let (result_sender, result_receiver): (Sender<StationOldNew>, Receiver<StationOldNew>) =
-                channel();
-            let pool = ThreadPool::new(concurrency);
-            checked_count = dbcheck_internal(&pool, stations, source, timeout, max_depth, retries, result_sender);
-            pool.join();
-
-            for oldnew in result_receiver {
-                let station = oldnew.old;
-                let new_item = oldnew.new;
-                if favicon_checks {
-                    let new_favicon =
-                        favicon::check(&station.homepage, &station.favicon, &useragent, timeout);
-                    update_station(&mut conn, &station, &new_item, &new_favicon);
-                } else {
-                    update_station(&mut conn, &station, &new_item, &station.favicon);
+                    let (result_sender, result_receiver): (Sender<StationOldNew>, Receiver<StationOldNew>) =
+                        channel();
+                    let pool = ThreadPool::new(concurrency);
+                    checked_count = dbcheck_internal(&pool, stations, source, timeout, max_depth, retries, result_sender);
+                    pool.join();
+    
+                    for oldnew in result_receiver {
+                        let station = oldnew.old;
+                        let new_item = oldnew.new;
+                        if favicon_checks {
+                            let new_favicon =
+                                favicon::check(&station.homepage, &station.favicon, &useragent, timeout);
+                            update_station(&mut conn, &station, new_item, &new_favicon);
+                        } else {
+                            update_station(&mut conn, &station, new_item, &station.favicon);
+                        }
+                    }
+                },
+                Err(err)=>{
+                    error!("Error: {}", err);
                 }
             }
         }

@@ -14,7 +14,6 @@ pub struct StationHistoryV0 {
     language: String,
     votes: String,
     lastchangetime: String,
-    ip: String,
 }
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
@@ -33,7 +32,6 @@ pub struct StationHistoryCurrent {
     pub language: String,
     pub votes: i32,
     pub lastchangetime: String,
-    pub ip: String,
 }
 
 impl From<StationHistoryV0> for StationHistoryCurrent {
@@ -53,7 +51,6 @@ impl From<StationHistoryV0> for StationHistoryCurrent {
             language: item.language,
             votes: item.votes.parse().unwrap(),
             lastchangetime: item.lastchangetime,
-            ip: item.ip,
         }
     }
 }
@@ -75,7 +72,6 @@ impl From<&StationHistoryV0> for StationHistoryCurrent {
             language: item.language.clone(),
             votes: item.votes.parse().unwrap(),
             lastchangetime: item.lastchangetime.clone(),
-            ip: item.ip.clone(),
         }
     }
 }
@@ -96,7 +92,6 @@ impl StationHistoryCurrent {
         language: String,
         votes: i32,
         lastchangetime: String,
-        ip: String,
     ) -> Self {
         StationHistoryCurrent {
             id,
@@ -113,7 +108,6 @@ impl StationHistoryCurrent {
             language,
             votes,
             lastchangetime,
-            ip,
         }
     }
     pub fn serialize_changes_list(entries: Vec<StationHistoryCurrent>) -> std::io::Result<String> {
@@ -138,7 +132,6 @@ impl StationHistoryCurrent {
             xml.attr_esc("votes", &station_votes_str)?;
             let station_lastchangetime_str = format!("{}", entry.lastchangetime);
             xml.attr_esc("lastchangetime", &station_lastchangetime_str)?;
-            xml.attr_esc("ip", &entry.ip)?;
             xml.end_elem()?;
         }
         xml.end_elem()?;
