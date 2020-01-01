@@ -220,7 +220,7 @@ pub fn run<A: 'static +  std::clone::Clone>(connection: db::Connection, connecti
     let log_dir = log_dir.to_string();
     let prometheus_exporter_prefix = prometheus_exporter_prefix.to_string();
     if mirrors.len() > 0{
-        pull_servers::run(connection.clone(), connection_new.clone(), mirrors, mirror_pull_interval);
+        pull_servers::run(connection_new.clone(), mirrors, mirror_pull_interval);
     }
     rouille::start_server_with_pool(listen_str, x, move |request| {
         handle_connection(&connection, &connection_new, request, &y, &static_dir, &log_dir, prometheus_exporter_enabled, &prometheus_exporter_prefix)

@@ -1,8 +1,9 @@
 use crate::db::models::State;
 use crate::db::models::ExtraInfo;
-use crate::db::models::StationCheckItem;
 use crate::db::models::StationItem;
+use crate::db::models::StationCheckItem;
 use crate::db::models::StationCheckItemNew;
+use crate::db::models::StationChangeItemNew;
 use std::error::Error;
 use crate::db::DbConnection;
 use mysql;
@@ -106,6 +107,78 @@ impl MysqlConnection {
             return Ok(items);
         }
         return Ok(0);
+    }
+
+    fn backup_stations_by_uuid(transaction: &mut mysql::Transaction<'_>, stationuuids: &Vec<String>) -> Result<(),Box<dyn std::error::Error>>{
+        let mut insert_params: Vec<Value> = vec![];
+        let mut insert_query = vec![];
+        for stationuuid in stationuuids {
+            insert_params.push(stationuuid.into());
+            insert_query.push("?");
+        }
+
+        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid)
+                                                 SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid FROM Station WHERE StationUuid IN ({})", insert_query.join(","));
+        let mut stmt = transaction.prepare(query)?;
+        stmt.execute(insert_params)?;
+        Ok(())
+    }
+
+    fn stationchange_exists(transaction: &mut mysql::Transaction<'_>, changeuuids: &Vec<String>) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+        let mut select_query = vec![];
+        let mut select_params: Vec<Value> = vec![];
+        for changeuuid in changeuuids {
+            select_query.push("?");
+            select_params.push(changeuuid.into());
+        }
+        let mut stmt = transaction.prepare(format!("SELECT ChangeUuid FROM StationHistory WHERE ChangeUuid IN ({})", select_query.join(",")))?;
+        let result = stmt.execute(select_params)?;
+
+        let mut list_result = vec![];
+        for row in result {
+            let (changeuuid,) = mysql::from_row_opt(row?)?;
+            list_result.push(changeuuid);
+        }
+        Ok(list_result)
+    }
+
+    fn insert_station_by_change_internal(transaction: &mut mysql::Transaction<'_>, stationchanges: &Vec<StationChangeItemNew>) -> Result<Vec<String>,Box<dyn std::error::Error>> {
+        // filter out changes that already exist in the database
+        let changeuuids: Vec<String> = stationchanges.iter().map(|item|item.changeuuid.clone()).collect();
+        let changeexists = MysqlConnection::stationchange_exists(transaction, &changeuuids)?;
+        let mut list: Vec<&StationChangeItemNew> = vec![];
+        for station in stationchanges {
+            if !changeexists.contains(&station.changeuuid) {
+                list.push(station);
+            }
+        }
+
+        // insert changes
+        let mut list_ids = vec![];
+        if list.len() > 0 {
+            let mut insert_query = vec![];
+            let mut insert_params: Vec<Value> = vec![];
+            for change in list {
+                insert_query.push("(?,?,?,?,?,?,?,?,?,?,?,'')");
+                insert_params.push(change.name.clone().into());
+                insert_params.push(change.url.clone().into());
+                insert_params.push(change.homepage.clone().into());
+                insert_params.push(change.favicon.clone().into());
+                insert_params.push(change.country.clone().into());
+                insert_params.push(change.countrycode.clone().into());
+                insert_params.push(change.state.clone().into());
+                insert_params.push(fix_multi_field(&change.language).into());
+                insert_params.push(fix_multi_field(&change.tags).into());
+                insert_params.push(change.changeuuid.clone().into());
+                insert_params.push(change.stationuuid.clone().into());
+                list_ids.push(change.stationuuid.clone());
+            }
+            let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache) 
+                                    VALUES{}", insert_query.join(","));
+            let mut stmt = transaction.prepare(query)?;
+            stmt.execute(insert_params)?;
+        }
+        Ok(list_ids)
     }
 }
 
@@ -261,9 +334,17 @@ impl DbConnection for MysqlConnection {
         Ok(())
     }
 
-    fn insert_checks(&self, list: &Vec<StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
-        trace!("insert_checks #1");
+    fn insert_station_by_change(&self, list_station_changes: &Vec<StationChangeItemNew>) -> Result<Vec<String>,Box<dyn std::error::Error>> {
+        let mut transaction = self.pool.start_transaction(false, None, None)?;
 
+        let list_ids = MysqlConnection::insert_station_by_change_internal(&mut transaction, list_station_changes)?;
+        MysqlConnection::backup_stations_by_uuid(&mut transaction, &list_ids)?;
+
+        transaction.commit()?;
+        Ok(list_ids)
+    }
+
+    fn insert_checks(&self, list: &Vec<StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
         let mut transaction = self.pool.start_transaction(false, None, None)?;
         
         let mut delete_station_check_params: Vec<Value> = vec![];
@@ -307,7 +388,6 @@ impl DbConnection for MysqlConnection {
 
         transaction.commit()?;
 
-        trace!("insert_checks #2");
         Ok(())
     }
 
@@ -324,7 +404,6 @@ impl DbConnection for MysqlConnection {
             let query_update_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOkTime=NOW(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache WHERE StationUuid=:stationuuid";
             let mut stmt_update_ok = transaction.prepare(query_update_ok)?;
             
-            trace!("update_station_with_check_data(): #1");
             for item in list {
                 let params = params!{
                     "codec" => &item.codec,
@@ -342,7 +421,6 @@ impl DbConnection for MysqlConnection {
             }
         }
 
-        trace!("update_station_with_check_data(): #3");
         {
             let query_in = list_station_uuid_query.join(",");
             let query_update_check_ok = format!("UPDATE Station st SET LastCheckTime=NOW(),LastCheckOk=(SELECT round(avg(CheckOk)) AS result FROM StationCheck sc WHERE sc.StationUuid=st.StationUuid GROUP BY StationUuid) WHERE StationUuid IN ({uuids});", uuids = query_in);
@@ -352,7 +430,6 @@ impl DbConnection for MysqlConnection {
         }
 
         transaction.commit()?;
-        trace!("update_station_with_check_data(): #4");
 
         Ok(())
     }
@@ -512,4 +589,9 @@ impl DbConnection for MysqlConnection {
         }
         Ok(states)
     }
+}
+
+fn fix_multi_field(value: &str) -> String {
+    let values: Vec<String> = value.split(",").map(|v| v.trim().to_lowercase().to_string()).collect();
+    values.join(",")
 }

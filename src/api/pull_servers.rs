@@ -1,8 +1,5 @@
-use crate::api::data::Station;
-use crate::db::models::StationCheckItemNew;
 use std::thread;
 use crate::time;
-use crate::api::db;
 use crate::api::api_error;
 use crate::api::data::StationHistoryCurrent;
 use crate::api::data::StationHistoryV0;
@@ -10,12 +7,14 @@ use crate::api::data::StationCheck;
 use crate::api::data::StationCheckV0;
 use crate::api::data::Status;
 use crate::db::DbConnection;
+use crate::db::models::StationCheckItemNew;
+use crate::db::models::StationChangeItemNew;
 
-pub fn run<A: 'static>(connection: db::Connection, connection_new: A, mirrors: Vec<String>, pull_interval: u64) where A: DbConnection, A: std::marker::Send {
+pub fn run<A: 'static>(connection_new: A, mirrors: Vec<String>, pull_interval: u64) where A: DbConnection, A: std::marker::Send {
     thread::spawn(move || {
         loop {
             for server in mirrors.iter() {
-                let result = pull_server(&connection, &connection_new, &server);
+                let result = pull_server(&connection_new, &server);
                 match result {
                     Ok(_) => {
                     },
@@ -84,7 +83,7 @@ fn pull_checks(server: &str, api_version: u32, lastid: Option<String>) -> Result
     }
 }
 
-fn pull_server<A>(connection: &db::Connection, connection_new: &A, server: &str) -> Result<(),Box<dyn std::error::Error>> where A: DbConnection {
+fn pull_server<A>(connection_new: &A, server: &str) -> Result<(),Box<dyn std::error::Error>> where A: DbConnection {
     let chunksize = 1000;
 
     let api_version = get_remote_version(server)?;
@@ -94,18 +93,17 @@ fn pull_server<A>(connection: &db::Connection, connection_new: &A, server: &str)
 
     trace!("Incremental station change sync ({})..", list.len());
     let mut station_change_count = 0;
-    let mut list_stations: Vec<Station> = vec![];
+    let mut list_stations: Vec<StationChangeItemNew> = vec![];
     for station in list {
         let changeuuid = station.changeuuid.clone();
         station_change_count = station_change_count + 1;
-        list_stations.push((&station).into());
+        list_stations.push(station.into());
 
         if station_change_count % chunksize == 0 || station_change_count == len {
-            trace!("Insert {} station changes..", chunksize);
-            connection.insert_station_by_change(&list_stations)?;
+            trace!("Insert {} station changes..", list_stations.len());
+            connection_new.insert_station_by_change(&list_stations)?;
             connection_new.set_pull_server_lastid(server, &changeuuid)?;
             list_stations.clear();
-            trace!("..done");
         }
     }
 
@@ -123,12 +121,11 @@ fn pull_server<A>(connection: &db::Connection, connection_new: &A, server: &str)
         station_check_count = station_check_count + 1;
 
         if station_check_count % chunksize == 0 || station_check_count == len {
-            trace!("Insert {} checks..", chunksize);
+            trace!("Insert {} checks..", list_checks_converted.len());
             connection_new.insert_checks(&list_checks_converted)?;
             connection_new.update_station_with_check_data(&list_checks_converted)?;
             connection_new.set_pull_server_lastcheckid(server, &changeuuid)?;
             list_checks_converted.clear();
-            trace!("..done");            
         }
     }
 
@@ -146,6 +143,26 @@ impl From<StationCheck> for StationCheckItemNew {
             hls: item.hls == 1,
             source: item.source,
             url: item.urlcache,
+        }
+    }
+}
+
+impl From<StationHistoryCurrent> for StationChangeItemNew {
+    fn from(item: StationHistoryCurrent) -> Self {
+        StationChangeItemNew {
+            name: item.name,
+            url: item.url,
+            homepage: item.homepage,
+            favicon: item.favicon,
+            country: item.country,
+            state: item.state,
+            countrycode: item.countrycode,
+            language: item.language,
+            tags: item.tags,
+            votes: item.votes,
+        
+            changeuuid: item.changeuuid,
+            stationuuid: item.stationuuid,
         }
     }
 }

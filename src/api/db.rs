@@ -45,35 +45,6 @@ impl Connection {
         values.join(",")
     }
 
-    pub fn add_stations(&self, station_list: &Vec<&Station>) -> Result<Vec<String>,Box<dyn std::error::Error>> {
-        let mut list_ids = vec![];
-        if station_list.len() > 0 {
-            let mut insert_query = vec![];
-            let mut insert_params: Vec<Value> = vec![];
-            for station in station_list {
-                insert_query.push("(?,?,?,?,?,?,?,?,?,?,?,'')");
-                insert_params.push(station.name.clone().into());
-                insert_params.push(station.url.clone().into());
-                insert_params.push(station.homepage.clone().into());
-                insert_params.push(station.favicon.clone().into());
-                insert_params.push(station.country.clone().into());
-                insert_params.push(station.countrycode.clone().into());
-                insert_params.push(station.state.clone().into());
-                insert_params.push(Connection::fix_multi_field(&station.language).into());
-                insert_params.push(Connection::fix_multi_field(&station.tags).into());
-                insert_params.push(station.changeuuid.clone().into());
-                insert_params.push(station.stationuuid.clone().into());
-                list_ids.push(station.stationuuid.clone());
-            }
-            let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache) 
-                                    VALUES{}", insert_query.join(","));
-            let mut stmt = self.pool.prepare(query)?;
-            stmt.execute(insert_params)?;
-            self.backup_stations_by_uuid(&list_ids)?;
-        }
-        Ok(list_ids)
-    }
-
     pub fn add_station_opt(&self, name: Option<String>, url: Option<String>, homepage: Option<String>, favicon: Option<String>,
                         country: Option<String>, countrycode: Option<String>, state: Option<String>, language: Option<String>, tags: Option<String>) -> StationAddResult{
         let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache) 
@@ -131,40 +102,6 @@ impl Connection {
                                                  SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid FROM Station WHERE StationUuid IN ({})", insert_query.join(","));
         let mut stmt = self.pool.prepare(query)?;
         stmt.execute(insert_params)?;
-        Ok(())
-    }
-
-    pub fn stationchange_exists(&self, changeuuids: &Vec<String>) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-        let mut select_query = vec![];
-        let mut select_params: Vec<Value> = vec![];
-        for changeuuid in changeuuids {
-            select_query.push("?");
-            select_params.push(changeuuid.into());
-        }
-        let mut stmt = self.pool.prepare(format!("SELECT ChangeUuid FROM StationHistory WHERE ChangeUuid IN ({})", select_query.join(",")))?;
-        let result = stmt.execute(select_params)?;
-
-        let mut list_result = vec![];
-        for row in result {
-            let mut row = row?;
-            list_result.push(row.take(0).unwrap_or_default());
-        }
-        Ok(list_result)
-    }
-
-    pub fn insert_station_by_change(&self, stationchanges: &Vec<Station>) -> Result<(),Box<dyn std::error::Error>> {
-        let changeuuids: Vec<String> = stationchanges.iter().map(|item|item.changeuuid.clone()).collect();
-        let changeexists = self.stationchange_exists(&changeuuids)?;
-
-        let mut list: Vec<&Station> = vec![];
-        for station in stationchanges {
-            if !changeexists.contains(&station.changeuuid) {
-                list.push(station);
-            }
-        }
-        if list.len() > 0 {
-            self.add_stations(&list)?;
-        }
         Ok(())
     }
 

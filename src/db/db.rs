@@ -3,6 +3,7 @@ use crate::db::models::ExtraInfo;
 use crate::db::models::StationItem;
 use crate::db::models::StationCheckItem;
 use crate::db::models::StationCheckItemNew;
+use crate::db::models::StationChangeItemNew;
 use std::error::Error;
 
 pub trait DbConnection {
@@ -23,6 +24,8 @@ pub trait DbConnection {
     fn set_pull_server_lastid(&self, server: &str, lastid: &str) -> Result<(),Box<dyn std::error::Error>>;
     fn get_pull_server_lastcheckid(&self, server: &str) -> Option<String>;
     fn set_pull_server_lastcheckid(&self, server: &str, lastcheckid: &str) -> Result<(),Box<dyn std::error::Error>>;
+
+    fn insert_station_by_change(&self, list_station_changes: &Vec<StationChangeItemNew>) -> Result<Vec<String>,Box<dyn std::error::Error>>;
 
     fn get_extra(&self, table_name: &str, column_name: &str, search: Option<String>, order: String, reverse: bool, hidebroken: bool) -> Result<Vec<ExtraInfo>, Box<dyn Error>>;
     fn get_1_n(&self, column: &str, search: Option<String>, order: String, reverse: bool, hidebroken: bool) -> Result<Vec<ExtraInfo>, Box<dyn Error>>;
