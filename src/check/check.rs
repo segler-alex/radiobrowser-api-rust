@@ -101,7 +101,7 @@ fn update_station<A>(
     if let Err(err) = result {
         debug!("Insert check error {}", err);
     }
-    let result = conn.update_station_with_check_data(&list_new);
+    let result = conn.update_station_with_check_data(&list_new, true);
     if let Err(err) = result {
         debug!("Update station error {}", err);
     }

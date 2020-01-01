@@ -123,7 +123,7 @@ fn pull_server<A>(connection_new: &A, server: &str) -> Result<(),Box<dyn std::er
         if station_check_count % chunksize == 0 || station_check_count == len {
             trace!("Insert {} checks..", list_checks_converted.len());
             connection_new.insert_checks(&list_checks_converted)?;
-            connection_new.update_station_with_check_data(&list_checks_converted)?;
+            connection_new.update_station_with_check_data(&list_checks_converted, false)?;
             connection_new.set_pull_server_lastcheckid(server, &changeuuid)?;
             list_checks_converted.clear();
         }

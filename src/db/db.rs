@@ -33,7 +33,7 @@ pub trait DbConnection {
     fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32, include_history: bool) -> Result<Vec<StationCheckItem>, Box<dyn Error>>;
 
     fn insert_checks(&self, list: &Vec<StationCheckItemNew>) -> Result<(), Box<dyn Error>>;
-    fn update_station_with_check_data(&self, list: &Vec<StationCheckItemNew>) -> Result<(), Box<dyn Error>>;
+    fn update_station_with_check_data(&self, list: &Vec<StationCheckItemNew>, local: bool) -> Result<(), Box<dyn Error>>;
 
     fn delete_never_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
     fn delete_were_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;

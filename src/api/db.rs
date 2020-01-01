@@ -1097,11 +1097,15 @@ r#"ALTER TABLE `StationHistory` ADD COLUMN NegativeVotes int(11) DEFAULT '0'"#);
 
 migrations.add_migration("20191228_123000_Remove_StationHistory_IP",
 r#"ALTER TABLE `Station` DROP COLUMN IP"#,
-r#"ALTER TABLE `Station` ADD COLUMN varchar(50) NOT NULL DEFAULT ''"#);
+r#"ALTER TABLE `Station` ADD COLUMN IP varchar(50) NOT NULL DEFAULT ''"#);
 
 migrations.add_migration("20191228_123200_Remove_StationHistory_IP",
 r#"ALTER TABLE `StationHistory` DROP COLUMN IP"#,
-r#"ALTER TABLE `StationHistory` ADD COLUMN varchar(50) NOT NULL DEFAULT ''"#);
+r#"ALTER TABLE `StationHistory` ADD COLUMN IP varchar(50) NOT NULL DEFAULT ''"#);
+
+migrations.add_migration("20200101_160000_Add_Station_LastLocalCheckTime",
+r#"ALTER TABLE `Station` ADD COLUMN LastLocalCheckTime DATETIME"#,
+r#"ALTER TABLE `Station` DROP COLUMN LastLocalCheckTime"#);
 
     migrations.do_migrations(ignore_migration_errors, allow_database_downgrade)?;
 

@@ -245,7 +245,13 @@ impl DbConnection for MysqlConnection {
     }
 
     fn get_station_count_todo(&self, hours: u32) -> Result<u64, Box<dyn Error>> {
-        self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckTime IS NULL OR LastCheckTime < NOW() - INTERVAL :hours HOUR", params!(hours))
+        self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastLocalCheckTime IS NULL OR LastLocalCheckTime < NOW() - INTERVAL :hours HOUR", params!(hours))
+    }
+
+    fn get_stations_to_check(&mut self, hours: u32, itemcount: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+        let query = format!("SELECT {columns} FROM Station WHERE LastLocalCheckTime IS NULL OR LastLocalCheckTime < NOW() - INTERVAL {interval} HOUR ORDER BY RAND() LIMIT {limit}", columns = MysqlConnection::COLUMNS, interval = hours, limit = itemcount);
+        let results = self.pool.prep_exec(query, ())?;
+        self.get_list_from_query_result(results)
     }
 
     fn get_checks_todo_count(&self, hours: u32, source: &str) -> Result<u64, Box<dyn Error>> {
@@ -394,14 +400,14 @@ impl DbConnection for MysqlConnection {
     /// Select all checks that are currently in the database of a station with the given uuid
     /// and calculate an overall status by majority vote. Ties are broken with the own vote
     /// of the most current check
-    fn update_station_with_check_data(&self, list: &Vec<StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
+    fn update_station_with_check_data(&self, list: &Vec<StationCheckItemNew>, local: bool) -> Result<(), Box<dyn std::error::Error>> {
         let mut transaction = self.pool.start_transaction(false, None, None)?;
 
         let mut list_station_uuid = vec![];
         let mut list_station_uuid_query = vec![];
 
         {
-            let query_update_ok = "UPDATE Station SET LastCheckTime=NOW(),LastCheckOkTime=NOW(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache WHERE StationUuid=:stationuuid";
+            let query_update_ok = "UPDATE Station SET LastCheckOkTime=NOW(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache WHERE StationUuid=:stationuuid";
             let mut stmt_update_ok = transaction.prepare(query_update_ok)?;
             
             for item in list {
@@ -423,7 +429,11 @@ impl DbConnection for MysqlConnection {
 
         {
             let query_in = list_station_uuid_query.join(",");
-            let query_update_check_ok = format!("UPDATE Station st SET LastCheckTime=NOW(),LastCheckOk=(SELECT round(avg(CheckOk)) AS result FROM StationCheck sc WHERE sc.StationUuid=st.StationUuid GROUP BY StationUuid) WHERE StationUuid IN ({uuids});", uuids = query_in);
+            let query_update_check_ok = format!("UPDATE Station st SET {lastlocalchecktime}LastCheckTime=NOW(),LastCheckOk=(SELECT round(avg(CheckOk)) AS result FROM StationCheck sc 
+                WHERE sc.StationUuid=st.StationUuid GROUP BY StationUuid) WHERE StationUuid IN ({uuids});",
+                lastlocalchecktime = if local {"LastLocalCheckTime=NOW(),"} else {""},
+                uuids = query_in
+            );
             let mut stmt_update_check_ok = transaction.prepare(query_update_check_ok)?;
 
             stmt_update_check_ok.execute(list_station_uuid)?;
@@ -432,12 +442,6 @@ impl DbConnection for MysqlConnection {
         transaction.commit()?;
 
         Ok(())
-    }
-
-    fn get_stations_to_check(&mut self, hours: u32, itemcount: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
-        let query = format!("SELECT {columns} FROM Station WHERE LastCheckTime IS NULL OR LastCheckTime < NOW() - INTERVAL {interval} HOUR ORDER BY RAND() LIMIT {limit}", columns = MysqlConnection::COLUMNS, interval = hours, limit = itemcount);
-        let results = self.pool.prep_exec(query, ())?;
-        self.get_list_from_query_result(results)
     }
 
     fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32, include_history: bool) -> Result<Vec<StationCheckItem>, Box<dyn Error>> {
