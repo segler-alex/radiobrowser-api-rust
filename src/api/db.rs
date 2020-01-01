@@ -40,68 +40,38 @@ impl Connection {
     Date_Format(CheckTime,'%Y-%m-%d %H:%i:%s') AS CheckTimeFormated,
     UrlCache";
 
-    pub fn get_single_column_number_intern(&self, mut results: QueryResult<'static>) -> Result<u64,Box<dyn std::error::Error>> {
-        let mut result_row = results.next().unwrap()?;
-        let count: u64 = result_row.take(0).unwrap();
-        Ok(count)
-    }
-
-    /*pub fn is_empty(&self) -> Result<bool, Box<dyn std::error::Error>> {
-        let count = self.get_single_column_number(r#"SELECT COUNT(*) FROM StationHistory"#)?;
-        Ok(count == 0)
-    }*/
-
     fn fix_multi_field(value: &str) -> String {
         let values: Vec<String> = value.split(",").map(|v| v.trim().to_lowercase().to_string()).collect();
         values.join(",")
     }
 
-    pub fn update_station(&self, station: Station) -> Result<(),Box<dyn std::error::Error>> {
-        let query = format!("UPDATE Station SET Name=:name,Url=:url,Homepage=:homepage,
-            Favicon=:favicon,Country=:country,Subcountry=:state,Language=:language,
-            Tags=:tags,ChangeUuid=:changeuuid,UrlCache=:urlcache
-            WHERE StationUuid=:stationuuid");
-        let params = params!{
-            "name" => station.name,
-            "url" => station.url,
-            "homepage" => station.homepage,
-            "favicon" => station.favicon,
-            "country" => station.country,
-            "state" => station.state,
-            "language" => Connection::fix_multi_field(&station.language),
-            "tags" => Connection::fix_multi_field(&station.tags),
-            "changeuuid" => station.changeuuid,
-            "stationuuid" => &station.stationuuid,
-            "urlcache" => "",
-        };
-
-        self.pool.prep_exec(query, params)?;
-        self.backup_station_by_uuid(&station.stationuuid)?;
-
-        Ok(())
-    }
-
-    pub fn add_station(&self, station: Station) -> Result<u64,Box<dyn std::error::Error>> {
-        let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache) 
-                                VALUES(:name, :url, :homepage, :favicon, :country, :countrycode, :state, :language, :tags, :changeuuid, :stationuuid, '')");
-        let params = params!{
-            "name" => station.name,
-            "url" => station.url,
-            "homepage" => station.homepage,
-            "favicon" => station.favicon,
-            "country" => station.country,
-            "countrycode" => station.countrycode,
-            "state" => station.state,
-            "language" => Connection::fix_multi_field(&station.language),
-            "tags" => Connection::fix_multi_field(&station.tags),
-            "changeuuid" => station.changeuuid,
-            "stationuuid" => station.stationuuid,
-        };
-
-        let results = self.pool.prep_exec(query, params)?;
-        let id = results.last_insert_id();
-        self.backup_station_by_id(id)?;
-        Ok(id)
+    pub fn add_stations(&self, station_list: &Vec<&Station>) -> Result<Vec<String>,Box<dyn std::error::Error>> {
+        let mut list_ids = vec![];
+        if station_list.len() > 0 {
+            let mut insert_query = vec![];
+            let mut insert_params: Vec<Value> = vec![];
+            for station in station_list {
+                insert_query.push("(?,?,?,?,?,?,?,?,?,?,?,'')");
+                insert_params.push(station.name.clone().into());
+                insert_params.push(station.url.clone().into());
+                insert_params.push(station.homepage.clone().into());
+                insert_params.push(station.favicon.clone().into());
+                insert_params.push(station.country.clone().into());
+                insert_params.push(station.countrycode.clone().into());
+                insert_params.push(station.state.clone().into());
+                insert_params.push(Connection::fix_multi_field(&station.language).into());
+                insert_params.push(Connection::fix_multi_field(&station.tags).into());
+                insert_params.push(station.changeuuid.clone().into());
+                insert_params.push(station.stationuuid.clone().into());
+                list_ids.push(station.stationuuid.clone());
+            }
+            let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache) 
+                                    VALUES{}", insert_query.join(","));
+            let mut stmt = self.pool.prepare(query)?;
+            stmt.execute(insert_params)?;
+            self.backup_stations_by_uuid(&list_ids)?;
+        }
+        Ok(list_ids)
     }
 
     pub fn add_station_opt(&self, name: Option<String>, url: Option<String>, homepage: Option<String>, favicon: Option<String>,
@@ -138,9 +108,8 @@ impl Connection {
 
         let results = self.pool.prep_exec(query, params);
         match results {
-            Ok(results) => {
-                let id = results.last_insert_id();
-                let backup_result = self.backup_station_by_id(id);
+            Ok(_) => {
+                let backup_result = self.backup_stations_by_uuid(&(vec![stationuuid.clone()]));
                 match backup_result {
                     Ok(_) => StationAddResult::new_ok(stationuuid),
                     Err(err) => StationAddResult::new_err(&err.to_string())
@@ -150,58 +119,51 @@ impl Connection {
         }
     }
 
-    fn backup_station_by_id(&self, stationid: u64) -> Result<(),Box<dyn std::error::Error>>{
-        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid)
-                                SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid FROM Station WHERE StationID=:id");
-        let params = params!{
-            "id" => stationid,
-        };
+    fn backup_stations_by_uuid(&self, stationuuids: &Vec<String>) -> Result<(),Box<dyn std::error::Error>>{
+        let mut insert_params: Vec<Value> = vec![];
+        let mut insert_query = vec![];
+        for stationuuid in stationuuids {
+            insert_params.push(stationuuid.into());
+            insert_query.push("?");
+        }
 
-        self.pool.prep_exec(query, params)?;
-        
+        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid)
+                                                 SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid FROM Station WHERE StationUuid IN ({})", insert_query.join(","));
+        let mut stmt = self.pool.prepare(query)?;
+        stmt.execute(insert_params)?;
         Ok(())
     }
 
-    fn backup_station_by_uuid(&self, stationuuid: &str) -> Result<(),Box<dyn std::error::Error>>{
-        let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid)
-                                SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid FROM Station WHERE StationUuid=:stationuuid");
-        let params = params!{
-            "stationuuid" => stationuuid,
-        };
+    pub fn stationchange_exists(&self, changeuuids: &Vec<String>) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+        let mut select_query = vec![];
+        let mut select_params: Vec<Value> = vec![];
+        for changeuuid in changeuuids {
+            select_query.push("?");
+            select_params.push(changeuuid.into());
+        }
+        let mut stmt = self.pool.prepare(format!("SELECT ChangeUuid FROM StationHistory WHERE ChangeUuid IN ({})", select_query.join(",")))?;
+        let result = stmt.execute(select_params)?;
 
-        self.pool.prep_exec(query, params)?;
-        
-        Ok(())
+        let mut list_result = vec![];
+        for row in result {
+            let mut row = row?;
+            list_result.push(row.take(0).unwrap_or_default());
+        }
+        Ok(list_result)
     }
 
-    pub fn station_exists(&self, stationuuid: &str) -> Result<bool, Box<dyn std::error::Error>> {
-        let params = params!{
-            "stationuuid" => stationuuid,
-        };
-        let result = self.pool.prep_exec("SELECT COUNT(*) FROM Station WHERE StationUuid=:stationuuid", params)?;
-        let count = self.get_single_column_number_intern(result)?;
-        Ok(count > 0)
-    }
+    pub fn insert_station_by_change(&self, stationchanges: &Vec<Station>) -> Result<(),Box<dyn std::error::Error>> {
+        let changeuuids: Vec<String> = stationchanges.iter().map(|item|item.changeuuid.clone()).collect();
+        let changeexists = self.stationchange_exists(&changeuuids)?;
 
-    pub fn stationchange_exists(&self, changeuuid: &str) -> Result<bool, Box<dyn std::error::Error>> {
-        let params = params!{
-            "changeuuid" => changeuuid,
-        };
-        let result = self.pool.prep_exec("SELECT COUNT(*) FROM StationHistory WHERE ChangeUuid=:changeuuid", params)?;
-        let count = self.get_single_column_number_intern(result)?;
-        Ok(count > 0)
-    }
-
-    pub fn insert_station_by_change(&self, stationchange: StationHistoryCurrent) -> Result<(),Box<dyn std::error::Error>> {
-        //self.insert_station_change(&stationchange)?;
-        let changeexists = self.stationchange_exists(&stationchange.changeuuid)?;
-        if !changeexists {
-            let exists = self.station_exists(&stationchange.stationuuid)?;
-            if exists {
-                self.update_station((&stationchange).into())?;
-            }else{
-                self.add_station((&stationchange).into())?;
+        let mut list: Vec<&Station> = vec![];
+        for station in stationchanges {
+            if !changeexists.contains(&station.changeuuid) {
+                list.push(station);
             }
+        }
+        if list.len() > 0 {
+            self.add_stations(&list)?;
         }
         Ok(())
     }

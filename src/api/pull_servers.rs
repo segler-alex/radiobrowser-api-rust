@@ -1,3 +1,4 @@
+use crate::api::data::Station;
 use crate::db::models::StationCheckItemNew;
 use std::thread;
 use crate::time;
@@ -93,14 +94,17 @@ fn pull_server<A>(connection: &db::Connection, connection_new: &A, server: &str)
 
     trace!("Incremental station change sync ({})..", list.len());
     let mut station_change_count = 0;
+    let mut list_stations: Vec<Station> = vec![];
     for station in list {
         let changeuuid = station.changeuuid.clone();
-        connection.insert_station_by_change(station)?;
         station_change_count = station_change_count + 1;
+        list_stations.push((&station).into());
 
         if station_change_count % chunksize == 0 || station_change_count == len {
             trace!("Insert {} station changes..", chunksize);
+            connection.insert_station_by_change(&list_stations)?;
             connection_new.set_pull_server_lastid(server, &changeuuid)?;
+            list_stations.clear();
             trace!("..done");
         }
     }
@@ -123,6 +127,7 @@ fn pull_server<A>(connection: &db::Connection, connection_new: &A, server: &str)
             connection_new.insert_checks(&list_checks_converted)?;
             connection_new.update_station_with_check_data(&list_checks_converted)?;
             connection_new.set_pull_server_lastcheckid(server, &changeuuid)?;
+            list_checks_converted.clear();
             trace!("..done");            
         }
     }
