@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changelog
 
 ### Removed
-- "id" from /json/checks, because database id should not be exposed
+- "id" from all of the API, because database id should not be exposed
 
 ### Fixed
 - Output lastchangetime and countrycode in /json/stations/changed

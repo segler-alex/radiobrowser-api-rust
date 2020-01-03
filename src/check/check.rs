@@ -1,3 +1,4 @@
+use av_stream_info_rust::StreamInfo;
 use crate::db::models;
 use crate::db::models::StationItem;
 use crate::db::models::StationCheckItemNew;
@@ -21,6 +22,7 @@ use colored::*;
 
 #[derive(Clone,Debug)]
 pub struct StationOldNew {
+    pub check: Option<StreamInfo>,
     pub old: StationItem,
     pub new: StationCheckItemNew,
 }
@@ -151,28 +153,35 @@ fn dbcheck_internal(
             for item in items.iter() {
                 match item {
                     &Ok(ref item) => {
-                        let mut codec = item.CodecAudio.clone();
-                        if let Some(ref video) = item.CodecVideo {
-                            codec.push_str(",");
-                            codec.push_str(&video);
+                        let public = item.Public.unwrap_or(true);
+                        if !public && item.OverrideIndexMetaData {
+                            // ignore non public streams
+                            debug!("Ignore private stream: {} - {}", station.stationuuid, item.Url);
+                        }else{
+                            let mut codec = item.CodecAudio.clone();
+                            if let Some(ref video) = item.CodecVideo {
+                                codec.push_str(",");
+                                codec.push_str(&video);
+                            }
+                            let new_item_ok = StationCheckItemNew {
+                                station_uuid: station.stationuuid.clone(),
+                                source: source.clone(),
+                                codec: codec,
+                                bitrate: item.Bitrate as u32,
+                                hls: item.Hls,
+                                check_ok: true,
+                                url: item.Url.clone(),
+                            };
+                            let send_result = result_sender.send(StationOldNew {
+                                check: Some(item.clone()),
+                                old: station,
+                                new: new_item_ok,
+                            });
+                            if let Err(send_result) = send_result {
+                                error!("Unable to send positive check result: {}", send_result);
+                            }
+                            return;
                         }
-                        let new_item_ok = StationCheckItemNew {
-                            station_uuid: station.stationuuid.clone(),
-                            source: source.clone(),
-                            codec: codec,
-                            bitrate: item.Bitrate as u32,
-                            hls: item.Hls,
-                            check_ok: true,
-                            url: item.Url.clone(),
-                        };
-                        let send_result = result_sender.send(StationOldNew {
-                            old: station,
-                            new: new_item_ok,
-                        });
-                        if let Err(send_result) = send_result {
-                            error!("Unable to send positive check result: {}", send_result);
-                        }
-                        return;
                     }
                     &Err(_) => {}
                 }
@@ -187,6 +196,7 @@ fn dbcheck_internal(
                 url: "".to_string(),
             };
             let send_result = result_sender.send(StationOldNew {
+                check: None,
                 old: station,
                 new: new_item_broken,
             });

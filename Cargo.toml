@@ -8,10 +8,10 @@ version = "0.5.1"
 edition = "2018"
 
 [dependencies]
-av-stream-info-rust = "0.6.1"
+av-stream-info-rust = "0.7.3"
 chrono = { version = "0.4.10", features = ["serde"] }
 clap = "2.33.0"
-colored = "1.9.0"
+colored = "1.9.1"
 dns-lookup = "1.0.1"
 env_logger = "0.7.1"
 handlebars = "2.0.2"
