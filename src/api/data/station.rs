@@ -4,7 +4,6 @@ use crate::api::data::station_history::StationHistoryCurrent;
 pub struct StationCachedInfo {
     ok: bool,
     message: String,
-    id: i32,
     stationuuid: String,
     name: String,
     url: String,
@@ -17,7 +16,6 @@ impl StationCachedInfo {
         xml.begin_elem("status")?;
         xml.attr_esc("ok", &station.ok.to_string())?;
         xml.attr_esc("message", &station.message)?;
-        xml.attr_esc("id", &station.id.to_string())?;
         xml.attr_esc("stationuuid", &station.stationuuid)?;
         xml.attr_esc("name", &station.name)?;
         xml.attr_esc("url", &station.url)?;
@@ -31,6 +29,7 @@ impl StationCachedInfo {
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Station {
+    #[serde(skip_serializing)]
     pub id: i32,
     pub changeuuid: String,
     pub stationuuid: String,
@@ -116,7 +115,6 @@ impl Station {
         return StationCachedInfo {
             ok: station.lastcheckok == 1,
             message: message.to_string(),
-            id: station.id,
             stationuuid: station.stationuuid,
             name: station.name,
             url: station.url_resolved,
@@ -128,8 +126,6 @@ impl Station {
         xml.begin_elem("result")?;
         for entry in entries {
             xml.begin_elem("station")?;
-            let station_id_str = format!("{}", entry.id);
-            xml.attr_esc("id", &station_id_str)?;
             xml.attr_esc("changeuuid", &entry.changeuuid)?;
             xml.attr_esc("stationuuid", &entry.stationuuid)?;
             xml.attr_esc("name", &entry.name)?;

@@ -434,8 +434,8 @@ fn handle_connection_internal<A>(connection: &db::Connection, connection_new: &A
             "codecs" => Ok(add_cors(encode_extra(connection_new.get_1_n("Codec", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "codec"))),
             "tags" => Ok(add_cors(encode_extra(connection_new.get_extra("TagCache", "TagName", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "tag"))),
             "states" => Ok(add_cors(encode_states(connection_new.get_states(None, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format))),
-            "vote" => Ok(add_cors(encode_message(connection.vote_for_station(&remote_ip, get_only_first(connection.get_station_by_id_or_uuid(parameter))), format))),
-            "url" => Ok(add_cors(encode_station_url(connection, get_only_first(connection.get_station_by_id_or_uuid(parameter)), &remote_ip, format))),
+            "vote" => Ok(add_cors(encode_message(connection.vote_for_station(&remote_ip, get_only_first(connection.get_station_by_uuid(parameter))), format))),
+            "url" => Ok(add_cors(encode_station_url(connection, get_only_first(connection.get_station_by_uuid(parameter)), &remote_ip, format))),
             "stations" => {
                 match parameter {
                     "topvote" => Ok(add_cors(Station::get_response(connection.get_stations_topvote(999999), format))),
@@ -464,7 +464,7 @@ fn handle_connection_internal<A>(connection: &db::Connection, connection_new: &A
             let format = command;
             let command = parameter;
             match command {
-                "url" => Ok(add_cors(encode_station_url(connection, get_only_first(connection.get_station_by_id_or_uuid(search)), &remote_ip, format))),
+                "url" => Ok(add_cors(encode_station_url(connection, get_only_first(connection.get_station_by_uuid(search)), &remote_ip, format))),
                 _ => Ok(rouille::Response::empty_404()),
             }
         }else{
@@ -494,7 +494,6 @@ fn handle_connection_internal<A>(connection: &db::Connection, connection_new: &A
                         "bylanguage" => Ok(add_cors(Station::get_response(connection.get_stations_by_column_multiple("Language", Some(search.to_string()),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
                         "bylanguageexact" => Ok(add_cors(Station::get_response(connection.get_stations_by_column_multiple("Language", Some(search.to_string()),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
                         "byuuid" => Ok(add_cors(Station::get_response(connection.get_stations_by_column("StationUuid", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
-                        "byid" => Ok(add_cors(Station::get_response(connection.get_station_by_id_or_uuid(search), format))),
                         "changed" => Ok(add_cors(encode_changes(connection.get_changes(Some(search.to_string()),param_last_changeuuid), format))),
                         _ => Ok(rouille::Response::empty_404()),
                     }

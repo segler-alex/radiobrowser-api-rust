@@ -477,24 +477,12 @@ impl Connection {
         self.get_stations(results)
     }
 
-    pub fn get_station_by_id_or_uuid(&self, id_str: &str) -> Vec<Station> {
-        let id = id_str.parse::<u32>();
-        let results = match id {
-            Ok(id_number) => {
-                let query = format!(
-                    "SELECT {columns} from Station WHERE StationID=? ORDER BY Name",
-                    columns = Connection::COLUMNS
-                );
-                self.pool.prep_exec(query, (id_number,))
-            }
-            _ => {
-                let query = format!(
-                    "SELECT {columns} from Station WHERE StationUuid=? ORDER BY Name",
-                    columns = Connection::COLUMNS
-                );
-                self.pool.prep_exec(query, (id_str,))
-            }
-        };
+    pub fn get_station_by_uuid(&self, id_str: &str) -> Vec<Station> {
+        let query = format!(
+            "SELECT {columns} from Station WHERE StationUuid=? ORDER BY Name",
+            columns = Connection::COLUMNS
+        );
+        let results = self.pool.prep_exec(query, (id_str,));
         self.get_stations(results)
     }
 
