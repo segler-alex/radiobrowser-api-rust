@@ -12,7 +12,7 @@ listen-host = "127.0.0.1"
 listen-port = 8080
 
 ## Update caches at an interval in seconds
-update-caches-interval = 30
+update-caches-interval = 120
 ## Ignore errors on database migration scripts
 ## ONLY use this if you know what you are doing
 ignore-migration-errors = false
@@ -74,3 +74,4 @@ retries = 5
 #[pullservers]
 [pullservers.alpha]
 host = "http://www.radio-browser.info/webservice"
+#host = "http://de1.api.radio-browser.info"
