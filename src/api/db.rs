@@ -12,7 +12,6 @@ use std::collections::HashMap;
 use crate::thread;
 extern crate uuid;
 use self::uuid::Uuid;
-use crate::api::api_error;
 
 #[derive(Clone)]
 pub struct Connection {
@@ -915,38 +914,28 @@ pub fn refresh_cache_items(
     }
 }
 
-fn start_refresh_worker(connection_string: String, update_caches_interval: u64) {
-    thread::spawn(move || {
-        loop {
-            let pool = mysql::Pool::new(&connection_string);
-            match pool {
-                Ok(p) => {
-                    trace!("REFRESH START");
-                    let tags = refresh_cache_items(&p, "TagCache", "TagName", "Tags");
-                    let languages = refresh_cache_items(&p, "LanguageCache", "LanguageName", "Language");
-                    debug!("Refresh(Tags={}->{} changed={}, Languages={}->{} changed={})", tags.old_items, tags.new_items, tags.changed_items, languages.old_items, languages.new_items, languages.changed_items);
+pub fn start_refresh_worker(connection_string: String, update_caches_interval: u64) {
+    if update_caches_interval > 0 {
+        thread::spawn(move || {
+            loop {
+                let pool = mysql::Pool::new(&connection_string);
+                match pool {
+                    Ok(p) => {
+                        trace!("REFRESH START");
+                        let tags = refresh_cache_items(&p, "TagCache", "TagName", "Tags");
+                        let languages = refresh_cache_items(&p, "LanguageCache", "LanguageName", "Language");
+                        debug!("Refresh(Tags={}->{} changed={}, Languages={}->{} changed={})", tags.old_items, tags.new_items, tags.changed_items, languages.old_items, languages.new_items, languages.changed_items);
+                    }
+                    Err(e) => error!("{}", e),
                 }
-                Err(e) => error!("{}", e),
-            }
 
-            thread::sleep(::std::time::Duration::new(update_caches_interval, 0));
-        }
-    });
+                thread::sleep(::std::time::Duration::new(update_caches_interval, 0));
+            }
+        });
+    }
 }
 
-pub fn new(connection_string: &String, update_caches_interval: u64) -> Result<Connection, Box<dyn std::error::Error>> {
-    let connection_string2 = connection_string.clone();
-    let pool = mysql::Pool::new(connection_string);
-    match pool {
-        Ok(p) => {
-            let c = Connection { pool: p };
-
-            if update_caches_interval > 0 {
-                start_refresh_worker(connection_string2, update_caches_interval);
-            }
-
-            Ok(c)
-        }
-        Err(e) => Err(Box::new(api_error::ApiError::ConnectionError(e.to_string()))),
-    }
+pub fn new(connection_string: &String) -> Result<Connection, Box<dyn std::error::Error>> {
+    let pool = mysql::Pool::new(connection_string)?;
+    Ok(Connection { pool })
 }

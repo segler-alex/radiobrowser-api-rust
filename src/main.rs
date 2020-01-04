@@ -33,7 +33,7 @@ fn main() {
 
     loop {
         let connection_new = db::MysqlConnection::new(&config.connection_string);
-        let connection = api::db::new(&config.connection_string, config.update_caches_interval);
+        let connection = api::db::new(&config.connection_string);
         match connection {
             Ok(v) => {
                 match connection_new {
@@ -44,6 +44,8 @@ fn main() {
                         );
                         match migration_result {
                             Ok(_) => {
+                                api::db::start_refresh_worker(config.connection_string.clone(), config.update_caches_interval);
+
                                 check::start(
                                     config.connection_string,
                                     config.source,
