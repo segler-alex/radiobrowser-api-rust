@@ -10,7 +10,6 @@ pub mod db;
 pub mod data;
 mod pull_servers;
 mod api_error;
-mod simple_migrate;
 mod parameters;
 mod prometheus_exporter;
 
