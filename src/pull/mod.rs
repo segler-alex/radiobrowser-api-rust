@@ -3,6 +3,7 @@ mod api_error;
 use std::error::Error;
 use std::thread;
 use crate::time;
+use std::convert::TryFrom;
 
 use crate::api::data::StationHistoryCurrent;
 use crate::api::data::StationHistoryV0;
@@ -88,8 +89,8 @@ fn pull_checks(server: &str, api_version: u32, lastid: Option<String>) -> Result
     let mut result = reqwest::get(&path)?;
     match api_version {
         0 => {
-            let list: Vec<StationCheckV0> = result.json()?;
-            let list_current: Vec<StationCheck> = list.iter().map(|x| x.into()).collect();
+            let mut list: Vec<StationCheckV0> = result.json()?;
+            let list_current: Vec<StationCheck> = list.drain(..).filter_map(|x| StationCheck::try_from(x).ok()).collect();
             Ok(list_current)
         },
         1 => {

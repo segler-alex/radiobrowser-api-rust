@@ -1,3 +1,5 @@
+use std::convert::TryFrom;
+
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct StationCheckV0 {
     pub stationuuid: String,
@@ -86,19 +88,20 @@ impl StationCheck {
     }
 }
 
+impl TryFrom<StationCheckV0> for StationCheck {
+    type Error = Box<dyn std::error::Error>;
 
-impl From<&StationCheckV0> for StationCheck {
-    fn from(item: &StationCheckV0) -> Self {
-        StationCheck {
-            stationuuid: item.stationuuid.clone(),
-            checkuuid: item.checkuuid.clone(),
-            source: item.source.clone(),
-            codec: item.codec.clone(),
-            bitrate: item.bitrate.parse().unwrap(),
-            hls: item.hls.parse().unwrap(),
-            ok: item.ok.parse().unwrap(),
-            timestamp: item.timestamp.clone(),
-            urlcache: item.urlcache.clone()
-        }
+    fn try_from(item: StationCheckV0) -> Result<Self, Self::Error> {
+        Ok(StationCheck {
+            stationuuid: item.stationuuid,
+            checkuuid: item.checkuuid,
+            source: item.source,
+            codec: item.codec,
+            bitrate: item.bitrate.parse()?,
+            hls: item.hls.parse()?,
+            ok: item.ok.parse()?,
+            timestamp: item.timestamp,
+            urlcache: item.urlcache,
+        })
     }
 }
