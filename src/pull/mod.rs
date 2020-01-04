@@ -1,31 +1,50 @@
+mod api_error;
+
+use std::error::Error;
 use std::thread;
 use crate::time;
-use crate::api::api_error;
+
 use crate::api::data::StationHistoryCurrent;
 use crate::api::data::StationHistoryV0;
 use crate::api::data::StationCheck;
 use crate::api::data::StationCheckV0;
 use crate::api::data::Status;
 use crate::db::DbConnection;
+use crate::db::connect;
 use crate::db::models::StationCheckItemNew;
 use crate::db::models::StationChangeItemNew;
 
-pub fn run<A: 'static>(connection_new: A, mirrors: Vec<String>, pull_interval: u64) where A: DbConnection, A: std::marker::Send {
-    thread::spawn(move || {
-        loop {
-            for server in mirrors.iter() {
-                let result = pull_server(&connection_new, &server);
+fn pull_worker(connection_string: String, mirrors: &Vec<String>) -> Result<(),Box<dyn Error>> {
+    let pool = connect(connection_string)?;
+    for server in mirrors.iter() {
+        let result = pull_server(&pool, &server);
+        match result {
+            Ok(_) => {
+            },
+            Err(err) => {
+                error!("Error pulling from '{}': {}", server, err);
+            }
+        }
+    }
+    Ok(())
+}
+
+pub fn start_pull_worker(connection_string: String, mirrors: Vec<String>, pull_interval: u64) {
+    if mirrors.len() > 0 {
+        thread::spawn(move || {
+            loop {
+                let result = pull_worker(connection_string.clone(), &mirrors);
                 match result {
                     Ok(_) => {
                     },
                     Err(err) => {
-                        error!("Error pulling from '{}': {}", server, err);
+                        error!("Error in pull worker: {}", err);
                     }
                 }
+                thread::sleep(time::Duration::from_secs(pull_interval));
             }
-            thread::sleep(time::Duration::from_secs(pull_interval));
-        }
-    });
+        });
+    }
 }
 
 fn get_remote_version(server: &str) -> Result<u32,Box<dyn std::error::Error>> {
@@ -83,7 +102,7 @@ fn pull_checks(server: &str, api_version: u32, lastid: Option<String>) -> Result
     }
 }
 
-fn pull_server<A>(connection_new: &A, server: &str) -> Result<(),Box<dyn std::error::Error>> where A: DbConnection {
+fn pull_server(connection_new: &Box<dyn DbConnection>, server: &str) -> Result<(),Box<dyn std::error::Error>> {
     let chunksize = 1000;
 
     let api_version = get_remote_version(server)?;

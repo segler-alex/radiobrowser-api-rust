@@ -24,6 +24,7 @@ mod config;
 mod check;
 mod db;
 mod refresh;
+mod pull;
 
 fn main() {
     env_logger::init();
@@ -46,6 +47,7 @@ fn main() {
                         match migration_result {
                             Ok(_) => {
                                 refresh::start_refresh_worker(config.connection_string.clone(), config.update_caches_interval);
+                                pull::start_pull_worker(config.connection_string.clone(), config.servers_pull, config.mirror_pull_interval);
 
                                 check::start(
                                     config.connection_string,
@@ -71,8 +73,6 @@ fn main() {
                                     &config.server_url,
                                     &config.static_files_dir,
                                     &config.log_dir,
-                                    config.servers_pull,
-                                    config.mirror_pull_interval,
                                     config.prometheus_exporter,
                                     &config.prometheus_exporter_prefix,
                                 );
