@@ -4,12 +4,12 @@ extern crate serde;
 extern crate serde_json;
 extern crate dns_lookup;
 
-use crate::db::DbConnection;
-
 pub mod db;
 pub mod data;
 mod parameters;
 mod prometheus_exporter;
+
+use std::error::Error;
 
 use self::parameters::RequestParameters;
 
@@ -17,10 +17,12 @@ use crate::api::data::ResultMessage;
 use crate::api::data::StationCachedInfo;
 use crate::api::data::StationHistoryCurrent;
 use crate::api::data::Station;
-use crate::db::models::ExtraInfo;
-use crate::db::models::State;
 use crate::api::data::StationCheck;
 use crate::api::data::Status;
+use crate::db::DbConnection;
+use crate::db::models::ExtraInfo;
+use crate::db::models::State;
+use crate::db::models::StationItem;
 use crate::api::rouille::Response;
 use crate::api::rouille::Request;
 use std;
@@ -47,6 +49,14 @@ fn add_cors(result : rouille::Response) -> rouille::Response {
 }
 
 fn get_only_first(mut stations: Vec<Station>) -> Option<Station>{
+    if stations.len() == 1 {
+        Some(stations.pop().unwrap())
+    } else {
+        None
+    }
+}
+
+fn get_only_first_item(mut stations: Vec<StationItem>) -> Option<StationItem>{
     if stations.len() == 1 {
         Some(stations.pop().unwrap())
     } else {
@@ -90,18 +100,18 @@ fn encode_changes(list : Vec<StationHistoryCurrent>, format : &str) -> rouille::
     }
 }
 
-fn encode_message(status: Result<String,String>, format : &str) -> rouille::Response {
+fn encode_message(status: Result<String, Box<dyn Error>>, format : &str) -> rouille::Response {
     match format {
         "json" => {
             match status {
                 Ok(message) => rouille::Response::text(serde_json::to_string(&ResultMessage::new(true,message)).unwrap()),
-                Err(message) => rouille::Response::text(serde_json::to_string(&ResultMessage::new(false,message)).unwrap()),
+                Err(err) => rouille::Response::text(serde_json::to_string(&ResultMessage::new(false,err.to_string())).unwrap()),
             }.with_no_cache().with_unique_header("Content-Type","application/json")
         },
         "xml" => {
             match status {
                 Ok(message) => rouille::Response::text(ResultMessage::new(true,message).serialize_xml().unwrap()),
-                Err(message) => rouille::Response::text(ResultMessage::new(false,message).serialize_xml().unwrap()),
+                Err(err) => rouille::Response::text(ResultMessage::new(false,err.to_string()).serialize_xml().unwrap()),
             }.with_no_cache().with_unique_header("Content-Type","text/xml")
         },
         _ => rouille::Response::empty_406()
@@ -428,7 +438,7 @@ fn handle_connection_internal<A>(connection: &db::Connection, connection_new: &A
             "codecs" => Ok(add_cors(encode_extra(connection_new.get_1_n("Codec", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "codec"))),
             "tags" => Ok(add_cors(encode_extra(connection_new.get_extra("TagCache", "TagName", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "tag"))),
             "states" => Ok(add_cors(encode_states(connection_new.get_states(None, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format))),
-            "vote" => Ok(add_cors(encode_message(connection.vote_for_station(&remote_ip, get_only_first(connection.get_station_by_uuid(parameter))), format))),
+            "vote" => Ok(add_cors(encode_message(connection_new.vote_for_station(&remote_ip, get_only_first_item(connection_new.get_station_by_uuid(parameter)?)), format))),
             "url" => Ok(add_cors(encode_station_url(connection, get_only_first(connection.get_station_by_uuid(parameter)), &remote_ip, format))),
             "stations" => {
                 match parameter {

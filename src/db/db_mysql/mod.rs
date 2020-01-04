@@ -2,6 +2,8 @@ mod migrations;
 mod simple_migrate;
 mod conversions;
 
+use crate::db::db_error::DbError;
+
 use std;
 use std::collections::HashMap;
 
@@ -229,6 +231,15 @@ impl DbConnection for MysqlConnection {
     fn get_stations_to_check(&mut self, hours: u32, itemcount: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
         let query = format!("SELECT {columns} FROM Station WHERE LastLocalCheckTime IS NULL OR LastLocalCheckTime < NOW() - INTERVAL {interval} HOUR ORDER BY RAND() LIMIT {limit}", columns = MysqlConnection::COLUMNS, interval = hours, limit = itemcount);
         let results = self.pool.prep_exec(query, ())?;
+        self.get_list_from_query_result(results)
+    }
+
+    fn get_station_by_uuid(&self, id_str: &str) -> Result<Vec<StationItem>,Box<dyn Error>> {
+        let query = format!(
+            "SELECT {columns} from Station WHERE StationUuid=? ORDER BY Name",
+            columns = MysqlConnection::COLUMNS
+        );
+        let results = self.pool.prep_exec(query, (id_str,))?;
         self.get_list_from_query_result(results)
     }
 
@@ -671,6 +682,55 @@ impl DbConnection for MysqlConnection {
         let mut my_stmt = self.pool.prepare(query)?;
         my_stmt.execute(tags)?;
         Ok(())
+    }
+
+    fn vote_for_station(&self, ip: &str, station: Option<StationItem>) -> Result<String, Box<dyn Error>> {
+        match station {
+            Some(station) => {
+                // delete ipcheck entries after 1 day minutes
+                let query_1_delete = format!(r#"DELETE FROM IPVoteCheck WHERE TIME_TO_SEC(TIMEDIFF(Now(),VoteTimestamp))>24*60*60"#);
+                let _result_1_delete = self.pool.prep_exec(query_1_delete, ())?;
+
+                // was there a vote from the ip in the last 1 day?
+                let query_2_vote_check = format!(
+                    r#"SELECT StationID FROM IPVoteCheck WHERE StationID={id} AND IP="{ip}""#,
+                    id = station.id,
+                    ip = ip
+                );
+                let result_2_vote_check = self.pool.prep_exec(query_2_vote_check, ())?;
+                for resultsingle in result_2_vote_check {
+                    for _ in resultsingle {
+                        // do not allow vote
+                        return Err(Box::new(DbError::VoteError("you are voting for the same station too often".to_string())));
+                    }
+                }
+
+                // add vote entry
+                let query_3_insert_votecheck = format!(
+                    r#"INSERT INTO IPVoteCheck(IP,StationID) VALUES("{ip}",{id})"#,
+                    id = station.id,
+                    ip = ip
+                );
+                let result_3_insert_votecheck =
+                    self.pool.prep_exec(query_3_insert_votecheck, ())?;
+                if result_3_insert_votecheck.affected_rows() == 0 {
+                    return Err(Box::new(DbError::VoteError("could not insert vote check".to_string())));
+                }
+
+                // vote for station
+                let query_4_update_votes = format!(
+                    "UPDATE Station SET Votes=Votes+1 WHERE StationID={id}",
+                    id = station.id
+                );
+                let result_4_update_votes = self.pool.prep_exec(query_4_update_votes, ())?;
+                if result_4_update_votes.affected_rows() == 1 {
+                    Ok("voted for station successfully".to_string())
+                } else {
+                    Err(Box::new(DbError::VoteError("could not find station with matching id".to_string())))
+                }
+            }
+            _ => Err(Box::new(DbError::VoteError("could not find station with matching id".to_string()))),
+        }
     }
 }
 

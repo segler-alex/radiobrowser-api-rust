@@ -22,6 +22,7 @@ pub trait DbConnection {
     fn get_click_count_last_hour(&self) -> Result<u64, Box<dyn Error>>;
     fn get_click_count_last_day(&self) -> Result<u64, Box<dyn Error>>;
     fn get_stations_to_check(&mut self, hours: u32, itemcount: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
+    fn get_station_by_uuid(&self, id_str: &str) -> Result<Vec<StationItem>,Box<dyn Error>>;
 
     fn get_pull_server_lastid(&self, server: &str) -> Option<String>;
     fn set_pull_server_lastid(&self, server: &str, lastid: &str) -> Result<(),Box<dyn std::error::Error>>;
@@ -48,6 +49,8 @@ pub trait DbConnection {
     fn update_cache_item(&self, tag: &String, count: u32, count_working: u32, table_name: &str, column_name: &str) -> Result<(), Box<dyn Error>>;
     fn insert_to_cache(&self, tags: HashMap<&String, (u32,u32)>, table_name: &str, column_name: &str) -> Result<(), Box<dyn Error>>;
     fn remove_from_cache(&self, tags: Vec<&String>, table_name: &str, column_name: &str) -> Result<(), Box<dyn Error>>;
+
+    fn vote_for_station(&self, ip: &str, station: Option<StationItem>) -> Result<String, Box<dyn Error>>;
 }
 
 pub fn connect(connection_string: String) -> Result<Box<dyn DbConnection>, Box<dyn std::error::Error>> {
