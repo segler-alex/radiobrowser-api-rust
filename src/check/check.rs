@@ -15,8 +15,8 @@ use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
 
-use crate::db;
 use crate::db::DbConnection;
+use crate::db::connect;
 
 use colored::*;
 
@@ -83,12 +83,12 @@ fn check_for_change(
     }
 }
 
-fn update_station<A>(
-    conn: &A,
+fn update_station(
+    conn: &Box<dyn DbConnection>,
     old: &models::StationItem,
     new_item: StationCheckItemNew,
     new_favicon: &str,
-) where A: db::DbConnection {
+) -> Result<(), Box<dyn std::error::Error>> {
     // output debug
     let (changed, change_str) = check_for_change(&old, &new_item, new_favicon);
     if changed {
@@ -99,14 +99,9 @@ fn update_station<A>(
 
     // do real insert
     let list_new = vec!(new_item);
-    let result = conn.insert_checks(&list_new);
-    if let Err(err) = result {
-        debug!("Insert check error {}", err);
-    }
-    let result = conn.update_station_with_check_data(&list_new, true);
-    if let Err(err) = result {
-        debug!("Update station error {}", err);
-    }
+    conn.insert_checks(&list_new)?;
+    conn.update_station_with_check_data(&list_new, true)?;
+    Ok(())
 }
 
 fn dbcheck_internal(
@@ -209,7 +204,7 @@ fn dbcheck_internal(
 }
 
 pub fn dbcheck(
-    connection_str: &str,
+    connection_str: String,
     source: &str,
     concurrency: usize,
     stations_count: u32,
@@ -218,42 +213,26 @@ pub fn dbcheck(
     max_depth: u8,
     retries: u8,
     favicon_checks: bool,
-) -> u32 {
-    let conn = db::MysqlConnection::new(connection_str);
-    let mut checked_count = 0;
-    match conn {
-        Ok(mut conn) => {
-            let stations = conn.get_stations_to_check(24, stations_count);
-            match stations {
-                Ok(stations) => {
-                    let useragent = String::from(useragent);
+) -> Result<u32, Box<dyn std::error::Error>> {
+    let mut conn = connect(connection_str)?;
+    let stations = conn.get_stations_to_check(24, stations_count)?;
+    let useragent = String::from(useragent);
 
-                    let (result_sender, result_receiver): (Sender<StationOldNew>, Receiver<StationOldNew>) =
-                        channel();
-                    let pool = ThreadPool::new(concurrency);
-                    checked_count = dbcheck_internal(&pool, stations, source, timeout, max_depth, retries, result_sender);
-                    pool.join();
-    
-                    for oldnew in result_receiver {
-                        let station = oldnew.old;
-                        let new_item = oldnew.new;
-                        if favicon_checks {
-                            let new_favicon =
-                                favicon::check(&station.homepage, &station.favicon, &useragent, timeout);
-                            update_station(&mut conn, &station, new_item, &new_favicon);
-                        } else {
-                            update_station(&mut conn, &station, new_item, &station.favicon);
-                        }
-                    }
-                },
-                Err(err)=>{
-                    error!("Error: {}", err);
-                }
-            }
-        }
-        Err(e) => {
-            debug!("Database connection error {}", e);
+    let (result_sender, result_receiver): (Sender<StationOldNew>, Receiver<StationOldNew>) =
+        channel();
+    let pool = ThreadPool::new(concurrency);
+    let checked_count = dbcheck_internal(&pool, stations, source, timeout, max_depth, retries, result_sender);
+    pool.join();
+
+    for oldnew in result_receiver {
+        let station = oldnew.old;
+        let new_item = oldnew.new;
+        if favicon_checks {
+            let new_favicon = favicon::check(&station.homepage, &station.favicon, &useragent, timeout)?;
+            update_station(&mut conn, &station, new_item, &new_favicon)?;
+        } else {
+            update_station(&mut conn, &station, new_item, &station.favicon)?;
         }
     }
-    checked_count
+    Ok(checked_count)
 }

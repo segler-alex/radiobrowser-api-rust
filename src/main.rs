@@ -25,6 +25,7 @@ mod check;
 mod db;
 mod refresh;
 mod pull;
+mod cleanup;
 
 fn main() {
     env_logger::init();
@@ -48,11 +49,11 @@ fn main() {
                             Ok(_) => {
                                 refresh::start_refresh_worker(config.connection_string.clone(), config.update_caches_interval);
                                 pull::start_pull_worker(config.connection_string.clone(), config.servers_pull, config.mirror_pull_interval);
+                                cleanup::start(config.connection_string.clone(), config.source.clone(), config.delete, 3600);
 
                                 check::start(
                                     config.connection_string,
                                     config.source,
-                                    config.delete,
                                     config.concurrency,
                                     config.check_stations,
                                     config.useragent,
