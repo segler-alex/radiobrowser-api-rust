@@ -29,7 +29,7 @@ fn pull_worker(connection_string: String, mirrors: &Vec<String>) -> Result<(),Bo
     Ok(())
 }
 
-pub fn start_pull_worker(connection_string: String, mirrors: Vec<String>, pull_interval: u64) {
+pub fn start(connection_string: String, mirrors: Vec<String>, pull_interval: u64) {
     if mirrors.len() > 0 {
         thread::spawn(move || {
             loop {

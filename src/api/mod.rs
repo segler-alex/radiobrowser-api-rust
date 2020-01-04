@@ -208,7 +208,7 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Re
     }
 }
 
-pub fn run<A: 'static +  std::clone::Clone>(connection: db::Connection, connection_new: A, host : String, port : i32, threads : usize, server_name: &str, static_dir: &str, log_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) where A: DbConnection, A: std::marker::Send, A: std::marker::Sync {
+pub fn start<A: 'static +  std::clone::Clone>(connection: db::Connection, connection_new: A, host : String, port : i32, threads : usize, server_name: &str, static_dir: &str, log_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) where A: DbConnection, A: std::marker::Send, A: std::marker::Sync {
     let listen_str = format!("{}:{}", host, port);
     info!("Listen on {} with {} threads", listen_str, threads);
     let x : Option<usize> = Some(threads);

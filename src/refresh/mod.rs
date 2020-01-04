@@ -77,7 +77,7 @@ fn refresh_worker(connection_string: String) -> Result<(), Box<dyn std::error::E
     Ok(())
 }
 
-pub fn start_refresh_worker(connection_string: String, update_caches_interval: u64) {
+pub fn start(connection_string: String, update_caches_interval: u64) {
     if update_caches_interval > 0 {
         thread::spawn(move || {
             loop {

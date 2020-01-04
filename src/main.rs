@@ -47,10 +47,9 @@ fn main() {
                         );
                         match migration_result {
                             Ok(_) => {
-                                refresh::start_refresh_worker(config.connection_string.clone(), config.update_caches_interval);
-                                pull::start_pull_worker(config.connection_string.clone(), config.servers_pull, config.mirror_pull_interval);
+                                refresh::start(config.connection_string.clone(), config.update_caches_interval);
+                                pull::start(config.connection_string.clone(), config.servers_pull, config.mirror_pull_interval);
                                 cleanup::start(config.connection_string.clone(), config.source.clone(), config.delete, 3600);
-
                                 check::start(
                                     config.connection_string,
                                     config.source,
@@ -65,7 +64,7 @@ fn main() {
                                     config.pause_seconds,
                                 );
         
-                                api::run(
+                                api::start(
                                     v,
                                     v2,
                                     config.listen_host,
