@@ -412,7 +412,7 @@ fn handle_connection_internal<A>(connection: &db::Connection, connection_new: &A
             "stations" => Ok(add_cors(Station::get_response(connection.get_stations_by_all(&param_order, param_reverse, param_hidebroken, param_offset, param_limit), format))),
             "servers" => Ok(add_cors(dns_resolve(format))),
             "stats" => Ok(add_cors(encode_status(get_status(connection_new)?, format, static_dir))),
-            "checks" => Ok(add_cors(StationCheck::get_response(connection.get_checks(None, param_last_checkuuid, param_seconds),format))),
+            "checks" => Ok(add_cors(StationCheck::get_response(connection_new.get_checks(None, param_last_checkuuid, param_seconds, false)?.drain(..).map(|x|x.into()).collect(),format))),
             "add" => Ok(add_cors(connection.add_station_opt(param_name, param_url, param_homepage, param_favicon, param_country, param_countrycode, param_state, param_language, param_tags).get_response(format))),
             _ => Ok(rouille::Response::empty_404()),
         }
@@ -445,7 +445,7 @@ fn handle_connection_internal<A>(connection: &db::Connection, connection_new: &A
                     _ => Ok(rouille::Response::empty_404()),
                 }
             },
-            "checks" => Ok(add_cors(StationCheck::get_response(connection.get_checks(Some(parameter.to_string()), param_last_checkuuid, param_seconds), format))),
+            "checks" => Ok(add_cors(StationCheck::get_response(connection_new.get_checks(Some(parameter.to_string()), param_last_checkuuid, param_seconds, true)?.drain(..).map(|x|x.into()).collect(), format))),
             _ => Ok(rouille::Response::empty_404()),
         }
     } else if items.len() == 5 {

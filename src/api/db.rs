@@ -4,7 +4,6 @@ extern crate xml_writer;
 use crate::api::data::StationHistoryCurrent;
 use crate::api::data::StationAddResult;
 use crate::api::data::Station;
-use crate::api::data::StationCheck;
 use mysql::QueryResult;
 use mysql::Value;
 use std;
@@ -29,12 +28,6 @@ impl Connection {
     ClickTimestamp,
     Date_Format(ClickTimestamp,'%Y-%m-%d %H:%i:%s') AS ClickTimestampFormated,
     clickcount,ClickTrend";
-
-    const COLUMNS_CHECK: &'static str =
-        "CheckID, StationUuid, CheckUuid, Source, Codec, Bitrate, Hls, CheckOK,
-    CheckTime,
-    Date_Format(CheckTime,'%Y-%m-%d %H:%i:%s') AS CheckTimeFormated,
-    UrlCache";
 
     fn fix_multi_field(value: &str) -> String {
         let values: Vec<String> = value.split(",").map(|v| v.trim().to_lowercase().to_string()).collect();
@@ -99,42 +92,6 @@ impl Connection {
         let mut stmt = self.pool.prepare(query)?;
         stmt.execute(insert_params)?;
         Ok(())
-    }
-
-    pub fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32) -> Vec<StationCheck> {
-        let where_seconds = if seconds > 0 {
-            format!(
-                "TIMESTAMPDIFF(SECOND,CheckTime,now())<{seconds}",
-                seconds = seconds
-            )
-        } else {
-            String::from("")
-        };
-
-        let results = match stationuuid {
-            Some(uuid) => {
-                let where_checkuuid_str = if checkuuid.is_some() {
-                    " AND CheckTime>=(SELECT CheckTime FROM StationCheckHistory WHERE ChangeUuid=:checkuuid) AND ChangeUuid<>:checkuuid"
-                } else {
-                    ""
-                };
-
-                let query = format!("SELECT {columns} from StationCheckHistory WHERE StationUuid=? {where_checkuuid} {where_seconds} ORDER BY CheckTime", columns = Connection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str);
-                self.pool.prep_exec(query, (uuid,))
-            }
-            None => {
-                let where_checkuuid_str = if checkuuid.is_some() {
-                    " AND CheckTime>=(SELECT CheckTime FROM StationCheck WHERE ChangeUuid=:checkuuid) AND ChangeUuid<>:checkuuid"
-                } else {
-                    ""
-                };
-
-                let query = format!("SELECT {columns} from StationCheck WHERE 1=1 {where_checkuuid} {where_seconds} ORDER BY CheckTime", columns = Connection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str);
-                self.pool.prep_exec(query, ())
-            }
-        };
-
-        self.get_checks_internal(results)
     }
 
     pub fn get_stations_by_all(
@@ -681,42 +638,6 @@ impl Connection {
         }
 
         changes
-    }
-
-    fn get_checks_internal(
-        &self,
-        results: ::mysql::Result<QueryResult<'static>>,
-    ) -> Vec<StationCheck> {
-        let mut checks: Vec<StationCheck> = vec![];
-        for result in results {
-            for row_ in result {
-                let mut row = row_.unwrap();
-                let s = StationCheck::new(
-                    row.take("CheckID").unwrap(),
-                    row.take("StationUuid").unwrap_or("".to_string()),
-                    row.take("CheckUuid").unwrap_or("".to_string()),
-                    row.take("Source").unwrap_or("".to_string()),
-                    row
-                        .take_opt("Codec")
-                        .unwrap_or(Ok("".to_string()))
-                        .unwrap_or("".to_string()),
-                    row.take_opt("Bitrate").unwrap_or(Ok(0)).unwrap_or(0),
-                    row.take_opt("Hls").unwrap_or(Ok(0)).unwrap_or(0),
-                    row.take_opt("CheckOK").unwrap_or(Ok(0)).unwrap_or(0),
-                    row
-                        .take_opt("CheckTimeFormated")
-                        .unwrap_or(Ok("".to_string()))
-                        .unwrap_or("".to_string()),
-                    row
-                        .take_opt("UrlCache")
-                        .unwrap_or(Ok("".to_string()))
-                        .unwrap_or("".to_string()),
-                );
-                checks.push(s);
-            }
-        }
-
-        checks
     }
 }
 

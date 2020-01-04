@@ -13,8 +13,6 @@ pub struct StationCheckV0 {
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct StationCheck {
-    #[serde(skip_serializing)]
-    pub id: i32,
     pub stationuuid: String,
     pub checkuuid: String,
     pub source: String,
@@ -28,7 +26,6 @@ pub struct StationCheck {
 
 impl StationCheck {
     pub fn new(
-        id: i32,
         stationuuid: String,
         checkuuid: String,
         source: String,
@@ -40,7 +37,6 @@ impl StationCheck {
         urlcache: String,
     ) -> Self {
         StationCheck {
-            id,
             stationuuid,
             checkuuid,
             source,
@@ -94,7 +90,6 @@ impl StationCheck {
 impl From<&StationCheckV0> for StationCheck {
     fn from(item: &StationCheckV0) -> Self {
         StationCheck {
-            id: 0,
             stationuuid: item.stationuuid.clone(),
             checkuuid: item.checkuuid.clone(),
             source: item.source.clone(),
