@@ -4,7 +4,10 @@ use crate::db::models::StationItem;
 use crate::db::models::StationCheckItem;
 use crate::db::models::StationCheckItemNew;
 use crate::db::models::StationChangeItemNew;
+use crate::db::MysqlConnection;
+use crate::db::DbError;
 use std::error::Error;
+use std::collections::HashMap;
 
 pub trait DbConnection {
     fn get_station_count_broken(&self) -> Result<u64, Box<dyn Error>>;
@@ -39,4 +42,18 @@ pub trait DbConnection {
     fn delete_were_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
     fn delete_old_checks(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
     fn delete_old_clicks(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
+
+    fn get_stations_multi_items(&self, column_name: &str) -> Result<HashMap<String, (u32,u32)>, Box<dyn Error>>;
+    fn get_cached_items(&self, table_name: &str, column_name: &str) -> Result<HashMap<String, (u32, u32)>, Box<dyn Error>>;
+    fn update_cache_item(&self, tag: &String, count: u32, count_working: u32, table_name: &str, column_name: &str) -> Result<(), Box<dyn Error>>;
+    fn insert_to_cache(&self, tags: HashMap<&String, (u32,u32)>, table_name: &str, column_name: &str) -> Result<(), Box<dyn Error>>;
+    fn remove_from_cache(&self, tags: Vec<&String>, table_name: &str, column_name: &str) -> Result<(), Box<dyn Error>>;
+}
+
+pub fn connect(connection_string: String) -> Result<Box<dyn DbConnection>, Box<dyn std::error::Error>> {
+    if connection_string.starts_with("mysql://") {
+        return Ok(Box::new(MysqlConnection::new(&connection_string)?));
+    }else{
+        return Err(Box::new(DbError::ConnectionError(String::from("Unknown protocol for database connection"))));
+    }
 }

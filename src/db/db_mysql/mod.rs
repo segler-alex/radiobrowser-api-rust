@@ -2,6 +2,9 @@ mod migrations;
 mod simple_migrate;
 mod conversions;
 
+use std;
+use std::collections::HashMap;
+
 use crate::db::models::State;
 use crate::db::models::ExtraInfo;
 use crate::db::models::StationItem;
@@ -567,6 +570,107 @@ impl DbConnection for MysqlConnection {
             states.push(State::new(name, country, stationcount));
         }
         Ok(states)
+    }
+
+    /// Get items from a single column from Station table, add number of occurences
+    /// Supports columns with multiple values that are split by komma
+    fn get_stations_multi_items(&self, column_name: &str) -> Result<HashMap<String, (u32,u32)>, Box<dyn Error>> {
+        let mut items = HashMap::new();
+        let mut my_stmt = self.pool
+            .prepare(format!(
+                "SELECT {column_name}, LastCheckOK FROM Station",
+                column_name = column_name
+            ))?;
+        let result = my_stmt.execute(())?;
+
+        for row in result {
+            let (tags_str, ok): (String, bool) = mysql::from_row_opt(row?)?;
+            //let tags_str: String = row.take(0).unwrap_or("".into());
+            //let ok: bool = row.take(1).unwrap_or(false);
+            let tags_arr = tags_str.split(',');
+            for single_tag in tags_arr {
+                let single_tag_trimmed = single_tag.trim().to_lowercase();
+                if single_tag_trimmed != "" {
+                    let counter = items.entry(single_tag_trimmed).or_insert((0,0));
+                    counter.0 += 1;
+                    if ok{
+                        counter.1 += 1;
+                    }
+                }
+            }
+        }
+        Ok(items)
+    }
+
+    /// Get currently cached items from table
+    fn get_cached_items(
+        &self,
+        table_name: &str,
+        column_name: &str,
+    ) -> Result<HashMap<String, (u32, u32)>, Box<dyn Error>> {
+        let mut items = HashMap::new();
+        let mut my_stmt = self.pool
+            .prepare(format!(
+                "SELECT {column_name},StationCount, StationCountWorking FROM {table_name}",
+                table_name = table_name,
+                column_name = column_name
+            ))?;
+        let result = my_stmt.execute(())?;
+
+        for row in result {
+            let (key, value, value_working): (String, u32, u32) = mysql::from_row_opt(row?)?;
+            let lower = key.to_lowercase();
+            items.insert(lower, (value, value_working));
+        }
+        Ok(items)
+    }
+
+    fn update_cache_item(
+        &self,
+        tag: &String,
+        count: u32,
+        count_working: u32,
+        table_name: &str,
+        column_name: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        let mut my_stmt = self.pool
+            .prepare(format!(
+                r"UPDATE {table_name} SET StationCount=?, StationCountWorking=? WHERE {column_name}=?",
+                table_name = table_name,
+                column_name = column_name
+            ))?;
+        let params = (count, count_working, tag);
+        my_stmt.execute(params)?;
+        Ok(())
+    }
+
+    fn insert_to_cache(&self, tags: HashMap<&String, (u32,u32)>, table_name: &str, column_name: &str) -> Result<(), Box<dyn Error>> {
+        let query = format!(
+            "INSERT INTO {table_name}({column_name},StationCount,StationCountWorking) VALUES(?,?,?)",
+            table_name = table_name,
+            column_name = column_name
+        );
+        let mut my_stmt = self.pool.prepare(query.trim_matches(','))?;
+        for item in tags.iter() {
+            my_stmt.execute((item.0, (item.1).0, (item.1).1))?;
+        }
+        Ok(())
+    }
+
+    fn remove_from_cache(&self, tags: Vec<&String>, table_name: &str, column_name: &str) -> Result<(), Box<dyn Error>> {
+        let mut query = format!(
+            "DELETE FROM {table_name} WHERE {column_name}=''",
+            table_name = table_name,
+            column_name = column_name
+        );
+        for _ in 0..tags.len() {
+            query.push_str(" OR ");
+            query.push_str(column_name);
+            query.push_str("=?");
+        }
+        let mut my_stmt = self.pool.prepare(query)?;
+        my_stmt.execute(tags)?;
+        Ok(())
     }
 }
 

@@ -23,6 +23,7 @@ mod api;
 mod config;
 mod check;
 mod db;
+mod refresh;
 
 fn main() {
     env_logger::init();
@@ -44,7 +45,7 @@ fn main() {
                         );
                         match migration_result {
                             Ok(_) => {
-                                api::db::start_refresh_worker(config.connection_string.clone(), config.update_caches_interval);
+                                refresh::start_refresh_worker(config.connection_string.clone(), config.update_caches_interval);
 
                                 check::start(
                                     config.connection_string,
