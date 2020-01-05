@@ -25,6 +25,7 @@ impl Connection {
     Date_Format(LastCheckTime,'%Y-%m-%d %H:%i:%s') AS LastCheckTimeFormated,
     LastCheckOkTime,
     Date_Format(LastCheckOkTime,'%Y-%m-%d %H:%i:%s') AS LastCheckOkTimeFormated,
+    Date_Format(LastLocalCheckTime,'%Y-%m-%d %H:%i:%s') AS LastLocalCheckTimeFormated,
     ClickTimestamp,
     Date_Format(ClickTimestamp,'%Y-%m-%d %H:%i:%s') AS ClickTimestampFormated,
     clickcount,ClickTrend";
@@ -152,21 +153,6 @@ impl Connection {
         self.get_stations_query(format!(r#"SELECT {columns} from Station WHERE LastCheckOK=TRUE AND (Tags="" OR Country="") ORDER BY RAND() LIMIT {limit}"#,columns = Connection::COLUMNS, limit = limit))
     }
 
-    pub fn get_stations_deleted(&self, limit: u32, id_str: &str) -> Vec<Station> {
-        let id = id_str.parse::<u32>();
-        let results = match id {
-            Ok(id_number) => {
-                let query = format!("SELECT {columns} FROM Station st RIGHT JOIN StationHistory sth ON st.StationID=sth.StationID WHERE st.StationID IS NULL AND sth.StationID=? ORDER BY sth.Creation DESC' {limit}",columns = Connection::COLUMNS, limit = limit);
-                self.pool.prep_exec(query, (id_number,))
-            }
-            _ => {
-                let query = format!("SELECT {columns} FROM Station st RIGHT JOIN StationHistory sth ON st.StationID=sth.StationID WHERE st.StationID IS NULL AND sth.StationUuid=? ORDER BY sth.Creation DESC' {limit}",columns = Connection::COLUMNS, limit = limit);
-                self.pool.prep_exec(query, (id_str,))
-            }
-        };
-        self.get_stations(results)
-    }
-
     pub fn get_stations_advanced(
         &self,
         name: Option<String>,
@@ -273,10 +259,6 @@ impl Connection {
             params,
         );
         self.get_stations(results)
-    }
-
-    pub fn get_stations_deleted_all(&self, limit: u32) -> Vec<Station> {
-        self.get_stations_query(format!("SELECT {columns} FROM Station st RIGHT JOIN StationHistory sth ON st.StationID=sth.StationID WHERE st.StationID IS NULL ORDER BY sth.Creation DESC' {limit}",columns = Connection::COLUMNS, limit = limit))
     }
 
     pub fn get_stations_by_column(

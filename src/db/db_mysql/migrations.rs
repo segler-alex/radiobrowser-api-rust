@@ -147,7 +147,7 @@ r#"ALTER TABLE `Station` ADD COLUMN NegativeVotes int(11) DEFAULT '0'"#);
 r#"ALTER TABLE `StationHistory` DROP COLUMN NegativeVotes"#,
 r#"ALTER TABLE `StationHistory` ADD COLUMN NegativeVotes int(11) DEFAULT '0'"#);
 
-    migrations.add_migration("20191228_123000_Remove_StationHistory_IP",
+    migrations.add_migration("20191228_123000_Remove_Station_IP",
 r#"ALTER TABLE `Station` DROP COLUMN IP"#,
 r#"ALTER TABLE `Station` ADD COLUMN IP varchar(50) NOT NULL DEFAULT ''"#);
 

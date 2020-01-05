@@ -48,7 +48,6 @@
             <li><a class="dropdown-item" href="#Stations_by_votes">Stations by votes</a></li>
             <li><a class="dropdown-item" href="#Stations_by_recent_click">Stations by recent click</a></li>
             <li><a class="dropdown-item" href="#Stations_by_recently_changed">Stations by recently changed</a></li>
-            <li><a class="dropdown-item" href="#Stations_that_got_deleted">Deleted stations</a></li>
             <li><a class="dropdown-item" href="#Old_versions_of_stations">Old versions of stations</a></li>
             <li><a class="dropdown-item" href="#Stations_that_need_improvements">Stations that need improvements</a></li>
             <li><a class="dropdown-item" href="#Broken_stations">Broken stations</a></li>
@@ -1117,27 +1116,6 @@
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/xml/stations/lastchange" target="_blank">{{ API_SERVER }}/xml/stations/lastchange</a></li>
         <li><a href="{{ API_SERVER }}/json/stations/lastchange/5" target="_blank">{{ API_SERVER }}/json/stations/lastchange/5</a></li>
-      </ul>
-    </div>
-
-    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Stations_that_got_deleted">
-      <h1 class="display-4">Deleted stations</h1>
-      <p class="lead">A list of stations that were deleted in the last 30 days, and you can also retrieve a single station by its ID. They are not visible through any other API calls. If you want to undelete a station, call <a class="font-weight-bold" href="#UnDelete_a_station">Undelete a station</a>,
-        supported output formats: JSON, XML</p>
-      <hr class="my-4">
-      <div class="h5">Syntax:</div>
-      <div class="syntax">
-        <ul class="list-unstyled ml-4">
-          <li>{{ API_SERVER }}/json/stations/deleted</li>
-          <li>{{ API_SERVER }}/json/stations/deleted/stationuuid</li>
-          <li>{{ API_SERVER }}/xml/stations/deleted</li>
-          <li>{{ API_SERVER }}/xml/stations/deleted/stationuuid</li>
-        </ul>
-      </div>
-      <div class="h5">Example:</div>
-      <ul class="list-unstyled ml-4">
-        <li><a href="{{ API_SERVER }}/xml/stations/deleted" target="_blank">{{ API_SERVER }}/xml/stations/deleted</a></li>
-        <li><a href="{{ API_SERVER }}/json/stations/deleted/123" target="_blank">{{ API_SERVER }}/json/stations/deleted/123</a></li>
       </ul>
     </div>
 
