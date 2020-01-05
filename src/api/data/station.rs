@@ -1,3 +1,4 @@
+use std::error::Error;
 use crate::api::data::StationHistoryCurrent;
 use crate::db::models::StationItem;
 
@@ -296,14 +297,14 @@ impl Station {
         j
     }
 
-    pub fn get_response(list : Vec<Station>, format : &str) -> rouille::Response {
-        match format {
+    pub fn get_response(list : Vec<Station>, format : &str) -> Result<rouille::Response, Box<dyn Error>> {
+        Ok(match format {
             "json" => {
-                let j = serde_json::to_string(&list).unwrap();
+                let j = serde_json::to_string(&list)?;
                 rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
             },
             "xml" => {
-                let j = Station::serialize_station_list(list).unwrap();
+                let j = Station::serialize_station_list(list)?;
                 rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
             },
             "m3u" => {
@@ -315,7 +316,7 @@ impl Station {
                 rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/x-scpls").with_unique_header("Content-Disposition", r#"inline; filename="playlist.pls""#)
             },
             "xspf" => {
-                let j = Station::serialize_to_xspf(list).unwrap();
+                let j = Station::serialize_to_xspf(list)?;
                 rouille::Response::text(j).with_unique_header("Content-Type","application/xspf+xml").with_unique_header("Content-Disposition", r#"inline; filename="playlist.xspf""#)
             },
             "ttl" => {
@@ -323,7 +324,7 @@ impl Station {
                 rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/turtle")
             },
             _ => rouille::Response::empty_406()
-        }
+        })
     }
 }
 
