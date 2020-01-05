@@ -1,4 +1,5 @@
-use crate::api::data::station_history::StationHistoryCurrent;
+use crate::api::data::StationHistoryCurrent;
+use crate::db::models::StationItem;
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct StationCachedInfo {
@@ -29,8 +30,6 @@ impl StationCachedInfo {
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Station {
-    #[serde(skip_serializing)]
-    pub id: i32,
     pub changeuuid: String,
     pub stationuuid: String,
     pub name: String,
@@ -51,6 +50,7 @@ pub struct Station {
     pub lastcheckok: i8,
     pub lastchecktime: String,
     pub lastcheckoktime: String,
+    pub lastlocalchecktime: String,
     pub clicktimestamp: String,
     pub clickcount: u32,
     pub clicktrend: i32,
@@ -58,7 +58,6 @@ pub struct Station {
 
 impl Station {
     pub fn new(
-        id: i32,
         changeuuid: String,
         stationuuid: String,
         name: String,
@@ -79,12 +78,12 @@ impl Station {
         lastcheckok: i8,
         lastchecktime: String,
         lastcheckoktime: String,
+        lastlocalchecktime: String,
         clicktimestamp: String,
         clickcount: u32,
         clicktrend: i32,
     ) -> Self {
         Station {
-            id,
             changeuuid,
             stationuuid,
             name,
@@ -105,6 +104,7 @@ impl Station {
             lastcheckok,
             lastchecktime,
             lastcheckoktime,
+            lastlocalchecktime,
             clicktimestamp,
             clickcount,
             clicktrend,
@@ -153,6 +153,7 @@ impl Station {
             xml.attr_esc("lastchecktime", &station_lastchecktime_str)?;
             let station_lastcheckoktime_str = format!("{}", entry.lastcheckoktime);
             xml.attr_esc("lastcheckoktime", &station_lastcheckoktime_str)?;
+            xml.attr_esc("lastlocalchecktime", &entry.lastlocalchecktime)?;
             let station_clicktimestamp_str = format!("{}", entry.clicktimestamp);
             xml.attr_esc("clicktimestamp", &station_clicktimestamp_str)?;
             let station_clickcount = format!("{}", entry.clickcount);
@@ -233,9 +234,9 @@ impl Station {
     // Syntax checked with http://ttl.summerofcode.be/
     fn serialize_to_ttl_single(&self) -> String {
         format!(
-            r#"<http://radio-browser.info/radio/{id}>
+            r#"<http://radio-browser.info/radio/{stationuuid}>
     rdf:type schema:RadioStation ;
-    dcterms:identifier "{id}" ;
+    dcterms:identifier "{stationuuid}" ;
     schema:PropertyValue [
         schema:name "changeuuid" ;
         schema:value "{changeuuid}"
@@ -305,7 +306,6 @@ impl Station {
         schema:value "{clicktrend}"
     ] ;
     .{newline}"#,
-            id = self.id,
             stationuuid = self.stationuuid,
             changeuuid = self.changeuuid,
             name = self.name,
@@ -384,7 +384,6 @@ impl Station {
 impl From<&StationHistoryCurrent> for Station {
     fn from(item: &StationHistoryCurrent) -> Self {
         Station {
-            id: 0,
             changeuuid: item.changeuuid.clone(),
             stationuuid: item.stationuuid.clone(),
             name: item.name.clone(),
@@ -407,7 +406,39 @@ impl From<&StationHistoryCurrent> for Station {
             lastcheckok: 0,
             lastcheckoktime: String::from(""),
             lastchecktime: String::from(""),
+            lastlocalchecktime: String::from(""),
             url_resolved: String::from(""),
+        }
+    }
+}
+
+impl From<StationItem> for Station {
+    fn from(item: StationItem) -> Self {
+        Station {
+            changeuuid: item.changeuuid,
+            stationuuid: item.stationuuid,
+            name: item.name,
+            url: item.url,
+            homepage: item.homepage,
+            favicon: item.favicon,
+            tags: item.tags,
+            country: item.country,
+            countrycode: item.countrycode,
+            state: item.state,
+            language: item.language,
+            votes: item.votes,
+            lastchangetime: item.lastchangetime,
+            bitrate: item.bitrate,
+            clickcount: item.clickcount,
+            clicktimestamp: item.clicktimestamp,
+            clicktrend: item.clicktrend,
+            codec: item.codec,
+            hls: if item.hls {1} else {0},
+            lastcheckok: if item.lastcheckok {1} else {0},
+            lastcheckoktime: item.lastcheckoktime,
+            lastchecktime: item.lastchecktime,
+            lastlocalchecktime: item.lastlocalchecktime,
+            url_resolved: item.url_resolved,
         }
     }
 }

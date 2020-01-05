@@ -48,14 +48,6 @@ fn add_cors(result : rouille::Response) -> rouille::Response {
         .with_unique_header("Access-Control-Allow-Methods", "GET,POST")
 }
 
-fn get_only_first(mut stations: Vec<Station>) -> Option<Station>{
-    if stations.len() == 1 {
-        Some(stations.pop().unwrap())
-    } else {
-        None
-    }
-}
-
 fn get_only_first_item(mut stations: Vec<StationItem>) -> Option<StationItem>{
     if stations.len() == 1 {
         Some(stations.pop().unwrap())
@@ -118,14 +110,11 @@ fn encode_message(status: Result<String, Box<dyn Error>>, format : &str) -> roui
     }
 }
 
-fn encode_station_url(connection: &db::Connection, station: Option<Station>, ip: &str, format : &str) -> rouille::Response {
+fn encode_station_url<A>(connection_new: &A, station: Option<StationItem>, ip: &str, format : &str) -> rouille::Response where A: DbConnection {
     match station {
         Some(station) => {
-            let increase_result = connection.increase_clicks(&ip, &station);
-            if let Err(increase_result) = increase_result {
-                error!("station clicks could not be increased: {}", increase_result);
-            }
-
+            let _ = connection_new.increase_clicks(&ip, &station);
+            let station = station.into();
             match format {
                 "json" => {
                     let s = Station::extract_cached_info(station, "retrieved station url");
@@ -439,7 +428,7 @@ fn handle_connection_internal<A>(connection: &db::Connection, connection_new: &A
             "tags" => Ok(add_cors(encode_extra(connection_new.get_extra("TagCache", "TagName", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "tag"))),
             "states" => Ok(add_cors(encode_states(connection_new.get_states(None, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format))),
             "vote" => Ok(add_cors(encode_message(connection_new.vote_for_station(&remote_ip, get_only_first_item(connection_new.get_station_by_uuid(parameter)?)), format))),
-            "url" => Ok(add_cors(encode_station_url(connection, get_only_first(connection.get_station_by_uuid(parameter)), &remote_ip, format))),
+            "url" => Ok(add_cors(encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(parameter)?), &remote_ip, format))),
             "stations" => {
                 match parameter {
                     "topvote" => Ok(add_cors(Station::get_response(connection.get_stations_topvote(999999), format))),
@@ -468,7 +457,7 @@ fn handle_connection_internal<A>(connection: &db::Connection, connection_new: &A
             let format = command;
             let command = parameter;
             match command {
-                "url" => Ok(add_cors(encode_station_url(connection, get_only_first(connection.get_station_by_uuid(search)), &remote_ip, format))),
+                "url" => Ok(add_cors(encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(search)?), &remote_ip, format))),
                 _ => Ok(rouille::Response::empty_404()),
             }
         }else{

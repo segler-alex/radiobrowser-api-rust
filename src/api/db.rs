@@ -167,36 +167,6 @@ impl Connection {
         self.get_stations(results)
     }
 
-    pub fn increase_clicks(&self, ip: &str, station: &Station) -> Result<bool,Box<dyn std::error::Error>> {
-        let query = format!(r#"SELECT * FROM StationClick WHERE StationID={id} AND IP="{ip}" AND TIME_TO_SEC(TIMEDIFF(Now(),ClickTimestamp))<24*60*60"#, id = station.id, ip = ip);
-        let result = self.pool.prep_exec(query, ())?;
-
-        for resultsingle in result {
-            for _ in resultsingle {
-                return Ok(false);
-            }
-        }
-
-        let query2 = format!(
-            r#"INSERT INTO StationClick(StationID,IP) VALUES({id},"{ip}")"#,
-            id = station.id,
-            ip = ip
-        );
-        let result2 = self.pool.prep_exec(query2, ())?;
-
-        let query3 = format!(
-            "UPDATE Station SET ClickTimestamp=NOW() WHERE StationID={id}",
-            id = station.id
-        );
-        let result3 = self.pool.prep_exec(query3, ())?;
-
-        if result2.affected_rows() == 1 && result3.affected_rows() == 1 {
-            return Ok(true);
-        } else {
-            return Ok(false);
-        }
-    }
-
     pub fn get_stations_advanced(
         &self,
         name: Option<String>,
@@ -381,15 +351,6 @@ impl Connection {
         self.get_stations(results)
     }
 
-    pub fn get_station_by_uuid(&self, id_str: &str) -> Vec<Station> {
-        let query = format!(
-            "SELECT {columns} from Station WHERE StationUuid=? ORDER BY Name",
-            columns = Connection::COLUMNS
-        );
-        let results = self.pool.prep_exec(query, (id_str,));
-        self.get_stations(results)
-    }
-
     pub fn get_stations_topvote(&self, limit: u32) -> Vec<Station> {
         let query: String;
         query = format!(
@@ -471,7 +432,6 @@ impl Connection {
             for row_ in result {
                 let mut row = row_.unwrap();
                 let s = Station::new(
-                    row.take("StationID").unwrap(),
                     row.take("ChangeUuid").unwrap_or("".to_string()),
                     row.take("StationUuid").unwrap_or("".to_string()),
                     row.take("Name").unwrap_or("".to_string()),
@@ -523,6 +483,10 @@ impl Connection {
                         .unwrap_or("".to_string()),
                     row
                         .take_opt("LastCheckOkTimeFormated")
+                        .unwrap_or(Ok("".to_string()))
+                        .unwrap_or("".to_string()),
+                    row
+                        .take_opt("LastLocalCheckTimeFormated")
                         .unwrap_or(Ok("".to_string()))
                         .unwrap_or("".to_string()),
                     row
