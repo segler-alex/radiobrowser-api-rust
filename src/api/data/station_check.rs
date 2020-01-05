@@ -1,5 +1,6 @@
 use crate::db::models::StationCheckItem;
 use std::convert::TryFrom;
+use std::error::Error;
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct StationCheckV0 {
@@ -74,18 +75,18 @@ impl StationCheck {
         Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
     }
 
-    pub fn get_response(list: Vec<StationCheck>, format: &str) -> rouille::Response {
-        match format {
+    pub fn get_response(list: Vec<StationCheck>, format: &str) -> Result<rouille::Response, Box<dyn Error>> {
+        Ok(match format {
             "json" => {
-                let j = serde_json::to_string(&list).unwrap();
+                let j = serde_json::to_string(&list)?;
                 rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
             },
             "xml" => {
-                let j = StationCheck::serialize_station_checks(list).unwrap();
+                let j = StationCheck::serialize_station_checks(list)?;
                 rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
             },
             _ => rouille::Response::empty_406()
-        }
+        })
     }
 }
 

@@ -45,17 +45,17 @@ impl StationAddResult {
         }
     }
 
-    pub fn get_response(&self, format: &str) -> rouille::Response {
-        match format {
+    pub fn get_response(&self, format: &str) -> Result<rouille::Response, Box<dyn Error>> {
+        Ok(match format {
             "json" => {
-                let j = serde_json::to_string(&self).unwrap();
+                let j = serde_json::to_string(&self)?;
                 rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
             },
             "xml" => {
-                let j = self.serialize_xml().unwrap();
+                let j = self.serialize_xml()?;
                 rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
             },
             _ => rouille::Response::empty_406()
-        }
+        })
     }
 }

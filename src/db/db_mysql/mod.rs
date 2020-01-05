@@ -554,13 +554,9 @@ impl DbConnection for MysqlConnection {
         let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache) 
                         VALUES(:name, :url, :homepage, :favicon, :country, :countrycode, :state, :language, :tags, :changeuuid, :stationuuid, '')");
 
-        if name.is_none(){
-            return Err(Box::new(DbError::AddStationError(String::from("name is empty"))));
-        }
-        if url.is_none(){
-            return Err(Box::new(DbError::AddStationError(String::from("url is empty"))));
-        }
-        let name = name.unwrap();
+        let name = name.ok_or(DbError::AddStationError(String::from("name is empty")))?;
+        let url = url.ok_or(DbError::AddStationError(String::from("url is empty")))?;
+        
         if name.len() > 400{
             return Err(Box::new(DbError::AddStationError(String::from("name is longer than 400 chars"))));
         }
@@ -569,7 +565,7 @@ impl DbConnection for MysqlConnection {
         let changeuuid = Uuid::new_v4().to_hyphenated().to_string();
         let params = params!{
             "name" => name,
-            "url" => url.unwrap(),
+            "url" => url,
             "homepage" => homepage.unwrap_or_default(),
             "favicon" => favicon.unwrap_or_default(),
             "country" => country.unwrap_or_default(),

@@ -411,8 +411,8 @@ fn handle_connection_internal<A>(connection_new: &A, request: &rouille::Request,
             "stations" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_all(&param_order, param_reverse, param_hidebroken, param_offset, param_limit)?.drain(..).map(|x|x.into()).collect(), format))),
             "servers" => Ok(add_cors(dns_resolve(format)?)),
             "stats" => Ok(add_cors(encode_status(get_status(connection_new)?, format, static_dir))),
-            "checks" => Ok(add_cors(StationCheck::get_response(connection_new.get_checks(None, param_last_checkuuid, param_seconds, false)?.drain(..).map(|x|x.into()).collect(),format))),
-            "add" => Ok(add_cors(StationAddResult::from(connection_new.add_station_opt(param_name, param_url, param_homepage, param_favicon, param_country, param_countrycode, param_state, param_language, param_tags)).get_response(format))),
+            "checks" => Ok(add_cors(StationCheck::get_response(connection_new.get_checks(None, param_last_checkuuid, param_seconds, false)?.drain(..).map(|x|x.into()).collect(),format)?)),
+            "add" => Ok(add_cors(StationAddResult::from(connection_new.add_station_opt(param_name, param_url, param_homepage, param_favicon, param_country, param_countrycode, param_state, param_language, param_tags)).get_response(format)?)),
             _ => Ok(rouille::Response::empty_404()),
         }
     } else if items.len() == 4 {
@@ -443,7 +443,7 @@ fn handle_connection_internal<A>(connection_new: &A, request: &rouille::Request,
                     _ => Ok(rouille::Response::empty_404()),
                 }
             },
-            "checks" => Ok(add_cors(StationCheck::get_response(connection_new.get_checks(Some(parameter.to_string()), param_last_checkuuid, param_seconds, true)?.drain(..).map(|x|x.into()).collect(), format))),
+            "checks" => Ok(add_cors(StationCheck::get_response(connection_new.get_checks(Some(parameter.to_string()), param_last_checkuuid, param_seconds, true)?.drain(..).map(|x|x.into()).collect(), format)?)),
             _ => Ok(rouille::Response::empty_404()),
         }
     } else if items.len() == 5 {
