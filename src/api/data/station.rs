@@ -57,60 +57,6 @@ pub struct Station {
 }
 
 impl Station {
-    pub fn new(
-        changeuuid: String,
-        stationuuid: String,
-        name: String,
-        url: String,
-        url_resolved: String,
-        homepage: String,
-        favicon: String,
-        tags: String,
-        country: String,
-        countrycode: String,
-        state: String,
-        language: String,
-        votes: i32,
-        lastchangetime: String,
-        codec: String,
-        bitrate: u32,
-        hls: i8,
-        lastcheckok: i8,
-        lastchecktime: String,
-        lastcheckoktime: String,
-        lastlocalchecktime: String,
-        clicktimestamp: String,
-        clickcount: u32,
-        clicktrend: i32,
-    ) -> Self {
-        Station {
-            changeuuid,
-            stationuuid,
-            name,
-            url,
-            url_resolved,
-            homepage,
-            favicon,
-            tags,
-            country,
-            countrycode,
-            state,
-            language,
-            votes,
-            lastchangetime,
-            codec,
-            bitrate,
-            hls,
-            lastcheckok,
-            lastchecktime,
-            lastcheckoktime,
-            lastlocalchecktime,
-            clicktimestamp,
-            clickcount,
-            clicktrend,
-        }
-    }
-
     pub fn extract_cached_info(station: Station, message: &str) -> StationCachedInfo {
         return StationCachedInfo {
             ok: station.lastcheckok == 1,

@@ -1,5 +1,6 @@
 use crate::db::models::StationItem;
 use crate::db::models::StationCheckItem;
+use crate::db::models::StationHistoryItem;
 use mysql;
 use mysql::Row;
 
@@ -48,6 +49,28 @@ impl From<Row> for StationItem {
             clicktimestamp:     row.take_opt("ClickTimestampFormated").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             clickcount:         row.take_opt("clickcount").unwrap_or(Ok(0)).unwrap_or(0),
             clicktrend:         row.take_opt("ClickTrend").unwrap_or(Ok(0)).unwrap_or(0),
+        }
+    }
+}
+
+impl From<Row> for StationHistoryItem {
+    fn from(mut row: Row) -> Self {
+        StationHistoryItem {
+            id:                 row.take("StationChangeID").unwrap(),
+            stationid:          row.take("StationID").unwrap(),
+            changeuuid:         row.take("ChangeUuid").unwrap(),
+            stationuuid:        row.take("StationUuid").unwrap(),
+            name:               row.take_opt("Name").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            url:                row.take_opt("Url").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            favicon:            row.take_opt("Favicon").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            tags:               row.take_opt("Tags").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            country:            row.take_opt("Country").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            countrycode:        row.take_opt("CountryCode").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            state:              row.take_opt("Language").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            language:           row.take_opt("Subcountry").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            votes:              row.take_opt("Votes").unwrap_or(Ok(0)).unwrap_or(0),
+            lastchangetime:     row.take_opt("CreationFormated").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            homepage:           row.take_opt("Homepage").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
         }
     }
 }

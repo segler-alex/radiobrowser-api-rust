@@ -4,6 +4,7 @@ use crate::db::models::StationItem;
 use crate::db::models::StationCheckItem;
 use crate::db::models::StationCheckItemNew;
 use crate::db::models::StationChangeItemNew;
+use crate::db::models::StationHistoryItem;
 use crate::db::MysqlConnection;
 use crate::db::DbError;
 use std::error::Error;
@@ -23,6 +24,22 @@ pub trait DbConnection {
     fn get_click_count_last_day(&self) -> Result<u64, Box<dyn Error>>;
     fn get_stations_to_check(&mut self, hours: u32, itemcount: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
     fn get_station_by_uuid(&self, id_str: &str) -> Result<Vec<StationItem>,Box<dyn Error>>;
+    fn get_stations_by_column_multiple(&self,column_name: &str,search: Option<String>,exact: bool,order: &str,reverse: bool,hidebroken: bool,offset: u32,limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
+    fn get_stations_by_all(&self,order: &str,reverse: bool,hidebroken: bool,offset: u32,limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
+    fn get_stations_advanced(
+        &self,name: Option<String>,name_exact: bool,country: Option<String>,country_exact: bool,countrycode: Option<String>,
+        state: Option<String>,state_exact: bool,language: Option<String>,
+        language_exact: bool,tag: Option<String>,tag_exact: bool,tag_list: Vec<String>,
+        bitrate_min: u32,bitrate_max: u32,order: &str,reverse: bool,hidebroken: bool,offset: u32,limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
+    fn get_changes(&self, stationuuid: Option<String>, changeuuid: Option<String>) -> Result<Vec<StationHistoryItem>, Box<dyn Error>>;
+    
+    fn get_stations_broken(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
+    fn get_stations_improvable(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
+    fn get_stations_topvote(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
+    fn get_stations_topclick(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
+    fn get_stations_lastclick(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
+    fn get_stations_lastchange(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
+    fn get_stations_by_column(&self,column_name: &str,search: String,exact: bool,order: &str,reverse: bool,hidebroken: bool,offset: u32,limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
 
     fn get_pull_server_lastid(&self, server: &str) -> Option<String>;
     fn set_pull_server_lastid(&self, server: &str, lastid: &str) -> Result<(),Box<dyn std::error::Error>>;

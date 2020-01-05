@@ -13,6 +13,7 @@ use crate::db::models::StationItem;
 use crate::db::models::StationCheckItem;
 use crate::db::models::StationCheckItemNew;
 use crate::db::models::StationChangeItemNew;
+use crate::db::models::StationHistoryItem;
 use std::error::Error;
 use crate::db::DbConnection;
 use mysql;
@@ -68,6 +69,11 @@ impl MysqlConnection {
             list.push(row.into());
         }
         Ok(list)
+    }
+
+    fn get_stations_query(&self, query: String) -> Result<Vec<StationItem>, Box<dyn Error>> {
+        let results = self.pool.prep_exec(query, ())?;
+        self.get_list_from_query_result(results)
     }
 
     pub fn get_single_column_number(&self, query: &str) -> Result<u64,Box<dyn std::error::Error>> {
@@ -254,6 +260,290 @@ impl DbConnection for MysqlConnection {
 
     fn get_deletable_were_working(&self, hours: u32) -> Result<u64, Box<dyn Error>> {
         self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOK=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < NOW() - INTERVAL :hours HOUR", params!(hours))
+    }
+
+    fn get_stations_broken(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+        self.get_stations_query(format!(
+            "SELECT {columns} from Station WHERE LastCheckOK=FALSE ORDER BY rand() LIMIT {limit}",
+            columns = MysqlConnection::COLUMNS,
+            limit = limit
+        ))
+    }
+
+    fn get_stations_improvable(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+        self.get_stations_query(format!(r#"SELECT {columns} from Station WHERE LastCheckOK=TRUE AND (Tags="" OR Country="") ORDER BY RAND() LIMIT {limit}"#,columns = MysqlConnection::COLUMNS, limit = limit))
+    }
+
+    fn get_stations_topvote(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+        let query: String;
+        query = format!(
+            "SELECT {columns} from Station ORDER BY Votes DESC LIMIT {limit}",
+            columns = MysqlConnection::COLUMNS,
+            limit = limit
+        );
+        self.get_stations_query(query)
+    }
+
+    fn get_stations_topclick(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+        let query: String;
+        query = format!(
+            "SELECT {columns} from Station ORDER BY clickcount DESC LIMIT {limit}",
+            columns = MysqlConnection::COLUMNS,
+            limit = limit
+        );
+        self.get_stations_query(query)
+    }
+
+    fn get_stations_lastclick(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+        let query: String;
+        query = format!(
+            "SELECT {columns} from Station ORDER BY ClickTimestamp DESC LIMIT {limit}",
+            columns = MysqlConnection::COLUMNS,
+            limit = limit
+        );
+        self.get_stations_query(query)
+    }
+
+    fn get_stations_lastchange(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+        let query: String;
+        query = format!(
+            "SELECT {columns} from Station ORDER BY Creation DESC LIMIT {limit}",
+            columns = MysqlConnection::COLUMNS,
+            limit = limit
+        );
+        self.get_stations_query(query)
+    }
+
+    fn get_stations_by_column(
+        &self,
+        column_name: &str,
+        search: String,
+        exact: bool,
+        order: &str,
+        reverse: bool,
+        hidebroken: bool,
+        offset: u32,
+        limit: u32,
+    ) -> Result<Vec<StationItem>, Box<dyn Error>> {
+        let order = filter_order(order);
+        let reverse_string = if reverse { "DESC" } else { "ASC" };
+        let hidebroken_string = if hidebroken {
+            " AND LastCheckOK=TRUE"
+        } else {
+            ""
+        };
+        let query: String = if exact {
+            format!("SELECT {columns} from Station WHERE LOWER({column_name})=? {hidebroken} ORDER BY {order} {reverse} LIMIT {offset},{limit}", columns = MysqlConnection::COLUMNS, order = order, reverse = reverse_string, hidebroken = hidebroken_string, offset = offset, limit = limit, column_name = column_name)
+        } else {
+            format!("SELECT {columns} from Station WHERE LOWER({column_name}) LIKE CONCAT('%',?,'%') {hidebroken} ORDER BY {order} {reverse} LIMIT {offset},{limit}", columns = MysqlConnection::COLUMNS, order = order, reverse = reverse_string, hidebroken = hidebroken_string, offset = offset, limit = limit, column_name = column_name)
+        };
+        let results = self.pool.prep_exec(query, (search.to_lowercase(),))?;
+        self.get_list_from_query_result(results)
+    }
+
+    fn get_stations_by_column_multiple(
+        &self,
+        column_name: &str,
+        search: Option<String>,
+        exact: bool,
+        order: &str,
+        reverse: bool,
+        hidebroken: bool,
+        offset: u32,
+        limit: u32,
+    ) -> Result<Vec<StationItem>, Box<dyn Error>> {
+        let order = filter_order(order);
+        let reverse_string = if reverse { "DESC" } else { "ASC" };
+        let hidebroken_string = if hidebroken {
+            " AND LastCheckOK=TRUE"
+        } else {
+            ""
+        };
+        let query: String = if exact {
+            format!(
+                r"SELECT {columns} from Station WHERE ({column_name}=?
+             OR {column_name} LIKE CONCAT('%,',?,',%')
+             OR {column_name} LIKE CONCAT(?,',%')
+             OR {column_name} LIKE CONCAT('%,',?))
+             {hidebroken} ORDER BY {order} {reverse} LIMIT {offset},{limit}",
+                columns = MysqlConnection::COLUMNS,
+                order = order,
+                reverse = reverse_string,
+                hidebroken = hidebroken_string,
+                offset = offset,
+                limit = limit,
+                column_name = column_name
+            )
+        } else {
+            format!("SELECT {columns} from Station WHERE {column_name} LIKE CONCAT('%',?,'%') {hidebroken} ORDER BY {order} {reverse} LIMIT {offset},{limit}", columns = MysqlConnection::COLUMNS, order = order, reverse = reverse_string, hidebroken = hidebroken_string, offset = offset, limit = limit, column_name = column_name)
+        };
+        let results = if exact {
+            self.pool.prep_exec(query, (&search, &search, &search, &search))?
+        } else {
+            self.pool.prep_exec(query, (search,))?
+        };
+        self.get_list_from_query_result(results)
+    }
+
+    fn get_stations_by_all(
+        &self,
+        order: &str,
+        reverse: bool,
+        hidebroken: bool,
+        offset: u32,
+        limit: u32,
+    ) -> Result<Vec<StationItem>, Box<dyn Error>> {
+        let order = filter_order(order);
+        let reverse_string = if reverse { "DESC" } else { "ASC" };
+        let hidebroken_string = if hidebroken {
+            " WHERE LastCheckOK=TRUE"
+        } else {
+            ""
+        };
+
+        let query: String = format!("SELECT {columns} from Station {hidebroken} ORDER BY {order} {reverse} LIMIT {offset},{limit}",
+            columns = MysqlConnection::COLUMNS, order = order, reverse = reverse_string,
+            hidebroken = hidebroken_string, offset = offset, limit = limit);
+        let results = self.pool.prep_exec(query, ())?;
+        self.get_list_from_query_result(results)
+    }
+
+    fn get_stations_advanced(
+        &self,
+        name: Option<String>,
+        name_exact: bool,
+        country: Option<String>,
+        country_exact: bool,
+        countrycode: Option<String>,
+        state: Option<String>,
+        state_exact: bool,
+        language: Option<String>,
+        language_exact: bool,
+        tag: Option<String>,
+        tag_exact: bool,
+        tag_list: Vec<String>,
+        bitrate_min: u32,
+        bitrate_max: u32,
+        order: &str,
+        reverse: bool,
+        hidebroken: bool,
+        offset: u32,
+        limit: u32,
+    ) -> Result<Vec<StationItem>, Box<dyn Error>> {
+        let order = filter_order(order);
+        let reverse_string = if reverse { "DESC" } else { "ASC" };
+        let hidebroken_string = if hidebroken {
+            " AND LastCheckOK=TRUE"
+        } else {
+            ""
+        };
+        let mut query = format!(
+            "SELECT {columns} from Station WHERE",
+            columns = MysqlConnection::COLUMNS
+        );
+        query.push_str(" Bitrate >= :bitrate_min AND Bitrate <= :bitrate_max");
+        if name.is_some() {
+            if name_exact {
+                query.push_str(" AND Name=:name");
+            } else {
+                query.push_str(" AND Name LIKE CONCAT('%',:name,'%')");
+            }
+        }
+        if country.is_some() {
+            if country_exact {
+                query.push_str(" AND Country=:country");
+            } else {
+                query.push_str(" AND Country LIKE CONCAT('%',:country,'%')");
+            }
+        }
+        if countrycode.is_some() {
+            query.push_str(" AND UPPER(CountryCode)=UPPER(:countrycode)");
+        }
+        if state.is_some() {
+            if state_exact {
+                query.push_str(" AND Subcountry=:state");
+            } else {
+                query.push_str(" AND Subcountry LIKE CONCAT('%',:state,'%')");
+            }
+        }
+        if language.is_some() {
+            if language_exact {
+                query.push_str(" AND ( Language=:language OR Language LIKE CONCAT('%,',:language,',%') OR Language LIKE CONCAT('%,',:language) OR Language LIKE CONCAT(:language,',%'))");
+            } else {
+                query.push_str(" AND Language LIKE CONCAT('%',:language,'%')");
+            }
+        }
+        if tag.is_some() {
+            if tag_exact {
+                query.push_str(" AND ( Tags=:tag OR Tags LIKE CONCAT('%,',:tag,',%') OR Tags LIKE CONCAT('%,',:tag) OR Tags LIKE CONCAT(:tag,',%'))");
+            } else {
+                query.push_str(" AND Tags LIKE CONCAT('%',:tag,'%')");
+            }
+        }
+        let mut params = params!{
+            "name" => name.unwrap_or_default(),
+            "country" => country.unwrap_or_default(),
+            "countrycode" => countrycode.unwrap_or_default(),
+            "state" => state.unwrap_or_default(),
+            "language" => language.unwrap_or_default(),
+            "tag" => tag.unwrap_or_default(),
+            "bitrate_min" => bitrate_min,
+            "bitrate_max" => bitrate_max,
+        };
+        let mut i = 0;
+        for tag in tag_list {
+            if tag_exact {
+                query.push_str(&format!(" AND ( Tags=:tag{i} OR Tags LIKE CONCAT('%,',:tag{i},',%') OR Tags LIKE CONCAT('%,',:tag{i}) OR Tags LIKE CONCAT(:tag{i},',%'))",i=i));
+            } else {
+                query.push_str(&format!(" AND Tags LIKE CONCAT('%',:tag{i},'%')",i=i));
+            }
+            params.push((format!("tag{i}",i=i), Value::from(tag)));
+            i += 1;
+        }
+        query.push_str(&format!(
+            " {hidebroken} ORDER BY {order} {reverse} LIMIT {offset},{limit}",
+            order = order,
+            reverse = reverse_string,
+            hidebroken = hidebroken_string,
+            offset = offset,
+            limit = limit
+        ));
+        
+        let results = self.pool.prep_exec(
+            query,
+            params,
+        )?;
+        self.get_list_from_query_result(results)
+    }
+
+    fn get_changes(&self, stationuuid: Option<String>, changeuuid: Option<String>) -> Result<Vec<StationHistoryItem>, Box<dyn Error>> {
+        let changeuuid_str = if changeuuid.is_some() {
+            " AND Creation>=(SELECT Creation FROM StationHistory WHERE ChangeUuid=:changeuuid) AND ChangeUuid<>:changeuuid"
+        } else {
+            ""
+        };
+
+        let stationuuid_str = if stationuuid.is_some() {
+            " AND StationUuid=:stationuuid"
+        }else{
+            ""
+        };
+        
+        let query: String = format!("SELECT StationID,ChangeUuid,
+                StationUuid,Name,
+                Url,Homepage,
+                Favicon,Tags,
+                Country,Subcountry,
+                CountryCode,
+                Language,Votes,
+                Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated,
+                Ip from StationHistory WHERE 1=:mynumber {changeuuid_str} {stationuuid} ORDER BY Creation ASC", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str);
+        let results = self.pool.prep_exec(query, params! {
+            "mynumber" => 1,
+            "stationuuid" => stationuuid.unwrap_or(String::from("")),
+            "changeuuid" => changeuuid.unwrap_or(String::from(""))
+        })?;
+        self.get_list_from_query_result(results)
     }
 
     fn get_pull_server_lastid(&self, server: &str) -> Option<String> {
@@ -766,4 +1056,27 @@ impl DbConnection for MysqlConnection {
 fn fix_multi_field(value: &str) -> String {
     let values: Vec<String> = value.split(",").map(|v| v.trim().to_lowercase().to_string()).collect();
     values.join(",")
+}
+
+fn filter_order(order: &str) -> &str {
+    match order {
+        "name" => "Name",
+        "url" => "Url",
+        "homepage" => "Homepage",
+        "favicon" => "Favicon",
+        "tags" => "Tags",
+        "country" => "Country",
+        "state" => "Subcountry",
+        "language" => "Language",
+        "votes" => "Votes",
+        "codec" => "Codec",
+        "bitrate" => "Bitrate",
+        "lastcheckok" => "LastCheckOK",
+        "lastchecktime" => "LastCheckTime",
+        "clicktimestamp" => "ClickTimestamp",
+        "clickcount" => "clickcount",
+        "clicktrend" => "ClickTrend",
+        "random" => "RAND()",
+        _ => "Name",
+    }
 }
