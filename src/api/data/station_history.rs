@@ -2,7 +2,6 @@ use crate::db::models::StationHistoryItem;
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct StationHistoryV0 {
-    id: String,
     changeuuid: String,
     stationuuid: String,
     name: String,
@@ -20,7 +19,6 @@ pub struct StationHistoryV0 {
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct StationHistoryCurrent {
-    id: i32,
     pub changeuuid: String,
     pub stationuuid: String,
     pub name: String,
@@ -39,7 +37,6 @@ pub struct StationHistoryCurrent {
 impl From<StationHistoryV0> for StationHistoryCurrent {
     fn from(item: StationHistoryV0) -> Self {
         StationHistoryCurrent {
-            id: item.id.parse().unwrap(),
             changeuuid: item.changeuuid,
             stationuuid: item.stationuuid,
             name: item.name,
@@ -60,7 +57,6 @@ impl From<StationHistoryV0> for StationHistoryCurrent {
 impl From<&StationHistoryV0> for StationHistoryCurrent {
     fn from(item: &StationHistoryV0) -> Self {
         StationHistoryCurrent {
-            id: item.id.parse().unwrap(),
             changeuuid: item.changeuuid.clone(),
             stationuuid: item.stationuuid.clone(),
             name: item.name.clone(),
@@ -84,8 +80,6 @@ impl StationHistoryCurrent {
         xml.begin_elem("result")?;
         for entry in entries {
             xml.begin_elem("station")?;
-            let station_id_str = format!("{}", entry.id);
-            xml.attr_esc("id", &station_id_str)?;
             xml.attr_esc("changeuuid", &entry.changeuuid)?;
             xml.attr_esc("stationuuid", &entry.stationuuid)?;
             xml.attr_esc("name", &entry.name)?;
@@ -113,7 +107,6 @@ impl StationHistoryCurrent {
 impl From<StationHistoryItem> for StationHistoryCurrent {
     fn from(item: StationHistoryItem) -> Self {
         StationHistoryCurrent {
-            id: item.id,
             changeuuid: item.changeuuid,
             stationuuid: item.stationuuid,
             name: item.name,
