@@ -7,6 +7,7 @@ use crate::db::db_error::DbError;
 use std;
 use std::collections::HashMap;
 
+use crate::uuid::Uuid;
 use crate::db::models::State;
 use crate::db::models::ExtraInfo;
 use crate::db::models::StationItem;
@@ -544,6 +545,47 @@ impl DbConnection for MysqlConnection {
             "changeuuid" => changeuuid.unwrap_or(String::from(""))
         })?;
         self.get_list_from_query_result(results)
+    }
+
+    fn add_station_opt(&self, name: Option<String>, url: Option<String>, homepage: Option<String>, favicon: Option<String>,
+        country: Option<String>, countrycode: Option<String>, state: Option<String>, language: Option<String>, tags: Option<String>) -> Result<String, Box<dyn Error>> {
+        let mut transaction = self.pool.start_transaction(false, None, None)?;
+
+        let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache) 
+                        VALUES(:name, :url, :homepage, :favicon, :country, :countrycode, :state, :language, :tags, :changeuuid, :stationuuid, '')");
+
+        if name.is_none(){
+            return Err(Box::new(DbError::AddStationError(String::from("name is empty"))));
+        }
+        if url.is_none(){
+            return Err(Box::new(DbError::AddStationError(String::from("url is empty"))));
+        }
+        let name = name.unwrap();
+        if name.len() > 400{
+            return Err(Box::new(DbError::AddStationError(String::from("name is longer than 400 chars"))));
+        }
+
+        let stationuuid = Uuid::new_v4().to_hyphenated().to_string();
+        let changeuuid = Uuid::new_v4().to_hyphenated().to_string();
+        let params = params!{
+            "name" => name,
+            "url" => url.unwrap(),
+            "homepage" => homepage.unwrap_or_default(),
+            "favicon" => favicon.unwrap_or_default(),
+            "country" => country.unwrap_or_default(),
+            "countrycode" => countrycode.unwrap_or_default(),
+            "state" => state.unwrap_or_default(),
+            "language" => fix_multi_field(&language.unwrap_or_default()),
+            "tags" => fix_multi_field(&tags.unwrap_or_default()),
+            "changeuuid" => changeuuid,
+            "stationuuid" => stationuuid.clone(),
+        };
+
+        transaction.prep_exec(query, params)?;
+        MysqlConnection::backup_stations_by_uuid(&mut transaction, &(vec![stationuuid.clone()]))?;
+        transaction.commit()?;
+
+        Ok(stationuuid)
     }
 
     fn get_pull_server_lastid(&self, server: &str) -> Option<String> {

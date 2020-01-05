@@ -7,6 +7,7 @@ use std::fmt::Result;
 pub enum DbError {
     ConnectionError(String),
     VoteError(String),
+    AddStationError(String),
 }
 
 impl Display for DbError {
@@ -14,6 +15,7 @@ impl Display for DbError {
         match *self {
             DbError::ConnectionError(ref v) => write!(f, "{}", v),
             DbError::VoteError(ref v) => write!(f, "{}", v),
+            DbError::AddStationError(ref v) => write!(f, "{}", v),
         }
     }
 }

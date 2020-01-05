@@ -1,3 +1,5 @@
+use std::error::Error;
+
 #[derive(Serialize, Deserialize)]
 pub struct StationAddResult {
     ok: bool,
@@ -34,6 +36,13 @@ impl StationAddResult {
         xml.close()?;
         xml.flush()?;
         Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
+    }
+
+    pub fn from(result: Result<String, Box<dyn Error>>) -> StationAddResult {
+        match result {
+            Ok(res)=>StationAddResult::new_ok(res),
+            Err(err)=>StationAddResult::new_err(&err.to_string())
+        }
     }
 
     pub fn get_response(&self, format: &str) -> rouille::Response {

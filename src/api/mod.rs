@@ -4,7 +4,6 @@ extern crate serde;
 extern crate serde_json;
 extern crate dns_lookup;
 
-pub mod db;
 pub mod data;
 mod parameters;
 mod prometheus_exporter;
@@ -18,6 +17,7 @@ use crate::api::data::StationCachedInfo;
 use crate::api::data::StationHistoryCurrent;
 use crate::api::data::Station;
 use crate::api::data::StationCheck;
+use crate::api::data::StationAddResult;
 use crate::api::data::Status;
 use crate::db::DbConnection;
 use crate::db::models::ExtraInfo;
@@ -207,7 +207,7 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Re
     }
 }
 
-pub fn start<A: 'static +  std::clone::Clone>(connection: db::Connection, connection_new: A, host : String, port : i32, threads : usize, server_name: &str, static_dir: &str, log_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) where A: DbConnection, A: std::marker::Send, A: std::marker::Sync {
+pub fn start<A: 'static +  std::clone::Clone>(connection_new: A, host : String, port : i32, threads : usize, server_name: &str, static_dir: &str, log_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) where A: DbConnection, A: std::marker::Send, A: std::marker::Sync {
     let listen_str = format!("{}:{}", host, port);
     info!("Listen on {} with {} threads", listen_str, threads);
     let x : Option<usize> = Some(threads);
@@ -216,7 +216,7 @@ pub fn start<A: 'static +  std::clone::Clone>(connection: db::Connection, connec
     let log_dir = log_dir.to_string();
     let prometheus_exporter_prefix = prometheus_exporter_prefix.to_string();
     rouille::start_server_with_pool(listen_str, x, move |request| {
-        handle_connection(&connection, &connection_new, request, &y, &static_dir, &log_dir, prometheus_exporter_enabled, &prometheus_exporter_prefix)
+        handle_connection(&connection_new, request, &y, &static_dir, &log_dir, prometheus_exporter_enabled, &prometheus_exporter_prefix)
     });
 }
 
@@ -280,7 +280,7 @@ fn log_to_file(file_name: &str, line: &str) {
     }
 }
 
-fn handle_connection<A>(connection: &db::Connection, connection_new: &A, request: &rouille::Request, server_name: &str, static_dir: &str, log_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) -> rouille::Response where A: DbConnection {
+fn handle_connection<A>(connection_new: &A, request: &rouille::Request, server_name: &str, static_dir: &str, log_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) -> rouille::Response where A: DbConnection {
     let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
     let referer: String = request.header("Referer").unwrap_or(&"-".to_string()).to_string();
     let user_agent: String = request.header("User-agent").unwrap_or(&"-".to_string()).to_string();
@@ -299,7 +299,7 @@ fn handle_connection<A>(connection: &db::Connection, connection_new: &A, request
         log_to_file(&log_file, &line);
     };
     rouille::log_custom(request, log_ok, log_err, || {
-        let result = handle_connection_internal(connection, connection_new, request, server_name, static_dir, prometheus_exporter_enabled, prometheus_exporter_prefix);
+        let result = handle_connection_internal(connection_new, request, server_name, static_dir, prometheus_exporter_enabled, prometheus_exporter_prefix);
         match result {
             Ok(response) => response,
             Err(err) => rouille::Response::text(err.to_string()).with_status_code(500),
@@ -307,7 +307,7 @@ fn handle_connection<A>(connection: &db::Connection, connection_new: &A, request
     })
 }
 
-fn handle_connection_internal<A>(connection: &db::Connection, connection_new: &A, request: &rouille::Request, server_name: &str, static_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
+fn handle_connection_internal<A>(connection_new: &A, request: &rouille::Request, server_name: &str, static_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
     if request.method() != "POST" && request.method() != "GET" {
         return Ok(rouille::Response::empty_404());
     }
@@ -412,7 +412,7 @@ fn handle_connection_internal<A>(connection: &db::Connection, connection_new: &A
             "servers" => Ok(add_cors(dns_resolve(format))),
             "stats" => Ok(add_cors(encode_status(get_status(connection_new)?, format, static_dir))),
             "checks" => Ok(add_cors(StationCheck::get_response(connection_new.get_checks(None, param_last_checkuuid, param_seconds, false)?.drain(..).map(|x|x.into()).collect(),format))),
-            "add" => Ok(add_cors(connection.add_station_opt(param_name, param_url, param_homepage, param_favicon, param_country, param_countrycode, param_state, param_language, param_tags).get_response(format))),
+            "add" => Ok(add_cors(StationAddResult::from(connection_new.add_station_opt(param_name, param_url, param_homepage, param_favicon, param_country, param_countrycode, param_state, param_language, param_tags)).get_response(format))),
             _ => Ok(rouille::Response::empty_404()),
         }
     } else if items.len() == 4 {
