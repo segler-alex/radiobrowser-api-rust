@@ -159,5 +159,13 @@ r#"ALTER TABLE `StationHistory` ADD COLUMN IP varchar(50) NOT NULL DEFAULT ''"#)
 r#"ALTER TABLE `Station` ADD COLUMN LastLocalCheckTime DATETIME"#,
 r#"ALTER TABLE `Station` DROP COLUMN LastLocalCheckTime"#);
 
+migrations.add_migration("20200105_150500_Modify_StationHistory_StationUuid_NotNull",
+r#"ALTER TABLE `StationHistory` MODIFY COLUMN StationUuid CHAR(36) NOT NULL"#,
+r#"ALTER TABLE `StationHistory` MODIFY COLUMN StationUuid CHAR(36)"#);
+
+migrations.add_migration("20200105_150501_Modify_StationHistory_ChangeUuid_NotNull",
+r#"ALTER TABLE `StationHistory` MODIFY COLUMN ChangeUuid CHAR(36) NOT NULL"#,
+r#"ALTER TABLE `StationHistory` MODIFY COLUMN ChangeUuid CHAR(36)"#);
+
     Ok(migrations)
 }
