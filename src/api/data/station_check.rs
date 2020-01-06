@@ -26,6 +26,16 @@ pub struct StationCheck {
     pub ok: u8,
     pub timestamp: String,
     pub urlcache: String,
+
+    pub metainfo_overrides_database: Option<u8>,
+    pub public: Option<u8>,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub tags: Option<String>,
+    pub countrycode: Option<String>,
+    pub homepage: Option<String>,
+    pub favicon: Option<String>,
+    pub loadbalancer: Option<String>,
 }
 
 impl StationCheck {
@@ -39,6 +49,16 @@ impl StationCheck {
         ok: u8,
         timestamp: String,
         urlcache: String,
+
+        metainfo_overrides_database: Option<u8>,
+        public: Option<u8>,
+        name: Option<String>,
+        description: Option<String>,
+        tags: Option<String>,
+        countrycode: Option<String>,
+        homepage: Option<String>,
+        favicon: Option<String>,
+        loadbalancer: Option<String>,
     ) -> Self {
         StationCheck {
             stationuuid,
@@ -50,6 +70,16 @@ impl StationCheck {
             ok,
             timestamp,
             urlcache,
+
+            metainfo_overrides_database,
+            public,
+            name,
+            description,
+            tags,
+            countrycode,
+            homepage,
+            favicon,
+            loadbalancer,
         }
     }
 
@@ -104,6 +134,16 @@ impl TryFrom<StationCheckV0> for StationCheck {
             ok: item.ok.parse()?,
             timestamp: item.timestamp,
             urlcache: item.urlcache,
+            
+            metainfo_overrides_database: None,
+            public: None,
+            name: None,
+            description: None,
+            tags: None,
+            countrycode: None,
+            homepage: None,
+            favicon: None,
+            loadbalancer: None,
         })
     }
 }
@@ -120,6 +160,16 @@ impl From<StationCheckItem> for StationCheck {
             if item.check_ok { 1 } else { 0 },
             item.check_time,
             item.url,
+
+            if item.metainfo_overrides_database {Some(1)} else {Some(0)},
+            item.public.map(|x| if x {1} else {0}),
+            item.name,
+            item.description,
+            item.tags,
+            item.countrycode,
+            item.homepage,
+            item.favicon,
+            item.loadbalancer,
         )
     }
 }

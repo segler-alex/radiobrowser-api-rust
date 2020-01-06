@@ -46,7 +46,10 @@ impl MysqlConnection {
         "CheckID, StationUuid, CheckUuid, Source, Codec, Bitrate, Hls, CheckOK,
     CheckTime,
     Date_Format(CheckTime,'%Y-%m-%d %H:%i:%s') AS CheckTimeFormated,
-    UrlCache";
+    UrlCache,
+    MetainfoOverridesDatabase,Public,Name,
+    Description,Tags,CountryCode,
+    Homepage,Favicon,Loadbalancer";
 
     pub fn new(connection_str: &str) -> Result<Self, Box<dyn Error>> {
         let pool = mysql::Pool::new(connection_str)?;
@@ -687,7 +690,18 @@ impl DbConnection for MysqlConnection {
             insert_station_check_params.push(item.hls.into());
             insert_station_check_params.push(item.check_ok.into());
             insert_station_check_params.push(item.url.clone().into());
-            insert_station_check_query.push("(?,UUID(),?,?,?,?,?,NOW(),?)");
+
+            insert_station_check_params.push(item.metainfo_overrides_database.clone().into());
+            insert_station_check_params.push(item.public.clone().into());
+            insert_station_check_params.push(item.name.clone().into());
+            insert_station_check_params.push(item.description.clone().into());
+            insert_station_check_params.push(item.tags.clone().into());
+            insert_station_check_params.push(item.countrycode.clone().into());
+            insert_station_check_params.push(item.homepage.clone().into());
+            insert_station_check_params.push(item.favicon.clone().into());
+            insert_station_check_params.push(item.loadbalancer.clone().into());
+
+            insert_station_check_query.push("(?,UUID(),?,?,?,?,?,NOW(),?,?,?,?,?,?,?,?,?,?)");
         }
 
         {
@@ -699,13 +713,15 @@ impl DbConnection for MysqlConnection {
         let insert_station_check_params_str = insert_station_check_query.join(",");
 
         {
-            let query_insert_station_check = format!("INSERT INTO StationCheck(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) VALUES{}", insert_station_check_params_str);
+            let query_insert_station_check = format!("INSERT INTO StationCheck(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,
+                MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer) VALUES{}", insert_station_check_params_str);
             let mut stmt_insert_station_check = transaction.prepare(query_insert_station_check)?;
             stmt_insert_station_check.execute(&insert_station_check_params)?;
         }
 
         {
-            let query_insert_station_check_history = format!("INSERT INTO StationCheckHistory(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache) VALUES{}", insert_station_check_params_str);
+            let query_insert_station_check_history = format!("INSERT INTO StationCheckHistory(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,
+                MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer) VALUES{}", insert_station_check_params_str);
             let mut stmt_insert_station_check_history = transaction.prepare(query_insert_station_check_history)?;
             stmt_insert_station_check_history.execute(insert_station_check_params)?;
         }
@@ -725,19 +741,60 @@ impl DbConnection for MysqlConnection {
         let mut list_station_uuid_query = vec![];
 
         {
-            let query_update_ok = "UPDATE Station SET LastCheckOkTime=NOW(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache WHERE StationUuid=:stationuuid";
-            let mut stmt_update_ok = transaction.prepare(query_update_ok)?;
-            
             for item in list {
-                let params = params!{
+                let mut params = params!{
                     "codec" => &item.codec,
                     "bitrate" => item.bitrate,
                     "hls" => item.hls,
-                    "urlcache" => &item.url,
                     "stationuuid" => &item.station_uuid,
                 };
-                if item.check_ok {
-                    stmt_update_ok.execute(params)?;
+
+                if item.metainfo_overrides_database {
+                    let mut query = vec![];
+                    let public = item.public.unwrap_or(true);
+                    if public {
+                        if let Some(name) = &item.name {
+                            params.push((String::from("name"),name.into(),));
+                            query.push("Name=:name");
+                        }
+                        if let Some(homepage) = &item.homepage {
+                            params.push((String::from("homepage"),homepage.into(),));
+                            query.push("Homepage=:homepage");
+                        }
+                        if let Some(loadbalancer) = &item.loadbalancer {
+                            params.push((String::from("urlcache"),loadbalancer.into(),));
+                        }
+                        if let Some(countrycode) = &item.countrycode {
+                            params.push((String::from("countrycode"),countrycode.into(),));
+                            query.push("CountryCode=:countrycode");
+                        }
+                        if let Some(tags) = &item.tags {
+                            params.push((String::from("tags"),tags.into(),));
+                            query.push("Tags=:tags");
+                        }
+                        if let Some(favicon) = &item.favicon {
+                            params.push((String::from("favicon"),favicon.into(),));
+                            query.push("Favicon=:favicon");
+                        }
+
+                        if item.check_ok {
+                            let query_update_ok = format!("UPDATE Station SET LastCheckOkTime=NOW(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache{} WHERE StationUuid=:stationuuid", query.join(","));
+                            let mut stmt_update_ok = transaction.prepare(query_update_ok)?;
+                            stmt_update_ok.execute(params)?;
+                        }
+                    }else{
+                        let query_delete = "DELETE Station WHERE StationUuid=:stationuuid";
+                        let mut stmt_delete = transaction.prepare(query_delete)?;
+                        stmt_delete.execute(params)?;
+                    }
+                }else{
+                    if item.check_ok {
+                        params.push((String::from("urlcache"), item.url.clone().into(),));
+
+                        let query_update_ok = "UPDATE Station SET LastCheckOkTime=NOW(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache WHERE StationUuid=:stationuuid";
+                        let mut stmt_update_ok = transaction.prepare(query_update_ok)?;
+                        stmt_update_ok.execute(params)?;
+                    }
                 }
 
                 list_station_uuid.push(&item.station_uuid);

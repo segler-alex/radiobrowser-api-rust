@@ -159,13 +159,55 @@ r#"ALTER TABLE `StationHistory` ADD COLUMN IP varchar(50) NOT NULL DEFAULT ''"#)
 r#"ALTER TABLE `Station` ADD COLUMN LastLocalCheckTime DATETIME"#,
 r#"ALTER TABLE `Station` DROP COLUMN LastLocalCheckTime"#);
 
-migrations.add_migration("20200105_150500_Modify_StationHistory_StationUuid_NotNull",
+    migrations.add_migration("20200105_150500_Modify_StationHistory_StationUuid_NotNull",
 r#"ALTER TABLE `StationHistory` MODIFY COLUMN StationUuid CHAR(36) NOT NULL"#,
 r#"ALTER TABLE `StationHistory` MODIFY COLUMN StationUuid CHAR(36)"#);
 
-migrations.add_migration("20200105_150501_Modify_StationHistory_ChangeUuid_NotNull",
+    migrations.add_migration("20200105_150501_Modify_StationHistory_ChangeUuid_NotNull",
 r#"ALTER TABLE `StationHistory` MODIFY COLUMN ChangeUuid CHAR(36) NOT NULL"#,
 r#"ALTER TABLE `StationHistory` MODIFY COLUMN ChangeUuid CHAR(36)"#);
+
+    migrations.add_migration("20200106_004000_Add_StationCheck_Icy_Info",
+r#"ALTER TABLE `StationCheck` ADD COLUMN MetainfoOverridesDatabase BOOL NOT NULL,
+ADD COLUMN Public BOOL,
+ADD COLUMN Name TEXT,
+ADD COLUMN Description TEXT,
+ADD COLUMN Tags TEXT,
+ADD COLUMN CountryCode TEXT,
+ADD COLUMN Homepage TEXT,
+ADD COLUMN Favicon TEXT,
+ADD COLUMN Loadbalancer TEXT"#,
+r#"ALTER TABLE `StationCheck` DROP COLUMN MetainfoOverridesDatabase,
+DROP COLUMN Public,
+DROP COLUMN Name,
+DROP COLUMN Description,
+DROP COLUMN Tags,
+DROP COLUMN CountryCode,
+DROP COLUMN Homepage,
+DROP COLUMN Favicon,
+DROP COLUMN Loadbalancer
+"#);
+
+migrations.add_migration("20200106_123000_Add_StationCheckHistory_Icy_Info",
+r#"ALTER TABLE `StationCheckHistory` ADD COLUMN MetainfoOverridesDatabase BOOL NOT NULL,
+ADD COLUMN Public BOOL,
+ADD COLUMN Name TEXT,
+ADD COLUMN Description TEXT,
+ADD COLUMN Tags TEXT,
+ADD COLUMN CountryCode TEXT,
+ADD COLUMN Homepage TEXT,
+ADD COLUMN Favicon TEXT,
+ADD COLUMN Loadbalancer TEXT"#,
+r#"ALTER TABLE `StationCheckHistory` DROP COLUMN MetainfoOverridesDatabase,
+DROP COLUMN Public,
+DROP COLUMN Name,
+DROP COLUMN Description,
+DROP COLUMN Tags,
+DROP COLUMN CountryCode,
+DROP COLUMN Homepage,
+DROP COLUMN Favicon,
+DROP COLUMN Loadbalancer
+"#);
 
     Ok(migrations)
 }

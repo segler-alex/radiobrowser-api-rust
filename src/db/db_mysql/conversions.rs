@@ -17,6 +17,15 @@ impl From<Row> for StationCheckItem {
             check_ok:       row.take_opt("CheckOK").unwrap_or(Ok(0)).unwrap_or(0) == 1,
             check_time:     row.take_opt("CheckTimeFormated").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             url:            row.take_opt("UrlCache").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            metainfo_overrides_database: row.take_opt("MetainfoOverridesDatabase").unwrap_or(Ok(0)).unwrap_or(0) == 1,
+            public:         row.take_opt("Public").transpose().unwrap_or(None).map(|x: u32| x == 1),
+            name:           row.take_opt("Name").transpose().unwrap_or(None),
+            description:    row.take_opt("Description").transpose().unwrap_or(None),
+            tags:           row.take_opt("Tags").transpose().unwrap_or(None),
+            countrycode:    row.take_opt("CountryCode").transpose().unwrap_or(None),
+            homepage:       row.take_opt("Homepage").transpose().unwrap_or(None),
+            favicon:        row.take_opt("Favicon").transpose().unwrap_or(None),
+            loadbalancer:   row.take_opt("Loadbalancer").transpose().unwrap_or(None),
         }
     }
 }

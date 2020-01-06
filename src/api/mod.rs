@@ -384,11 +384,8 @@ fn handle_connection_internal<A>(connection_new: &A, request: &rouille::Request,
                     let mut data = Map::new();
                     data.insert(String::from("API_SERVER"), to_json(format!("http://{name}",name = header_host)));
                     data.insert(String::from("SERVER_VERSION"), to_json(format!("{version}",version = pkg_version)));
-                    let rendered = handlebars.render("docs.hbs", &data);
-                    match rendered {
-                        Ok(rendered) => Ok(rouille::Response::html(rendered).with_no_cache()),
-                        _ => Ok(rouille::Response::text("").with_status_code(500)),
-                    }
+                    let rendered = handlebars.render("docs.hbs", &data)?;
+                    Ok(rouille::Response::html(rendered).with_no_cache())
                 }else{
                     error!("unable register template file: docs.hbs");
                     Ok(rouille::Response::text("").with_status_code(500))

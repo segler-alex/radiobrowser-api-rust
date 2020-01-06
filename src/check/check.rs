@@ -1,4 +1,3 @@
-use av_stream_info_rust::StreamInfo;
 use crate::db::models;
 use crate::db::models::StationItem;
 use crate::db::models::StationCheckItemNew;
@@ -22,7 +21,6 @@ use colored::*;
 
 #[derive(Clone,Debug)]
 pub struct StationOldNew {
-    pub check: Option<StreamInfo>,
     pub old: StationItem,
     pub new: StationCheckItemNew,
 }
@@ -144,10 +142,10 @@ fn dbcheck_internal(
                 });
             }
 
-            let items = av_stream_info_rust::check(&station.url, timeout, max_depth, retries);
-            for item in items.iter() {
+            let mut items = av_stream_info_rust::check(&station.url, timeout, max_depth, retries);
+            for item in items.drain(..) {
                 match item {
-                    &Ok(ref item) => {
+                    Ok(item) => {
                         let public = item.Public.unwrap_or(true);
                         if !public && item.OverrideIndexMetaData {
                             // ignore non public streams
@@ -166,9 +164,18 @@ fn dbcheck_internal(
                                 hls: item.Hls,
                                 check_ok: true,
                                 url: item.Url.clone(),
+
+                                metainfo_overrides_database: item.OverrideIndexMetaData,
+                                public: item.Public,
+                                name: item.Name,
+                                description: item.Description,
+                                tags: item.Genre,
+                                countrycode: item.CountryCode,
+                                homepage: item.Homepage,
+                                favicon: item.LogoUrl,
+                                loadbalancer: item.LoadBalancerUrl,
                             };
                             let send_result = result_sender.send(StationOldNew {
-                                check: Some(item.clone()),
                                 old: station,
                                 new: new_item_ok,
                             });
@@ -178,7 +185,7 @@ fn dbcheck_internal(
                             return;
                         }
                     }
-                    &Err(_) => {}
+                    Err(_) => {}
                 }
             }
             let new_item_broken: StationCheckItemNew = StationCheckItemNew {
@@ -189,9 +196,18 @@ fn dbcheck_internal(
                 hls: false,
                 check_ok: false,
                 url: "".to_string(),
+
+                metainfo_overrides_database: false,
+                public: None,
+                name: None,
+                description: None,
+                tags: None,
+                countrycode: None,
+                homepage: None,
+                favicon: None,
+                loadbalancer: None,
             };
             let send_result = result_sender.send(StationOldNew {
-                check: None,
                 old: station,
                 new: new_item_broken,
             });

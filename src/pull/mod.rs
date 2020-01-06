@@ -163,6 +163,16 @@ impl From<StationCheck> for StationCheckItemNew {
             hls: item.hls == 1,
             source: item.source,
             url: item.urlcache,
+
+            metainfo_overrides_database: item.metainfo_overrides_database.unwrap_or_default() == 1,
+            public: item.public.map(|x| x == 1),
+            name: item.name,
+            description: item.description,
+            tags: item.tags,
+            countrycode: item.countrycode,
+            homepage: item.homepage,
+            favicon: item.favicon,
+            loadbalancer: item.loadbalancer,
         }
     }
 }
