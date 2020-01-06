@@ -1,5 +1,7 @@
-use crate::check::models::StationItem;
-use crate::check::models::StationOldNew;
+use crate::db::models;
+use crate::db::models::StationItem;
+use crate::db::models::StationCheckItemNew;
+
 use crate::thread;
 use threadpool::ThreadPool;
 
@@ -12,13 +14,16 @@ use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
 
-use crate::check::models;
-use crate::check::models::StationCheckItemNew;
-
-use crate::db;
 use crate::db::DbConnection;
+use crate::db::connect;
 
 use colored::*;
+
+#[derive(Clone,Debug)]
+pub struct StationOldNew {
+    pub old: StationItem,
+    pub new: StationCheckItemNew,
+}
 
 fn check_for_change(
     old: &models::StationItem,
@@ -28,7 +33,7 @@ fn check_for_change(
     let mut retval = false;
     let mut result = String::from("");
 
-    if old.check_ok != new.check_ok {
+    if old.lastcheckok != new.check_ok {
         if new.check_ok {
             result.push('+');
             result.red();
@@ -65,7 +70,7 @@ fn check_for_change(
         result.push_str(&format!(" favicon: {} -> {}", old.favicon, new_favicon));
         retval = true;
     }
-    if old.check_ok != new.check_ok {
+    if old.lastcheckok != new.check_ok {
         if new.check_ok {
             return (retval, result.green().to_string());
         } else {
@@ -77,25 +82,24 @@ fn check_for_change(
 }
 
 fn update_station(
-    conn: &mut db::MysqlConnection,
+    conn: &Box<dyn DbConnection>,
     old: &models::StationItem,
-    new_item: &StationCheckItemNew,
+    new_item: StationCheckItemNew,
     new_favicon: &str,
-) {
-    let result = conn.insert_checks(vec!(&new_item));
-    if let Err(err) = result {
-        debug!("Insert check error {}", err);
-    }
-    let result = conn.update_stations(vec!(&new_item));
-    if let Err(err) = result {
-        debug!("Update station error {}", err);
-    }
+) -> Result<(), Box<dyn std::error::Error>> {
+    // output debug
     let (changed, change_str) = check_for_change(&old, &new_item, new_favicon);
     if changed {
         debug!("{}", change_str.red());
     } else {
         debug!("{}", change_str.dimmed());
     }
+
+    // do real insert
+    let list_new = vec!(new_item);
+    conn.insert_checks(&list_new)?;
+    conn.update_station_with_check_data(&list_new, true)?;
+    Ok(())
 }
 
 fn dbcheck_internal(
@@ -138,44 +142,70 @@ fn dbcheck_internal(
                 });
             }
 
-            let items = av_stream_info_rust::check(&station.url, timeout, max_depth, retries);
-            for item in items.iter() {
+            let mut items = av_stream_info_rust::check(&station.url, timeout, max_depth, retries);
+            for item in items.drain(..) {
                 match item {
-                    &Ok(ref item) => {
-                        let mut codec = item.CodecAudio.clone();
-                        if let Some(ref video) = item.CodecVideo {
-                            codec.push_str(",");
-                            codec.push_str(&video);
+                    Ok(item) => {
+                        let public = item.Public.unwrap_or(true);
+                        if !public && item.OverrideIndexMetaData {
+                            // ignore non public streams
+                            debug!("Ignore private stream: {} - {}", station.stationuuid, item.Url);
+                        }else{
+                            let mut codec = item.CodecAudio.clone();
+                            if let Some(ref video) = item.CodecVideo {
+                                codec.push_str(",");
+                                codec.push_str(&video);
+                            }
+                            let new_item_ok = StationCheckItemNew {
+                                station_uuid: station.stationuuid.clone(),
+                                source: source.clone(),
+                                codec: codec,
+                                bitrate: item.Bitrate as u32,
+                                hls: item.Hls,
+                                check_ok: true,
+                                url: item.Url.clone(),
+
+                                metainfo_overrides_database: item.OverrideIndexMetaData,
+                                public: item.Public,
+                                name: item.Name,
+                                description: item.Description,
+                                tags: item.Genre,
+                                countrycode: item.CountryCode,
+                                homepage: item.Homepage,
+                                favicon: item.LogoUrl,
+                                loadbalancer: item.LoadBalancerUrl,
+                            };
+                            let send_result = result_sender.send(StationOldNew {
+                                old: station,
+                                new: new_item_ok,
+                            });
+                            if let Err(send_result) = send_result {
+                                error!("Unable to send positive check result: {}", send_result);
+                            }
+                            return;
                         }
-                        let new_item_ok = StationCheckItemNew {
-                            station_uuid: station.uuid.clone(),
-                            source: source.clone(),
-                            codec: codec,
-                            bitrate: item.Bitrate as u32,
-                            hls: item.Hls,
-                            check_ok: true,
-                            url: item.Url.clone(),
-                        };
-                        let send_result = result_sender.send(StationOldNew {
-                            old: station,
-                            new: new_item_ok,
-                        });
-                        if let Err(send_result) = send_result {
-                            error!("Unable to send positive check result: {}", send_result);
-                        }
-                        return;
                     }
-                    &Err(_) => {}
+                    Err(_) => {}
                 }
             }
             let new_item_broken: StationCheckItemNew = StationCheckItemNew {
-                station_uuid: station.uuid.clone(),
+                station_uuid: station.stationuuid.clone(),
                 source: source.clone(),
                 codec: "".to_string(),
                 bitrate: 0,
                 hls: false,
                 check_ok: false,
                 url: "".to_string(),
+
+                metainfo_overrides_database: false,
+                public: None,
+                name: None,
+                description: None,
+                tags: None,
+                countrycode: None,
+                homepage: None,
+                favicon: None,
+                loadbalancer: None,
             };
             let send_result = result_sender.send(StationOldNew {
                 old: station,
@@ -190,7 +220,7 @@ fn dbcheck_internal(
 }
 
 pub fn dbcheck(
-    connection_str: &str,
+    connection_str: String,
     source: &str,
     concurrency: usize,
     stations_count: u32,
@@ -199,35 +229,26 @@ pub fn dbcheck(
     max_depth: u8,
     retries: u8,
     favicon_checks: bool,
-) -> u32 {
-    let conn = db::MysqlConnection::new(connection_str);
-    let mut checked_count = 0;
-    match conn {
-        Ok(mut conn) => {
-            let stations = conn.get_stations_to_check(24, stations_count);
-            let useragent = String::from(useragent);
+) -> Result<u32, Box<dyn std::error::Error>> {
+    let mut conn = connect(connection_str)?;
+    let stations = conn.get_stations_to_check(24, stations_count)?;
+    let useragent = String::from(useragent);
 
-            let (result_sender, result_receiver): (Sender<StationOldNew>, Receiver<StationOldNew>) =
-                channel();
-            let pool = ThreadPool::new(concurrency);
-            checked_count = dbcheck_internal(&pool, stations, source, timeout, max_depth, retries, result_sender);
-            pool.join();
+    let (result_sender, result_receiver): (Sender<StationOldNew>, Receiver<StationOldNew>) =
+        channel();
+    let pool = ThreadPool::new(concurrency);
+    let checked_count = dbcheck_internal(&pool, stations, source, timeout, max_depth, retries, result_sender);
+    pool.join();
 
-            for oldnew in result_receiver {
-                let station = oldnew.old;
-                let new_item = oldnew.new;
-                if favicon_checks {
-                    let new_favicon =
-                        favicon::check(&station.homepage, &station.favicon, &useragent, timeout);
-                    update_station(&mut conn, &station, &new_item, &new_favicon);
-                } else {
-                    update_station(&mut conn, &station, &new_item, &station.favicon);
-                }
-            }
-        }
-        Err(e) => {
-            debug!("Database connection error {}", e);
+    for oldnew in result_receiver {
+        let station = oldnew.old;
+        let new_item = oldnew.new;
+        if favicon_checks {
+            let new_favicon = favicon::check(&station.homepage, &station.favicon, &useragent, timeout)?;
+            update_station(&mut conn, &station, new_item, &new_favicon)?;
+        } else {
+            update_station(&mut conn, &station, new_item, &station.favicon)?;
         }
     }
-    checked_count
+    Ok(checked_count)
 }

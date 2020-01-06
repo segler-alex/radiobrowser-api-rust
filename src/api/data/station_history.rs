@@ -1,6 +1,7 @@
+use crate::db::models::StationHistoryItem;
+
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct StationHistoryV0 {
-    id: String,
     changeuuid: String,
     stationuuid: String,
     name: String,
@@ -14,12 +15,10 @@ pub struct StationHistoryV0 {
     language: String,
     votes: String,
     lastchangetime: String,
-    ip: String,
 }
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct StationHistoryCurrent {
-    id: i32,
     pub changeuuid: String,
     pub stationuuid: String,
     pub name: String,
@@ -33,13 +32,11 @@ pub struct StationHistoryCurrent {
     pub language: String,
     pub votes: i32,
     pub lastchangetime: String,
-    pub ip: String,
 }
 
 impl From<StationHistoryV0> for StationHistoryCurrent {
     fn from(item: StationHistoryV0) -> Self {
         StationHistoryCurrent {
-            id: item.id.parse().unwrap(),
             changeuuid: item.changeuuid,
             stationuuid: item.stationuuid,
             name: item.name,
@@ -53,7 +50,6 @@ impl From<StationHistoryV0> for StationHistoryCurrent {
             language: item.language,
             votes: item.votes.parse().unwrap(),
             lastchangetime: item.lastchangetime,
-            ip: item.ip,
         }
     }
 }
@@ -61,7 +57,6 @@ impl From<StationHistoryV0> for StationHistoryCurrent {
 impl From<&StationHistoryV0> for StationHistoryCurrent {
     fn from(item: &StationHistoryV0) -> Self {
         StationHistoryCurrent {
-            id: item.id.parse().unwrap(),
             changeuuid: item.changeuuid.clone(),
             stationuuid: item.stationuuid.clone(),
             name: item.name.clone(),
@@ -75,54 +70,16 @@ impl From<&StationHistoryV0> for StationHistoryCurrent {
             language: item.language.clone(),
             votes: item.votes.parse().unwrap(),
             lastchangetime: item.lastchangetime.clone(),
-            ip: item.ip.clone(),
         }
     }
 }
 
 impl StationHistoryCurrent {
-    pub fn new(
-        id: i32,
-        changeuuid: String,
-        stationuuid: String,
-        name: String,
-        url: String,
-        homepage: String,
-        favicon: String,
-        tags: String,
-        country: String,
-        countrycode: String,
-        state: String,
-        language: String,
-        votes: i32,
-        lastchangetime: String,
-        ip: String,
-    ) -> Self {
-        StationHistoryCurrent {
-            id,
-            changeuuid,
-            stationuuid,
-            name,
-            url,
-            homepage,
-            favicon,
-            tags,
-            country,
-            countrycode,
-            state,
-            language,
-            votes,
-            lastchangetime,
-            ip,
-        }
-    }
     pub fn serialize_changes_list(entries: Vec<StationHistoryCurrent>) -> std::io::Result<String> {
         let mut xml = xml_writer::XmlWriter::new(Vec::new());
         xml.begin_elem("result")?;
         for entry in entries {
             xml.begin_elem("station")?;
-            let station_id_str = format!("{}", entry.id);
-            xml.attr_esc("id", &station_id_str)?;
             xml.attr_esc("changeuuid", &entry.changeuuid)?;
             xml.attr_esc("stationuuid", &entry.stationuuid)?;
             xml.attr_esc("name", &entry.name)?;
@@ -131,18 +88,38 @@ impl StationHistoryCurrent {
             xml.attr_esc("favicon", &entry.favicon)?;
             xml.attr_esc("tags", &entry.tags)?;
             xml.attr_esc("country", &entry.country)?;
+            xml.attr_esc("countrycode", &entry.countrycode)?;
             xml.attr_esc("state", &entry.state)?;
             xml.attr_esc("language", &entry.language)?;
             let station_votes_str = format!("{}", entry.votes);
             xml.attr_esc("votes", &station_votes_str)?;
             let station_lastchangetime_str = format!("{}", entry.lastchangetime);
             xml.attr_esc("lastchangetime", &station_lastchangetime_str)?;
-            xml.attr_esc("ip", &entry.ip)?;
             xml.end_elem()?;
         }
         xml.end_elem()?;
         xml.close()?;
         xml.flush()?;
         Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
+    }
+}
+
+impl From<StationHistoryItem> for StationHistoryCurrent {
+    fn from(item: StationHistoryItem) -> Self {
+        StationHistoryCurrent {
+            changeuuid: item.changeuuid,
+            stationuuid: item.stationuuid,
+            name: item.name,
+            url: item.url,
+            homepage: item.homepage,
+            favicon: item.favicon,
+            tags: item.tags,
+            country: item.country,
+            countrycode: item.countrycode,
+            state: item.state,
+            language: item.language,
+            votes: item.votes,
+            lastchangetime: item.lastchangetime,
+        }
     }
 }

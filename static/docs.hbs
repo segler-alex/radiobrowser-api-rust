@@ -48,7 +48,6 @@
             <li><a class="dropdown-item" href="#Stations_by_votes">Stations by votes</a></li>
             <li><a class="dropdown-item" href="#Stations_by_recent_click">Stations by recent click</a></li>
             <li><a class="dropdown-item" href="#Stations_by_recently_changed">Stations by recently changed</a></li>
-            <li><a class="dropdown-item" href="#Stations_that_got_deleted">Deleted stations</a></li>
             <li><a class="dropdown-item" href="#Old_versions_of_stations">Old versions of stations</a></li>
             <li><a class="dropdown-item" href="#Stations_that_need_improvements">Stations that need improvements</a></li>
             <li><a class="dropdown-item" href="#Broken_stations">Broken stations</a></li>
@@ -576,7 +575,6 @@
       <div class="h5">Syntax:</div>
       <div class="syntax">
         <ul class="list-unstyled ml-4">
-          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/byid/<span class="searchTerm">{searchterm}</span></li>
           <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/byuuid/<span class="searchTerm">{searchterm}</span></li>
           <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/byname/<span class="searchTerm">{searchterm}</span></li>
           <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bynameexact/<span class="searchTerm">{searchterm}</span></li>
@@ -783,15 +781,45 @@
         <pre class="mt-4">
           [
           {
-            "stationuuid":"96156a3e-0601-11e8-ae97-52543be04c81",
-            "checkuuid":"26c1d404-14f4-11e8-ab0e-298319f1705b",
+            "stationuuid":"960e57c5-0601-11e8-ae97-52543be04c81",
+            "checkuuid":"18be4561-309a-11ea-b37a-0242ac120002",
             "source":"www.radio-browser.info",
             "codec":"MP3",
-            "bitrate":"128",
-            "hls":"0",
-            "ok":"1",
-            "timestamp":"2018-02-18 22:39:08"
+            "bitrate":128,
+            "hls":0,
+            "ok":1,
+            "timestamp":"2020-01-06 15:34:58",
+            "urlcache":"http://stream.srg-ssr.ch/m/drs1/mp3_128",
+            "metainfo_overrides_database":0,
+            "public":null,
+            "name":null,
+            "description":null,
+            "tags":null,
+            "countrycode":null,
+            "homepage":null,
+            "favicon":null,
+            "loadbalancer":null
           },
+          {
+            "stationuuid":"960e57c5-0601-11e8-ae97-52543be04c81",
+            "checkuuid":"5ac949c3-309a-11ea-b37a-0242ac120002",
+            "source":"de1.api.radio-browser.info",
+            "codec":"MP3",
+            "bitrate":128,
+            "hls":0,
+            "ok":1,
+            "timestamp":"2020-01-06 15:36:49",
+            "urlcache":"http://stream.srg-ssr.ch/m/drs1/mp3_128",
+            "metainfo_overrides_database":0,
+            "public":0,
+            "name":"SRF 1",
+            "description":"Radio SRF 1 - Das Schweizer Radio - 0848 80 80 80 - srf1.ch",
+            "tags":"Information",
+            "countrycode":null,
+            "homepage":"http://srf1.ch",
+            "favicon":null,
+            "loadbalancer":null
+          }
           ..
           ]
           </pre>
@@ -800,17 +828,46 @@
       <div class="h5 mt-2">Result XML:</div>
       <div class="well well-sm bg-light border border-secondary rounded">
         <pre class="mt-4">
-          &lt;result&gt;
-            &lt;check
-            stationuuid=&quot;96156a3e-0601-11e8-ae97-52543be04c81&quot;
-            checkuuid=&quot;26c1d404-14f4-11e8-ab0e-298319f1705b&quot;
+          &lt;check
+            stationuuid=&quot;960e57c5-0601-11e8-ae97-52543be04c81&quot;
+            checkuuid=&quot;18be4561-309a-11ea-b37a-0242ac120002&quot;
             source=&quot;www.radio-browser.info&quot;
             codec=&quot;MP3&quot;
             bitrate=&quot;128&quot;
             hls=&quot;0&quot;
             ok=&quot;1&quot;
-            timestamp=&quot;2018-02-18 22:39:08&quot;/&gt;
-          &lt;/result&gt;
+            urlcache=&quot;http://stream.srg-ssr.ch/m/drs1/mp3_128&quot;
+            timestamp=&quot;2020-01-06 15:34:58&quot;
+            metainfo_overrides_database=&quot;0&quot;
+            public=&quot;0&quot;
+            name=&quot;&quot;
+            description=&quot;&quot;
+            tags=&quot;&quot;
+            homepage=&quot;&quot;
+            loadbalancer=&quot;&quot;
+            favicon=&quot;&quot;
+            countrycode=&quot;&quot;
+          /&gt;
+          &lt;check
+            stationuuid=&quot;960e57c5-0601-11e8-ae97-52543be04c81&quot;
+            checkuuid=&quot;5ac949c3-309a-11ea-b37a-0242ac120002&quot;
+            source=&quot;de1.api.radio-browser.info&quot;
+            codec=&quot;MP3&quot;
+            bitrate=&quot;128&quot;
+            hls=&quot;0&quot;
+            ok=&quot;1&quot;
+            urlcache=&quot;http://stream.srg-ssr.ch/m/drs1/mp3_128&quot;
+            timestamp=&quot;2020-01-06 15:36:49&quot;
+            metainfo_overrides_database=&quot;0&quot;
+            public=&quot;0&quot;
+            name=&quot;SRF 1&quot;
+            description=&quot;Radio SRF 1 - Das Schweizer Radio - 0848 80 80 80 - srf1.ch&quot;
+            tags=&quot;Information&quot;
+            homepage=&quot;http://srf1.ch&quot;
+            loadbalancer=&quot;&quot;
+            favicon=&quot;&quot;
+            countrycode=&quot;&quot;
+          /&gt;
         </pre>
       </div>
 
@@ -1118,27 +1175,6 @@
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/xml/stations/lastchange" target="_blank">{{ API_SERVER }}/xml/stations/lastchange</a></li>
         <li><a href="{{ API_SERVER }}/json/stations/lastchange/5" target="_blank">{{ API_SERVER }}/json/stations/lastchange/5</a></li>
-      </ul>
-    </div>
-
-    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Stations_that_got_deleted">
-      <h1 class="display-4">Deleted stations</h1>
-      <p class="lead">A list of stations that were deleted in the last 30 days, and you can also retrieve a single station by its ID. They are not visible through any other API calls. If you want to undelete a station, call <a class="font-weight-bold" href="#UnDelete_a_station">Undelete a station</a>,
-        supported output formats: JSON, XML</p>
-      <hr class="my-4">
-      <div class="h5">Syntax:</div>
-      <div class="syntax">
-        <ul class="list-unstyled ml-4">
-          <li>{{ API_SERVER }}/json/stations/deleted</li>
-          <li>{{ API_SERVER }}/json/stations/deleted/stationuuid</li>
-          <li>{{ API_SERVER }}/xml/stations/deleted</li>
-          <li>{{ API_SERVER }}/xml/stations/deleted/stationuuid</li>
-        </ul>
-      </div>
-      <div class="h5">Example:</div>
-      <ul class="list-unstyled ml-4">
-        <li><a href="{{ API_SERVER }}/xml/stations/deleted" target="_blank">{{ API_SERVER }}/xml/stations/deleted</a></li>
-        <li><a href="{{ API_SERVER }}/json/stations/deleted/123" target="_blank">{{ API_SERVER }}/json/stations/deleted/123</a></li>
       </ul>
     </div>
 

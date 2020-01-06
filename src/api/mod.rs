@@ -4,16 +4,11 @@ extern crate serde;
 extern crate serde_json;
 extern crate dns_lookup;
 
-use crate::db::MysqlConnection;
-use crate::db::DbConnection;
-
-pub mod db;
 pub mod data;
-mod pull_servers;
-mod api_error;
-mod simple_migrate;
 mod parameters;
 mod prometheus_exporter;
+
+use std::error::Error;
 
 use self::parameters::RequestParameters;
 
@@ -21,11 +16,13 @@ use crate::api::data::ResultMessage;
 use crate::api::data::StationCachedInfo;
 use crate::api::data::StationHistoryCurrent;
 use crate::api::data::Station;
-use crate::api::data::Result1n;
-use crate::api::data::ExtraInfo;
-use crate::api::data::State;
 use crate::api::data::StationCheck;
+use crate::api::data::StationAddResult;
 use crate::api::data::Status;
+use crate::db::DbConnection;
+use crate::db::models::ExtraInfo;
+use crate::db::models::State;
+use crate::db::models::StationItem;
 use crate::api::rouille::Response;
 use crate::api::rouille::Request;
 use std;
@@ -51,7 +48,7 @@ fn add_cors(result : rouille::Response) -> rouille::Response {
         .with_unique_header("Access-Control-Allow-Methods", "GET,POST")
 }
 
-fn get_only_first(mut stations: Vec<Station>) -> Option<Station>{
+fn get_only_first_item(mut stations: Vec<StationItem>) -> Option<StationItem>{
     if stations.len() == 1 {
         Some(stations.pop().unwrap())
     } else {
@@ -59,91 +56,74 @@ fn get_only_first(mut stations: Vec<Station>) -> Option<Station>{
     }
 }
 
-fn dns_resolve(format : &str) -> rouille::Response {
+fn dns_resolve(format : &str) -> Result<rouille::Response, Box<dyn Error>> {
     let hostname = "all.api.radio-browser.info";
-    let ips: Vec<std::net::IpAddr> = lookup_host(hostname).unwrap();
+    let ips: Vec<std::net::IpAddr> = lookup_host(hostname)?;
     let mut list: Vec<ServerEntry> = Vec::new();
     for ip in ips {
         let ip_str : String = format!("{}",ip);
-        let name : String = lookup_addr(&ip).unwrap();
+        let name : String = lookup_addr(&ip)?;
         let item = ServerEntry{ip: ip_str, name};
         list.push(item);
     }
 
     match format {
         "json" => {
-            let j = serde_json::to_string(&list).unwrap();
-            rouille::Response::text(j)
+            let j = serde_json::to_string(&list)?;
+            Ok(rouille::Response::text(j)
                 .with_no_cache()
-                .with_unique_header("Content-Type","application/json")
+                .with_unique_header("Content-Type","application/json"))
         },
-        _ => rouille::Response::empty_404()
+        _ => Ok(rouille::Response::empty_404())
     }
 }
 
-fn encode_result1n(type_str: &str, list : Vec<Result1n>, format : &str) -> rouille::Response {
-    match format {
+fn encode_changes(list : Vec<StationHistoryCurrent>, format : &str) -> Result<rouille::Response, Box<dyn Error>> {
+    Ok(match format {
         "json" => {
-            let j = serde_json::to_string(&list).unwrap();
+            let j = serde_json::to_string(&list)?;
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
         },
         "xml" => {
-            let j = Result1n::serialize_result1n_list(type_str, list).unwrap();
+            let j = StationHistoryCurrent::serialize_changes_list(list)?;
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
         },
         _ => rouille::Response::empty_406()
-    }
+    })
 }
 
-fn encode_changes(list : Vec<StationHistoryCurrent>, format : &str) -> rouille::Response {
-    match format {
-        "json" => {
-            let j = serde_json::to_string(&list).unwrap();
-            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
-        },
-        "xml" => {
-            let j = StationHistoryCurrent::serialize_changes_list(list).unwrap();
-            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
-        },
-        _ => rouille::Response::empty_406()
-    }
-}
-
-fn encode_message(status: Result<String,String>, format : &str) -> rouille::Response {
-    match format {
+fn encode_message(status: Result<String, Box<dyn Error>>, format : &str) -> Result<rouille::Response, Box<dyn Error>> {
+    Ok(match format {
         "json" => {
             match status {
-                Ok(message) => rouille::Response::text(serde_json::to_string(&ResultMessage::new(true,message)).unwrap()),
-                Err(message) => rouille::Response::text(serde_json::to_string(&ResultMessage::new(false,message)).unwrap()),
+                Ok(message) => rouille::Response::text(serde_json::to_string(&ResultMessage::new(true,message))?),
+                Err(err) => rouille::Response::text(serde_json::to_string(&ResultMessage::new(false,err.to_string()))?),
             }.with_no_cache().with_unique_header("Content-Type","application/json")
         },
         "xml" => {
             match status {
-                Ok(message) => rouille::Response::text(ResultMessage::new(true,message).serialize_xml().unwrap()),
-                Err(message) => rouille::Response::text(ResultMessage::new(false,message).serialize_xml().unwrap()),
+                Ok(message) => rouille::Response::text(ResultMessage::new(true,message).serialize_xml()?),
+                Err(err) => rouille::Response::text(ResultMessage::new(false,err.to_string()).serialize_xml()?),
             }.with_no_cache().with_unique_header("Content-Type","text/xml")
         },
         _ => rouille::Response::empty_406()
-    }
+    })
 }
 
-fn encode_station_url(connection: &db::Connection, station: Option<Station>, ip: &str, format : &str) -> rouille::Response {
-    match station {
+fn encode_station_url<A>(connection_new: &A, station: Option<StationItem>, ip: &str, format : &str) -> Result<rouille::Response, Box<dyn Error>> where A: DbConnection {
+    Ok(match station {
         Some(station) => {
-            let increase_result = connection.increase_clicks(&ip, &station);
-            if let Err(increase_result) = increase_result {
-                error!("station clicks could not be increased: {}", increase_result);
-            }
-
+            let _ = connection_new.increase_clicks(&ip, &station);
+            let station = station.into();
             match format {
                 "json" => {
                     let s = Station::extract_cached_info(station, "retrieved station url");
-                    let j = serde_json::to_string(&s).unwrap();
+                    let j = serde_json::to_string(&s)?;
                     rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
                 },
                 "xml" => {
                     let s = Station::extract_cached_info(station, "retrieved station url");
-                    let j = StationCachedInfo::serialize_cached_info(s).unwrap();
+                    let j = StationCachedInfo::serialize_cached_info(s)?;
                     rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
                 },
                 "m3u" => {
@@ -160,35 +140,35 @@ fn encode_station_url(connection: &db::Connection, station: Option<Station>, ip:
             }
         },
         _ => rouille::Response::empty_404()
-    }
+    })
 }
 
-fn encode_states(list : Vec<State>, format : &str) -> rouille::Response {
-    match format {
+fn encode_states(list : Vec<State>, format : &str) -> Result<rouille::Response, Box<dyn Error>> {
+    Ok(match format {
         "json" => {
-            let j = serde_json::to_string(&list).unwrap();
+            let j = serde_json::to_string(&list)?;
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
         },
         "xml" => {
-            let j = State::serialize_state_list(list).unwrap();
+            let j = State::serialize_state_list(list)?;
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
         },
         _ => rouille::Response::empty_406()
-    }
+    })
 }
 
-fn encode_extra(list : Vec<ExtraInfo>, format : &str, tag_name: &str) -> rouille::Response {
-    match format {
+fn encode_extra(list : Vec<ExtraInfo>, format : &str, tag_name: &str) -> Result<rouille::Response, Box<dyn Error>> {
+    Ok(match format {
         "json" => {
-            let j = serde_json::to_string(&list).unwrap();
+            let j = serde_json::to_string(&list)?;
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
         },
         "xml" => {
-            let j = ExtraInfo::serialize_extra_list(list, tag_name).unwrap();
+            let j = ExtraInfo::serialize_extra_list(list, tag_name)?;
             rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
         },
         _ => rouille::Response::empty_406()
-    }
+    })
 }
 
 fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Response {
@@ -227,7 +207,7 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Re
     }
 }
 
-pub fn run(connection: db::Connection, connection_new: MysqlConnection, host : String, port : i32, threads : usize, server_name: &str, static_dir: &str, log_dir: &str, mirrors: Vec<String>, mirror_pull_interval: u64, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) {
+pub fn start<A: 'static +  std::clone::Clone>(connection_new: A, host : String, port : i32, threads : usize, server_name: &str, static_dir: &str, log_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) where A: DbConnection, A: std::marker::Send, A: std::marker::Sync {
     let listen_str = format!("{}:{}", host, port);
     info!("Listen on {} with {} threads", listen_str, threads);
     let x : Option<usize> = Some(threads);
@@ -235,15 +215,12 @@ pub fn run(connection: db::Connection, connection_new: MysqlConnection, host : S
     let static_dir = static_dir.to_string();
     let log_dir = log_dir.to_string();
     let prometheus_exporter_prefix = prometheus_exporter_prefix.to_string();
-    if mirrors.len() > 0{
-        pull_servers::run(connection.clone(), mirrors, mirror_pull_interval);
-    }
     rouille::start_server_with_pool(listen_str, x, move |request| {
-        handle_connection(&connection, &connection_new, request, &y, &static_dir, &log_dir, prometheus_exporter_enabled, &prometheus_exporter_prefix)
+        handle_connection(&connection_new, request, &y, &static_dir, &log_dir, prometheus_exporter_enabled, &prometheus_exporter_prefix)
     });
 }
 
-fn get_status(connection_new: &MysqlConnection) -> Result<Status, Box<dyn std::error::Error>> {
+fn get_status<A>(connection_new: &A) -> Result<Status, Box<dyn std::error::Error>> where A: DbConnection {
     let version = env!("CARGO_PKG_VERSION");
     Ok(
         Status::new(
@@ -303,7 +280,7 @@ fn log_to_file(file_name: &str, line: &str) {
     }
 }
 
-fn handle_connection(connection: &db::Connection, connection_new: &MysqlConnection, request: &rouille::Request, server_name: &str, static_dir: &str, log_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) -> rouille::Response {
+fn handle_connection<A>(connection_new: &A, request: &rouille::Request, server_name: &str, static_dir: &str, log_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) -> rouille::Response where A: DbConnection {
     let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
     let referer: String = request.header("Referer").unwrap_or(&"-".to_string()).to_string();
     let user_agent: String = request.header("User-agent").unwrap_or(&"-".to_string()).to_string();
@@ -322,7 +299,7 @@ fn handle_connection(connection: &db::Connection, connection_new: &MysqlConnecti
         log_to_file(&log_file, &line);
     };
     rouille::log_custom(request, log_ok, log_err, || {
-        let result = handle_connection_internal(connection, connection_new, request, server_name, static_dir, prometheus_exporter_enabled, prometheus_exporter_prefix);
+        let result = handle_connection_internal(connection_new, request, server_name, static_dir, prometheus_exporter_enabled, prometheus_exporter_prefix);
         match result {
             Ok(response) => response,
             Err(err) => rouille::Response::text(err.to_string()).with_status_code(500),
@@ -330,7 +307,7 @@ fn handle_connection(connection: &db::Connection, connection_new: &MysqlConnecti
     })
 }
 
-fn handle_connection_internal(connection: &db::Connection, connection_new: &MysqlConnection, request: &rouille::Request, server_name: &str, static_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) -> Result<rouille::Response, Box<dyn std::error::Error>> {
+fn handle_connection_internal<A>(connection_new: &A, request: &rouille::Request, server_name: &str, static_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
     if request.method() != "POST" && request.method() != "GET" {
         return Ok(rouille::Response::empty_404());
     }
@@ -391,7 +368,7 @@ fn handle_connection_internal(connection: &db::Connection, connection_new: &Mysq
         match file_name {
             "metrics" => {
                 if prometheus_exporter_enabled {
-                    Ok(prometheus_exporter::render(&connection_new, prometheus_exporter_prefix)?)
+                    Ok(prometheus_exporter::render(connection_new, prometheus_exporter_prefix)?)
                 }else{
                     Ok(rouille::Response::text("Exporter not enabled!").with_status_code(423))
                 }
@@ -407,11 +384,8 @@ fn handle_connection_internal(connection: &db::Connection, connection_new: &Mysq
                     let mut data = Map::new();
                     data.insert(String::from("API_SERVER"), to_json(format!("http://{name}",name = header_host)));
                     data.insert(String::from("SERVER_VERSION"), to_json(format!("{version}",version = pkg_version)));
-                    let rendered = handlebars.render("docs.hbs", &data);
-                    match rendered {
-                        Ok(rendered) => Ok(rouille::Response::html(rendered).with_no_cache()),
-                        _ => Ok(rouille::Response::text("").with_status_code(500)),
-                    }
+                    let rendered = handlebars.render("docs.hbs", &data)?;
+                    Ok(rouille::Response::html(rendered).with_no_cache())
                 }else{
                     error!("unable register template file: docs.hbs");
                     Ok(rouille::Response::text("").with_status_code(500))
@@ -425,17 +399,17 @@ fn handle_connection_internal(connection: &db::Connection, connection_new: &Mysq
         let filter : Option<String> = None;
 
         match command {
-            "languages" => Ok(add_cors(encode_extra(connection.get_extra("LanguageCache", "LanguageName", filter, param_order, param_reverse, param_hidebroken), format, "language"))),
-            "countries" => Ok(add_cors(encode_result1n(command, connection.get_1_n("Country", filter, param_order, param_reverse, param_hidebroken), format))),
-            "countrycodes" => Ok(add_cors(encode_result1n(command, connection.get_1_n("CountryCode", filter, param_order, param_reverse, param_hidebroken), format))),
-            "states" => Ok(add_cors(encode_states(connection.get_states(None, filter, param_order, param_reverse, param_hidebroken), format))),
-            "codecs" => Ok(add_cors(encode_result1n(command, connection.get_1_n("Codec", filter, param_order, param_reverse, param_hidebroken), format))),
-            "tags" => Ok(add_cors(encode_extra(connection.get_extra("TagCache", "TagName", filter, param_order, param_reverse, param_hidebroken), format, "tag"))),
-            "stations" => Ok(add_cors(Station::get_response(connection.get_stations_by_all(&param_order, param_reverse, param_hidebroken, param_offset, param_limit), format))),
-            "servers" => Ok(add_cors(dns_resolve(format))),
+            "languages" => Ok(add_cors(encode_extra(connection_new.get_extra("LanguageCache", "LanguageName", filter, param_order, param_reverse, param_hidebroken)?, format, "language")?)),
+            "countries" => Ok(add_cors(encode_extra(connection_new.get_1_n("Country", filter, param_order, param_reverse, param_hidebroken)?, format, "country")?)),
+            "countrycodes" => Ok(add_cors(encode_extra(connection_new.get_1_n("CountryCode", filter, param_order, param_reverse, param_hidebroken)?, format, "countrycode")?)),
+            "states" => Ok(add_cors(encode_states(connection_new.get_states(None, filter, param_order, param_reverse, param_hidebroken)?, format)?)),
+            "codecs" => Ok(add_cors(encode_extra(connection_new.get_1_n("Codec", filter, param_order, param_reverse, param_hidebroken)?, format, "codec")?)),
+            "tags" => Ok(add_cors(encode_extra(connection_new.get_extra("TagCache", "TagName", filter, param_order, param_reverse, param_hidebroken)?, format, "tag")?)),
+            "stations" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_all(&param_order, param_reverse, param_hidebroken, param_offset, param_limit)?.drain(..).map(|x|x.into()).collect(), format)?)),
+            "servers" => Ok(add_cors(dns_resolve(format)?)),
             "stats" => Ok(add_cors(encode_status(get_status(connection_new)?, format, static_dir))),
-            "checks" => Ok(add_cors(StationCheck::get_response(connection.get_checks(None, param_last_checkuuid, param_seconds),format))),
-            "add" => Ok(add_cors(connection.add_station_opt(param_name, param_url, param_homepage, param_favicon, param_country, param_countrycode, param_state, param_language, param_tags).get_response(format))),
+            "checks" => Ok(add_cors(StationCheck::get_response(connection_new.get_checks(None, param_last_checkuuid, param_seconds, false)?.drain(..).map(|x|x.into()).collect(),format)?)),
+            "add" => Ok(add_cors(StationAddResult::from(connection_new.add_station_opt(param_name, param_url, param_homepage, param_favicon, param_country, param_countrycode, param_state, param_language, param_tags)).get_response(format)?)),
             _ => Ok(rouille::Response::empty_404()),
         }
     } else if items.len() == 4 {
@@ -444,30 +418,29 @@ fn handle_connection_internal(connection: &db::Connection, connection_new: &Mysq
         let parameter:&str = &items[3];
 
         match command {
-            "languages" => Ok(add_cors(encode_extra(connection.get_extra("LanguageCache", "LanguageName", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format, "language"))),
-            "countries" => Ok(add_cors(encode_result1n(command, connection.get_1_n("Country", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format))),
-            "countrycodes" => Ok(add_cors(encode_result1n(command, connection.get_1_n("CountryCode", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format))),
-            "codecs" => Ok(add_cors(encode_result1n(command, connection.get_1_n("Codec", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format))),
-            "tags" => Ok(add_cors(encode_extra(connection.get_extra("TagCache", "TagName", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format, "tag"))),
-            "states" => Ok(add_cors(encode_states(connection.get_states(None, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), format))),
-            "vote" => Ok(add_cors(encode_message(connection.vote_for_station(&remote_ip, get_only_first(connection.get_station_by_id_or_uuid(parameter))), format))),
-            "url" => Ok(add_cors(encode_station_url(connection, get_only_first(connection.get_station_by_id_or_uuid(parameter)), &remote_ip, format))),
+            "languages" => Ok(add_cors(encode_extra(connection_new.get_extra("LanguageCache", "LanguageName", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "language")?)),
+            "countries" => Ok(add_cors(encode_extra(connection_new.get_1_n("Country", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "country")?)),
+            "countrycodes" => Ok(add_cors(encode_extra(connection_new.get_1_n("CountryCode", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "countrycode")?)),
+            "codecs" => Ok(add_cors(encode_extra(connection_new.get_1_n("Codec", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "codec")?)),
+            "tags" => Ok(add_cors(encode_extra(connection_new.get_extra("TagCache", "TagName", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "tag")?)),
+            "states" => Ok(add_cors(encode_states(connection_new.get_states(None, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format)?)),
+            "vote" => Ok(add_cors(encode_message(connection_new.vote_for_station(&remote_ip, get_only_first_item(connection_new.get_station_by_uuid(parameter)?)), format)?)),
+            "url" => Ok(add_cors(encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(parameter)?), &remote_ip, format)?)),
             "stations" => {
                 match parameter {
-                    "topvote" => Ok(add_cors(Station::get_response(connection.get_stations_topvote(999999), format))),
-                    "topclick" => Ok(add_cors(Station::get_response(connection.get_stations_topclick(999999), format))),
-                    "lastclick" => Ok(add_cors(Station::get_response(connection.get_stations_lastclick(999999), format))),
-                    "lastchange" => Ok(add_cors(Station::get_response(connection.get_stations_lastchange(999999), format))),
-                    "broken" => Ok(add_cors(Station::get_response(connection.get_stations_broken(999999), format))),
-                    "improvable" => Ok(add_cors(Station::get_response(connection.get_stations_improvable(999999), format))),
-                    "deleted" => Ok(add_cors(Station::get_response(connection.get_stations_deleted_all(param_limit), format))),
-                    "changed" => Ok(add_cors(encode_changes(connection.get_changes(None, param_last_changeuuid), format))),
-                    "byurl" => Ok(add_cors(Station::get_response(connection.get_stations_by_column_multiple("Url", param_url,true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
-                    "search" => Ok(add_cors(Station::get_response(connection.get_stations_advanced(param_name, param_name_exact, param_country, param_country_exact, param_countrycode, param_state, param_state_exact, param_language, param_language_exact, param_tag, param_tag_exact, param_tag_list, param_bitrate_min, param_bitrate_max, &param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
+                    "topvote" => Ok(add_cors(Station::get_response(connection_new.get_stations_topvote(999999)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    "topclick" => Ok(add_cors(Station::get_response(connection_new.get_stations_topclick(999999)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    "lastclick" => Ok(add_cors(Station::get_response(connection_new.get_stations_lastclick(999999)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    "lastchange" => Ok(add_cors(Station::get_response(connection_new.get_stations_lastchange(999999)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    "broken" => Ok(add_cors(Station::get_response(connection_new.get_stations_broken(999999)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    "improvable" => Ok(add_cors(Station::get_response(connection_new.get_stations_improvable(999999)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    "changed" => Ok(add_cors(encode_changes(connection_new.get_changes(None, param_last_changeuuid)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    "byurl" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_column_multiple("Url", param_url,true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    "search" => Ok(add_cors(Station::get_response(connection_new.get_stations_advanced(param_name, param_name_exact, param_country, param_country_exact, param_countrycode, param_state, param_state_exact, param_language, param_language_exact, param_tag, param_tag_exact, param_tag_list, param_bitrate_min, param_bitrate_max, &param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
                     _ => Ok(rouille::Response::empty_404()),
                 }
             },
-            "checks" => Ok(add_cors(StationCheck::get_response(connection.get_checks(Some(parameter.to_string()), param_last_checkuuid, param_seconds), format))),
+            "checks" => Ok(add_cors(StationCheck::get_response(connection_new.get_checks(Some(parameter.to_string()), param_last_checkuuid, param_seconds, true)?.drain(..).map(|x|x.into()).collect(), format)?)),
             _ => Ok(rouille::Response::empty_404()),
         }
     } else if items.len() == 5 {
@@ -480,38 +453,36 @@ fn handle_connection_internal(connection: &db::Connection, connection_new: &Mysq
             let format = command;
             let command = parameter;
             match command {
-                "url" => Ok(add_cors(encode_station_url(connection, get_only_first(connection.get_station_by_id_or_uuid(search)), &remote_ip, format))),
+                "url" => Ok(add_cors(encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(search)?), &remote_ip, format)?)),
                 _ => Ok(rouille::Response::empty_404()),
             }
         }else{
             match command {
-                "states" => Ok(add_cors(encode_states(connection.get_states(Some(String::from(parameter)), Some(String::from(search)), param_order, param_reverse, param_hidebroken), format))),
+                "states" => Ok(add_cors(encode_states(connection_new.get_states(Some(String::from(parameter)), Some(String::from(search)), param_order, param_reverse, param_hidebroken)?, format)?)),
                 
                 "stations" => {
                     match parameter {
-                        "topvote" => Ok(add_cors(Station::get_response(connection.get_stations_topvote(search.parse().unwrap_or(0)), format))),
-                        "topclick" => Ok(add_cors(Station::get_response(connection.get_stations_topclick(search.parse().unwrap_or(0)), format))),
-                        "lastclick" => Ok(add_cors(Station::get_response(connection.get_stations_lastclick(search.parse().unwrap_or(0)), format))),
-                        "lastchange" => Ok(add_cors(Station::get_response(connection.get_stations_lastchange(search.parse().unwrap_or(0)), format))),
-                        "broken" => Ok(add_cors(Station::get_response(connection.get_stations_broken(search.parse().unwrap_or(0)), format))),
-                        "improvable" => Ok(add_cors(Station::get_response(connection.get_stations_improvable(search.parse().unwrap_or(0)), format))),
-                        "deleted" => Ok(add_cors(Station::get_response(connection.get_stations_deleted(param_limit, search), format))),
-                        "byname" => Ok(add_cors(Station::get_response(connection.get_stations_by_column("Name", search.to_string(),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
-                        "bynameexact" => Ok(add_cors(Station::get_response(connection.get_stations_by_column("Name", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
-                        "bycodec" => Ok(add_cors(Station::get_response(connection.get_stations_by_column("Codec", search.to_string(),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
-                        "bycodecexact" => Ok(add_cors(Station::get_response(connection.get_stations_by_column("Codec", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
-                        "bycountry" => Ok(add_cors(Station::get_response(connection.get_stations_by_column("Country", search.to_string(),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
-                        "bycountryexact" => Ok(add_cors(Station::get_response(connection.get_stations_by_column("Country", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
-                        "bycountrycodeexact" => Ok(add_cors(Station::get_response(connection.get_stations_by_column("CountryCode", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
-                        "bystate" => Ok(add_cors(Station::get_response(connection.get_stations_by_column("Subcountry", search.to_string(),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
-                        "bystateexact" => Ok(add_cors(Station::get_response(connection.get_stations_by_column("Subcountry", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
-                        "bytag" => Ok(add_cors(Station::get_response(connection.get_stations_by_column_multiple("Tags", Some(search.to_string()),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
-                        "bytagexact" => Ok(add_cors(Station::get_response(connection.get_stations_by_column_multiple("Tags", Some(search.to_string()),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
-                        "bylanguage" => Ok(add_cors(Station::get_response(connection.get_stations_by_column_multiple("Language", Some(search.to_string()),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
-                        "bylanguageexact" => Ok(add_cors(Station::get_response(connection.get_stations_by_column_multiple("Language", Some(search.to_string()),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
-                        "byuuid" => Ok(add_cors(Station::get_response(connection.get_stations_by_column("StationUuid", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit), format))),
-                        "byid" => Ok(add_cors(Station::get_response(connection.get_station_by_id_or_uuid(search), format))),
-                        "changed" => Ok(add_cors(encode_changes(connection.get_changes(Some(search.to_string()),param_last_changeuuid), format))),
+                        "topvote" => Ok(add_cors(Station::get_response(connection_new.get_stations_topvote(search.parse().unwrap_or(0))?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "topclick" => Ok(add_cors(Station::get_response(connection_new.get_stations_topclick(search.parse().unwrap_or(0))?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "lastclick" => Ok(add_cors(Station::get_response(connection_new.get_stations_lastclick(search.parse().unwrap_or(0))?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "lastchange" => Ok(add_cors(Station::get_response(connection_new.get_stations_lastchange(search.parse().unwrap_or(0))?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "broken" => Ok(add_cors(Station::get_response(connection_new.get_stations_broken(search.parse().unwrap_or(0))?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "improvable" => Ok(add_cors(Station::get_response(connection_new.get_stations_improvable(search.parse().unwrap_or(0))?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "byname" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_column("Name", search.to_string(),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "bynameexact" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_column("Name", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "bycodec" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_column("Codec", search.to_string(),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "bycodecexact" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_column("Codec", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "bycountry" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_column("Country", search.to_string(),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "bycountryexact" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_column("Country", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "bycountrycodeexact" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_column("CountryCode", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "bystate" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_column("Subcountry", search.to_string(),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "bystateexact" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_column("Subcountry", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "bytag" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_column_multiple("Tags", Some(search.to_string()),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "bytagexact" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_column_multiple("Tags", Some(search.to_string()),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "bylanguage" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_column_multiple("Language", Some(search.to_string()),false,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "bylanguageexact" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_column_multiple("Language", Some(search.to_string()),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "byuuid" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_column("StationUuid", search.to_string(),true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "changed" => Ok(add_cors(encode_changes(connection_new.get_changes(Some(search.to_string()),param_last_changeuuid)?.drain(..).map(|x| x.into()).collect(), format)?)),
                         _ => Ok(rouille::Response::empty_404()),
                     }
                 },

@@ -9,27 +9,20 @@ pub fn check(
     old_favicon: &str,
     useragent: &str,
     timeout: u32,
-) -> String {
+) -> Result<String, Box<dyn std::error::Error>> {
     let check = check_url(old_favicon, useragent, timeout);
     if !check {
         debug!("Check for favicon: {}", homepage);
-        let icons = website_icon_extract::extract_icons(homepage, useragent, timeout);
-        match icons {
-            Ok(icons) => {
-                if icons.len() > 0 {
-                    debug!("Favicon {}", icons[0]);
-                    return icons[0].clone();
-                } else {
-                    debug!("No favicons found for: {}", homepage);
-                }
-            }
-            Err(e) => {
-                debug!("Favicon error ({}): {}", homepage, e.to_string());
-            }
+        let icons = website_icon_extract::extract_icons(homepage, useragent, timeout)?;
+        if icons.len() > 0 {
+            debug!("Favicon {}", icons[0]);
+            return Ok(icons[0].clone());
+        } else {
+            debug!("No favicons found for: {}", homepage);
         }
-        String::from("")
+        Ok(String::from(""))
     } else {
-        String::from(old_favicon)
+        Ok(String::from(old_favicon))
     }
 }
 

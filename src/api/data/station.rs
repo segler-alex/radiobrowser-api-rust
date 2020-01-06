@@ -1,10 +1,11 @@
-use crate::api::data::station_history::StationHistoryCurrent;
+use std::error::Error;
+use crate::api::data::StationHistoryCurrent;
+use crate::db::models::StationItem;
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct StationCachedInfo {
     ok: bool,
     message: String,
-    id: i32,
     stationuuid: String,
     name: String,
     url: String,
@@ -17,7 +18,6 @@ impl StationCachedInfo {
         xml.begin_elem("status")?;
         xml.attr_esc("ok", &station.ok.to_string())?;
         xml.attr_esc("message", &station.message)?;
-        xml.attr_esc("id", &station.id.to_string())?;
         xml.attr_esc("stationuuid", &station.stationuuid)?;
         xml.attr_esc("name", &station.name)?;
         xml.attr_esc("url", &station.url)?;
@@ -31,7 +31,6 @@ impl StationCachedInfo {
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Station {
-    pub id: i32,
     pub changeuuid: String,
     pub stationuuid: String,
     pub name: String,
@@ -46,80 +45,23 @@ pub struct Station {
     pub language: String,
     pub votes: i32,
     pub lastchangetime: String,
-    pub ip: String,
     pub codec: String,
     pub bitrate: u32,
     pub hls: i8,
     pub lastcheckok: i8,
     pub lastchecktime: String,
     pub lastcheckoktime: String,
+    pub lastlocalchecktime: String,
     pub clicktimestamp: String,
     pub clickcount: u32,
     pub clicktrend: i32,
 }
 
 impl Station {
-    pub fn new(
-        id: i32,
-        changeuuid: String,
-        stationuuid: String,
-        name: String,
-        url: String,
-        url_resolved: String,
-        homepage: String,
-        favicon: String,
-        tags: String,
-        country: String,
-        countrycode: String,
-        state: String,
-        language: String,
-        votes: i32,
-        lastchangetime: String,
-        ip: String,
-        codec: String,
-        bitrate: u32,
-        hls: i8,
-        lastcheckok: i8,
-        lastchecktime: String,
-        lastcheckoktime: String,
-        clicktimestamp: String,
-        clickcount: u32,
-        clicktrend: i32,
-    ) -> Self {
-        Station {
-            id,
-            changeuuid,
-            stationuuid,
-            name,
-            url,
-            url_resolved,
-            homepage,
-            favicon,
-            tags,
-            country,
-            countrycode,
-            state,
-            language,
-            votes,
-            lastchangetime,
-            ip,
-            codec,
-            bitrate,
-            hls,
-            lastcheckok,
-            lastchecktime,
-            lastcheckoktime,
-            clicktimestamp,
-            clickcount,
-            clicktrend,
-        }
-    }
-
     pub fn extract_cached_info(station: Station, message: &str) -> StationCachedInfo {
         return StationCachedInfo {
             ok: station.lastcheckok == 1,
             message: message.to_string(),
-            id: station.id,
             stationuuid: station.stationuuid,
             name: station.name,
             url: station.url_resolved,
@@ -131,8 +73,6 @@ impl Station {
         xml.begin_elem("result")?;
         for entry in entries {
             xml.begin_elem("station")?;
-            let station_id_str = format!("{}", entry.id);
-            xml.attr_esc("id", &station_id_str)?;
             xml.attr_esc("changeuuid", &entry.changeuuid)?;
             xml.attr_esc("stationuuid", &entry.stationuuid)?;
             xml.attr_esc("name", &entry.name)?;
@@ -149,7 +89,6 @@ impl Station {
             xml.attr_esc("votes", &station_votes_str)?;
             let station_lastchangetime_str = format!("{}", entry.lastchangetime);
             xml.attr_esc("lastchangetime", &station_lastchangetime_str)?;
-            xml.attr_esc("ip", &entry.ip)?;
             xml.attr_esc("codec", &entry.codec)?;
             let station_bitrate = format!("{}", entry.bitrate);
             xml.attr_esc("bitrate", &station_bitrate)?;
@@ -161,6 +100,7 @@ impl Station {
             xml.attr_esc("lastchecktime", &station_lastchecktime_str)?;
             let station_lastcheckoktime_str = format!("{}", entry.lastcheckoktime);
             xml.attr_esc("lastcheckoktime", &station_lastcheckoktime_str)?;
+            xml.attr_esc("lastlocalchecktime", &entry.lastlocalchecktime)?;
             let station_clicktimestamp_str = format!("{}", entry.clicktimestamp);
             xml.attr_esc("clicktimestamp", &station_clicktimestamp_str)?;
             let station_clickcount = format!("{}", entry.clickcount);
@@ -196,6 +136,7 @@ impl Station {
         let mut j = String::with_capacity(200 * list.len());
         j.push_str("[playlist]\r\n");
         let mut i = 1;
+        j.push_str(&format!("NumberOfEntries={}\r\n", list.len()));
         for item in list {
             let i_str = i.to_string();
             j.push_str("File");
@@ -240,9 +181,9 @@ impl Station {
     // Syntax checked with http://ttl.summerofcode.be/
     fn serialize_to_ttl_single(&self) -> String {
         format!(
-            r#"<http://radio-browser.info/radio/{id}>
+            r#"<http://radio-browser.info/radio/{stationuuid}>
     rdf:type schema:RadioStation ;
-    dcterms:identifier "{id}" ;
+    dcterms:identifier "{stationuuid}" ;
     schema:PropertyValue [
         schema:name "changeuuid" ;
         schema:value "{changeuuid}"
@@ -274,10 +215,6 @@ impl Station {
     schema:PropertyValue [
         schema:name "lastchangetime" ;
         schema:value "{lastchangetime}"
-    ] ;
-    schema:PropertyValue [
-        schema:name "ip" ;
-        schema:value "{ip}"
     ] ;
     schema:PropertyValue [
         schema:name "codec" ;
@@ -316,7 +253,6 @@ impl Station {
         schema:value "{clicktrend}"
     ] ;
     .{newline}"#,
-            id = self.id,
             stationuuid = self.stationuuid,
             changeuuid = self.changeuuid,
             name = self.name,
@@ -332,7 +268,6 @@ impl Station {
             state = self.state,
             language = self.language,
             votes = self.votes,
-            ip = self.ip,
             codec = self.codec,
             bitrate = self.bitrate,
             hls = self.hls,
@@ -362,14 +297,14 @@ impl Station {
         j
     }
 
-    pub fn get_response(list : Vec<Station>, format : &str) -> rouille::Response {
-        match format {
+    pub fn get_response(list : Vec<Station>, format : &str) -> Result<rouille::Response, Box<dyn Error>> {
+        Ok(match format {
             "json" => {
-                let j = serde_json::to_string(&list).unwrap();
+                let j = serde_json::to_string(&list)?;
                 rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
             },
             "xml" => {
-                let j = Station::serialize_station_list(list).unwrap();
+                let j = Station::serialize_station_list(list)?;
                 rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
             },
             "m3u" => {
@@ -381,7 +316,7 @@ impl Station {
                 rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/x-scpls").with_unique_header("Content-Disposition", r#"inline; filename="playlist.pls""#)
             },
             "xspf" => {
-                let j = Station::serialize_to_xspf(list).unwrap();
+                let j = Station::serialize_to_xspf(list)?;
                 rouille::Response::text(j).with_unique_header("Content-Type","application/xspf+xml").with_unique_header("Content-Disposition", r#"inline; filename="playlist.xspf""#)
             },
             "ttl" => {
@@ -389,14 +324,13 @@ impl Station {
                 rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/turtle")
             },
             _ => rouille::Response::empty_406()
-        }
+        })
     }
 }
 
 impl From<&StationHistoryCurrent> for Station {
     fn from(item: &StationHistoryCurrent) -> Self {
         Station {
-            id: 0,
             changeuuid: item.changeuuid.clone(),
             stationuuid: item.stationuuid.clone(),
             name: item.name.clone(),
@@ -410,7 +344,6 @@ impl From<&StationHistoryCurrent> for Station {
             language: item.language.clone(),
             votes: item.votes,
             lastchangetime: item.lastchangetime.clone(),
-            ip: item.ip.clone(),
             bitrate: 0,
             clickcount: 0,
             clicktimestamp: String::from(""),
@@ -420,7 +353,39 @@ impl From<&StationHistoryCurrent> for Station {
             lastcheckok: 0,
             lastcheckoktime: String::from(""),
             lastchecktime: String::from(""),
+            lastlocalchecktime: String::from(""),
             url_resolved: String::from(""),
+        }
+    }
+}
+
+impl From<StationItem> for Station {
+    fn from(item: StationItem) -> Self {
+        Station {
+            changeuuid: item.changeuuid,
+            stationuuid: item.stationuuid,
+            name: item.name,
+            url: item.url,
+            homepage: item.homepage,
+            favicon: item.favicon,
+            tags: item.tags,
+            country: item.country,
+            countrycode: item.countrycode,
+            state: item.state,
+            language: item.language,
+            votes: item.votes,
+            lastchangetime: item.lastchangetime,
+            bitrate: item.bitrate,
+            clickcount: item.clickcount,
+            clicktimestamp: item.clicktimestamp,
+            clicktrend: item.clicktrend,
+            codec: item.codec,
+            hls: if item.hls {1} else {0},
+            lastcheckok: if item.lastcheckok {1} else {0},
+            lastcheckoktime: item.lastcheckoktime,
+            lastchecktime: item.lastchecktime,
+            lastlocalchecktime: item.lastlocalchecktime,
+            url_resolved: item.url_resolved,
         }
     }
 }

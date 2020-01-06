@@ -10,6 +10,8 @@ extern crate toml;
 #[macro_use]
 extern crate log;
 
+extern crate uuid;
+
 extern crate av_stream_info_rust;
 extern crate colored;
 extern crate hostname;
@@ -23,6 +25,9 @@ mod api;
 mod config;
 mod check;
 mod db;
+mod refresh;
+mod pull;
+mod cleanup;
 
 fn main() {
     env_logger::init();
@@ -32,21 +37,21 @@ fn main() {
     info!("Config: {:#?}", config);
 
     loop {
-        let connection_new = db::MysqlConnection::new(&config.connection_string);
-        let connection = api::db::new(
-            &config.connection_string,
-            config.update_caches_interval,
-            config.ignore_migration_errors,
-            config.allow_database_downgrade,
-        );
+        let connection = db::MysqlConnection::new(&config.connection_string);
         match connection {
-            Ok(v) => {
-                match connection_new {
-                    Ok(v2) => {
+            Ok(connection) => {
+                let migration_result = connection.do_migrations(
+                    config.ignore_migration_errors,
+                    config.allow_database_downgrade,
+                );
+                match migration_result {
+                    Ok(_) => {
+                        refresh::start(config.connection_string.clone(), config.update_caches_interval);
+                        pull::start(config.connection_string.clone(), config.servers_pull, config.mirror_pull_interval);
+                        cleanup::start(config.connection_string.clone(), config.source.clone(), config.delete, 3600);
                         check::start(
                             config.connection_string,
                             config.source,
-                            config.delete,
                             config.concurrency,
                             config.check_stations,
                             config.useragent,
@@ -58,31 +63,27 @@ fn main() {
                             config.pause_seconds,
                         );
 
-                        api::run(
-                            v,
-                            v2,
+                        api::start(
+                            connection,
                             config.listen_host,
                             config.listen_port,
                             config.threads,
                             &config.server_url,
                             &config.static_files_dir,
                             &config.log_dir,
-                            config.servers_pull,
-                            config.mirror_pull_interval,
                             config.prometheus_exporter,
                             &config.prometheus_exporter_prefix,
                         );
                     }
-                    Err(e) => {
-                        error!("{}", e);
+                    Err(err) => {
+                        error!("Migrations error: {}", err);
                         thread::sleep(time::Duration::from_millis(1000));
                     }
-                }
-                
+                };
                 break;
             }
             Err(e) => {
-                error!("{}", e);
+                error!("DB connection error: {}", e);
                 thread::sleep(time::Duration::from_millis(1000));
             }
         }
