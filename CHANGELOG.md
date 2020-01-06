@@ -7,18 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Changelog
+- Check fields: "metainfo_overrides_database", "public", "name", "description", "tags", "countrycode", "homepage", "favicon", "loadbalancer"
 
 ### Removed
 - "id" from all of the API, because database id should not be exposed
+- Endpoint /stations/broken 
 
 ### Changed
-- faster station import from pull source
-- restructured more code to the new style of connecting to the database, this should enable other types of databases (e.g.: postgresql) on the long term, this means also more error checking and use of transactions.
+- Faster station import from pull source
+- Restructured more code to the new style of connecting to the database, this should enable other types of databases (e.g.: postgresql) on the long term, this means also more error checking and use of transactions.
 
 ### Fixed
 - Output lastchangetime and countrycode in /json/stations/changed
 - Correctly collect and summarize different sources of station checks
 - "numberofentries" added to pls output
+- Less usages of "unwrap()"
 
 ## [0.5.1] - 2019-12-11
 ### Added

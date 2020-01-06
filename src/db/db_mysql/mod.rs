@@ -769,7 +769,7 @@ impl DbConnection for MysqlConnection {
                             query.push("CountryCode=:countrycode");
                         }
                         if let Some(tags) = &item.tags {
-                            params.push((String::from("tags"),tags.into(),));
+                            params.push((String::from("tags"),fix_multi_field(tags).into(),));
                             query.push("Tags=:tags");
                         }
                         if let Some(favicon) = &item.favicon {
