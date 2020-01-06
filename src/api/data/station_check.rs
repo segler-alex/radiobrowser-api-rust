@@ -97,6 +97,16 @@ impl StationCheck {
             xml.attr_esc("ok", &entry.ok.to_string())?;
             xml.attr_esc("urlcache", &entry.urlcache)?;
             xml.attr_esc("timestamp", &entry.timestamp)?;
+
+            xml.attr_esc("metainfo_overrides_database", &entry.metainfo_overrides_database.unwrap_or(0).to_string())?;
+            xml.attr_esc("public", &entry.public.unwrap_or(0).to_string())?;
+            xml.attr_esc("name", &entry.name.unwrap_or_default())?;
+            xml.attr_esc("description", &entry.description.unwrap_or_default())?;
+            xml.attr_esc("tags", &entry.tags.unwrap_or_default())?;
+            xml.attr_esc("homepage", &entry.homepage.unwrap_or_default())?;
+            xml.attr_esc("loadbalancer", &entry.loadbalancer.unwrap_or_default())?;
+            xml.attr_esc("favicon", &entry.favicon.unwrap_or_default())?;
+            xml.attr_esc("countrycode", &entry.countrycode.unwrap_or_default())?;
             xml.end_elem()?;
         }
         xml.end_elem()?;
