@@ -168,7 +168,7 @@ r#"ALTER TABLE `StationHistory` MODIFY COLUMN ChangeUuid CHAR(36) NOT NULL"#,
 r#"ALTER TABLE `StationHistory` MODIFY COLUMN ChangeUuid CHAR(36)"#);
 
     migrations.add_migration("20200106_004000_Add_StationCheck_Icy_Info",
-r#"ALTER TABLE `StationCheck` ADD COLUMN MetainfoOverridesDatabase BOOL NOT NULL,
+r#"ALTER TABLE `StationCheck` ADD COLUMN MetainfoOverridesDatabase BOOL NOT NULL DEFAULT false,
 ADD COLUMN Public BOOL,
 ADD COLUMN Name TEXT,
 ADD COLUMN Description TEXT,
@@ -189,7 +189,7 @@ DROP COLUMN Loadbalancer
 "#);
 
 migrations.add_migration("20200106_123000_Add_StationCheckHistory_Icy_Info",
-r#"ALTER TABLE `StationCheckHistory` ADD COLUMN MetainfoOverridesDatabase BOOL NOT NULL,
+r#"ALTER TABLE `StationCheckHistory` ADD COLUMN MetainfoOverridesDatabase BOOL NOT NULL DEFAULT false,
 ADD COLUMN Public BOOL,
 ADD COLUMN Name TEXT,
 ADD COLUMN Description TEXT,
