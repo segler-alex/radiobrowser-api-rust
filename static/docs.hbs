@@ -881,6 +881,7 @@
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Playable_station_url">
       <h1 class="display-4">Playable station URL</h1>
       <p class="lead">Returns the playable URL for the station. Any playlist (PLS, ASX, M3U) decoding will be done for you.
+         A call of this endpoint will also count a click for the station!
          This API call will count as a click on the station, supported output formats: JSON, XML ,PLS ,M3U</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
@@ -898,7 +899,7 @@
           {
             "ok": "true",
             "message": "retrieved station url",
-            "id": "123",
+            "stationuuid": "9617a958-0601-11e8-ae97-52543be04c81",
             "name": "Station name",
             "url": "http://this.is.an.url"
           }
