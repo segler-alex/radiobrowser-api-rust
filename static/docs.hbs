@@ -39,6 +39,7 @@
             </li>
             <li><a class="dropdown-item" href="#Server_stats">Server stats</a></li>
             <li><a class="dropdown-item" href="#Server_mirrors">Server mirrors</a></li>
+            <li><a class="dropdown-item" href="#Server_prometheus">Prometheus monitoring</a></li>
           </ul>
         </li>
         <li class="nav-item dropdown">
@@ -881,6 +882,7 @@
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Playable_station_url">
       <h1 class="display-4">Playable station URL</h1>
       <p class="lead">Returns the playable URL for the station. Any playlist (PLS, ASX, M3U) decoding will be done for you.
+         A call of this endpoint will also count a click for the station!
          This API call will count as a click on the station, supported output formats: JSON, XML ,PLS ,M3U</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
@@ -898,7 +900,7 @@
           {
             "ok": "true",
             "message": "retrieved station url",
-            "id": "123",
+            "stationuuid": "9617a958-0601-11e8-ae97-52543be04c81",
             "name": "Station name",
             "url": "http://this.is.an.url"
           }
@@ -1488,6 +1490,53 @@
       <div class="h5 mt-2">Example:</div>
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/json/servers" target="_blank">{{ API_SERVER }}/json/servers</a></li>
+      </ul>
+    </div>
+
+        <div class="jumbotron mt-2 shadow p-3 mb-5" id="Server_prometheus">
+      <h1 class="display-4">Prometheus monitoring</h1>
+      <p class="lead ">
+        Exporter for <a href="https://prometheus.io/">prometheus</a>. It renders internal data about the server in a specific format that is readable by the time series database prometheus.
+      </p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>{{ API_SERVER }}/metrics</li>
+        </ul>
+      </div>
+      <div class="h5">Result:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+# HELP radio_browser_clicks_last_hour Clicks in the last hour
+# TYPE radio_browser_clicks_last_hour gauge
+radio_browser_clicks_last_hour 0
+
+# HELP radio_browser_stations_broken Count of stations that are broken
+# TYPE radio_browser_stations_broken gauge
+radio_browser_stations_broken 740
+
+# HELP radio_browser_stations_working Count of stations that are working/usable
+# TYPE radio_browser_stations_working gauge
+radio_browser_stations_working 26514
+
+# HELP radio_browser_stations_todo Count of stations that need are in the queue for checking
+# TYPE radio_browser_stations_todo gauge
+radio_browser_stations_todo 27254
+
+# HELP radio_browser_stations_deletable_never_worked Count of stations that are in the list for deletion and which never worked
+# TYPE radio_browser_stations_deletable_never_worked gauge
+radio_browser_stations_deletable_never_worked 0
+
+# HELP radio_browser_stations_deletable_were_working Count of stations that are in the list for deletion and which worked at some point
+# TYPE radio_browser_stations_deletable_were_working gauge
+radio_browser_stations_deletable_were_working 0
+</pre>
+      </div>
+
+      <div class="h5 mt-2">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="{{ API_SERVER }}/metrics" target="_blank">{{ API_SERVER }}/metrics</a></li>
       </ul>
     </div>
   </div>

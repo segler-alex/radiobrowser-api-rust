@@ -823,7 +823,7 @@ impl DbConnection for MysqlConnection {
         let table_name = if include_history { "StationCheckHistory" } else { "StationCheck" };
         let where_seconds = if seconds > 0 {
             format!(
-                "TIMESTAMPDIFF(SECOND,CheckTime,now())<{seconds}",
+                "AND TIMESTAMPDIFF(SECOND,CheckTime,now())<{seconds}",
                 seconds = seconds
             )
         } else {
