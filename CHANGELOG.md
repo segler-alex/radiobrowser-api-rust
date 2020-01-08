@@ -5,8 +5,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.6.1] 2020-01-08
+### Added
+- Prometheus docs
+
 ### Fixed
 - SQL error in endpoint /checks?seconds=x
+- Database column mixup for state and language
+
+### Changed
+- Run as non root user in docker by default
 
 ## [0.6.0] - 2020-01-06
 ### Added
