@@ -61,6 +61,12 @@
             <li><a class="dropdown-item" href="#Add_radio_station">Add radio station</a></li>
           </ul>
         </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link navbar-light dropdown-toggle" href="" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="true">Structs</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#Struct_station">Struct station</a></li>
+          </ul>
+        </li>
       </ul>
       <a class="navbar-brand" href="http://www.radio-browser.info" target="_blank">Homepage</a>
     </nav>
@@ -86,6 +92,211 @@
       </div>
     </div>
     <div class="h5"><span class="text-danger">Please note that all the parameters listed below can be added by using an HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request, and they can also be sent with encoding "application/json" used by Angular.js, for example.</span></div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Struct_station">
+      <div class="container">
+        <h1 class="display-4">Struct Station</h1>
+        <div class="syntax">
+          <div class="h5">Fields:</div>
+          <table class="table mt-2 table-striped">
+            <thead class="thead-dark">
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col" width="300">Possible values/Datatype</th>
+                <th scope="col">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>changeuuid</td>
+                <td><a href="https://de.wikipedia.org/wiki/Universally_Unique_Identifier">UUID</a></td>
+                <td>A globally unique identifier for the change of the station information.</td>
+              </tr>
+              <tr>
+                <td>stationuuid</td>
+                <td><a href="https://de.wikipedia.org/wiki/Universally_Unique_Identifier">UUID</a></td>
+                <td>A globally unique identifier for the station.</td>
+              </tr>
+              <tr>
+                <td>name</td>
+                <td>string</td>
+                <td>The name of the station.</td>
+              </tr>
+              <tr>
+                <td>url</td>
+                <td>string, URL (HTTP/HTTPS)</td>
+                <td>The stream url, that got put in from the user.</td>
+              </tr>
+              <tr>
+                <td>url_resolved</td>
+                <td>string, URL (HTTP/HTTPS)</td>
+                <td>
+                  A automatically "resolved" stream url. Things that are resolved are Playlists(M3U/PLS/ASX/...), HTTP redirects (Code 301/302).
+                  This link is especially usefull if you use this API from a platform that is not able to do a resolve on its own (e.g.: JavaScript in browser) or you just don't want to invest the time to decode playlists yourself.
+                </td>
+              </tr>
+              <tr>
+                <td>homepage</td>
+                <td>string, URL (HTTP/HTTPS)</td>
+                <td>Url to the homepage of the stream, so you can direct the user to a page with more information about the stream.</td>
+              </tr>
+              <tr>
+                <td>favicon</td>
+                <td>string, URL (HTTP/HTTPS)</td>
+                <td>Url to an icon or picture that represents the stream. (PNG, JPG)</td>
+              </tr>
+              <tr>
+                <td>tags</td>
+                <td>string, multivalue, split by comma</td>
+                <td>Url to the homepage of the stream, so you can direct the user to a page with more information about the stream.</td>
+              </tr>
+              <tr>
+                <td>country</td>
+                <td>string</td>
+                <td>DEPRECATED: use countrycode instead. Full name of the country</td>
+              </tr>
+              <tr>
+                <td>countrycode</td>
+                <td>2 letters, uppercase</td>
+                <td>Official countrycodes as in <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">ISO_3166-1_alpha-2</a>.</td>
+              </tr>
+              <tr>
+                <td>state</td>
+                <td>string</td>
+                <td>Full name of an entity the station resides in, inside the country.</td>
+              </tr>
+              <tr>
+                <td>language</td>
+                <td>string, multivalue, split by comma</td>
+                <td>Languages that are spoken in this stream.</td>
+              </tr>
+              <tr>
+                <td>votes</td>
+                <td>number, integer</td>
+                <td>Number of votes for this station. This number is by server and only ever increases. It will never be reset to 0.</td>
+              </tr>
+              <tr>
+                <td>lastchangetime</td>
+                <td>datetime, YYYY-MM-DD HH:mm:ss</td>
+                <td>Last time the stream information got changed in the database</td>
+              </tr>
+              <tr>
+                <td>codec</td>
+                <td>string</td>
+                <td>The codec this stream uses recorded at the last check.</td>
+              </tr>
+              <tr>
+                <td>bitrate</td>
+                <td>number, integer, bps</td>
+                <td>The bitrate of the stream recorded at the last check.</td>
+              </tr>
+              <tr>
+                <td>hls</td>
+                <td>0 or 1</td>
+                <td>Marks if this stream is using HLS distribution or non HLS.</td>
+              </tr>
+              <tr>
+                <td>lastcheckok</td>
+                <td>0 or 1</td>
+                <td>The current online/offline state of this stream. This is a value, that gets calculated from multiple measure points in the internet. The test servers are located in different countries. It is a majority vote.</td>
+              </tr>
+              <tr>
+                <td>lastchecktime</td>
+                <td>datetime, YYYY-MM-DD HH:mm:ss</td>
+                <td>The last time, any radio-browser server has checked the online state of this stream.</td>
+              </tr>
+              <tr>
+                <td>lastcheckoktime</td>
+                <td>datetime, YYYY-MM-DD HH:mm:ss</td>
+                <td>The last time, the stream was checked for the online status with a positive result.</td>
+              </tr>
+              <tr>
+                <td>lastlocalchecktime</td>
+                <td>datetime, YYYY-MM-DD HH:mm:ss</td>
+                <td>The last time, this server checked the online state and the metadata of this stream.</td>
+              </tr>
+              <tr>
+                <td>clicktimestamp</td>
+                <td>datetime, YYYY-MM-DD HH:mm:ss</td>
+                <td>The time of the last click that got recorded for this stream.</td>
+              </tr>
+              <tr>
+                <td>clickcount</td>
+                <td>number, integer</td>
+                <td>Clicks in the last 24 hours.</td>
+              </tr>
+              <tr>
+                <td>clicktrend</td>
+                <td>number, integer</td>
+                <td>The difference of the clickcounts of the last 2 days. Posivite values mean an increase, negative a decrease of clicks.</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="h5">Example JSON:</div>
+          <div class="well well-sm bg-light border border-secondary rounded">
+            <pre class="mt-4">
+  {
+    "changeuuid":"960e57c8-0601-11e8-ae97-52543be04c81",
+    "stationuuid":"960e57c5-0601-11e8-ae97-52543be04c81",
+    "name":"SRF 1",
+    "url":"http://stream.srg-ssr.ch/m/drs1/mp3_128",
+    "url_resolved":"http://stream.srg-ssr.ch/m/drs1/mp3_128",
+    "homepage":"http://ww.srf.ch/radio-srf-1",
+    "favicon":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Radio_SRF_1.svg/205px-Radio_SRF_1.svg.png",
+    "tags":"srg ssr,public radio",
+    "country":"Switzerland",
+    "countrycode":"CH",
+    "state":"",
+    "language":"german",
+    "votes":0,
+    "lastchangetime":"2019-12-12 18:37:02",
+    "codec":"MP3",
+    "bitrate":128,
+    "hls":0,
+    "lastcheckok":1,
+    "lastchecktime":"2020-01-09 18:16:35",
+    "lastcheckoktime":"2020-01-09 18:16:35",
+    "lastlocalchecktime":"2020-01-08 23:18:38",
+    "clicktimestamp":"",
+    "clickcount":0,
+    "clicktrend":0
+  }
+                </pre>
+          </div>
+          <div class="h5 mt-3">Example XML:</div>
+          <div class="well well-sm bg-light border border-secondary rounded">
+            <pre class="mt-4">
+  &lt;station
+    changeuuid=&quot;960e57c8-0601-11e8-ae97-52543be04c81&quot;
+    stationuuid=&quot;960e57c5-0601-11e8-ae97-52543be04c81&quot;
+    name=&quot;SRF 1&quot;
+    url=&quot;http://stream.srg-ssr.ch/m/drs1/mp3_128&quot;
+    url_resolved=&quot;http://stream.srg-ssr.ch/m/drs1/mp3_128&quot;
+    homepage=&quot;http://ww.srf.ch/radio-srf-1&quot;
+    favicon=&quot;https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Radio_SRF_1.svg/205px-Radio_SRF_1.svg.png&quot;
+    tags=&quot;srg ssr,public radio&quot;
+    country=&quot;Switzerland&quot;
+    countrycode=&quot;CH&quot;
+    state=&quot;&quot;
+    language=&quot;german&quot;
+    votes=&quot;0&quot;
+    lastchangetime=&quot;2019-12-12 18:37:02&quot;
+    codec=&quot;MP3&quot;
+    bitrate=&quot;128&quot;
+    hls=&quot;0&quot;
+    lastcheckok=&quot;1&quot;
+    lastchecktime=&quot;2020-01-09 18:16:35&quot;
+    lastcheckoktime=&quot;2020-01-09 18:16:35&quot;
+    lastlocalchecktime=&quot;2020-01-08 23:18:38&quot;
+    clicktimestamp=&quot;&quot;
+    clickcount=&quot;0&quot;
+    clicktrend=&quot;0&quot;/&gt;
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_countries">
       <div class="container">
         <h1 class="display-4">List of countries</h1>
