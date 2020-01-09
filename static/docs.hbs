@@ -31,7 +31,6 @@
             <li>
               <div role="separator" class="dropdown-divider"></div>
             </li>
-            <li><a class="dropdown-item" href="#Playable_station_url">Playable station URL</a></li>
             <li><a class="dropdown-item" href="#Advanced_station_search">Advanced station search</a></li>
             <li><a class="dropdown-item" href="#Search_radio_stations_by_url">Search radio stations by URL</a></li>
             <li>
@@ -57,6 +56,7 @@
         <li class="nav-item dropdown">
           <a class="nav-link navbar-light dropdown-toggle" href="" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="true">Modify</a>
           <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#Count_station_click">Count station click</a></li>
             <li><a class="dropdown-item" href="#Vote_for_station">Vote for station</a></li>
             <li><a class="dropdown-item" href="#Add_radio_station">Add radio station</a></li>
           </ul>
@@ -571,7 +571,7 @@
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_radio_stations">
       <h1 class="display-4">List of radio stations</h1>
-      <p class="lead">A list of radio stations that match the search. The variants with "exact" will only search for perfect matches, and others will search for the station whose attribute contains the search term.<br/> Please use <a href="#Playable_station_url">Playable station URL</a> API call to get the real station URL and also let the click be counted, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of radio stations that match the search. The variants with "exact" will only search for perfect matches, and others will search for the station whose attribute contains the search term.<br/> Please use <a href="#Count_station_click">Count_station_click</a> API call to let the click be counted, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -685,7 +685,7 @@
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_all_radio_stations">
       <h1 class="display-4">List of all radio stations</h1>
-      <p class="lead">A list of all radio stations. Please use <a href="#Playable_station_url">Playable station URL</a> API call to get the real station URL and also let the click be counted, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of all radio stations. Please use <a href="#Count_station_click">Count_station_click</a> API call to let the click be counted, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -879,11 +879,14 @@
       </ul>
     </div>
 
-    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Playable_station_url">
-      <h1 class="display-4">Playable station URL</h1>
-      <p class="lead">Returns the playable URL for the station. Any playlist (PLS, ASX, M3U) decoding will be done for you.
-         A call of this endpoint will also count a click for the station!
-         This API call will count as a click on the station, supported output formats: JSON, XML ,PLS ,M3U</p>
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Count_station_click">
+      <h1 class="display-4">Station click counter</h1>
+      <p class="lead">
+         Increase the click count of a station by 1. This should be called everytime a user starts playing a
+         stream to mark the stream as more popular than others.
+         Every call to this endpoint from the same ip adress and for the same station only gets counted once, per day.
+         The call will return detail information about the stream.
+         supported output formats: JSON, XML ,PLS ,M3U</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -927,8 +930,8 @@
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Advanced_station_search">
       <h1 class="display-4">Advanced station search</h1>
-      <p class="lead">A list of radio stations that match the search. It will search for the station whose attribute contains the search term. Please use <a href="#Playable_station_url">Playable station URL</a> API call to get the real station URL and also let the click
-        be counted, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of radio stations that match the search. It will search for the station whose attribute contains the search term. Please use <a href="#Count_station_click">Count_station_click</a> API call to let the click be counted,
+      supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
