@@ -982,8 +982,6 @@ impl DbConnection for MysqlConnection {
 
         for row in result {
             let (tags_str, ok): (String, bool) = mysql::from_row_opt(row?)?;
-            //let tags_str: String = row.take(0).unwrap_or("".into());
-            //let ok: bool = row.take(1).unwrap_or(false);
             let tags_arr = tags_str.split(',');
             for single_tag in tags_arr {
                 let single_tag_trimmed = single_tag.trim().to_lowercase();

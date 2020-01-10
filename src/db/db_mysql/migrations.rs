@@ -213,5 +213,9 @@ migrations.add_migration("20200110_225600_Add_FK_StationCheck_Station",
 r#"ALTER TABLE StationCheck ADD CONSTRAINT FK_StationCheck_Station FOREIGN KEY (StationUuid) REFERENCES Station(StationUuid);"#,
 r#"ALTER TABLE StationCheck DROP FOREIGN KEY FK_StationCheck_Station;"#);
 
+migrations.add_migration("20200110_233000_Add_IN_StationCheck_StationUuid_Source",
+r#"CREATE UNIQUE INDEX IN_StationCheck_Station ON StationCheck(StationUuid,Source);"#,
+r#"DROP INDEX IN_StationCheck_Station ON StationCheck;"#);
+
     Ok(migrations)
 }
