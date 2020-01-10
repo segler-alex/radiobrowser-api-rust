@@ -102,68 +102,68 @@
             <thead class="thead-dark">
               <tr>
                 <th scope="col">Name</th>
-                <th scope="col" width="300">Possible values/Datatype</th>
+                <th scope="col" width="300">Possible value/Datatype</th>
                 <th scope="col">Description</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td>changeuuid</td>
-                <td><a href="https://de.wikipedia.org/wiki/Universally_Unique_Identifier">UUID</a></td>
-                <td>A globally unique identifier for the change of the station information.</td>
+                <td><a href="https://en.wikipedia.org/wiki/Universally_unique_identifier">UUID</a></td>
+                <td>A globally unique identifier for the change of the station information</td>
               </tr>
               <tr>
                 <td>stationuuid</td>
-                <td><a href="https://de.wikipedia.org/wiki/Universally_Unique_Identifier">UUID</a></td>
-                <td>A globally unique identifier for the station.</td>
+                <td><a href="https://en.wikipedia.org/wiki/Universally_unique_identifier">UUID</a></td>
+                <td>A globally unique identifier for the station</td>
               </tr>
               <tr>
                 <td>name</td>
                 <td>string</td>
-                <td>The name of the station.</td>
+                <td>The name of the station</td>
               </tr>
               <tr>
                 <td>url</td>
                 <td>string, URL (HTTP/HTTPS)</td>
-                <td>The stream url, that got put in from the user.</td>
+                <td>The stream URL provided by the user</td>
               </tr>
               <tr>
                 <td>url_resolved</td>
                 <td>string, URL (HTTP/HTTPS)</td>
                 <td>
-                  A automatically "resolved" stream url. Things that are resolved are Playlists(M3U/PLS/ASX/...), HTTP redirects (Code 301/302).
-                  This link is especially usefull if you use this API from a platform that is not able to do a resolve on its own (e.g.: JavaScript in browser) or you just don't want to invest the time to decode playlists yourself.
+                  An automatically "resolved" stream URL. Things resolved are playlists (M3U/PLS/ASX...), HTTP redirects (Code 301/302).
+                  This link is especially usefull if you use this API from a platform that is not able to do a resolve on its own (e.g. JavaScript in browser) or you just don't want to invest the time in decoding playlists yourself.
                 </td>
               </tr>
               <tr>
                 <td>homepage</td>
                 <td>string, URL (HTTP/HTTPS)</td>
-                <td>Url to the homepage of the stream, so you can direct the user to a page with more information about the stream.</td>
+                <td>URL to the homepage of the stream, so you can direct the user to a page with more information about the stream.</td>
               </tr>
               <tr>
                 <td>favicon</td>
                 <td>string, URL (HTTP/HTTPS)</td>
-                <td>Url to an icon or picture that represents the stream. (PNG, JPG)</td>
+                <td>URL to an icon or picture that represents the stream. (PNG, JPG)</td>
               </tr>
               <tr>
                 <td>tags</td>
                 <td>string, multivalue, split by comma</td>
-                <td>Url to the homepage of the stream, so you can direct the user to a page with more information about the stream.</td>
+                <td>Tags of the stream with more information about it</td>
               </tr>
               <tr>
                 <td>country</td>
                 <td>string</td>
-                <td>DEPRECATED: use countrycode instead. Full name of the country</td>
+                <td>DEPRECATED: use countrycode instead, full name of the country</td>
               </tr>
               <tr>
                 <td>countrycode</td>
                 <td>2 letters, uppercase</td>
-                <td>Official countrycodes as in <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">ISO_3166-1_alpha-2</a>.</td>
+                <td>Official countrycodes as in <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">ISO 3166-1 alpha-2</a></td>
               </tr>
               <tr>
                 <td>state</td>
                 <td>string</td>
-                <td>Full name of an entity the station resides in, inside the country.</td>
+                <td>Full name of the entity where the station is located inside the country</td>
               </tr>
               <tr>
                 <td>language</td>
@@ -178,57 +178,57 @@
               <tr>
                 <td>lastchangetime</td>
                 <td>datetime, YYYY-MM-DD HH:mm:ss</td>
-                <td>Last time the stream information got changed in the database</td>
+                <td>Last time when the stream information was changed in the database</td>
               </tr>
               <tr>
                 <td>codec</td>
                 <td>string</td>
-                <td>The codec this stream uses recorded at the last check.</td>
+                <td>The codec of this stream recorded at the last check.</td>
               </tr>
               <tr>
                 <td>bitrate</td>
                 <td>number, integer, bps</td>
-                <td>The bitrate of the stream recorded at the last check.</td>
+                <td>The bitrate of this stream recorded at the last check.</td>
               </tr>
               <tr>
                 <td>hls</td>
                 <td>0 or 1</td>
-                <td>Marks if this stream is using HLS distribution or non HLS.</td>
+                <td>Mark if this stream is using HLS distribution or non-HLS.</td>
               </tr>
               <tr>
                 <td>lastcheckok</td>
                 <td>0 or 1</td>
-                <td>The current online/offline state of this stream. This is a value, that gets calculated from multiple measure points in the internet. The test servers are located in different countries. It is a majority vote.</td>
+                <td>The current online/offline state of this stream. This is a value calculated from multiple measure points in the internet. The test servers are located in different countries. It is a majority vote.</td>
               </tr>
               <tr>
                 <td>lastchecktime</td>
                 <td>datetime, YYYY-MM-DD HH:mm:ss</td>
-                <td>The last time, any radio-browser server has checked the online state of this stream.</td>
+                <td>The last time when any radio-browser server checked the online state of this stream</td>
               </tr>
               <tr>
                 <td>lastcheckoktime</td>
                 <td>datetime, YYYY-MM-DD HH:mm:ss</td>
-                <td>The last time, the stream was checked for the online status with a positive result.</td>
+                <td>The last time when the stream was checked for the online status with a positive result</td>
               </tr>
               <tr>
                 <td>lastlocalchecktime</td>
                 <td>datetime, YYYY-MM-DD HH:mm:ss</td>
-                <td>The last time, this server checked the online state and the metadata of this stream.</td>
+                <td>The last time when this server checked the online state and the metadata of this stream</td>
               </tr>
               <tr>
                 <td>clicktimestamp</td>
                 <td>datetime, YYYY-MM-DD HH:mm:ss</td>
-                <td>The time of the last click that got recorded for this stream.</td>
+                <td>The time of the last click recorded for this stream</td>
               </tr>
               <tr>
                 <td>clickcount</td>
                 <td>number, integer</td>
-                <td>Clicks in the last 24 hours.</td>
+                <td>Clicks within the last 24 hours</td>
               </tr>
               <tr>
                 <td>clicktrend</td>
                 <td>number, integer</td>
-                <td>The difference of the clickcounts of the last 2 days. Posivite values mean an increase, negative a decrease of clicks.</td>
+                <td>The difference of the clickcounts within the last 2 days. Posivite values mean an increase, negative a decrease of clicks.</td>
               </tr>
             </tbody>
           </table>
@@ -782,7 +782,7 @@
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_radio_stations">
       <h1 class="display-4">List of radio stations</h1>
-      <p class="lead">A list of radio stations that match the search. The variants with "exact" will only search for perfect matches, and others will search for the station whose attribute contains the search term.<br/> Please use <a href="#Count_station_click">Count_station_click</a> API call to let the click be counted, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of radio stations that match the search. The variants with "exact" will only search for perfect matches, and others will search for the station whose attribute contains the search term.<br/> Please use <a href="#Count_station_click">Count station click</a> API call to let the click be counted, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -885,7 +885,7 @@
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_all_radio_stations">
       <h1 class="display-4">List of all radio stations</h1>
-      <p class="lead">A list of all radio stations. Please use <a href="#Count_station_click">Count_station_click</a> API call to let the click be counted, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of all radio stations. Please use <a href="#Count_station_click">Count station click</a> API call to let the click be counted, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -1082,11 +1082,10 @@
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Count_station_click">
       <h1 class="display-4">Station click counter</h1>
       <p class="lead">
-         Increase the click count of a station by 1. This should be called everytime a user starts playing a
-         stream to mark the stream as more popular than others.
-         Every call to this endpoint from the same ip adress and for the same station only gets counted once, per day.
-         The call will return detail information about the stream.
-         supported output formats: JSON, XML ,PLS ,M3U</p>
+         Increase the click count of a station by one. This should be called everytime when a user starts playing a
+         stream to mark the stream more popular than others.
+         Every call to this endpoint from the same IP address and for the same station only gets counted once per day.
+         The call will return detailed information about the stream, supported output formats: JSON, XML ,PLS ,M3U</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -1130,7 +1129,7 @@
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Advanced_station_search">
       <h1 class="display-4">Advanced station search</h1>
-      <p class="lead">A list of radio stations that match the search. It will search for the station whose attribute contains the search term. Please use <a href="#Count_station_click">Count_station_click</a> API call to let the click be counted,
+      <p class="lead">A list of radio stations that match the search. It will search for the station whose attribute contains the search term. Please use <a href="#Count_station_click">Count station click</a> API call to let the click be counted,
       supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
