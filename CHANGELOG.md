@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Clickcount calculation for each station
+- Error in /format/stations/changed endpoint
 
 ## [0.6.1] 2020-01-08
 ### Added
