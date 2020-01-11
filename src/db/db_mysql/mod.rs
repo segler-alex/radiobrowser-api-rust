@@ -555,15 +555,15 @@ impl DbConnection for MysqlConnection {
             ""
         };
         
-        let query: String = format!("SELECT StationID,ChangeUuid,
+        let query: String = format!("SELECT StationChangeID,StationID,ChangeUuid,
                 StationUuid,Name,
                 Url,Homepage,
                 Favicon,Tags,
                 Country,Subcountry,
                 CountryCode,
                 Language,Votes,
-                Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated,
-                Ip from StationHistory WHERE 1=:mynumber {changeuuid_str} {stationuuid} ORDER BY Creation ASC", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str);
+                Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated
+                from StationHistory WHERE 1=:mynumber {changeuuid_str} {stationuuid} ORDER BY Creation ASC", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str);
         let results = self.pool.prep_exec(query, params! {
             "mynumber" => 1,
             "stationuuid" => stationuuid.unwrap_or(String::from("")),
