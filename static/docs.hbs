@@ -28,6 +28,7 @@
             <li><a class="dropdown-item" href="#List_of_radio_stations">List of radio stations</a></li>
             <li><a class="dropdown-item" href="#List_of_all_radio_stations">List of all radio stations</a></li>
             <li><a class="dropdown-item" href="#List_of_station_check_results">List of station check results</a></li>
+            <li><a class="dropdown-item" href="#List_of_station_clicks">List of station clicks</a></li>
             <li>
               <div role="separator" class="dropdown-divider"></div>
             </li>
@@ -949,6 +950,8 @@
       <div class="syntax">
         <ul class="list-unstyled ml-4">
           <li>{{ API_SERVER }}/xml/checks</li>
+          <li>{{ API_SERVER }}/xml/checks/stationuuid</li>
+          <li>{{ API_SERVER }}/json/checks</li>
           <li>{{ API_SERVER }}/json/checks/stationuuid</li>
         </ul>
       </div>
@@ -968,6 +971,12 @@
             <td></td>
             <td>UUID</td>
             <td>If set, only list check result of the matching station.</td>
+          </tr>
+          <tr>
+            <td>lastcheckuuid</td>
+            <td></td>
+            <td>UUID</td>
+            <td>If set, only list checks after the check with the given check.</td>
           </tr>
           <tr>
             <td>seconds</td>
@@ -1076,6 +1085,92 @@
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/json/checks" target="_blank">{{ API_SERVER }}/json/checks</a></li>
         <li><a href="{{ API_SERVER }}/xml/checks" target="_blank">{{ API_SERVER }}/xml/checks</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_station_clicks">
+      <h1 class="display-4">List of station clicks</h1>
+      <p class="lead">A list of station clicks. If a station UUID is provided, only clicks of the station will be returned. If a station UUID is not provided, a list of all clicks of all stations will be sent (chunksize 10000), supported output formats: JSON, XML</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>{{ API_SERVER }}/xml/clicks</li>
+          <li>{{ API_SERVER }}/xml/clicks/stationuuid</li>
+          <li>{{ API_SERVER }}/json/clicks</li>
+          <li>{{ API_SERVER }}/json/clicks/stationuuid</li>
+        </ul>
+      </div>
+      <div class="h5">Parameter:</div>
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Default value</th>
+            <th scope="row">Possible value</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>stationuuid</td>
+            <td></td>
+            <td>UUID</td>
+            <td>If set, only list check result of the matching station.</td>
+          </tr>
+          <tr>
+            <td>lastclickuuid</td>
+            <td></td>
+            <td>UUID</td>
+            <td>If set, only list clicks after the click with the given uuid. Use this to continue chunked retrieval to get the next 10000 clicks.</td>
+          </tr>
+          <tr>
+            <td>seconds</td>
+            <td>0</td>
+            <td>positive integer values</td>
+            <td>if >0, it will only return history entries from the last 'seconds' seconds.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="h5">Result JSON:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+          [
+          {
+            "stationuuid":"963134e8-0601-11e8-ae97-52543be04c81",
+            "clickuuid":"ce9ad7bd-34bf-11ea-ac52-52543be04c81",
+            "clicktimestamp":"2020-01-11 23:14:58"
+          },
+          {
+            "stationuuid":"2a70c205-4850-11e8-b1b0-52543be04c81",
+            "clickuuid":"cf49f517-34bf-11ea-ac52-52543be04c81",
+            "clicktimestamp":"2020-01-11 23:15:00"
+          },
+          ..
+          ]
+          </pre>
+      </div>
+
+      <div class="h5 mt-2">Result XML:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+          &lt;click
+            stationuuid=&quot;961fa288-0601-11e8-ae97-52543be04c81&quot;
+            clickuuid=&quot;87a69149-34c1-11ea-ac52-52543be04c81&quot;
+            clicktimestamp=&quot;2020-01-11 23:27:18&quot;
+          /&gt;
+          &lt;click
+            stationuuid=&quot;7a25bf68-1dbe-11ea-a955-52543be04c81&quot;
+            clickuuid=&quot;a25e5fb6-34c1-11ea-ac52-52543be04c81&quot;
+            clicktimestamp=&quot;2020-01-11 23:28:03&quot;
+          /&gt;
+        </pre>
+      </div>
+
+      <div class="h5 mt-2">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="{{ API_SERVER }}/json/clicks" target="_blank">{{ API_SERVER }}/json/clicks</a></li>
+        <li><a href="{{ API_SERVER }}/xml/clicks?seconds=3600" target="_blank">{{ API_SERVER }}/xml/clicks?seconds=3600</a></li>
       </ul>
     </div>
 
