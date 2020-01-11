@@ -10,10 +10,13 @@ use crate::api::data::StationHistoryV0;
 use crate::api::data::StationCheck;
 use crate::api::data::StationCheckV0;
 use crate::api::data::Status;
+use crate::api::data::StationClick;
+use crate::api::data::StationClickV0;
 use crate::db::DbConnection;
 use crate::db::connect;
 use crate::db::models::StationCheckItemNew;
 use crate::db::models::StationChangeItemNew;
+use crate::db::models::StationClickItemNew;
 
 fn pull_worker(connection_string: String, mirrors: &Vec<String>) -> Result<(),Box<dyn Error>> {
     let pool = connect(connection_string)?;
@@ -103,53 +106,114 @@ fn pull_checks(server: &str, api_version: u32, lastid: Option<String>) -> Result
     }
 }
 
+fn pull_clicks(server: &str, api_version: u32, lastid: Option<String>) -> Result<Vec<StationClick>, Box<dyn std::error::Error>> {
+    trace!("Pull clicks from '{}' (API: {}) ..", server, api_version);
+    let path = match lastid {
+        Some(id) => format!("{}/json/clicks?lastclickuuid={}",server, id),
+        None => format!("{}/json/clicks",server),
+    };
+    trace!("{}", path);
+    let mut result = reqwest::get(&path)?;
+    match api_version {
+        0 => {
+            let mut list: Vec<StationClickV0> = result.json()?;
+            let list_current: Vec<StationClick> = list.drain(..).filter_map(|x| StationClick::try_from(x).ok()).collect();
+            Ok(list_current)
+        },
+        1 => {
+            let list: Vec<StationClick> = result.json()?;
+            Ok(list)
+        },
+        _ => {
+            Err(Box::new(api_error::ApiError::UnknownApiVersion(api_version)))
+        }
+    }
+}
+
 fn pull_server(connection_new: &Box<dyn DbConnection>, server: &str) -> Result<(),Box<dyn std::error::Error>> {
-    let chunksize = 1000;
+    let insert_chunksize = 1000;
+    let mut station_change_count = 0;
+    let mut station_check_count = 0;
+    let mut station_click_count = 0;
 
     let api_version = get_remote_version(server)?;
-    let lastid = connection_new.get_pull_server_lastid(server);
-    let list = pull_history(server, api_version, lastid)?;
-    let len = list.len();
+    {
+        let lastid = connection_new.get_pull_server_lastid(server);
+        let list_changes = pull_history(server, api_version, lastid)?;
+        let len = list_changes.len();
 
-    trace!("Incremental station change sync ({})..", list.len());
-    let mut station_change_count = 0;
-    let mut list_stations: Vec<StationChangeItemNew> = vec![];
-    for station in list {
-        let changeuuid = station.changeuuid.clone();
-        station_change_count = station_change_count + 1;
-        list_stations.push(station.into());
+        trace!("Incremental station change sync ({})..", len);
+        let mut list_stations: Vec<StationChangeItemNew> = vec![];
+        for station in list_changes {
+            let changeuuid = station.changeuuid.clone();
+            station_change_count = station_change_count + 1;
+            list_stations.push(station.into());
 
-        if station_change_count % chunksize == 0 || station_change_count == len {
-            trace!("Insert {} station changes..", list_stations.len());
-            connection_new.insert_station_by_change(&list_stations)?;
-            connection_new.set_pull_server_lastid(server, &changeuuid)?;
-            list_stations.clear();
+            if station_change_count % insert_chunksize == 0 || station_change_count == len {
+                trace!("Insert {} station changes..", list_stations.len());
+                connection_new.insert_station_by_change(&list_stations)?;
+                connection_new.set_pull_server_lastid(server, &changeuuid)?;
+                list_stations.clear();
+            }
         }
     }
 
-    let lastcheckid = connection_new.get_pull_server_lastcheckid(server);
-    let list_checks = pull_checks(server, api_version, lastcheckid)?;
-    let len = list_checks.len();
+    {
+        let lastcheckid = connection_new.get_pull_server_lastcheckid(server);
+        let list_checks = pull_checks(server, api_version, lastcheckid)?;
+        let len = list_checks.len();
 
-    trace!("Incremental checks sync ({})..", list_checks.len());
-    let mut station_check_count = 0;
-    let mut list_checks_converted = vec![];
-    for check in list_checks {
-        let changeuuid = check.checkuuid.clone();
-        let value: StationCheckItemNew = check.into();
-        list_checks_converted.push(value);
-        station_check_count = station_check_count + 1;
+        trace!("Incremental checks sync ({})..", len);
+        let mut list_checks_converted = vec![];
+        for check in list_checks {
+            let changeuuid = check.checkuuid.clone();
+            let value: StationCheckItemNew = check.into();
+            list_checks_converted.push(value);
+            station_check_count = station_check_count + 1;
 
-        if station_check_count % chunksize == 0 || station_check_count == len {
-            trace!("Insert {} checks..", list_checks_converted.len());
-            connection_new.insert_checks(&list_checks_converted)?;
-            connection_new.update_station_with_check_data(&list_checks_converted, false)?;
-            connection_new.set_pull_server_lastcheckid(server, &changeuuid)?;
-            list_checks_converted.clear();
+            if station_check_count % insert_chunksize == 0 || station_check_count == len {
+                trace!("Insert {} checks..", list_checks_converted.len());
+                connection_new.insert_checks(&list_checks_converted)?;
+                connection_new.update_station_with_check_data(&list_checks_converted, false)?;
+                connection_new.set_pull_server_lastcheckid(server, &changeuuid)?;
+                list_checks_converted.clear();
+            }
         }
     }
 
-    info!("Pull from '{}' OK (Added station changes: {}, Added station checks: {})", server, station_change_count, station_check_count);
+    loop {
+        // default chunksize from server is 10000
+        let download_chunksize = 10000;
+        let insert_chunksize = 5000;
+        let lastclickuuid = connection_new.get_pull_server_lastclickid(server);
+        let list_clicks = pull_clicks(server, api_version, lastclickuuid)?;
+        let len = list_clicks.len();
+        let mut local_station_click_count = 0;
+
+        trace!("Incremental clicks sync({})..", list_clicks.len());
+        let mut list_clicks_converted = vec![];
+        for click in list_clicks {
+            let clickuuid = click.clickuuid.clone();
+            let value: StationClickItemNew = click.into();
+            list_clicks_converted.push(value);
+            station_click_count = station_click_count + 1;
+            local_station_click_count = local_station_click_count + 1;
+
+            if station_click_count % insert_chunksize == 0 || local_station_click_count == len {
+                trace!("Insert {} clicks..", list_clicks_converted.len());
+                connection_new.insert_clicks(&list_clicks_converted)?;
+                connection_new.set_pull_server_lastclickid(server, &clickuuid)?;
+                list_clicks_converted.clear();
+            }
+        }
+
+        if len < download_chunksize {
+            // last chunk reached
+            break;
+        }
+    }
+
+    info!("Pull from '{}' OK (Added station changes: {}, Added station checks: {}, Added station clicks: {})", server, station_change_count, station_check_count, station_click_count);
     Ok(())
 }
 
@@ -193,6 +257,18 @@ impl From<StationHistoryCurrent> for StationChangeItemNew {
         
             changeuuid: item.changeuuid,
             stationuuid: item.stationuuid,
+        }
+    }
+}
+
+impl From<StationClick> for StationClickItemNew {
+    fn from(item: StationClick) -> Self {
+        StationClickItemNew {
+            clickuuid: item.clickuuid,
+            stationuuid: item.stationuuid,
+            clicktimestamp: item.clicktimestamp,
+            ip: String::from(""),
+            stationid: 0,
         }
     }
 }

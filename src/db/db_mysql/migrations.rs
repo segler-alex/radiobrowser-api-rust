@@ -209,5 +209,49 @@ DROP COLUMN Favicon,
 DROP COLUMN Loadbalancer
 "#);
 
+migrations.add_migration("20200110_225600_Add_FK_StationCheck_Station",
+r#"ALTER TABLE StationCheck ADD CONSTRAINT FK_StationCheck_Station FOREIGN KEY (StationUuid) REFERENCES Station(StationUuid);"#,
+r#"ALTER TABLE StationCheck DROP FOREIGN KEY FK_StationCheck_Station;"#);
+
+migrations.add_migration("20200110_233000_Add_IN_StationCheck_StationUuid_Source",
+r#"CREATE UNIQUE INDEX IN_StationCheck_Station ON StationCheck(StationUuid,Source);"#,
+r#"DROP INDEX IN_StationCheck_Station ON StationCheck;"#);
+
+migrations.add_migration("20200111_155000_Add_StationClick_Uuids",
+r#"ALTER TABLE StationClick ADD COLUMN StationUuid CHAR(36), ADD COLUMN ClickUuid CHAR(36);"#,
+r#"ALTER TABLE StationClick DROP COLUMN StationUuid, DROP COLUMN ClickUuid;"#);
+
+migrations.add_migration("20200111_155500_Add_IN_StationClick_ClickUuid",
+r#"ALTER TABLE StationClick ADD CONSTRAINT IN_ClickUuid UNIQUE INDEX(ClickUuid);"#,
+r#"ALTER TABLE StationClick DROP CONSTRAINT IN_ClickUuid;"#);
+
+migrations.add_migration("20200111_162100_Add_PullServers_ClickUuid",
+r#"ALTER TABLE PullServers ADD COLUMN lastclickuuid TEXT;"#,
+r#"ALTER TABLE PullServers DROP COLUMN lastclickuuid;"#);
+
+migrations.add_migration("20200111_191500_Add_FK_StationClick_Station",
+r#"ALTER TABLE StationClick ADD CONSTRAINT FK_Station FOREIGN KEY(StationUuid) REFERENCES Station(StationUuid);"#,
+r#"ALTER TABLE StationClick DROP CONSTRAINT FK_Station;"#);
+
+migrations.add_migration("20200111_192500_Modify_Station_clickcount_notnull",
+r#"ALTER TABLE Station MODIFY clickcount INT NOT NULL DEFAULT 0;"#,
+r#"ALTER TABLE Station MODIFY clickcount INT DEFAULT 0;"#);
+
+migrations.add_migration("20200111_204500_Modify_StationClick_clicktimestamp",
+r#"ALTER TABLE StationClick MODIFY ClickTimestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;"#,
+r#"ALTER TABLE StationClick MODIFY ClickTimestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;"#);
+
+migrations.add_migration("20200111_204600_Modify_StationCheck_checktime",
+r#"ALTER TABLE StationCheck MODIFY CheckTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;"#,
+r#"ALTER TABLE StationCheck MODIFY CheckTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;"#);
+
+migrations.add_migration("20200111_204700_Add_StationClick_inserttime",
+r#"ALTER TABLE StationClick ADD COLUMN InsertTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;"#,
+r#"ALTER TABLE StationClick DROP COLUMN InsertTime;"#);
+
+migrations.add_migration("20200111_204800_Add_StationCheck_inserttime",
+r#"ALTER TABLE StationCheck ADD COLUMN InsertTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;"#,
+r#"ALTER TABLE StationCheck DROP COLUMN InsertTime;"#);
+
     Ok(migrations)
 }

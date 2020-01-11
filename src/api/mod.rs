@@ -19,6 +19,7 @@ use crate::api::data::Station;
 use crate::api::data::StationCheck;
 use crate::api::data::StationAddResult;
 use crate::api::data::Status;
+use crate::api::data::StationClick;
 use crate::db::DbConnection;
 use crate::db::models::ExtraInfo;
 use crate::db::models::State;
@@ -330,6 +331,7 @@ fn handle_connection_internal<A>(connection_new: &A, request: &rouille::Request,
 
     let param_last_changeuuid: Option<String> = ppp.get_string("lastchangeuuid");
     let param_last_checkuuid: Option<String> = ppp.get_string("lastcheckuuid");
+    let param_last_clickuuid: Option<String> = ppp.get_string("lastclickuid");
 
     let param_name: Option<String> = ppp.get_string("name");
     let param_name_exact: bool = ppp.get_bool("nameExact", false);
@@ -409,6 +411,7 @@ fn handle_connection_internal<A>(connection_new: &A, request: &rouille::Request,
             "servers" => Ok(add_cors(dns_resolve(format)?)),
             "stats" => Ok(add_cors(encode_status(get_status(connection_new)?, format, static_dir))),
             "checks" => Ok(add_cors(StationCheck::get_response(connection_new.get_checks(None, param_last_checkuuid, param_seconds, false)?.drain(..).map(|x|x.into()).collect(),format)?)),
+            "clicks" => Ok(add_cors(StationClick::get_response(connection_new.get_clicks(None, param_last_clickuuid, param_seconds)?.drain(..).map(|x|x.into()).collect(),format)?)),
             "add" => Ok(add_cors(StationAddResult::from(connection_new.add_station_opt(param_name, param_url, param_homepage, param_favicon, param_country, param_countrycode, param_state, param_language, param_tags)).get_response(format)?)),
             _ => Ok(rouille::Response::empty_404()),
         }
@@ -441,6 +444,7 @@ fn handle_connection_internal<A>(connection_new: &A, request: &rouille::Request,
                 }
             },
             "checks" => Ok(add_cors(StationCheck::get_response(connection_new.get_checks(Some(parameter.to_string()), param_last_checkuuid, param_seconds, true)?.drain(..).map(|x|x.into()).collect(), format)?)),
+            "clicks" => Ok(add_cors(StationClick::get_response(connection_new.get_clicks(Some(parameter.to_string()), param_last_clickuuid, param_seconds)?.drain(..).map(|x|x.into()).collect(), format)?)),
             _ => Ok(rouille::Response::empty_404()),
         }
     } else if items.len() == 5 {

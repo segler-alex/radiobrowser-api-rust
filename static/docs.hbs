@@ -28,10 +28,10 @@
             <li><a class="dropdown-item" href="#List_of_radio_stations">List of radio stations</a></li>
             <li><a class="dropdown-item" href="#List_of_all_radio_stations">List of all radio stations</a></li>
             <li><a class="dropdown-item" href="#List_of_station_check_results">List of station check results</a></li>
+            <li><a class="dropdown-item" href="#List_of_station_clicks">List of station clicks</a></li>
             <li>
               <div role="separator" class="dropdown-divider"></div>
             </li>
-            <li><a class="dropdown-item" href="#Playable_station_url">Playable station URL</a></li>
             <li><a class="dropdown-item" href="#Advanced_station_search">Advanced station search</a></li>
             <li><a class="dropdown-item" href="#Search_radio_stations_by_url">Search radio stations by URL</a></li>
             <li>
@@ -57,8 +57,15 @@
         <li class="nav-item dropdown">
           <a class="nav-link navbar-light dropdown-toggle" href="" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="true">Modify</a>
           <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#Count_station_click">Count station click</a></li>
             <li><a class="dropdown-item" href="#Vote_for_station">Vote for station</a></li>
             <li><a class="dropdown-item" href="#Add_radio_station">Add radio station</a></li>
+          </ul>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link navbar-light dropdown-toggle" href="" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="true">Structs</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#Struct_station">Struct station</a></li>
           </ul>
         </li>
       </ul>
@@ -86,6 +93,211 @@
       </div>
     </div>
     <div class="h5"><span class="text-danger">Please note that all the parameters listed below can be added by using an HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request, and they can also be sent with encoding "application/json" used by Angular.js, for example.</span></div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Struct_station">
+      <div class="container">
+        <h1 class="display-4">Struct Station</h1>
+        <div class="syntax">
+          <div class="h5">Fields:</div>
+          <table class="table mt-2 table-striped">
+            <thead class="thead-dark">
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col" width="300">Possible value/Datatype</th>
+                <th scope="col">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>changeuuid</td>
+                <td><a href="https://en.wikipedia.org/wiki/Universally_unique_identifier">UUID</a></td>
+                <td>A globally unique identifier for the change of the station information</td>
+              </tr>
+              <tr>
+                <td>stationuuid</td>
+                <td><a href="https://en.wikipedia.org/wiki/Universally_unique_identifier">UUID</a></td>
+                <td>A globally unique identifier for the station</td>
+              </tr>
+              <tr>
+                <td>name</td>
+                <td>string</td>
+                <td>The name of the station</td>
+              </tr>
+              <tr>
+                <td>url</td>
+                <td>string, URL (HTTP/HTTPS)</td>
+                <td>The stream URL provided by the user</td>
+              </tr>
+              <tr>
+                <td>url_resolved</td>
+                <td>string, URL (HTTP/HTTPS)</td>
+                <td>
+                  An automatically "resolved" stream URL. Things resolved are playlists (M3U/PLS/ASX...), HTTP redirects (Code 301/302).
+                  This link is especially usefull if you use this API from a platform that is not able to do a resolve on its own (e.g. JavaScript in browser) or you just don't want to invest the time in decoding playlists yourself.
+                </td>
+              </tr>
+              <tr>
+                <td>homepage</td>
+                <td>string, URL (HTTP/HTTPS)</td>
+                <td>URL to the homepage of the stream, so you can direct the user to a page with more information about the stream.</td>
+              </tr>
+              <tr>
+                <td>favicon</td>
+                <td>string, URL (HTTP/HTTPS)</td>
+                <td>URL to an icon or picture that represents the stream. (PNG, JPG)</td>
+              </tr>
+              <tr>
+                <td>tags</td>
+                <td>string, multivalue, split by comma</td>
+                <td>Tags of the stream with more information about it</td>
+              </tr>
+              <tr>
+                <td>country</td>
+                <td>string</td>
+                <td>DEPRECATED: use countrycode instead, full name of the country</td>
+              </tr>
+              <tr>
+                <td>countrycode</td>
+                <td>2 letters, uppercase</td>
+                <td>Official countrycodes as in <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">ISO 3166-1 alpha-2</a></td>
+              </tr>
+              <tr>
+                <td>state</td>
+                <td>string</td>
+                <td>Full name of the entity where the station is located inside the country</td>
+              </tr>
+              <tr>
+                <td>language</td>
+                <td>string, multivalue, split by comma</td>
+                <td>Languages that are spoken in this stream.</td>
+              </tr>
+              <tr>
+                <td>votes</td>
+                <td>number, integer</td>
+                <td>Number of votes for this station. This number is by server and only ever increases. It will never be reset to 0.</td>
+              </tr>
+              <tr>
+                <td>lastchangetime</td>
+                <td>datetime, YYYY-MM-DD HH:mm:ss</td>
+                <td>Last time when the stream information was changed in the database</td>
+              </tr>
+              <tr>
+                <td>codec</td>
+                <td>string</td>
+                <td>The codec of this stream recorded at the last check.</td>
+              </tr>
+              <tr>
+                <td>bitrate</td>
+                <td>number, integer, bps</td>
+                <td>The bitrate of this stream recorded at the last check.</td>
+              </tr>
+              <tr>
+                <td>hls</td>
+                <td>0 or 1</td>
+                <td>Mark if this stream is using HLS distribution or non-HLS.</td>
+              </tr>
+              <tr>
+                <td>lastcheckok</td>
+                <td>0 or 1</td>
+                <td>The current online/offline state of this stream. This is a value calculated from multiple measure points in the internet. The test servers are located in different countries. It is a majority vote.</td>
+              </tr>
+              <tr>
+                <td>lastchecktime</td>
+                <td>datetime, YYYY-MM-DD HH:mm:ss</td>
+                <td>The last time when any radio-browser server checked the online state of this stream</td>
+              </tr>
+              <tr>
+                <td>lastcheckoktime</td>
+                <td>datetime, YYYY-MM-DD HH:mm:ss</td>
+                <td>The last time when the stream was checked for the online status with a positive result</td>
+              </tr>
+              <tr>
+                <td>lastlocalchecktime</td>
+                <td>datetime, YYYY-MM-DD HH:mm:ss</td>
+                <td>The last time when this server checked the online state and the metadata of this stream</td>
+              </tr>
+              <tr>
+                <td>clicktimestamp</td>
+                <td>datetime, YYYY-MM-DD HH:mm:ss</td>
+                <td>The time of the last click recorded for this stream</td>
+              </tr>
+              <tr>
+                <td>clickcount</td>
+                <td>number, integer</td>
+                <td>Clicks within the last 24 hours</td>
+              </tr>
+              <tr>
+                <td>clicktrend</td>
+                <td>number, integer</td>
+                <td>The difference of the clickcounts within the last 2 days. Posivite values mean an increase, negative a decrease of clicks.</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="h5">Example JSON:</div>
+          <div class="well well-sm bg-light border border-secondary rounded">
+            <pre class="mt-4">
+  {
+    "changeuuid":"960e57c8-0601-11e8-ae97-52543be04c81",
+    "stationuuid":"960e57c5-0601-11e8-ae97-52543be04c81",
+    "name":"SRF 1",
+    "url":"http://stream.srg-ssr.ch/m/drs1/mp3_128",
+    "url_resolved":"http://stream.srg-ssr.ch/m/drs1/mp3_128",
+    "homepage":"http://ww.srf.ch/radio-srf-1",
+    "favicon":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Radio_SRF_1.svg/205px-Radio_SRF_1.svg.png",
+    "tags":"srg ssr,public radio",
+    "country":"Switzerland",
+    "countrycode":"CH",
+    "state":"",
+    "language":"german",
+    "votes":0,
+    "lastchangetime":"2019-12-12 18:37:02",
+    "codec":"MP3",
+    "bitrate":128,
+    "hls":0,
+    "lastcheckok":1,
+    "lastchecktime":"2020-01-09 18:16:35",
+    "lastcheckoktime":"2020-01-09 18:16:35",
+    "lastlocalchecktime":"2020-01-08 23:18:38",
+    "clicktimestamp":"",
+    "clickcount":0,
+    "clicktrend":0
+  }
+                </pre>
+          </div>
+          <div class="h5 mt-3">Example XML:</div>
+          <div class="well well-sm bg-light border border-secondary rounded">
+            <pre class="mt-4">
+  &lt;station
+    changeuuid=&quot;960e57c8-0601-11e8-ae97-52543be04c81&quot;
+    stationuuid=&quot;960e57c5-0601-11e8-ae97-52543be04c81&quot;
+    name=&quot;SRF 1&quot;
+    url=&quot;http://stream.srg-ssr.ch/m/drs1/mp3_128&quot;
+    url_resolved=&quot;http://stream.srg-ssr.ch/m/drs1/mp3_128&quot;
+    homepage=&quot;http://ww.srf.ch/radio-srf-1&quot;
+    favicon=&quot;https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Radio_SRF_1.svg/205px-Radio_SRF_1.svg.png&quot;
+    tags=&quot;srg ssr,public radio&quot;
+    country=&quot;Switzerland&quot;
+    countrycode=&quot;CH&quot;
+    state=&quot;&quot;
+    language=&quot;german&quot;
+    votes=&quot;0&quot;
+    lastchangetime=&quot;2019-12-12 18:37:02&quot;
+    codec=&quot;MP3&quot;
+    bitrate=&quot;128&quot;
+    hls=&quot;0&quot;
+    lastcheckok=&quot;1&quot;
+    lastchecktime=&quot;2020-01-09 18:16:35&quot;
+    lastcheckoktime=&quot;2020-01-09 18:16:35&quot;
+    lastlocalchecktime=&quot;2020-01-08 23:18:38&quot;
+    clicktimestamp=&quot;&quot;
+    clickcount=&quot;0&quot;
+    clicktrend=&quot;0&quot;/&gt;
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_countries">
       <div class="container">
         <h1 class="display-4">List of countries</h1>
@@ -571,7 +783,7 @@
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_radio_stations">
       <h1 class="display-4">List of radio stations</h1>
-      <p class="lead">A list of radio stations that match the search. The variants with "exact" will only search for perfect matches, and others will search for the station whose attribute contains the search term.<br/> Please use <a href="#Playable_station_url">Playable station URL</a> API call to get the real station URL and also let the click be counted, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of radio stations that match the search. The variants with "exact" will only search for perfect matches, and others will search for the station whose attribute contains the search term.<br/> Please use <a href="#Count_station_click">Count station click</a> API call to let the click be counted, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -632,44 +844,33 @@
         </tbody>
       </table>
       <div class="h5">Result JSON:</div>
+      Details at <a href="#Struct_station">Struct station</a>
       <div class="well well-sm bg-light border border-secondary rounded">
         <pre class="mt-4 result"><code>[
   {
-    "changeuuid": "617dcfc1-bd2f-11e9-acb2-52543be04c81",
-    "stationuuid": "617dcf8c-bd2f-11e9-acb2-52543be04c81",
-    "name": "Radio Amistad",
-    "url": "http://srv0410.radiostreaming.es:8026/;",
-    "url_resolved": "http://srv0410.radiostreaming.es:8026/;",
-    "homepage": "http://www.rtvamistad.net",
-    "favicon": "https://www.rtvamistad.net/wp-content/uploads/2018/05/logopaloma_32x32.png",
-    "tags": "christian,cristiana",
-    "country": "Spain",
-    "countrycode": "ES",
-    "state": "Barcelona",
-    "language": "spanish",
-    "votes": 0,
-    "lastchangetime": "2019-12-11 19:51:04",
-    "ip": "",
-    "codec": "MP3",
-    "bitrate": 128,
-    "hls": 0,
-    "lastcheckok": 1,
-    "lastchecktime": "2019-12-11 04:14:45",
-    "lastcheckoktime": "2019-12-11 04:14:45",
-    "clicktimestamp": "",
-    "clickcount": 0,
-    "clicktrend": 0
+    "name": "..",
+    ...
   },
   {
     ...
   },
+  {
+    ...
+  },
+  ..
 ]</code></pre>
       </div>
 
       <div class="h5 mt-2">Result XML:</div>
+      Details at <a href="#Struct_station">Struct station</a>
       <div class="well well-sm bg-light border border-secondary rounded">
         <pre class="mt-4 result">
-&lt;result&gt;&#10;  &lt;station&#10;    changeuuid=&quot;9620f27f-0601-11e8-ae97-52543be04c81&quot;&#10;    stationuuid=&quot;9620f27c-0601-11e8-ae97-52543be04c81&quot;&#10;    name=&quot;CHRK &amp;quot;Giant 101.9&amp;quot; Sydney, NS&quot;&#10;    url=&quot;http://newcap.leanstream.co/CHRKFM&quot;&#10;    url_resolved=&quot;http://newcap.leanstream.co/CHRKFM&quot;&#10;    homepage=&quot;http://www.giant1019.com/&quot;&#10;    favicon=&quot;http://media.socastsrm.com/wordpress/wp-content/blogs.dir/988/files/2017/10/159_primary_image.png&quot;&#10;    tags=&quot;contemporary hits,hot adult contemporary,cape breton,sydney&quot;&#10;    country=&quot;Canada&quot;&#10;    countrycode=&quot;CA&quot;&#10;    state=&quot;Nova Scotia&quot;&#10;    language=&quot;English&quot;&#10;    votes=&quot;0&quot;&#10;    lastchangetime=&quot;2019-12-11 19:48:31&quot;&#10;    ip=&quot;&quot;&#10;    codec=&quot;AAC+&quot;&#10;    bitrate=&quot;56&quot;&#10;    hls=&quot;0&quot;&#10;    lastcheckok=&quot;1&quot;&#10;    lastchecktime=&quot;2019-12-11 17:37:28&quot;&#10;    lastcheckoktime=&quot;2019-12-11 17:37:28&quot;&#10;    clicktimestamp=&quot;&quot;&#10;    clickcount=&quot;0&quot;&#10;    clicktrend=&quot;0&quot;&gt;&#10;  &lt;/station&gt;&#10;  ...&#10;&lt;/result&gt;
+&lt;result&gt;
+  &lt;station name=".." ... &gt;
+  &lt;station name=".." ... &gt;
+  &lt;station name=".." ... &gt;
+  ..
+&lt;/result&gt;
               </pre>
       </div>
       <div class="h5">Example:</div>
@@ -685,7 +886,7 @@
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_all_radio_stations">
       <h1 class="display-4">List of all radio stations</h1>
-      <p class="lead">A list of all radio stations. Please use <a href="#Playable_station_url">Playable station URL</a> API call to get the real station URL and also let the click be counted, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of all radio stations. Please use <a href="#Count_station_click">Count station click</a> API call to let the click be counted, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -733,6 +934,10 @@
           </tr>
         </tbody>
       </table>
+      <div class="h5">Result:</div>
+      <p>
+        Array of <a href="#Struct_station">Struct station</a>
+      </p>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/xml/stations" target="_blank">{{ API_SERVER }}/xml/stations</a></li>
@@ -749,6 +954,8 @@
       <div class="syntax">
         <ul class="list-unstyled ml-4">
           <li>{{ API_SERVER }}/xml/checks</li>
+          <li>{{ API_SERVER }}/xml/checks/stationuuid</li>
+          <li>{{ API_SERVER }}/json/checks</li>
           <li>{{ API_SERVER }}/json/checks/stationuuid</li>
         </ul>
       </div>
@@ -768,6 +975,12 @@
             <td></td>
             <td>UUID</td>
             <td>If set, only list check result of the matching station.</td>
+          </tr>
+          <tr>
+            <td>lastcheckuuid</td>
+            <td></td>
+            <td>UUID</td>
+            <td>If set, only list checks after the check with the given check.</td>
           </tr>
           <tr>
             <td>seconds</td>
@@ -879,11 +1092,99 @@
       </ul>
     </div>
 
-    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Playable_station_url">
-      <h1 class="display-4">Playable station URL</h1>
-      <p class="lead">Returns the playable URL for the station. Any playlist (PLS, ASX, M3U) decoding will be done for you.
-         A call of this endpoint will also count a click for the station!
-         This API call will count as a click on the station, supported output formats: JSON, XML ,PLS ,M3U</p>
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_station_clicks">
+      <h1 class="display-4">List of station clicks</h1>
+      <p class="lead">A list of station clicks. If a station UUID is provided, only clicks of the station will be returned. If a station UUID is not provided, a list of all clicks of all stations will be sent (chunksize 10000), supported output formats: JSON, XML</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>{{ API_SERVER }}/xml/clicks</li>
+          <li>{{ API_SERVER }}/xml/clicks/stationuuid</li>
+          <li>{{ API_SERVER }}/json/clicks</li>
+          <li>{{ API_SERVER }}/json/clicks/stationuuid</li>
+        </ul>
+      </div>
+      <div class="h5">Parameter:</div>
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Default value</th>
+            <th scope="row">Possible value</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>stationuuid</td>
+            <td></td>
+            <td>UUID</td>
+            <td>If set, only list check result of the matching station.</td>
+          </tr>
+          <tr>
+            <td>lastclickuuid</td>
+            <td></td>
+            <td>UUID</td>
+            <td>If set, only list clicks after the click with the given uuid. Use this to continue chunked retrieval to get the next 10000 clicks.</td>
+          </tr>
+          <tr>
+            <td>seconds</td>
+            <td>0</td>
+            <td>positive integer values</td>
+            <td>if >0, it will only return history entries from the last 'seconds' seconds.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="h5">Result JSON:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+          [
+          {
+            "stationuuid":"963134e8-0601-11e8-ae97-52543be04c81",
+            "clickuuid":"ce9ad7bd-34bf-11ea-ac52-52543be04c81",
+            "clicktimestamp":"2020-01-11 23:14:58"
+          },
+          {
+            "stationuuid":"2a70c205-4850-11e8-b1b0-52543be04c81",
+            "clickuuid":"cf49f517-34bf-11ea-ac52-52543be04c81",
+            "clicktimestamp":"2020-01-11 23:15:00"
+          },
+          ..
+          ]
+          </pre>
+      </div>
+
+      <div class="h5 mt-2">Result XML:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+          &lt;click
+            stationuuid=&quot;961fa288-0601-11e8-ae97-52543be04c81&quot;
+            clickuuid=&quot;87a69149-34c1-11ea-ac52-52543be04c81&quot;
+            clicktimestamp=&quot;2020-01-11 23:27:18&quot;
+          /&gt;
+          &lt;click
+            stationuuid=&quot;7a25bf68-1dbe-11ea-a955-52543be04c81&quot;
+            clickuuid=&quot;a25e5fb6-34c1-11ea-ac52-52543be04c81&quot;
+            clicktimestamp=&quot;2020-01-11 23:28:03&quot;
+          /&gt;
+        </pre>
+      </div>
+
+      <div class="h5 mt-2">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="{{ API_SERVER }}/json/clicks" target="_blank">{{ API_SERVER }}/json/clicks</a></li>
+        <li><a href="{{ API_SERVER }}/xml/clicks?seconds=3600" target="_blank">{{ API_SERVER }}/xml/clicks?seconds=3600</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Count_station_click">
+      <h1 class="display-4">Station click counter</h1>
+      <p class="lead">
+         Increase the click count of a station by one. This should be called everytime when a user starts playing a
+         stream to mark the stream more popular than others.
+         Every call to this endpoint from the same IP address and for the same station only gets counted once per day.
+         The call will return detailed information about the stream, supported output formats: JSON, XML ,PLS ,M3U</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -927,8 +1228,8 @@
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Advanced_station_search">
       <h1 class="display-4">Advanced station search</h1>
-      <p class="lead">A list of radio stations that match the search. It will search for the station whose attribute contains the search term. Please use <a href="#Playable_station_url">Playable station URL</a> API call to get the real station URL and also let the click
-        be counted, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of radio stations that match the search. It will search for the station whose attribute contains the search term. Please use <a href="#Count_station_click">Count station click</a> API call to let the click be counted,
+      supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -1060,6 +1361,10 @@
           </tr>
         </tbody>
       </table>
+      <div class="h5">Result:</div>
+      <p>
+        Array of <a href="#Struct_station">Struct station</a>
+      </p>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/json/stations/search" target="_blank">{{ API_SERVER }}/json/stations/search</a></li>
@@ -1091,6 +1396,10 @@
           </tr>
         </tbody>
       </table>
+      <div class="h5">Result:</div>
+      <p>
+        Array of <a href="#Struct_station">Struct station</a>
+      </p>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/json/stations/byurl" target="_blank">{{ API_SERVER }}/json/stations/byurl</a></li>
@@ -1112,6 +1421,10 @@
           <li>{{ API_SERVER }}/json/stations/topclick/rowcount</li>
         </ul>
       </div>
+      <div class="h5">Result:</div>
+      <p>
+        Array of <a href="#Struct_station">Struct station</a>
+      </p>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/xml/stations/topclick" target="_blank">{{ API_SERVER }}/xml/stations/topclick</a></li>
@@ -1132,6 +1445,10 @@
           <li>{{ API_SERVER }}/json/stations/topvote/rowcount</li>
         </ul>
       </div>
+      <div class="h5">Result:</div>
+      <p>
+        Array of <a href="#Struct_station">Struct station</a>
+      </p>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/xml/stations/topvote" target="_blank">{{ API_SERVER }}/xml/stations/topvote</a></li>
@@ -1153,6 +1470,10 @@
           <li>{{ API_SERVER }}/json/stations/lastclick/rowcount</li>
         </ul>
       </div>
+      <div class="h5">Result:</div>
+      <p>
+        Array of <a href="#Struct_station">Struct station</a>
+      </p>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/xml/stations/lastclick" target="_blank">{{ API_SERVER }}/xml/stations/lastclick</a></li>
@@ -1173,6 +1494,10 @@
           <li>{{ API_SERVER }}/json/stations/lastchange/rowcount</li>
         </ul>
       </div>
+      <div class="h5">Result:</div>
+      <p>
+        Array of <a href="#Struct_station">Struct station</a>
+      </p>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/xml/stations/lastchange" target="_blank">{{ API_SERVER }}/xml/stations/lastchange</a></li>
@@ -1233,6 +1558,10 @@
           <li>{{ API_SERVER }}/json/stations/improvable/rowcount</li>
         </ul>
       </div>
+      <div class="h5">Result:</div>
+      <p>
+        Array of <a href="#Struct_station">Struct station</a>
+      </p>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/xml/stations/improvable" target="_blank">{{ API_SERVER }}/xml/stations/improvable</a></li>
@@ -1253,6 +1582,10 @@
           <li>{{ API_SERVER }}/json/stations/broken/rowcount</li>
         </ul>
       </div>
+      <div class="h5">Result:</div>
+      <p>
+        Array of <a href="#Struct_station">Struct station</a>
+      </p>
       <div class="h5 mt-2">Example:</div>
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/xml/stations/broken" target="_blank">{{ API_SERVER }}/xml/stations/broken</a></li>

@@ -1,6 +1,7 @@
 use crate::db::models::StationItem;
 use crate::db::models::StationCheckItem;
 use crate::db::models::StationHistoryItem;
+use crate::db::models::StationClickItem;
 use mysql;
 use mysql::Row;
 
@@ -80,6 +81,18 @@ impl From<Row> for StationHistoryItem {
             votes:              row.take_opt("Votes").unwrap_or(Ok(0)).unwrap_or(0),
             lastchangetime:     row.take_opt("CreationFormated").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             homepage:           row.take_opt("Homepage").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+        }
+    }
+}
+
+impl From<Row> for StationClickItem {
+    fn from(mut row: Row) -> Self {
+        StationClickItem {
+            id:                 row.take("ClickID").unwrap(),
+            clickuuid:          row.take("ClickUuid").unwrap(),
+            stationuuid:        row.take("StationUuid").unwrap(),
+            ip:                 row.take_opt("IP").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            clicktimestamp:     row.take_opt("ClickTimestampFormated").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
         }
     }
 }
