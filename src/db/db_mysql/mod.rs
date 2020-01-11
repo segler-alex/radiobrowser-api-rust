@@ -219,8 +219,8 @@ impl DbConnection for MysqlConnection {
         clickcount=IFNULL((SELECT COUNT(*) FROM StationClick sc WHERE st.StationUuid=sc.StationUuid),0),
         ClickTrend=
         (
-            (select count(*) from StationClick sc1 where sc1.StationUuid=st.StationUuid AND ClickTimestamp>DATE_SUB(NOW(),INTERVAL 2 HOUR) AND ClickTimestamp<=DATE_SUB(NOW(),INTERVAL 0 HOUR)) - 
-            (select count(*) from StationClick sc2 where sc2.StationUuid=st.StationUuid AND ClickTimestamp>DATE_SUB(NOW(),INTERVAL 4 HOUR) AND ClickTimestamp<=DATE_SUB(NOW(),INTERVAL 2 HOUR))
+            (select count(*) from StationClick sc1 where sc1.StationUuid=st.StationUuid AND ClickTimestamp>DATE_SUB(NOW(),INTERVAL 1 DAY) AND ClickTimestamp<=DATE_SUB(NOW(),INTERVAL 0 DAY)) - 
+            (select count(*) from StationClick sc2 where sc2.StationUuid=st.StationUuid AND ClickTimestamp>DATE_SUB(NOW(),INTERVAL 2 DAY) AND ClickTimestamp<=DATE_SUB(NOW(),INTERVAL 1 DAY))
         ),
         ClickTimestamp=(SELECT Max(ClickTimestamp) FROM StationClick sc WHERE sc.StationUuid=st.StationUuid);";
         let mut stmt = self.pool.prepare(query)?;
