@@ -5,9 +5,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.6.2] 2020-01-11
+### Added
+- Sync for clicks
+- Api for clicks /format/clicks
+
 ### Changed
 - Document "/format/url" endpoint as station click endpoint
 - Document returned structs "station", "checks"
+- Faster sync
+
+### Fixed
+- Clickcount calculation for each station
 
 ## [0.6.1] 2020-01-08
 ### Added

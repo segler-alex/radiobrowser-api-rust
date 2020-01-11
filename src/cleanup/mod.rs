@@ -23,6 +23,8 @@ fn do_cleanup(
         conn_new_style.delete_old_clicks(24 * 30)?;
     }
 
+    conn_new_style.update_stations_clickcount()?;
+
     info!("STATS: {} Checks/Hour, {} Checks/Day, {} Working stations, {} Broken stations, {} to do, deletable {} + {}", checks_hour, checks_day, stations_working, stations_broken, stations_todo, stations_deletable_never_worked, stations_deletable_were_working);
     Ok(())
 }

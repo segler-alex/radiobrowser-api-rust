@@ -1,3 +1,4 @@
+use crate::db::models::StationClickItemNew;
 use crate::db::models::State;
 use crate::db::models::ExtraInfo;
 use crate::db::models::StationItem;
@@ -5,6 +6,7 @@ use crate::db::models::StationCheckItem;
 use crate::db::models::StationCheckItemNew;
 use crate::db::models::StationChangeItemNew;
 use crate::db::models::StationHistoryItem;
+use crate::db::models::StationClickItem;
 use crate::db::MysqlConnection;
 use crate::db::DbError;
 use std::error::Error;
@@ -48,6 +50,8 @@ pub trait DbConnection {
     fn set_pull_server_lastid(&self, server: &str, lastid: &str) -> Result<(),Box<dyn std::error::Error>>;
     fn get_pull_server_lastcheckid(&self, server: &str) -> Option<String>;
     fn set_pull_server_lastcheckid(&self, server: &str, lastcheckid: &str) -> Result<(),Box<dyn std::error::Error>>;
+    fn get_pull_server_lastclickid(&self, server: &str) -> Option<String>;
+    fn set_pull_server_lastclickid(&self, server: &str, lastclickuuid: &str) -> Result<(),Box<dyn std::error::Error>>;
 
     fn insert_station_by_change(&self, list_station_changes: &Vec<StationChangeItemNew>) -> Result<Vec<String>,Box<dyn std::error::Error>>;
 
@@ -55,14 +59,19 @@ pub trait DbConnection {
     fn get_1_n(&self, column: &str, search: Option<String>, order: String, reverse: bool, hidebroken: bool) -> Result<Vec<ExtraInfo>, Box<dyn Error>>;
     fn get_states(&self, country: Option<String>, search: Option<String>, order: String, reverse: bool, hidebroken: bool) -> Result<Vec<State>, Box<dyn Error>>;
     fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32, include_history: bool) -> Result<Vec<StationCheckItem>, Box<dyn Error>>;
+    fn get_clicks(&self, stationuuid: Option<String>, clickuuid: Option<String>, seconds: u32) -> Result<Vec<StationClickItem>, Box<dyn Error>>;
 
     fn insert_checks(&self, list: &Vec<StationCheckItemNew>) -> Result<(), Box<dyn Error>>;
     fn update_station_with_check_data(&self, list: &Vec<StationCheckItemNew>, local: bool) -> Result<(), Box<dyn Error>>;
+
+    fn insert_clicks(&self, list: &Vec<StationClickItemNew>) -> Result<(), Box<dyn Error>>;
 
     fn delete_never_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
     fn delete_were_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
     fn delete_old_checks(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
     fn delete_old_clicks(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
+
+    fn update_stations_clickcount(&self) -> Result<(), Box<dyn Error>>;
 
     fn get_stations_multi_items(&self, column_name: &str) -> Result<HashMap<String, (u32,u32)>, Box<dyn Error>>;
     fn get_cached_items(&self, table_name: &str, column_name: &str) -> Result<HashMap<String, (u32, u32)>, Box<dyn Error>>;
