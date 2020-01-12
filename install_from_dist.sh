@@ -2,7 +2,6 @@
 
 set -e
 
-cargo build --release
 sudo mkdir -p /usr/local/bin
 sudo mkdir -p /usr/local/share/radiobrowser
 sudo mkdir -p /var/log/radiobrowser
@@ -10,15 +9,22 @@ sudo mkdir -p /var/log/radiobrowser
 sudo cp target/release/radiobrowser-api-rust /usr/local/bin/radiobrowser
 sudo cp init/radiobrowser.service /etc/systemd/system
 sudo cp static/* /usr/local/share/radiobrowser/
-if [ ! -f /etc/radiobrowser.toml ]; then
-    sudo cp radiobrowser.toml /etc/radiobrowser.toml
+sudo cp etc/config-example.toml /etc/radiobrowser/config-example.toml
+if [ ! -f /etc/radiobrowser/config.toml ]; then
+    sudo cp etc/config-example.toml /etc/radiobrowser/config.toml
 fi
 
 sudo chmod ugo+x /usr/local/bin/radiobrowser
 sudo groupadd --system radiobrowser
-sudo useradd --system --no-create-home --gid radiobrowser radiobrowser
+sudo useradd --system --no-create-home --home-dir /var/lib/radiobrowser --gid radiobrowser radiobrowser
 
+# Create log dir
+sudo mkdir -p /var/log/radiobrowser
 sudo chown radiobrowser:radiobrowser /var/log/radiobrowser
+
+# Create home dir
+sudo mkdir -p /var/lib/radiobrowser
+sudo chown radiobrowser:radiobrowser /var/lib/radiobrowser
 
 sudo systemctl daemon-reload
 
@@ -28,4 +34,4 @@ echo "Start service with:"
 echo " - systemctl start radiobrowser"
 echo "Logs:"
 echo " - journalctl -fu radiobrowser"
-echo "Edit /etc/radiobrowser.toml according to your needs."
+echo "Edit /etc/radiobrowser/config.toml to according to your needs."
