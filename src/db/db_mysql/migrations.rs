@@ -253,5 +253,9 @@ migrations.add_migration("20200111_204800_Add_StationCheck_inserttime",
 r#"ALTER TABLE StationCheck ADD COLUMN InsertTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;"#,
 r#"ALTER TABLE StationCheck DROP COLUMN InsertTime;"#);
 
+migrations.add_migration("20200112_121800_Remove_StationClick_StationID",
+r#"ALTER TABLE StationClick DROP COLUMN StationID;"#,
+r#"ALTER TABLE StationClick ADD COLUMN StationID INT;"#);
+
     Ok(migrations)
 }

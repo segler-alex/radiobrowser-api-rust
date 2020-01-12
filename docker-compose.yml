@@ -2,7 +2,7 @@ version: "3.0"
 services:
   api:
     build: ./
-    image: segleralex/radiobrowser-api-rust:0.6.2
+    image: segleralex/radiobrowser-api-rust:0.6.3
     deploy:
       replicas: 1
     networks:
@@ -14,7 +14,7 @@ services:
        - DATABASE_URL=mysql://radiouser:password@dbserver/radio
        - HOST=0.0.0.0
   dbserver:
-    image: mariadb:latest
+    image: mariadb:10.4
     deploy:
       replicas: 1
     environment:

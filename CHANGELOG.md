@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3] 2020-01-12
+### Added
+- Script for building distribution file
+
+### Changed
+- Debian package
+- Improved readme
+
 ## [0.6.2] 2020-01-11
 ### Added
 - Sync for clicks

@@ -2,7 +2,7 @@ version: "3.2"
 services:
   api:
     build: ./
-    image: segleralex/radiobrowser-api-rust:0.6.2
+    image: segleralex/radiobrowser-api-rust:0.6.3
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=Host(`${SOURCE}`)"
@@ -25,7 +25,7 @@ services:
        - DATABASE_URL=mysql://radiouser:password@dbserver/radio
        - HOST=0.0.0.0
   dbserver:
-    image: mariadb:latest
+    image: mariadb:10.4
     deploy:
       replicas: 1
     environment:

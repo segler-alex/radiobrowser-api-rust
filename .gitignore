@@ -7,3 +7,4 @@ dbdata/
 radio\.sql\.gz
 
 access\.log
+dist/

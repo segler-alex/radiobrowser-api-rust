@@ -1262,25 +1262,18 @@ impl DbConnection for MysqlConnection {
     }
 
     fn increase_clicks(&self, ip: &str, station: &StationItem) -> Result<bool,Box<dyn std::error::Error>> {
-        let query = format!(r#"SELECT StationID, IP FROM StationClick WHERE StationID={id} AND IP="{ip}" AND TIME_TO_SEC(TIMEDIFF(Now(),ClickTimestamp))<24*60*60"#, id = station.id, ip = ip);
-        let result = self.pool.prep_exec(query, ())?;
+        let query = "SELECT StationUuid, IP FROM StationClick WHERE StationUuid=:stationuuid AND IP=ip AND TIME_TO_SEC(TIMEDIFF(Now(),ClickTimestamp))<24*60*60";
+        let result = self.pool.prep_exec(query, params!{"stationuuid" => &station.stationuuid, "ip" => ip})?;
 
         for _ in result {
             return Ok(false);
         }
 
-        let query2 = format!(
-            r#"INSERT INTO StationClick(StationID,IP) VALUES({id},"{ip}")"#,
-            id = station.id,
-            ip = ip
-        );
-        let result2 = self.pool.prep_exec(query2, ())?;
+        let query2 = "INSERT INTO StationClick(IP,StationUuid,ClickUuid) VALUES(:ip,:stationuuid,UUID())";
+        let result2 = self.pool.prep_exec(query2, params!{"stationuuid" => &station.stationuuid, "ip" => ip})?;
 
-        let query3 = format!(
-            "UPDATE Station SET ClickTimestamp=NOW() WHERE StationID={id}",
-            id = station.id
-        );
-        let result3 = self.pool.prep_exec(query3, ())?;
+        let query3 = "UPDATE Station SET ClickTimestamp=NOW() WHERE StationUuid=:stationuuid";
+        let result3 = self.pool.prep_exec(query3, params!{"stationuuid" => &station.stationuuid})?;
 
         if result2.affected_rows() == 1 && result3.affected_rows() == 1 {
             return Ok(true);

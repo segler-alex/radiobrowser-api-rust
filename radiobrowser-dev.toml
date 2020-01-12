@@ -1,9 +1,9 @@
 ## database connection string (mysql, mariadb)
 database = "mysql://radiouser:password@localhost/radio"
 ## Directory for static and template files
-static-files-dir = "/usr/local/share/radiobrowser"
+static-files-dir = "./static"
 ## Log file path
-log-dir = "/var/log/radiobrowser/"
+log-dir = "./"
 
 ## Listening IP
 listen-host = "127.0.0.1"
