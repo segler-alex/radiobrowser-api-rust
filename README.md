@@ -26,7 +26,7 @@ You can do a native setup or a docker setup
 * Automatic redirect from HTTP to HTTPS
 * Automatic generation and update of Let's Encrypt certificates
 * Automatic start on reboot
-* Automatic fetch of station changes and check information from main server at <http://api.radio-browser.info>
+* Automatic fetch of station changes and check information from main server
 
 ```bash
 # checkout this project

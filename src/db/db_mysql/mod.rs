@@ -938,22 +938,22 @@ impl DbConnection for MysqlConnection {
         let results = match stationuuid {
             Some(uuid) => {
                 let where_checkuuid_str = if checkuuid.is_some() {
-                    " AND Creation>=(SELECT Creation FROM {table_name} WHERE ChangeUuid=:checkuuid) AND ChangeUuid<>:checkuuid"
+                    " AND InsertTime>=(SELECT InsertTime FROM {table_name} WHERE ChangeUuid=:checkuuid) AND ChangeUuid<>:checkuuid"
                 } else {
                     ""
                 };
 
-                let query = format!("SELECT {columns} FROM {table_name} WHERE StationUuid=? {where_checkuuid} {where_seconds} ORDER BY Creation", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name);
+                let query = format!("SELECT {columns} FROM {table_name} WHERE StationUuid=? {where_checkuuid} {where_seconds} ORDER BY InsertTime", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name);
                 self.pool.prep_exec(query, (uuid,))
             }
             None => {
                 let where_checkuuid_str = if checkuuid.is_some() {
-                    " AND Creation>=(SELECT Creation FROM {table_name} WHERE ChangeUuid=:checkuuid) AND ChangeUuid<>:checkuuid"
+                    " AND InsertTime>=(SELECT InsertTime FROM {table_name} WHERE ChangeUuid=:checkuuid) AND ChangeUuid<>:checkuuid"
                 } else {
                     ""
                 };
 
-                let query = format!("SELECT {columns} FROM {table_name} WHERE 1=1 {where_checkuuid} {where_seconds} ORDER BY Creation", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name);
+                let query = format!("SELECT {columns} FROM {table_name} WHERE 1=1 {where_checkuuid} {where_seconds} ORDER BY InsertTime", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name);
                 self.pool.prep_exec(query, ())
             }
         };
