@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - /format/checks
+- Insert of checks does now ignore duplicates
+- Resuse checkuuids of pullserver, do not generate new ones on pull
 
+### Changed
+- Replaced StationCheck table with view on StationCheckHistory
 
 ## [0.6.3] 2020-01-12
 ### Added

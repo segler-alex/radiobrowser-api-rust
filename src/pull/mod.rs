@@ -166,7 +166,7 @@ fn pull_server(connection_new: &Box<dyn DbConnection>, server: &str) -> Result<(
         trace!("Incremental checks sync ({})..", len);
         let mut list_checks_converted = vec![];
         for check in list_checks {
-            let changeuuid = check.checkuuid.clone();
+            let checkuuid = check.checkuuid.clone();
             let value: StationCheckItemNew = check.into();
             list_checks_converted.push(value);
             station_check_count = station_check_count + 1;
@@ -175,7 +175,7 @@ fn pull_server(connection_new: &Box<dyn DbConnection>, server: &str) -> Result<(
                 trace!("Insert {} checks..", list_checks_converted.len());
                 connection_new.insert_checks(&list_checks_converted)?;
                 connection_new.update_station_with_check_data(&list_checks_converted, false)?;
-                connection_new.set_pull_server_lastcheckid(server, &changeuuid)?;
+                connection_new.set_pull_server_lastcheckid(server, &checkuuid)?;
                 list_checks_converted.clear();
             }
         }
@@ -221,6 +221,7 @@ fn pull_server(connection_new: &Box<dyn DbConnection>, server: &str) -> Result<(
 impl From<StationCheck> for StationCheckItemNew {
     fn from(item: StationCheck) -> Self {
         StationCheckItemNew {
+            checkuuid: Some(item.checkuuid),
             station_uuid: item.stationuuid,
             check_ok: item.ok == 1,
             bitrate: item.bitrate,

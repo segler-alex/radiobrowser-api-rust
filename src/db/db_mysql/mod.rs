@@ -2,6 +2,7 @@ mod migrations;
 mod simple_migrate;
 mod conversions;
 
+use std::collections::HashSet;
 use crate::db::db_error::DbError;
 
 use std;
@@ -114,8 +115,8 @@ impl MysqlConnection {
                 insert_params.push(stationuuid.into());
                 insert_query.push("?");
             }
-            let query = format!("INSERT INTO StationHistory(StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid)
-                                                    SELECT StationID,Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid FROM Station WHERE StationUuid IN ({})", insert_query.join(","));
+            let query = format!("INSERT INTO StationHistory(Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid)
+                                                     SELECT Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid FROM Station WHERE StationUuid IN ({})", insert_query.join(","));
             let mut stmt = transaction.prepare(query)?;
             stmt.execute(insert_params)?;
         }
@@ -151,6 +152,8 @@ impl MysqlConnection {
             }
         }
 
+        trace!("Ignored changes for insert: {}", changeexists.len());
+
         // insert changes
         let mut list_ids = vec![];
         if list.len() > 0 {
@@ -178,18 +181,28 @@ impl MysqlConnection {
         }
         Ok(list_ids)
     }
+
+    /*
+    pub fn prefill_station_click_from_history(&self) {
+        INSERT INTO StationCheck (CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer)
+                           SELECT CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer FROM StationCheckHistory
+                                  WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);
+    }
+    */
 }
 
 impl DbConnection for MysqlConnection {
     fn delete_old_checks(&mut self, hours: u32) -> Result<(), Box<dyn Error>> {
         let p = params!(hours);
-        let delete_old_checks_history_query = "DELETE FROM StationCheckHistory WHERE InsertTime < NOW() - INTERVAL :hours HOUR";
+        let delete_old_checks_history_query = "DELETE FROM StationCheckHistory WHERE CheckTime < NOW() - INTERVAL :hours HOUR";
         let mut delete_old_checks_history_stmt = self.pool.prepare(delete_old_checks_history_query)?;
         delete_old_checks_history_stmt.execute(&p)?;
 
+        /*
         let delete_old_checks_current_query = "DELETE FROM StationCheck WHERE InsertTime < NOW() - INTERVAL :hours HOUR";
         let mut delete_old_checks_current_stmt = self.pool.prepare(delete_old_checks_current_query)?;
         delete_old_checks_current_stmt.execute(&p)?;
+        */
         Ok(())
     }
 
@@ -544,7 +557,7 @@ impl DbConnection for MysqlConnection {
 
     fn get_changes(&self, stationuuid: Option<String>, changeuuid: Option<String>) -> Result<Vec<StationHistoryItem>, Box<dyn Error>> {
         let changeuuid_str = if changeuuid.is_some() {
-            " AND Creation>=(SELECT Creation FROM StationHistory WHERE ChangeUuid=:changeuuid) AND ChangeUuid<>:changeuuid"
+            " AND StationChangeID>=(SELECT StationChangeID FROM StationHistory WHERE ChangeUuid=:changeuuid) AND StationChangeID <= (SELECT MAX(StationChangeID) FROM StationHistory WHERE Creation <= NOW() - INTERVAL 60 SECOND) AND ChangeUuid<>:changeuuid"
         } else {
             ""
         };
@@ -555,7 +568,7 @@ impl DbConnection for MysqlConnection {
             ""
         };
         
-        let query: String = format!("SELECT StationChangeID,StationID,ChangeUuid,
+        let query: String = format!("SELECT StationChangeID,ChangeUuid,
                 StationUuid,Name,
                 Url,Homepage,
                 Favicon,Tags,
@@ -563,7 +576,7 @@ impl DbConnection for MysqlConnection {
                 CountryCode,
                 Language,Votes,
                 Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated
-                from StationHistory WHERE 1=:mynumber {changeuuid_str} {stationuuid} ORDER BY Creation ASC", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str);
+                from StationHistory WHERE 1=:mynumber {changeuuid_str} {stationuuid} ORDER BY StationChangeID ASC", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str);
         let results = self.pool.prep_exec(query, params! {
             "mynumber" => 1,
             "stationuuid" => stationuuid.unwrap_or(String::from("")),
@@ -734,11 +747,47 @@ impl DbConnection for MysqlConnection {
     fn insert_checks(&self, list: &Vec<StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
         let mut transaction = self.pool.start_transaction(false, None, None)?;
         
+        // search for checkuuids in history table, if already added (maybe from other source)
+        let mut existing_checks: HashSet<String> = HashSet::new();
+        {
+            let search_params: Vec<Value> = list.iter().filter_map(|item| item.checkuuid.clone()).map(|item2| item2.into()).collect();
+            let search_query: Vec<&str> = (0..search_params.len()).map(|_item| "?").collect();
+
+            let query_delete_old_station_checks = format!("SELECT CheckUuid FROM StationCheckHistory WHERE CheckUuid IN ({})", search_query.join(","));
+            let mut stmt_delete_old_station_checks = transaction.prepare(query_delete_old_station_checks)?;
+            let result = stmt_delete_old_station_checks.execute(search_params)?;
+
+            for row in result {
+                let (checkuuid, ) = mysql::from_row_opt(row?)?;
+                existing_checks.replace(checkuuid);
+            }
+        }
+
+        trace!("Ignored checks for insert: {}", existing_checks.len());
+
+        // create lists for insertion
         let mut delete_station_check_params: Vec<Value> = vec![];
         let mut delete_station_check_query = vec![];
         let mut insert_station_check_params: Vec<Value> = vec![];
         let mut insert_station_check_query = vec![];
         for item in list {
+            // check has checkuuid ?
+            match &item.checkuuid {
+                Some(checkuuid) => {
+                    // ignore checks that are already in the database
+                    if existing_checks.contains(checkuuid) {
+                        continue;
+                    }
+                    // reuse checkuuid
+                    insert_station_check_query.push("(?,?,?,?,?,?,?,NOW(),?,?,?,?,?,?,?,?,?,?)");
+                    insert_station_check_params.push(checkuuid.into());
+                },
+                None => {
+                    // generate new checkuuid
+                    insert_station_check_query.push("(UUID(),?,?,?,?,?,?,NOW(),?,?,?,?,?,?,?,?,?,?)");
+                }
+            }
+            
             delete_station_check_params.push(item.station_uuid.clone().into());
             delete_station_check_params.push(item.source.clone().into());
             delete_station_check_query.push("(StationUuid=? AND Source=?)");
@@ -760,31 +809,35 @@ impl DbConnection for MysqlConnection {
             insert_station_check_params.push(item.homepage.clone().into());
             insert_station_check_params.push(item.favicon.clone().into());
             insert_station_check_params.push(item.loadbalancer.clone().into());
-
-            insert_station_check_query.push("(?,UUID(),?,?,?,?,?,NOW(),?,?,?,?,?,?,?,?,?,?)");
         }
 
+        // insert into history table
+        if insert_station_check_query.len() > 0 {
+            let insert_station_check_params_str = insert_station_check_query.join(",");
+            let query_insert_station_check_history = format!("INSERT INTO StationCheckHistory(CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,
+                MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer) VALUES{}", insert_station_check_params_str);
+            let mut stmt_insert_station_check_history = transaction.prepare(query_insert_station_check_history)?;
+            stmt_insert_station_check_history.execute(&insert_station_check_params)?;
+        }
+
+        /*
+        // delete checks from current table, that will be overriden (same stationuuid and source)
         {
             let query_delete_old_station_checks = format!("DELETE FROM StationCheck WHERE {}", delete_station_check_query.join(" OR "));
             let mut stmt_delete_old_station_checks = transaction.prepare(query_delete_old_station_checks)?;
             stmt_delete_old_station_checks.execute(delete_station_check_params)?;
         }
 
-        let insert_station_check_params_str = insert_station_check_query.join(",");
+        // filter out checks that have same stationuuid and source
 
+        // insert into current checks table
         {
-            let query_insert_station_check = format!("INSERT INTO StationCheck(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,
+            let query_insert_station_check = format!("INSERT INTO StationCheck(CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,
                 MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer) VALUES{}", insert_station_check_params_str);
             let mut stmt_insert_station_check = transaction.prepare(query_insert_station_check)?;
-            stmt_insert_station_check.execute(&insert_station_check_params)?;
+            stmt_insert_station_check.execute(insert_station_check_params)?;
         }
-
-        {
-            let query_insert_station_check_history = format!("INSERT INTO StationCheckHistory(StationUuid,CheckUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,
-                MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer) VALUES{}", insert_station_check_params_str);
-            let mut stmt_insert_station_check_history = transaction.prepare(query_insert_station_check_history)?;
-            stmt_insert_station_check_history.execute(insert_station_check_params)?;
-        }
+        */
 
         transaction.commit()?;
 
@@ -936,25 +989,32 @@ impl DbConnection for MysqlConnection {
         };
 
         let results = match stationuuid {
-            Some(uuid) => {
+            Some(stationuuid) => {
+                let mut query_params = params!{"stationuuid" => stationuuid};
                 let where_checkuuid_str = if checkuuid.is_some() {
-                    " AND InsertTime>=(SELECT InsertTime FROM {table_name} WHERE ChangeUuid=:checkuuid) AND ChangeUuid<>:checkuuid"
+                    query_params.push((String::from("checkuuid"), checkuuid.unwrap().into(),));
+                    format!(" AND CheckID>=(SELECT CheckID FROM {table_name} WHERE CheckUuid=:checkuuid) AND CheckID <= (SELECT MAX(CheckID) FROM {table_name} WHERE InsertTime <= NOW() - INTERVAL 60 SECOND) AND CheckUuid<>:checkuuid", table_name = table_name)
                 } else {
-                    ""
+                    String::from("")
                 };
 
-                let query = format!("SELECT {columns} FROM {table_name} WHERE StationUuid=? {where_checkuuid} {where_seconds} ORDER BY InsertTime", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name);
-                self.pool.prep_exec(query, (uuid,))
+                let query = format!("SELECT {columns} FROM {table_name} WHERE StationUuid=:stationuuid {where_checkuuid} {where_seconds} ORDER BY CheckID", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name);
+                trace!("get_checks() {}", query);
+                self.pool.prep_exec(query, query_params)
             }
             None => {
-                let where_checkuuid_str = if checkuuid.is_some() {
-                    " AND InsertTime>=(SELECT InsertTime FROM {table_name} WHERE ChangeUuid=:checkuuid) AND ChangeUuid<>:checkuuid"
-                } else {
-                    ""
+                let mut query_params = params!{"one" => 1};
+                let where_checkuuid_str = match checkuuid {
+                    Some(checkuuid) => {
+                        query_params.push((String::from("checkuuid"), checkuuid.into(),));
+                        format!(" AND CheckID>=(SELECT CheckID FROM {table_name} WHERE CheckUuid=:checkuuid) AND CheckID <= (SELECT MAX(CheckID) FROM {table_name} WHERE InsertTime <= NOW() - INTERVAL 60 SECOND) AND CheckUuid<>:checkuuid", table_name = table_name)
+                    },
+                    None => String::from("")
                 };
 
-                let query = format!("SELECT {columns} FROM {table_name} WHERE 1=1 {where_checkuuid} {where_seconds} ORDER BY InsertTime", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name);
-                self.pool.prep_exec(query, ())
+                let query = format!("SELECT {columns} FROM {table_name} WHERE 1=:one {where_checkuuid} {where_seconds} ORDER BY CheckID", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name);
+                trace!("get_checks() {}", query);
+                self.pool.prep_exec(query, query_params)
             }
         };
 
@@ -962,7 +1022,6 @@ impl DbConnection for MysqlConnection {
     }
 
     fn get_clicks(&self, stationuuid: Option<String>, clickuuid: Option<String>, seconds: u32) -> Result<Vec<StationClickItem>, Box<dyn Error>> {
-        let table_name = "StationClick";
         let where_seconds = if seconds > 0 {
             format!(
                 "AND TIMESTAMPDIFF(SECOND,ClickTimestamp,now())<{seconds}",
@@ -973,27 +1032,32 @@ impl DbConnection for MysqlConnection {
         };
 
         let results = match stationuuid {
-            Some(uuid) => {
-                let where_clickuuid_str = if clickuuid.is_some() {
-                    " AND InsertTime>=(SELECT InsertTime FROM {table_name} WHERE ChangeUuid=:checkuuid) AND ChangeUuid<>:checkuuid"
-                } else {
-                    ""
+            Some(stationuuid) => {
+                let mut query_params = params!{"stationuuid" => stationuuid};
+                let where_clickuuid_str = match clickuuid {
+                    Some(clickuuid) => {
+                        query_params.push((String::from("clickuuid"), clickuuid.into(),));
+                        " AND ClickID>=(SELECT ClickID FROM StationClick WHERE ClickUuid=:clickuuid) AND ClickID <= (SELECT MAX(ClickID) FROM StationClick WHERE InsertTime <= NOW() - INTERVAL 60 SECOND) AND ClickUuid<>:clickuuid"
+                    },
+                    None => ""
                 };
 
-                let query = format!("SELECT {columns} FROM {table_name} WHERE StationUuid=? {where_clickuuid} {where_seconds} ORDER BY InsertTime", columns = MysqlConnection::COLUMNS_CLICK, where_seconds = where_seconds, where_clickuuid = where_clickuuid_str, table_name = table_name);
-                trace!("{}", query);
-                self.pool.prep_exec(query, (uuid,))
+                let query = format!("SELECT {columns} FROM StationClick WHERE StationUuid=:stationuuid {where_clickuuid} {where_seconds} ORDER BY ClickID LIMIT 10000", columns = MysqlConnection::COLUMNS_CLICK, where_seconds = where_seconds, where_clickuuid = where_clickuuid_str);
+                trace!("get_clicks() {}", query);
+                self.pool.prep_exec(query, query_params)
             }
             None => {
+                let mut query_params = params!{"one" => 1};
                 let where_clickuuid_str = if clickuuid.is_some() {
-                    " AND InsertTime>=(SELECT InsertTime FROM {table_name} WHERE ChangeUuid=:checkuuid) AND ChangeUuid<>:checkuuid"
+                    query_params.push((String::from("clickuuid"), clickuuid.unwrap().into(),));
+                    " AND ClickID>=(SELECT ClickID FROM StationClick WHERE ClickUuid=:clickuuid) AND ClickID <= (SELECT MAX(ClickID) FROM StationClick WHERE InsertTime <= NOW() - INTERVAL 60 SECOND) AND ClickUuid<>:clickuuid"
                 } else {
                     ""
                 };
                 
-                let query = format!("SELECT {columns} FROM {table_name} WHERE 1=1 {where_clickuuid} {where_seconds} ORDER BY InsertTime", columns = MysqlConnection::COLUMNS_CLICK, where_seconds = where_seconds, where_clickuuid = where_clickuuid_str, table_name = table_name);
-                trace!("{}", query);
-                self.pool.prep_exec(query, ())
+                let query = format!("SELECT {columns} FROM StationClick WHERE 1=:one {where_clickuuid} {where_seconds} ORDER BY ClickID LIMIT 10000", columns = MysqlConnection::COLUMNS_CLICK, where_seconds = where_seconds, where_clickuuid = where_clickuuid_str);
+                trace!("get_clicks() {}", query);
+                self.pool.prep_exec(query, query_params)
             }
         };
 

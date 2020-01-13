@@ -331,7 +331,7 @@ fn handle_connection_internal<A>(connection_new: &A, request: &rouille::Request,
 
     let param_last_changeuuid: Option<String> = ppp.get_string("lastchangeuuid");
     let param_last_checkuuid: Option<String> = ppp.get_string("lastcheckuuid");
-    let param_last_clickuuid: Option<String> = ppp.get_string("lastclickuid");
+    let param_last_clickuuid: Option<String> = ppp.get_string("lastclickuuid");
 
     let param_name: Option<String> = ppp.get_string("name");
     let param_name_exact: bool = ppp.get_bool("nameExact", false);
