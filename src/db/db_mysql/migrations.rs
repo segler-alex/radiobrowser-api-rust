@@ -320,5 +320,13 @@ r#"ALTER TABLE StationClick ADD COLUMN InsertTime TIMESTAMP NOT NULL DEFAULT CUR
 r#"CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#,
 r#"DROP VIEW StationCheck;"#);
 
+    migrations.add_migration("20200114_001000_Delete_StationCheckHistory",
+r#"DELETE FROM StationCheckHistory;"#,
+r#"DELETE FROM StationCheckHistory;"#);
+
+    migrations.add_migration("20200114_001100_Delete_PullServers",
+r#"DELETE FROM PullServers;"#,
+r#"DELETE FROM PullServers;"#);
+
     Ok(migrations)
 }

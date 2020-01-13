@@ -966,7 +966,7 @@ impl DbConnection for MysqlConnection {
             }
         }
 
-        {
+        if insert_click_query.len() > 0 {
             let query = format!("INSERT INTO StationClick(ClickUuid, StationUuid, ClickTimestamp) VALUES{}", insert_click_query.join(","));
             let mut stmt_insert = transaction.prepare(query)?;
             stmt_insert.execute(insert_click_params)?;

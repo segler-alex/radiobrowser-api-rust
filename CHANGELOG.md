@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Replaced StationCheck table with view on StationCheckHistory
+- Migration deletes contents of StationCheckHistory, to remove unconnected uuids
+- Migration deletes contents of PullServers to force re-pulling of every server
 
 ## [0.6.3] 2020-01-12
 ### Added
