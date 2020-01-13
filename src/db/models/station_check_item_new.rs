@@ -1,5 +1,6 @@
 #[derive(Clone,Debug)]
 pub struct StationCheckItemNew {
+    pub checkuuid: Option<String>,
     pub station_uuid: String,
     pub source: String,
     pub codec: String,

@@ -1,7 +1,6 @@
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct StationHistoryItem {
     pub id: i32,
-    pub stationid: i32,
     pub changeuuid: String,
     pub stationuuid: String,
     pub name: String,

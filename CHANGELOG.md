@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.4] 2020-01-14
+### Fixed
+- Insert of checks does now ignore duplicates
+- Resuse checkuuids of pullserver, do not generate new ones on pull
+- Incremental results of /format/stations/changed, /format/checks and /format/clicks do work reliably
+
+### Changed
+- Replaced StationCheck table with view on StationCheckHistory
+- Migration deletes contents of StationCheckHistory, to remove unconnected uuids
+- Migration deletes contents of PullServers to force re-pulling of every server
+
 ## [0.6.3] 2020-01-12
 ### Added
 - Script for building distribution file

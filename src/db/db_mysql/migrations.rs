@@ -257,5 +257,76 @@ migrations.add_migration("20200112_121800_Remove_StationClick_StationID",
 r#"ALTER TABLE StationClick DROP COLUMN StationID;"#,
 r#"ALTER TABLE StationClick ADD COLUMN StationID INT;"#);
 
+    migrations.add_migration("20200113_202000_Modify_Station_StationID_bigint",
+r#"ALTER TABLE Station MODIFY COLUMN StationID BIGINT UNSIGNED NOT NULL AUTO_INCREMENT;"#,
+r#"ALTER TABLE Station MODIFY COLUMN StationID INT NOT NULL AUTO_INCREMENT;"#);
+
+    migrations.add_migration("20200113_202100_Modify_StationHistory_StationChangeID_bigint",
+r#"ALTER TABLE StationHistory MODIFY COLUMN StationChangeID BIGINT UNSIGNED NOT NULL AUTO_INCREMENT;"#,
+r#"ALTER TABLE StationHistory MODIFY COLUMN StationChangeID INT NOT NULL AUTO_INCREMENT;"#);
+
+    migrations.add_migration("20200113_202200_Modify_StationCheck_CheckID_bigint",
+r#"ALTER TABLE StationCheckHistory MODIFY COLUMN CheckID BIGINT UNSIGNED NOT NULL AUTO_INCREMENT;"#,
+r#"ALTER TABLE StationCheckHistory MODIFY COLUMN CheckID INT NOT NULL AUTO_INCREMENT;"#);
+
+    migrations.add_migration("20200113_202300_Modify_StationClick_ClickID_bigint",
+r#"ALTER TABLE StationClick MODIFY COLUMN ClickID BIGINT UNSIGNED NOT NULL AUTO_INCREMENT;"#,
+r#"ALTER TABLE StationClick MODIFY COLUMN ClickID INT NOT NULL AUTO_INCREMENT;"#);
+
+    migrations.add_migration("20200113_203500_Add_FK_StationCheckHistory_Station",
+r#"ALTER TABLE StationCheckHistory ADD CONSTRAINT FK_StationCheckHistory_Station FOREIGN KEY(StationUuid) REFERENCES Station(StationUuid);"#,
+r#"ALTER TABLE StationCheckHistory DROP CONSTRAINT FK_StationCheckHistory_Station;"#);
+
+    migrations.add_migration("20200113_203600_Drop_StationHistory_StationID",
+r#"ALTER TABLE StationHistory DROP COLUMN StationID;"#,
+r#"ALTER TABLE StationHistory ADD COLUMN StationID INT NOT NULL;"#);
+
+    migrations.add_migration("20200113_203700_Drop_StationCheck",
+r#"DROP TABLE StationCheck;"#,
+r#"CREATE TABLE StationCheck(
+CheckID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+StationUuid CHAR(36) NOT NULL,
+CheckUuid CHAR(36) NOT NULL UNIQUE,
+Source VARCHAR(100) NOT NULL,
+Codec VARCHAR(20),
+Bitrate INT NOT NULL DEFAULT 0,
+Hls BOOLEAN NOT NULL DEFAULT FALSE,
+CheckOK  BOOLEAN NOT NULL DEFAULT TRUE,
+CheckTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+UrlCache TEXT,
+MetainfoOverridesDatabase BOOL NOT NULL DEFAULT false,
+Public BOOL,
+Name TEXT,
+Description TEXT,
+Tags TEXT,
+CountryCode TEXT,
+Homepage TEXT,
+Favicon TEXT,
+Loadbalancer TEXT,
+InsertTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"#);
+
+/*
+    migrations.add_migration("20200113_203800_Drop_StationCheckHistory_InsertTime",
+r#"ALTER TABLE StationCheckHistory DROP COLUMN InsertTime;"#,
+r#"ALTER TABLE StationCheckHistory ADD COLUMN InsertTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;"#);
+
+    migrations.add_migration("20200113_203900_Drop_StationClick_InsertTime",
+r#"ALTER TABLE StationClick DROP COLUMN InsertTime;"#,
+r#"ALTER TABLE StationClick ADD COLUMN InsertTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;"#);
+*/
+
+    migrations.add_migration("20200113_204000_Create_View_StationCheck",
+r#"CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#,
+r#"DROP VIEW StationCheck;"#);
+
+    migrations.add_migration("20200114_001000_Delete_StationCheckHistory",
+r#"DELETE FROM StationCheckHistory;"#,
+r#"DELETE FROM StationCheckHistory;"#);
+
+    migrations.add_migration("20200114_001100_Delete_PullServers",
+r#"DELETE FROM PullServers;"#,
+r#"DELETE FROM PullServers;"#);
+
     Ok(migrations)
 }

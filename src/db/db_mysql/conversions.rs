@@ -67,7 +67,6 @@ impl From<Row> for StationHistoryItem {
     fn from(mut row: Row) -> Self {
         StationHistoryItem {
             id:                 row.take("StationChangeID").unwrap(),
-            stationid:          row.take("StationID").unwrap(),
             changeuuid:         row.take("ChangeUuid").unwrap(),
             stationuuid:        row.take("StationUuid").unwrap(),
             name:               row.take_opt("Name").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),

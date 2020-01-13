@@ -157,6 +157,7 @@ fn dbcheck_internal(
                                 codec.push_str(&video);
                             }
                             let new_item_ok = StationCheckItemNew {
+                                checkuuid: None,
                                 station_uuid: station.stationuuid.clone(),
                                 source: source.clone(),
                                 codec: codec,
@@ -189,6 +190,7 @@ fn dbcheck_internal(
                 }
             }
             let new_item_broken: StationCheckItemNew = StationCheckItemNew {
+                checkuuid: None,
                 station_uuid: station.stationuuid.clone(),
                 source: source.clone(),
                 codec: "".to_string(),
