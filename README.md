@@ -80,7 +80,7 @@ docker stack deploy -c docker-compose-traefik.yml rb
 # download distribution
 mkdir -p radiobrowser
 cd radiobrowser
-wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.6.3/radiobrowser-dist.tar.gz
+wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.6.4/radiobrowser-dist.tar.gz
 tar -zxf radiobrowser-dist.tar.gz
 
 # config database
@@ -101,9 +101,9 @@ sudo systemctl start radiobrowser
 * create database and database user
 
 ```bash
-wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.6.3/radiobrowser-api-rust_0.6.3_amd64.deb
+wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.6.4/radiobrowser-api-rust_0.6.4_amd64.deb
 sudo apt install default-mysql-server
-sudo dpkg -i radiobrowser-api-rust_0.6.3_amd64.deb
+sudo dpkg -i radiobrowser-api-rust_0.6.4_amd64.deb
 cat /usr/share/radiobrowser/init.sql | mysql
 ```
 

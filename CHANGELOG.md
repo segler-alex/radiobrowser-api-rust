@@ -5,10 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.6.4] 2020-01-14
 ### Fixed
-- /format/checks
 - Insert of checks does now ignore duplicates
 - Resuse checkuuids of pullserver, do not generate new ones on pull
+- Incremental results of /format/stations/changed, /format/checks and /format/clicks do work reliably
 
 ### Changed
 - Replaced StationCheck table with view on StationCheckHistory
