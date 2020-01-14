@@ -198,11 +198,6 @@ impl DbConnection for MysqlConnection {
         let mut delete_old_checks_history_stmt = self.pool.prepare(delete_old_checks_history_query)?;
         delete_old_checks_history_stmt.execute(&p)?;
 
-        /*
-        let delete_old_checks_current_query = "DELETE FROM StationCheck WHERE InsertTime < NOW() - INTERVAL :hours HOUR";
-        let mut delete_old_checks_current_stmt = self.pool.prepare(delete_old_checks_current_query)?;
-        delete_old_checks_current_stmt.execute(&p)?;
-        */
         Ok(())
     }
 
@@ -753,13 +748,15 @@ impl DbConnection for MysqlConnection {
             let search_params: Vec<Value> = list.iter().filter_map(|item| item.checkuuid.clone()).map(|item2| item2.into()).collect();
             let search_query: Vec<&str> = (0..search_params.len()).map(|_item| "?").collect();
 
-            let query_delete_old_station_checks = format!("SELECT CheckUuid FROM StationCheckHistory WHERE CheckUuid IN ({})", search_query.join(","));
-            let mut stmt_delete_old_station_checks = transaction.prepare(query_delete_old_station_checks)?;
-            let result = stmt_delete_old_station_checks.execute(search_params)?;
+            if search_query.len() > 0 {
+                let query_delete_old_station_checks = format!("SELECT CheckUuid FROM StationCheckHistory WHERE CheckUuid IN ({})", search_query.join(","));
+                let mut stmt_delete_old_station_checks = transaction.prepare(query_delete_old_station_checks)?;
+                let result = stmt_delete_old_station_checks.execute(search_params)?;
 
-            for row in result {
-                let (checkuuid, ) = mysql::from_row_opt(row?)?;
-                existing_checks.replace(checkuuid);
+                for row in result {
+                    let (checkuuid, ) = mysql::from_row_opt(row?)?;
+                    existing_checks.replace(checkuuid);
+                }
             }
         }
 
@@ -819,25 +816,6 @@ impl DbConnection for MysqlConnection {
             let mut stmt_insert_station_check_history = transaction.prepare(query_insert_station_check_history)?;
             stmt_insert_station_check_history.execute(&insert_station_check_params)?;
         }
-
-        /*
-        // delete checks from current table, that will be overriden (same stationuuid and source)
-        {
-            let query_delete_old_station_checks = format!("DELETE FROM StationCheck WHERE {}", delete_station_check_query.join(" OR "));
-            let mut stmt_delete_old_station_checks = transaction.prepare(query_delete_old_station_checks)?;
-            stmt_delete_old_station_checks.execute(delete_station_check_params)?;
-        }
-
-        // filter out checks that have same stationuuid and source
-
-        // insert into current checks table
-        {
-            let query_insert_station_check = format!("INSERT INTO StationCheck(CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,
-                MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer) VALUES{}", insert_station_check_params_str);
-            let mut stmt_insert_station_check = transaction.prepare(query_insert_station_check)?;
-            stmt_insert_station_check.execute(insert_station_check_params)?;
-        }
-        */
 
         transaction.commit()?;
 
