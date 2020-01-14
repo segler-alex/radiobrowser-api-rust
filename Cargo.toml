@@ -42,10 +42,10 @@ Radio-Browser Server with REST API
 section = "admin"
 priority = "optional"
 assets = [
-    ["target/release/radiobrowser-api-rust", "usr/local/bin/radiobrowser", "755"],
-    ["static/*", "usr/local/share/radiobrowser/", "644"],
-    ["init.sql", "usr/local/share/radiobrowser/init.sql", "644"],
-    ["init/*", "etc/sytemd/system/", "644"],
+    ["target/release/radiobrowser-api-rust", "usr/bin/radiobrowser", "755"],
+    ["static/*", "usr/share/radiobrowser/", "644"],
+    ["init.sql", "usr/share/radiobrowser/init.sql", "644"],
+    ["init/*", "etc/systemd/system/", "644"],
     ["radiobrowser.toml", "etc/radiobrowser/config-example.toml", "644"],
     ["radiobrowser.toml", "etc/radiobrowser/config.toml", "644"],
 ]

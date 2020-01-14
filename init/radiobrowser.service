@@ -27,7 +27,7 @@ ProtectSystem=full
 ProtectHome=true
 
 # Start main service
-ExecStart=/usr/local/bin/radiobrowser -f /etc/radiobrowser/config.toml
+ExecStart=/usr/bin/radiobrowser -f /etc/radiobrowser/config.toml
 
 Restart=always
 RestartSec=5s
