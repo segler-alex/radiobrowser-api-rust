@@ -173,8 +173,8 @@ fn pull_server(connection_new: &Box<dyn DbConnection>, server: &str) -> Result<(
 
             if station_check_count % insert_chunksize == 0 || station_check_count == len {
                 trace!("Insert {} checks..", list_checks_converted.len());
-                connection_new.insert_checks(&list_checks_converted)?;
-                connection_new.update_station_with_check_data(&list_checks_converted, false)?;
+                let ignored_uuids = connection_new.insert_checks(&list_checks_converted)?;
+                connection_new.update_station_with_check_data(&list_checks_converted.drain(..).filter(|item| match &item.checkuuid { Some(checkuuid) => !ignored_uuids.contains(checkuuid), None => true }).collect(), false)?;
                 connection_new.set_pull_server_lastcheckid(server, &checkuuid)?;
                 list_checks_converted.clear();
             }

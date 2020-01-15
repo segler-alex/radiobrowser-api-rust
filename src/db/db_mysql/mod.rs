@@ -739,7 +739,7 @@ impl DbConnection for MysqlConnection {
         Ok(list_ids)
     }
 
-    fn insert_checks(&self, list: &Vec<StationCheckItemNew>) -> Result<(), Box<dyn std::error::Error>> {
+    fn insert_checks(&self, list: &Vec<StationCheckItemNew>) -> Result<HashSet<String>, Box<dyn std::error::Error>> {
         let mut transaction = self.pool.start_transaction(false, None, None)?;
         
         // search for checkuuids in history table, if already added (maybe from other source)
@@ -819,7 +819,7 @@ impl DbConnection for MysqlConnection {
 
         transaction.commit()?;
 
-        Ok(())
+        Ok(existing_checks)
     }
 
     /// Select all checks that are currently in the database of a station with the given uuid
@@ -831,13 +831,34 @@ impl DbConnection for MysqlConnection {
         let mut list_station_uuid = vec![];
         let mut list_station_uuid_query = vec![];
 
+        for item in list {
+            list_station_uuid.push(&item.station_uuid);
+            list_station_uuid_query.push("?");
+        }
+        let query_in = list_station_uuid_query.join(",");
+
+        let mut majority_vote: HashMap<String,bool> = HashMap::new();
+        if list.len() > 0 {
+            // calculate majority vote for checks
+            let mut stmt_update_ok = transaction.prepare(format!("SELECT StationUuid,ROUND(AVG(CheckOk)) AS result FROM StationCheck WHERE StationUuid IN ({}) GROUP BY StationUuid", uuids = query_in))?;
+            let result = stmt_update_ok.execute(&list_station_uuid)?;
+
+            for row in result {
+                let (stationuuid, result): (String, u8,) = mysql::from_row_opt(row?)?;
+                majority_vote.insert(stationuuid, result == 1);
+            }
+        }
+
         {
             for item in list {
+                let vote = majority_vote.get(&item.station_uuid);
+
                 let mut params = params!{
                     "codec" => &item.codec,
                     "bitrate" => item.bitrate,
                     "hls" => item.hls,
                     "stationuuid" => &item.station_uuid,
+                    "vote" => vote,
                 };
 
                 if item.metainfo_overrides_database {
@@ -867,9 +888,13 @@ impl DbConnection for MysqlConnection {
                             params.push((String::from("favicon"),favicon.into(),));
                             query.push("Favicon=:favicon");
                         }
+                        query.push("LastCheckOk=:vote");
+                        if local {
+                            query.push("LastLocalCheckTime=NOW()");
+                        }
 
                         if item.check_ok {
-                            let query_update_ok = format!("UPDATE Station SET LastCheckOkTime=NOW(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache{} WHERE StationUuid=:stationuuid", query.join(","));
+                            let query_update_ok = format!("UPDATE Station SET LastCheckOkTime=NOW(),LastCheckTime=NOW(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache,{} WHERE StationUuid=:stationuuid", query.join(","));
                             let mut stmt_update_ok = transaction.prepare(query_update_ok)?;
                             stmt_update_ok.execute(params)?;
                         }
@@ -882,29 +907,21 @@ impl DbConnection for MysqlConnection {
                     if item.check_ok {
                         params.push((String::from("urlcache"), item.url.clone().into(),));
 
-                        let query_update_ok = "UPDATE Station SET LastCheckOkTime=NOW(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache WHERE StationUuid=:stationuuid";
+                        let query_update_ok = format!("UPDATE Station SET {lastlocalchecktime}LastCheckOkTime=NOW(),LastCheckTime=NOW(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache,LastCheckOk=:vote WHERE StationUuid=:stationuuid",
+                            lastlocalchecktime = if local {"LastLocalCheckTime=NOW(),"} else {""},
+                        );
                         let mut stmt_update_ok = transaction.prepare(query_update_ok)?;
                         stmt_update_ok.execute(params)?;
+                    }else{
+                        let query_update_check_ok = format!("UPDATE Station st SET {lastlocalchecktime}LastCheckTime=NOW() WHERE StationUuid=:stationuuid",
+                            lastlocalchecktime = if local {"LastLocalCheckTime=NOW(),"} else {""},
+                        );
+                        let mut stmt_update_check_ok = transaction.prepare(query_update_check_ok)?;
+                        stmt_update_check_ok.execute(params)?;
                     }
                 }
-
-                list_station_uuid.push(&item.station_uuid);
-                list_station_uuid_query.push("?");
             }
         }
-
-        {
-            let query_in = list_station_uuid_query.join(",");
-            let query_update_check_ok = format!("UPDATE Station st SET {lastlocalchecktime}LastCheckTime=NOW(),LastCheckOk=(SELECT round(avg(CheckOk)) AS result FROM StationCheck sc 
-                WHERE sc.StationUuid=st.StationUuid GROUP BY StationUuid) WHERE StationUuid IN ({uuids});",
-                lastlocalchecktime = if local {"LastLocalCheckTime=NOW(),"} else {""},
-                uuids = query_in
-            );
-            let mut stmt_update_check_ok = transaction.prepare(query_update_check_ok)?;
-
-            stmt_update_check_ok.execute(list_station_uuid)?;
-        }
-
         transaction.commit()?;
 
         Ok(())
