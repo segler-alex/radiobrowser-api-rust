@@ -1,3 +1,7 @@
+- name: Reload package cache
+  apt:
+    update_cache: yes
+    upgrade: yes
 - name: Install apache2 and mysql
   apt:
     name: apache2,default-mysql-server,python3-pymysql,certbot,python-certbot-apache
