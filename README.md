@@ -101,9 +101,9 @@ sudo systemctl start radiobrowser
 * create database and database user
 
 ```bash
-wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.6.5/radiobrowser-api-rust_0.6.4_amd64.deb
+wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.6.5/radiobrowser-api-rust_0.6.5_amd64.deb
 sudo apt install default-mysql-server
-sudo dpkg -i radiobrowser-api-rust_0.6.4_amd64.deb
+sudo dpkg -i radiobrowser-api-rust_0.6.5_amd64.deb
 cat /usr/share/radiobrowser/init.sql | mysql
 ```
 
@@ -183,6 +183,18 @@ Apache config file example
 
 Follow this guide to get a free certificate
 <https://certbot.eff.org/>
+
+### Ansible role
+
+```bash
+# clone this project
+git clone https://github.com/segler-alex/radiobrowser-api-rust.git
+cd radiobrowser-api-rust
+# checkout stable
+git checkout stable
+# deploy
+ansible-playbook -e "ansible_python_interpreter=auto" -i "test.example.com,test2.example.com" ansible/playbook.yml
+```
 
 ## Building
 

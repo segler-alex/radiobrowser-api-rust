@@ -1,0 +1,18 @@
+<VirtualHost *:80>
+    ServerName {{ ansible_fqdn }}
+
+    ServerAdmin {{ email }}
+    DocumentRoot /var/www/radio
+
+    ErrorLog ${APACHE_LOG_DIR}/error.radio.log
+    CustomLog ${APACHE_LOG_DIR}/access.radio.log combined
+
+    ProxyPass "/"  "http://localhost:8080/"
+    ProxyPassReverse "/"  "http://localhost:8080/"
+
+    <Directory /var/www/radio/>
+        AllowOverride All
+        Order allow,deny
+        allow from all
+    </Directory>
+</VirtualHost>

@@ -1,0 +1,8 @@
+---
+- hosts: all
+  remote_user: root
+  vars:
+    email: "segler_alex@web.de"
+    version: "0.6.4"
+  roles:
+    - radiobrowser

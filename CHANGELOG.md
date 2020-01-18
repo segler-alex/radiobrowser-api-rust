@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ## [0.6.5] 2020-01-18
+### Added
+- Ansible role and example playbook for debian/ubuntu
+
 ### Fixed
 - Station checks
 - Always use UTC time in database
