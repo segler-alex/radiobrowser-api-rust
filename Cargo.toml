@@ -26,7 +26,7 @@ serde = "1.0.104"
 serde_derive ="1.0.104"
 serde_json = "1.0.44"
 threadpool = "1.7.1"
-toml = "0.5.5"
+toml = "0.5.6"
 url = "2.1.1"
 uuid = { version = "0.8.1", features = ["serde", "v4"] }
 website-icon-extract = "0.4.1"
