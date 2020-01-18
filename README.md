@@ -192,8 +192,8 @@ git clone https://github.com/segler-alex/radiobrowser-api-rust.git
 cd radiobrowser-api-rust
 # checkout stable
 git checkout stable
-# deploy
-ansible-playbook -e "ansible_python_interpreter=auto" -i "test.example.com,test2.example.com" ansible/playbook.yml
+# deploy, change email adress, for ssl with certbot
+ansible-playbook -e "email=test@example.com" -e "version=0.6.5" -e "ansible_python_interpreter=auto" -i "test.example.com,test2.example.com" ansible/playbook.yml
 ```
 
 ## Building
