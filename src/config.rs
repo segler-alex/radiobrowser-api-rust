@@ -18,6 +18,7 @@ pub struct Config {
     pub servers_pull: Vec<String>,
     pub mirror_pull_interval: u64,
     pub log_level: usize,
+    pub click_timeout_hours: u32,
 
     pub concurrency: usize,
     pub check_stations: u32,
@@ -277,6 +278,14 @@ pub fn load_config() -> Config {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name("click-timeout-hours")
+                .long("click_timeout_hours")
+                .value_name("CLICK_TIMEOUT_HOURS")
+                .help("Possible clicks from the same IP. IPs are removed after this timespan.")
+                .env("CLICK_TIMEOUT_HOURS")
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("max-depth")
                 .long("max_depth")
                 .value_name("MAX_DEPTH")
@@ -412,6 +421,7 @@ pub fn load_config() -> Config {
     let retries: u8 = get_option_number(&matches, &config, "retries", 5) as u8;
     let source: String = get_option_string(&matches, &config, "source", hostname_str);
     let useragent = get_option_string(&matches, &config, "useragent", String::from("stream-check/0.1"));
+    let click_timeout_hours = get_option_number(&matches, &config, "click-timeout-hours", 24) as u32;
     let mut servers_pull = vec![];
     let mirrors = matches.values_of("mirror");
     if let Some(mirrors) = mirrors {
@@ -451,5 +461,6 @@ pub fn load_config() -> Config {
         retries,
         source,
         useragent,
+        click_timeout_hours,
     }
 }

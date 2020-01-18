@@ -48,7 +48,7 @@ fn main() {
                     Ok(_) => {
                         refresh::start(config.connection_string.clone(), config.update_caches_interval);
                         pull::start(config.connection_string.clone(), config.servers_pull, config.mirror_pull_interval);
-                        cleanup::start(config.connection_string.clone(), config.source.clone(), config.delete, 3600);
+                        cleanup::start(config.connection_string.clone(), config.source.clone(), config.delete, 3600, config.click_timeout_hours);
                         check::start(
                             config.connection_string,
                             config.source,
@@ -73,6 +73,7 @@ fn main() {
                             &config.log_dir,
                             config.prometheus_exporter,
                             &config.prometheus_exporter_prefix,
+                            config.click_timeout_hours,
                         );
                     }
                     Err(err) => {

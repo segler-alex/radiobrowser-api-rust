@@ -71,6 +71,7 @@ pub trait DbConnection {
     fn delete_were_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
     fn delete_old_checks(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
     fn delete_old_clicks(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
+    fn remove_unused_ip_infos_from_stationclicks(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
 
     fn update_stations_clickcount(&self) -> Result<(), Box<dyn Error>>;
 
@@ -81,7 +82,7 @@ pub trait DbConnection {
     fn remove_from_cache(&self, tags: Vec<&String>, table_name: &str, column_name: &str) -> Result<(), Box<dyn Error>>;
 
     fn vote_for_station(&self, ip: &str, station: Option<StationItem>) -> Result<String, Box<dyn Error>>;
-    fn increase_clicks(&self, ip: &str, station: &StationItem) -> Result<bool,Box<dyn Error>>;
+    fn increase_clicks(&self, ip: &str, station: &StationItem, hours: u32) -> Result<bool,Box<dyn Error>>;
 }
 
 pub fn connect(connection_string: String) -> Result<Box<dyn DbConnection>, Box<dyn std::error::Error>> {

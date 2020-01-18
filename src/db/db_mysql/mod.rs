@@ -222,6 +222,13 @@ impl DbConnection for MysqlConnection {
         Ok(())
     }
 
+    fn remove_unused_ip_infos_from_stationclicks(&mut self, hours: u32) -> Result<(), Box<dyn Error>> {
+        let query = "UPDATE StationClick SET IP=NULL WHERE InsertTime < NOW() - INTERVAL :hours HOUR";
+        let mut stmt = self.pool.prepare(query)?;
+        stmt.execute(params!(hours))?;
+        Ok(())
+    }
+
     fn update_stations_clickcount(&self) -> Result<(), Box<dyn Error>> {
         let query = "UPDATE Station st SET 
         clickcount=IFNULL((SELECT COUNT(*) FROM StationClick sc WHERE st.StationUuid=sc.StationUuid),0),
@@ -1320,9 +1327,9 @@ impl DbConnection for MysqlConnection {
         }
     }
 
-    fn increase_clicks(&self, ip: &str, station: &StationItem) -> Result<bool,Box<dyn std::error::Error>> {
-        let query = "SELECT StationUuid, IP FROM StationClick WHERE StationUuid=:stationuuid AND IP=ip AND TIME_TO_SEC(TIMEDIFF(Now(),ClickTimestamp))<24*60*60";
-        let result = self.pool.prep_exec(query, params!{"stationuuid" => &station.stationuuid, "ip" => ip})?;
+    fn increase_clicks(&self, ip: &str, station: &StationItem, hours: u32) -> Result<bool,Box<dyn std::error::Error>> {
+        let query = "SELECT StationUuid, IP FROM StationClick WHERE StationUuid=:stationuuid AND IP=ip AND TIME_TO_SEC(TIMEDIFF(Now(),ClickTimestamp))<:hours*60*60";
+        let result = self.pool.prep_exec(query, params!{"stationuuid" => &station.stationuuid, ip, hours})?;
 
         for _ in result {
             return Ok(false);
