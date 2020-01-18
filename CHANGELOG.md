@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.6.5] 2020-01-14
+## [0.6.5] 2020-01-18
 ### Fixed
 - Station checks
 - Always use UTC time in database
