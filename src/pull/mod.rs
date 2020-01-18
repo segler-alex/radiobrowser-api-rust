@@ -229,6 +229,7 @@ impl From<StationCheck> for StationCheckItemNew {
             hls: item.hls == 1,
             source: item.source,
             url: item.urlcache,
+            timestamp: Some(item.timestamp),
 
             metainfo_overrides_database: item.metainfo_overrides_database.unwrap_or_default() == 1,
             public: item.public.map(|x| x == 1),
