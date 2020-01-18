@@ -876,7 +876,7 @@ impl DbConnection for MysqlConnection {
 
         {
             for item in list {
-                let vote = majority_vote.get(&item.station_uuid);
+                let vote = majority_vote.get(&item.station_uuid).unwrap_or(&true);
 
                 let mut params = params!{
                     "codec" => &item.codec,
@@ -938,7 +938,7 @@ impl DbConnection for MysqlConnection {
                         let mut stmt_update_ok = transaction.prepare(query_update_ok)?;
                         stmt_update_ok.execute(params)?;
                     }else{
-                        let query_update_check_ok = format!("UPDATE Station st SET {lastlocalchecktime}LastCheckTime=UTC_TIMESTAMP() WHERE StationUuid=:stationuuid",
+                        let query_update_check_ok = format!("UPDATE Station st SET {lastlocalchecktime}LastCheckTime=UTC_TIMESTAMP(),LastCheckOk=:vote WHERE StationUuid=:stationuuid",
                             lastlocalchecktime = if local {"LastLocalCheckTime=UTC_TIMESTAMP(),"} else {""},
                         );
                         let mut stmt_update_check_ok = transaction.prepare(query_update_check_ok)?;
