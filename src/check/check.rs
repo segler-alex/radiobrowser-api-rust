@@ -165,6 +165,7 @@ fn dbcheck_internal(
                                 hls: item.Hls,
                                 check_ok: true,
                                 url: item.Url.clone(),
+                                timestamp: None,
 
                                 metainfo_overrides_database: item.OverrideIndexMetaData,
                                 public: item.Public,
@@ -198,7 +199,8 @@ fn dbcheck_internal(
                 hls: false,
                 check_ok: false,
                 url: "".to_string(),
-
+                timestamp: None,
+                
                 metainfo_overrides_database: false,
                 public: None,
                 name: None,

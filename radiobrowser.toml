@@ -1,7 +1,7 @@
 ## database connection string (mysql, mariadb)
 database = "mysql://radiouser:password@localhost/radio"
 ## Directory for static and template files
-static-files-dir = "/usr/local/share/radiobrowser"
+static-files-dir = "/usr/share/radiobrowser"
 ## Log file path
 log-dir = "/var/log/radiobrowser/"
 
@@ -24,6 +24,8 @@ threads = 5
 server-url = "https://de1.api.radio-browser.info"
 ## Mirror pull interval in seconds
 mirror-pull-interval = 60
+## The same ip cannot do clicks for the same stream in this timespan
+click-timeout-hours = 24
 
 ## Prometheus exporter
 ## ===================
@@ -70,7 +72,8 @@ retries = 5
 #useragent = "useragent/1.0"
 
 ## Mirror from server
-#[pullservers]
+[pullservers]
 [pullservers.alpha]
 host = "http://www.radio-browser.info/webservice"
+#[pullservers.beta]
 #host = "http://de1.api.radio-browser.info"

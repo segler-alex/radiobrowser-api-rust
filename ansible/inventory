@@ -1,0 +1,5 @@
+[servers]
+test.api.radio-browser.info
+
+[servers:vars]
+ansible_python_interpreter=auto

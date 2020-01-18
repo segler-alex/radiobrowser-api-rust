@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.5] 2020-01-18
+### Added
+- Ansible role and example playbook for debian/ubuntu
+
+### Fixed
+- Station checks
+- Always use UTC time in database
+- Faster check insert with mysql 5.7
+
+### Changed
+- Default install paths changed
+- IPs for clicks are only kept until not needed anymore (default 24 hours)
+
 ## [0.6.4] 2020-01-14
 ### Fixed
 - Insert of checks does now ignore duplicates

@@ -4,7 +4,7 @@ description = "Radio-Browser Server with REST API"
 license = "agpl-3.0"
 name = "radiobrowser-api-rust"
 readme = "README.md"
-version = "0.6.4"
+version = "0.6.5"
 edition = "2018"
 
 [dependencies]
@@ -26,7 +26,7 @@ serde = "1.0.104"
 serde_derive ="1.0.104"
 serde_json = "1.0.44"
 threadpool = "1.7.1"
-toml = "0.5.5"
+toml = "0.5.6"
 url = "2.1.1"
 uuid = { version = "0.8.1", features = ["serde", "v4"] }
 website-icon-extract = "0.4.1"
@@ -42,10 +42,10 @@ Radio-Browser Server with REST API
 section = "admin"
 priority = "optional"
 assets = [
-    ["target/release/radiobrowser-api-rust", "usr/local/bin/radiobrowser", "755"],
-    ["static/*", "usr/local/share/radiobrowser/", "644"],
-    ["init.sql", "usr/local/share/radiobrowser/init.sql", "644"],
-    ["init/*", "etc/sytemd/system/", "644"],
+    ["target/release/radiobrowser-api-rust", "usr/bin/radiobrowser", "755"],
+    ["static/*", "usr/share/radiobrowser/", "644"],
+    ["init.sql", "usr/share/radiobrowser/init.sql", "644"],
+    ["init/*", "etc/systemd/system/", "644"],
     ["radiobrowser.toml", "etc/radiobrowser/config-example.toml", "644"],
     ["radiobrowser.toml", "etc/radiobrowser/config.toml", "644"],
 ]

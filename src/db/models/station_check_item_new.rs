@@ -8,6 +8,7 @@ pub struct StationCheckItemNew {
     pub hls: bool,
     pub check_ok: bool,
     pub url: String,
+    pub timestamp: Option<String>,
 
     pub metainfo_overrides_database: bool,
     pub public: Option<bool>,

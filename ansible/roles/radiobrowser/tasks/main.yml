@@ -1,0 +1,47 @@
+- name: Reload package cache
+  apt:
+    update_cache: yes
+    upgrade: yes
+- name: Install apache2 and mysql
+  apt:
+    name: apache2,default-mysql-server,python3-pymysql,certbot,python-certbot-apache
+- name: Create a new database with name 'radio'
+  mysql_db:
+    name: radio
+    state: present
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+- name: Create database user
+  mysql_user:
+    name: radiouser
+    password: password
+    priv: 'radio.*:ALL'
+    state: present
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+- name: Install a .deb package from the internet.
+  apt:
+    deb: "https://github.com/segler-alex/radiobrowser-api-rust/releases/download/{{version}}/radiobrowser-api-rust_{{version}}_amd64.deb"
+- name: Create www root
+  file:
+    state: directory
+    path: /var/www/radio
+- name: Add apache2 virtual host
+  template:
+    src: ../templates/radio-browser.conf.j2
+    dest: /etc/apache2/sites-available/radio-browser.conf
+- name: Enable apache2 modules
+  apache2_module:
+    state: present
+    name: proxy_http
+- name: Enable site
+  command: a2ensite radio-browser
+- name: Reload service apache2
+  service:
+    name: apache2
+    state: reloaded
+- name: Enable radiobrowser service
+  service:
+    name: radiobrowser
+    state: restarted
+    enabled: yes
+- name: Setup certbot
+  command: certbot --apache --agree-tos -m {{email}} -d {{ansible_fqdn}} -n --redirect

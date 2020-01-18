@@ -328,5 +328,33 @@ r#"DELETE FROM StationCheckHistory;"#);
 r#"DELETE FROM PullServers;"#,
 r#"DELETE FROM PullServers;"#);
 
+    migrations.add_migration("20200118_135000_Modify_Station_Creation",
+r#"ALTER TABLE Station MODIFY COLUMN Creation DATETIME NOT NULL;"#,
+r#"ALTER TABLE Station MODIFY COLUMN Creation TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;"#);
+
+    migrations.add_migration("20200118_135500_Modify_StationHistory_Creation",
+r#"ALTER TABLE StationHistory MODIFY COLUMN Creation DATETIME NOT NULL;"#,
+r#"ALTER TABLE StationHistory MODIFY COLUMN Creation TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;"#);
+
+    migrations.add_migration("20200118_135600_Modify_IPVoteCheck_VoteTimestamp",
+r#"ALTER TABLE IPVoteCheck MODIFY COLUMN VoteTimestamp DATETIME NOT NULL;"#,
+r#"ALTER TABLE IPVoteCheck MODIFY COLUMN VoteTimestamp TIMESTAMP NOT NULL;"#);
+
+    migrations.add_migration("20200118_135700_Modify_StationClick_ClickTimestamp",
+r#"ALTER TABLE StationClick MODIFY COLUMN ClickTimestamp DATETIME NOT NULL;"#,
+r#"ALTER TABLE StationClick MODIFY COLUMN ClickTimestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;"#);
+
+    migrations.add_migration("20200118_135800_Modify_StationClick_InsertTime",
+r#"ALTER TABLE StationClick MODIFY COLUMN InsertTime DATETIME NOT NULL;"#,
+r#"ALTER TABLE StationClick MODIFY COLUMN InsertTime TIMESTAMP NOT NULL;"#);
+
+    migrations.add_migration("20200118_135900_Modify_StationCheckHistory_CheckTime",
+r#"ALTER TABLE StationCheckHistory MODIFY COLUMN CheckTime DATETIME NOT NULL;"#,
+r#"ALTER TABLE StationCheckHistory MODIFY COLUMN CheckTime TIMESTAMP NOT NULL;"#);
+
+    migrations.add_migration("20200118_135930_Modify_StationCheckHistory_InsertTime",
+r#"ALTER TABLE StationCheckHistory MODIFY COLUMN InsertTime DATETIME NOT NULL;"#,
+r#"ALTER TABLE StationCheckHistory MODIFY COLUMN InsertTime TIMESTAMP NOT NULL;"#);
+
     Ok(migrations)
 }

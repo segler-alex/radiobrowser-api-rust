@@ -1,7 +1,4 @@
 # Add user
-groupadd -r radiobrowser
-useradd --no-log-init -r -g radiobrowser radiobrowser
-
 groupadd --system radiobrowser
 useradd --system --no-create-home --home-dir /var/lib/radiobrowser --gid radiobrowser radiobrowser
 
