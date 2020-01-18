@@ -33,6 +33,8 @@
     state: present
     name: proxy_http
 - name: Enable site
+  command: a2dissite 000-default
+- name: Enable site
   command: a2ensite radio-browser
 - name: Reload service apache2
   service:
