@@ -12,6 +12,8 @@ use crate::api::data::StationCheckV0;
 use crate::api::data::Status;
 use crate::api::data::StationClick;
 use crate::api::data::StationClickV0;
+use crate::api::data::Station;
+use crate::api::data::StationV0;
 use crate::db::DbConnection;
 use crate::db::connect;
 use crate::db::models::StationCheckItemNew;
@@ -130,6 +132,26 @@ fn pull_clicks(server: &str, api_version: u32, lastid: Option<String>) -> Result
     }
 }
 
+fn pull_stations(server: &str, api_version: u32) -> Result<Vec<Station>, Box<dyn Error>> {
+    let path = format!("{}/json/stations",server);
+    trace!("{}", path);
+    let mut result = reqwest::get(&path)?;
+    match api_version {
+        0 => {
+            let mut list: Vec<StationV0> = result.json()?;
+            let list_current: Vec<Station> = list.drain(..).map(|x| x.into()).collect();
+            Ok(list_current)
+        },
+        1 => {
+            let list: Vec<Station> = result.json()?;
+            Ok(list)
+        },
+        _ => {
+            Err(Box::new(api_error::ApiError::UnknownApiVersion(api_version)))
+        }
+    }
+}
+
 fn pull_server(connection_new: &Box<dyn DbConnection>, server: &str) -> Result<(),Box<dyn std::error::Error>> {
     let insert_chunksize = 1000;
     let mut station_change_count = 0;
@@ -213,6 +235,11 @@ fn pull_server(connection_new: &Box<dyn DbConnection>, server: &str) -> Result<(
         }
     }
     connection_new.update_stations_clickcount()?;
+
+    {
+        let list_stations = pull_stations(server, api_version)?;
+        connection_new.sync_votes(list_stations)?;
+    }
 
     info!("Pull from '{}' OK (Added station changes: {}, Added station checks: {}, Added station clicks: {})", server, station_change_count, station_check_count, station_click_count);
     Ok(())

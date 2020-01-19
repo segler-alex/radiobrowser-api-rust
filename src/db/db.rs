@@ -1,3 +1,4 @@
+use crate::api::data::Station;
 use crate::db::models::StationClickItemNew;
 use crate::db::models::State;
 use crate::db::models::ExtraInfo;
@@ -83,6 +84,7 @@ pub trait DbConnection {
 
     fn vote_for_station(&self, ip: &str, station: Option<StationItem>) -> Result<String, Box<dyn Error>>;
     fn increase_clicks(&self, ip: &str, station: &StationItem, hours: u32) -> Result<bool,Box<dyn Error>>;
+    fn sync_votes(&self, list: Vec<Station>) -> Result<(), Box<dyn Error>>;
 }
 
 pub fn connect(connection_string: String) -> Result<Box<dyn DbConnection>, Box<dyn std::error::Error>> {
