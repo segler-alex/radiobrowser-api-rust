@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Broken stations were not marked
+- Make foreign keys of StationClick and StationCheckHistory on delete cascade
 
 ## [0.6.5] 2020-01-18
 ### Added
