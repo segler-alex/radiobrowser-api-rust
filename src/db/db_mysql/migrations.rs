@@ -347,20 +347,20 @@ r#"ALTER TABLE StationCheckHistory MODIFY COLUMN InsertTime DATETIME NOT NULL;"#
 r#"ALTER TABLE StationCheckHistory MODIFY COLUMN InsertTime TIMESTAMP NOT NULL;"#);
 
     migrations.add_migration("20200119_121000_Drop_FK_StationCheckHistory_Station",
-r#"ALTER TABLE StationCheckHistory DROP CONSTRAINT FK_StationCheckHistory_Station;"#,
+r#"ALTER TABLE StationCheckHistory DROP FOREIGN KEY FK_StationCheckHistory_Station;"#,
 r#"ALTER TABLE StationCheckHistory ADD CONSTRAINT FK_StationCheckHistory_Station FOREIGN KEY(StationUuid) REFERENCES Station(StationUuid);"#);
 
     migrations.add_migration("20200119_121100_Add_FK_StationCheckHistory_Station",
 r#"ALTER TABLE StationCheckHistory ADD CONSTRAINT FK_StationCheckHistory_Station FOREIGN KEY(StationUuid) REFERENCES Station(StationUuid) ON DELETE CASCADE;"#,
-r#"ALTER TABLE StationCheckHistory DROP CONSTRAINT FK_StationCheckHistory_Station;"#);
+r#"ALTER TABLE StationCheckHistory DROP FOREIGN KEY FK_StationCheckHistory_Station;"#);
 
     migrations.add_migration("20200119_121200_Drop_FK_StationClick_Station",
-r#"ALTER TABLE StationClick DROP CONSTRAINT FK_Station;"#,
+r#"ALTER TABLE StationClick DROP FOREIGN KEY FK_Station;"#,
 r#"ALTER TABLE StationClick ADD CONSTRAINT FK_Station FOREIGN KEY(StationUuid) REFERENCES Station(StationUuid);"#);
 
     migrations.add_migration("20200119_121300_Add_FK_StationClick_Station",
 r#"ALTER TABLE StationClick ADD CONSTRAINT FK_StationClick_Station FOREIGN KEY(StationUuid) REFERENCES Station(StationUuid) ON DELETE CASCADE;"#,
-r#"ALTER TABLE StationClick DROP CONSTRAINT FK_StationClick_Station;"#);
+r#"ALTER TABLE StationClick DROP FOREIGN KEY FK_StationClick_Station;"#);
 
     Ok(migrations)
 }
