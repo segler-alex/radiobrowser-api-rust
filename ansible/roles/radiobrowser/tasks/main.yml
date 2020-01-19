@@ -2,7 +2,7 @@
   apt:
     update_cache: yes
     upgrade: yes
-- name: Install apache2 and mysql
+- name: Install apache2, mysql, certbot, fail2ban
   apt:
     name: apache2,default-mysql-server,python3-pymysql,certbot,python-certbot-apache
 - name: Create a new database with name 'radio'
@@ -32,9 +32,9 @@
   apache2_module:
     state: present
     name: proxy_http
-- name: Enable site
+- name: Disable default site
   command: a2dissite 000-default
-- name: Enable site
+- name: Enable radiobrowser site
   command: a2ensite radio-browser
 - name: Reload service apache2
   service:
