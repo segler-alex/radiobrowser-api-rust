@@ -356,5 +356,13 @@ r#"ALTER TABLE StationCheckHistory MODIFY COLUMN CheckTime TIMESTAMP NOT NULL;"#
 r#"ALTER TABLE StationCheckHistory MODIFY COLUMN InsertTime DATETIME NOT NULL;"#,
 r#"ALTER TABLE StationCheckHistory MODIFY COLUMN InsertTime TIMESTAMP NOT NULL;"#);
 
+    migrations.add_migration("20200119_121000_Drop_FK_StationCheckHistory_Station",
+r#"ALTER TABLE StationCheckHistory DROP CONSTRAINT FK_StationCheckHistory_Station;"#,
+r#"ALTER TABLE StationCheckHistory ADD CONSTRAINT FK_StationCheckHistory_Station FOREIGN KEY(StationUuid) REFERENCES Station(StationUuid);"#);
+
+    migrations.add_migration("20200119_121100_Add_FK_StationCheckHistory_Station",
+r#"ALTER TABLE StationCheckHistory ADD CONSTRAINT FK_StationCheckHistory_Station FOREIGN KEY(StationUuid) REFERENCES Station(StationUuid) ON DELETE CASCADE;"#,
+r#"ALTER TABLE StationCheckHistory DROP CONSTRAINT FK_StationCheckHistory_Station;"#);
+
     Ok(migrations)
 }
