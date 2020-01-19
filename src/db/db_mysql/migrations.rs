@@ -306,16 +306,6 @@ Loadbalancer TEXT,
 InsertTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"#);
 
-/*
-    migrations.add_migration("20200113_203800_Drop_StationCheckHistory_InsertTime",
-r#"ALTER TABLE StationCheckHistory DROP COLUMN InsertTime;"#,
-r#"ALTER TABLE StationCheckHistory ADD COLUMN InsertTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;"#);
-
-    migrations.add_migration("20200113_203900_Drop_StationClick_InsertTime",
-r#"ALTER TABLE StationClick DROP COLUMN InsertTime;"#,
-r#"ALTER TABLE StationClick ADD COLUMN InsertTime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;"#);
-*/
-
     migrations.add_migration("20200113_204000_Create_View_StationCheck",
 r#"CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#,
 r#"DROP VIEW StationCheck;"#);
@@ -355,6 +345,22 @@ r#"ALTER TABLE StationCheckHistory MODIFY COLUMN CheckTime TIMESTAMP NOT NULL;"#
     migrations.add_migration("20200118_135930_Modify_StationCheckHistory_InsertTime",
 r#"ALTER TABLE StationCheckHistory MODIFY COLUMN InsertTime DATETIME NOT NULL;"#,
 r#"ALTER TABLE StationCheckHistory MODIFY COLUMN InsertTime TIMESTAMP NOT NULL;"#);
+
+    migrations.add_migration("20200119_121000_Drop_FK_StationCheckHistory_Station",
+r#"ALTER TABLE StationCheckHistory DROP CONSTRAINT FK_StationCheckHistory_Station;"#,
+r#"ALTER TABLE StationCheckHistory ADD CONSTRAINT FK_StationCheckHistory_Station FOREIGN KEY(StationUuid) REFERENCES Station(StationUuid);"#);
+
+    migrations.add_migration("20200119_121100_Add_FK_StationCheckHistory_Station",
+r#"ALTER TABLE StationCheckHistory ADD CONSTRAINT FK_StationCheckHistory_Station FOREIGN KEY(StationUuid) REFERENCES Station(StationUuid) ON DELETE CASCADE;"#,
+r#"ALTER TABLE StationCheckHistory DROP CONSTRAINT FK_StationCheckHistory_Station;"#);
+
+    migrations.add_migration("20200119_121200_Drop_FK_StationClick_Station",
+r#"ALTER TABLE StationClick DROP CONSTRAINT FK_Station;"#,
+r#"ALTER TABLE StationClick ADD CONSTRAINT FK_Station FOREIGN KEY(StationUuid) REFERENCES Station(StationUuid);"#);
+
+    migrations.add_migration("20200119_121300_Add_FK_StationClick_Station",
+r#"ALTER TABLE StationClick ADD CONSTRAINT FK_StationClick_Station FOREIGN KEY(StationUuid) REFERENCES Station(StationUuid) ON DELETE CASCADE;"#,
+r#"ALTER TABLE StationClick DROP CONSTRAINT FK_StationClick_Station;"#);
 
     Ok(migrations)
 }

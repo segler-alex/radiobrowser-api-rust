@@ -18,6 +18,7 @@ use crate::db::models::StationChangeItemNew;
 use crate::db::models::StationClickItem;
 use crate::db::models::StationClickItemNew;
 use crate::db::models::StationHistoryItem;
+use crate::api::data::Station;
 use std::error::Error;
 use crate::db::DbConnection;
 use mysql;
@@ -876,7 +877,7 @@ impl DbConnection for MysqlConnection {
 
         {
             for item in list {
-                let vote = majority_vote.get(&item.station_uuid);
+                let vote = majority_vote.get(&item.station_uuid).unwrap_or(&true);
 
                 let mut params = params!{
                     "codec" => &item.codec,
@@ -938,7 +939,7 @@ impl DbConnection for MysqlConnection {
                         let mut stmt_update_ok = transaction.prepare(query_update_ok)?;
                         stmt_update_ok.execute(params)?;
                     }else{
-                        let query_update_check_ok = format!("UPDATE Station st SET {lastlocalchecktime}LastCheckTime=UTC_TIMESTAMP() WHERE StationUuid=:stationuuid",
+                        let query_update_check_ok = format!("UPDATE Station st SET {lastlocalchecktime}LastCheckTime=UTC_TIMESTAMP(),LastCheckOk=:vote WHERE StationUuid=:stationuuid",
                             lastlocalchecktime = if local {"LastLocalCheckTime=UTC_TIMESTAMP(),"} else {""},
                         );
                         let mut stmt_update_check_ok = transaction.prepare(query_update_check_ok)?;
@@ -1353,6 +1354,18 @@ impl DbConnection for MysqlConnection {
         } else {
             return Ok(false);
         }
+    }
+
+    fn sync_votes(&self, list: Vec<Station>) -> Result<(), Box<dyn Error>> {
+        let mut transaction = self.pool.start_transaction(false, None, None)?;
+        {
+            let mut stmt = transaction.prepare("UPDATE Station SET Votes=GREATEST(Votes,:votes) WHERE StationUuid=:stationuuid;")?;
+            for item in list {
+                stmt.execute(params!("votes"=>item.votes,"stationuuid"=>item.stationuuid))?;
+            }
+        }
+        transaction.commit()?;
+        Ok(())
     }
 }
 

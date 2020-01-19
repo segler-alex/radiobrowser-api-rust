@@ -30,6 +30,32 @@ impl StationCachedInfo {
 }
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
+pub struct StationV0 {
+    pub changeuuid: String,
+    pub stationuuid: String,
+    pub name: String,
+    pub url: String,
+    pub homepage: String,
+    pub favicon: String,
+    pub tags: String,
+    pub country: String,
+    pub countrycode: String,
+    pub state: String,
+    pub language: String,
+    pub votes: String,
+    pub lastchangetime: String,
+    pub codec: String,
+    pub bitrate: String,
+    pub hls: String,
+    pub lastcheckok: String,
+    pub lastchecktime: String,
+    pub lastcheckoktime: String,
+    pub clicktimestamp: String,
+    pub clickcount: String,
+    pub clicktrend: String,
+}
+
+#[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Station {
     pub changeuuid: String,
     pub stationuuid: String,
@@ -386,6 +412,37 @@ impl From<StationItem> for Station {
             lastchecktime: item.lastchecktime,
             lastlocalchecktime: item.lastlocalchecktime,
             url_resolved: item.url_resolved,
+        }
+    }
+}
+
+impl From<StationV0> for Station {
+    fn from(item: StationV0) -> Self {
+        Station {
+            changeuuid: item.changeuuid,
+            stationuuid: item.stationuuid,
+            name: item.name,
+            url: item.url,
+            homepage: item.homepage,
+            favicon: item.favicon,
+            tags: item.tags,
+            country: item.country,
+            countrycode: item.countrycode,
+            state: item.state,
+            language: item.language,
+            votes: item.votes.parse().unwrap_or(0),
+            lastchangetime: item.lastchangetime,
+            bitrate: item.bitrate.parse().unwrap_or(0),
+            clickcount: item.clickcount.parse().unwrap_or(0),
+            clicktimestamp: item.clicktimestamp,
+            clicktrend: item.clicktrend.parse().unwrap_or(0),
+            codec: item.codec,
+            hls: item.hls.parse().unwrap_or(0),
+            lastcheckok: item.lastcheckok.parse().unwrap_or(0),
+            lastcheckoktime: item.lastcheckoktime,
+            lastchecktime: item.lastchecktime,
+            lastlocalchecktime: String::from(""),
+            url_resolved: String::from(""),
         }
     }
 }

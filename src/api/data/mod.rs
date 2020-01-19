@@ -9,6 +9,7 @@ mod station_click;
 pub use self::station_add_result::StationAddResult;
 pub use self::station_check::StationCheck;
 pub use self::station::Station;
+pub use self::station::StationV0;
 pub use self::station::StationCachedInfo;
 pub use self::station_history::StationHistoryCurrent;
 pub use self::station_history::StationHistoryV0;
