@@ -748,6 +748,7 @@ impl DbConnection for MysqlConnection {
     }
 
     fn insert_checks(&self, list: &Vec<StationCheckItemNew>) -> Result<HashSet<String>, Box<dyn std::error::Error>> {
+        trace!("insert_checks()");
         let mut transaction = self.pool.start_transaction(false, None, None)?;
         
         // search for checkuuids in history table, if already added (maybe from other source)
@@ -768,14 +769,40 @@ impl DbConnection for MysqlConnection {
             }
         }
 
-        trace!("Ignored checks for insert: {}", existing_checks.len());
+        trace!("Ignored checks(already existing) for insert: {}", existing_checks.len());
+
+        // search for stations by stationuuid
+        let mut existing_stations: HashSet<String> = HashSet::new();
+        {
+            let search_params: Vec<Value> = list.iter().map(|item| item.station_uuid.clone().into()).collect();
+            let search_query: Vec<&str> = (0..search_params.len()).map(|_item| "?").collect();
+
+            if search_query.len() > 0 {
+                let query_select_stations_by_uuid = format!("SELECT StationUuid FROM Station WHERE StationUuid IN ({})", search_query.join(","));
+                let mut stmt_select_stations_by_uuid = transaction.prepare(query_select_stations_by_uuid)?;
+                let result = stmt_select_stations_by_uuid.execute(search_params)?;
+
+                for row in result {
+                    let (stationuuid, ) = mysql::from_row_opt(row?)?;
+                    existing_stations.replace(stationuuid);
+                }
+            }
+        }
+
+        trace!("Found stations {}", existing_stations.len());
 
         // create lists for insertion
         let mut delete_station_check_params: Vec<Value> = vec![];
         let mut delete_station_check_query = vec![];
         let mut insert_station_check_params: Vec<Value> = vec![];
         let mut insert_station_check_query = vec![];
+        let mut ignored_checks_no_station = 0;
         for item in list {
+            // ignore checks, where there is no station in the database
+            if !existing_stations.contains(&item.station_uuid) {
+                ignored_checks_no_station += 1;
+                continue;
+            }
             // check has checkuuid ?
             match &item.checkuuid {
                 Some(checkuuid) => {
@@ -834,6 +861,8 @@ impl DbConnection for MysqlConnection {
             insert_station_check_params.push(item.loadbalancer.clone().into());
         }
 
+        trace!("Ignored checks(no stations) for insert: {}", ignored_checks_no_station);
+
         // insert into history table
         if insert_station_check_query.len() > 0 {
             let insert_station_check_params_str = insert_station_check_query.join(",");
@@ -852,6 +881,7 @@ impl DbConnection for MysqlConnection {
     /// and calculate an overall status by majority vote. Ties are broken with the own vote
     /// of the most current check
     fn update_station_with_check_data(&self, list: &Vec<StationCheckItemNew>, local: bool) -> Result<(), Box<dyn std::error::Error>> {
+        trace!("update_station_with_check_data()");
         let mut transaction = self.pool.start_transaction(false, None, None)?;
 
         let mut list_station_uuid = vec![];
@@ -925,7 +955,7 @@ impl DbConnection for MysqlConnection {
                             stmt_update_ok.execute(params)?;
                         }
                     }else{
-                        let query_delete = "DELETE Station WHERE StationUuid=:stationuuid";
+                        let query_delete = "DELETE FROM Station WHERE StationUuid=:stationuuid";
                         let mut stmt_delete = transaction.prepare(query_delete)?;
                         stmt_delete.execute(params)?;
                     }
@@ -956,29 +986,56 @@ impl DbConnection for MysqlConnection {
     fn insert_clicks(&self, list: &Vec<StationClickItemNew>) -> Result<(), Box<dyn Error>> {
         let mut transaction = self.pool.start_transaction(false, None, None)?;
 
-        let mut search_click_params: Vec<Value> = vec![];
-        let mut search_click_query = vec![];
-        let mut found_uuids: Vec<String> = vec![];
-        for item in list {
-            search_click_params.push(item.clickuuid.clone().into());
-            search_click_query.push("?");
-        }
+        let mut found_clickuuids: Vec<String> = vec![];
         {
-            let query = format!("SELECT ClickUuid FROM StationClick WHERE ClickUuid IN ({})", search_click_query.join(","));
-            let mut stmt_search_clicks = transaction.prepare(query)?;
-            let result = stmt_search_clicks.execute(search_click_params)?;
-            for row in result {
-                let (clickuuid,) = mysql::from_row_opt(row?)?;
-                found_uuids.push(clickuuid);
+            let mut search_click_params: Vec<Value> = vec![];
+            let mut search_click_query = vec![];
+            
+            for item in list {
+                search_click_params.push(item.clickuuid.clone().into());
+                search_click_query.push("?");
+            }
+            {
+                let query = format!("SELECT ClickUuid FROM StationClick WHERE ClickUuid IN ({})", search_click_query.join(","));
+                let mut stmt_search_clicks = transaction.prepare(query)?;
+                let result = stmt_search_clicks.execute(search_click_params)?;
+                for row in result {
+                    let (clickuuid,) = mysql::from_row_opt(row?)?;
+                    found_clickuuids.push(clickuuid);
+                }
             }
         }
 
-        trace!("Ignored clicks for insert: {}", found_uuids.len());
+        trace!("Ignored clicks(already existing) for insert: {}", found_clickuuids.len());
+
+        let mut found_stationuuids: Vec<String> = vec![];
+        {
+            let mut search_station_params: Vec<Value> = vec![];
+            let mut search_station_query = vec![];
+            for item in list {
+                search_station_params.push(item.stationuuid.clone().into());
+                search_station_query.push("?");
+            }
+            {
+                let query = format!("SELECT StationUuid FROM Station WHERE StationUuid IN ({})", search_station_query.join(","));
+                let mut stmt_search_clicks = transaction.prepare(query)?;
+                let result = stmt_search_clicks.execute(search_station_params)?;
+                for row in result {
+                    let (stationuuid,) = mysql::from_row_opt(row?)?;
+                    found_stationuuids.push(stationuuid);
+                }
+            }
+        }
 
         let mut insert_click_params: Vec<Value> = vec![];
         let mut insert_click_query = vec![];
+        let mut ignored_clicks = 0;
         for item in list {
-            if !found_uuids.contains(&item.clickuuid) {
+            if !found_stationuuids.contains(&item.stationuuid) {
+                ignored_clicks += 1;
+                continue;
+            }
+            if !found_clickuuids.contains(&item.clickuuid) {
                 insert_click_params.push(item.clickuuid.clone().into());
                 insert_click_params.push(item.stationuuid.clone().into());
                 insert_click_params.push(item.clicktimestamp.clone().into());
@@ -986,6 +1043,8 @@ impl DbConnection for MysqlConnection {
                 insert_click_query.push("(?,?,?,UTC_TIMESTAMP())");
             }
         }
+
+        trace!("Ignored clicks(no stations) for insert: {}", ignored_clicks);
 
         if insert_click_query.len() > 0 {
             let query = format!("INSERT INTO StationClick(ClickUuid, StationUuid, ClickTimestamp, InsertTime) VALUES{}", insert_click_query.join(","));

@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.8] 2020-01-22
+### Fixed
+- Fixed wrong sql delete
+- Ignore station checks and clicks on pull, when there is no station
+
+### Added
+- Show "hidebroken" in docs for station query
+
 ## [0.6.7] 2020-01-19
 ### Fixed
 - Migrations on mysql
