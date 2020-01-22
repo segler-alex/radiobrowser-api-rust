@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Fixed wrong sql delete
+- Ignore station checks on pull, where there is no station
+
+### Added
+- Show "hidebroken" in docs for station query
 
 ## [0.6.7] 2020-01-19
 ### Fixed

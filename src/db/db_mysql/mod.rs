@@ -872,8 +872,6 @@ impl DbConnection for MysqlConnection {
             stmt_insert_station_check_history.execute(&insert_station_check_params)?;
         }
 
-        trace!("####3");
-
         transaction.commit()?;
 
         Ok(existing_checks)
