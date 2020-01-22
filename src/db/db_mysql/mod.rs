@@ -769,14 +769,40 @@ impl DbConnection for MysqlConnection {
             }
         }
 
-        trace!("Ignored checks for insert: {}", existing_checks.len());
+        trace!("Ignored checks(already existing) for insert: {}", existing_checks.len());
+
+        // search for stations by stationuuid
+        let mut existing_stations: HashSet<String> = HashSet::new();
+        {
+            let search_params: Vec<Value> = list.iter().map(|item| item.station_uuid.clone().into()).collect();
+            let search_query: Vec<&str> = (0..search_params.len()).map(|_item| "?").collect();
+
+            if search_query.len() > 0 {
+                let query_select_stations_by_uuid = format!("SELECT StationUuid FROM StationCheckHistory WHERE StationUuid IN ({})", search_query.join(","));
+                let mut stmt_select_stations_by_uuid = transaction.prepare(query_select_stations_by_uuid)?;
+                let result = stmt_select_stations_by_uuid.execute(search_params)?;
+
+                for row in result {
+                    let (stationuuid, ) = mysql::from_row_opt(row?)?;
+                    existing_stations.replace(stationuuid);
+                }
+            }
+        }
+
+        trace!("Found stations {}", existing_stations.len());
 
         // create lists for insertion
         let mut delete_station_check_params: Vec<Value> = vec![];
         let mut delete_station_check_query = vec![];
         let mut insert_station_check_params: Vec<Value> = vec![];
         let mut insert_station_check_query = vec![];
+        let mut ignored_checks_no_station = 0;
         for item in list {
+            // ignore checks, where there is no station in the database
+            if !existing_stations.contains(&item.station_uuid) {
+                ignored_checks_no_station += 1;
+                continue;
+            }
             // check has checkuuid ?
             match &item.checkuuid {
                 Some(checkuuid) => {
@@ -835,6 +861,8 @@ impl DbConnection for MysqlConnection {
             insert_station_check_params.push(item.loadbalancer.clone().into());
         }
 
+        trace!("Ignored checks(no stations) for insert: {}", ignored_checks_no_station);
+
         // insert into history table
         if insert_station_check_query.len() > 0 {
             let insert_station_check_params_str = insert_station_check_query.join(",");
@@ -843,6 +871,8 @@ impl DbConnection for MysqlConnection {
             let mut stmt_insert_station_check_history = transaction.prepare(query_insert_station_check_history)?;
             stmt_insert_station_check_history.execute(&insert_station_check_params)?;
         }
+
+        trace!("####3");
 
         transaction.commit()?;
 
