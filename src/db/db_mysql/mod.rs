@@ -778,7 +778,7 @@ impl DbConnection for MysqlConnection {
             let search_query: Vec<&str> = (0..search_params.len()).map(|_item| "?").collect();
 
             if search_query.len() > 0 {
-                let query_select_stations_by_uuid = format!("SELECT StationUuid FROM StationCheckHistory WHERE StationUuid IN ({})", search_query.join(","));
+                let query_select_stations_by_uuid = format!("SELECT StationUuid FROM Station WHERE StationUuid IN ({})", search_query.join(","));
                 let mut stmt_select_stations_by_uuid = transaction.prepare(query_select_stations_by_uuid)?;
                 let result = stmt_select_stations_by_uuid.execute(search_params)?;
 
@@ -986,29 +986,56 @@ impl DbConnection for MysqlConnection {
     fn insert_clicks(&self, list: &Vec<StationClickItemNew>) -> Result<(), Box<dyn Error>> {
         let mut transaction = self.pool.start_transaction(false, None, None)?;
 
-        let mut search_click_params: Vec<Value> = vec![];
-        let mut search_click_query = vec![];
-        let mut found_uuids: Vec<String> = vec![];
-        for item in list {
-            search_click_params.push(item.clickuuid.clone().into());
-            search_click_query.push("?");
-        }
+        let mut found_clickuuids: Vec<String> = vec![];
         {
-            let query = format!("SELECT ClickUuid FROM StationClick WHERE ClickUuid IN ({})", search_click_query.join(","));
-            let mut stmt_search_clicks = transaction.prepare(query)?;
-            let result = stmt_search_clicks.execute(search_click_params)?;
-            for row in result {
-                let (clickuuid,) = mysql::from_row_opt(row?)?;
-                found_uuids.push(clickuuid);
+            let mut search_click_params: Vec<Value> = vec![];
+            let mut search_click_query = vec![];
+            
+            for item in list {
+                search_click_params.push(item.clickuuid.clone().into());
+                search_click_query.push("?");
+            }
+            {
+                let query = format!("SELECT ClickUuid FROM StationClick WHERE ClickUuid IN ({})", search_click_query.join(","));
+                let mut stmt_search_clicks = transaction.prepare(query)?;
+                let result = stmt_search_clicks.execute(search_click_params)?;
+                for row in result {
+                    let (clickuuid,) = mysql::from_row_opt(row?)?;
+                    found_clickuuids.push(clickuuid);
+                }
             }
         }
 
-        trace!("Ignored clicks for insert: {}", found_uuids.len());
+        trace!("Ignored clicks(already existing) for insert: {}", found_clickuuids.len());
+
+        let mut found_stationuuids: Vec<String> = vec![];
+        {
+            let mut search_station_params: Vec<Value> = vec![];
+            let mut search_station_query = vec![];
+            for item in list {
+                search_station_params.push(item.stationuuid.clone().into());
+                search_station_query.push("?");
+            }
+            {
+                let query = format!("SELECT StationUuid FROM Station WHERE StationUuid IN ({})", search_station_query.join(","));
+                let mut stmt_search_clicks = transaction.prepare(query)?;
+                let result = stmt_search_clicks.execute(search_station_params)?;
+                for row in result {
+                    let (stationuuid,) = mysql::from_row_opt(row?)?;
+                    found_stationuuids.push(stationuuid);
+                }
+            }
+        }
 
         let mut insert_click_params: Vec<Value> = vec![];
         let mut insert_click_query = vec![];
+        let mut ignored_clicks = 0;
         for item in list {
-            if !found_uuids.contains(&item.clickuuid) {
+            if !found_stationuuids.contains(&item.stationuuid) {
+                ignored_clicks += 1;
+                continue;
+            }
+            if !found_clickuuids.contains(&item.clickuuid) {
                 insert_click_params.push(item.clickuuid.clone().into());
                 insert_click_params.push(item.stationuuid.clone().into());
                 insert_click_params.push(item.clicktimestamp.clone().into());
@@ -1016,6 +1043,8 @@ impl DbConnection for MysqlConnection {
                 insert_click_query.push("(?,?,?,UTC_TIMESTAMP())");
             }
         }
+
+        trace!("Ignored clicks(no stations) for insert: {}", ignored_clicks);
 
         if insert_click_query.len() > 0 {
             let query = format!("INSERT INTO StationClick(ClickUuid, StationUuid, ClickTimestamp, InsertTime) VALUES{}", insert_click_query.join(","));

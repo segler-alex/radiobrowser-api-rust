@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Fixed wrong sql delete
-- Ignore station checks on pull, where there is no station
+- Ignore station checks and clicks on pull, when there is no station
 
 ### Added
 - Show "hidebroken" in docs for station query
