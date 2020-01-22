@@ -748,6 +748,7 @@ impl DbConnection for MysqlConnection {
     }
 
     fn insert_checks(&self, list: &Vec<StationCheckItemNew>) -> Result<HashSet<String>, Box<dyn std::error::Error>> {
+        trace!("insert_checks()");
         let mut transaction = self.pool.start_transaction(false, None, None)?;
         
         // search for checkuuids in history table, if already added (maybe from other source)
@@ -852,6 +853,7 @@ impl DbConnection for MysqlConnection {
     /// and calculate an overall status by majority vote. Ties are broken with the own vote
     /// of the most current check
     fn update_station_with_check_data(&self, list: &Vec<StationCheckItemNew>, local: bool) -> Result<(), Box<dyn std::error::Error>> {
+        trace!("update_station_with_check_data()");
         let mut transaction = self.pool.start_transaction(false, None, None)?;
 
         let mut list_station_uuid = vec![];
@@ -925,7 +927,7 @@ impl DbConnection for MysqlConnection {
                             stmt_update_ok.execute(params)?;
                         }
                     }else{
-                        let query_delete = "DELETE Station WHERE StationUuid=:stationuuid";
+                        let query_delete = "DELETE FROM Station WHERE StationUuid=:stationuuid";
                         let mut stmt_delete = transaction.prepare(query_delete)?;
                         stmt_delete.execute(params)?;
                     }
