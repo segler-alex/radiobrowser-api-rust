@@ -36,6 +36,11 @@
   apache2_module:
     state: present
     name: http2
+- name: HTTP2 protocol config
+  lineinfile:
+    path: /etc/apache2/apache.conf
+    regexp: '^Protocols h2'
+    line: Protocols h2 h2c http/1.1
 - name: Disable default site
   command: a2dissite 000-default
 - name: Enable radiobrowser site
