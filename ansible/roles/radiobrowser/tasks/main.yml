@@ -38,7 +38,7 @@
     name: http2
 - name: HTTP2 protocol config
   lineinfile:
-    path: /etc/apache2/apache.conf
+    path: /etc/apache2/apache2.conf
     regexp: '^Protocols h2'
     line: Protocols h2 h2c http/1.1
 - name: Disable default site
