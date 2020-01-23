@@ -1,5 +1,5 @@
 <VirtualHost *:80>
-    ServerName {{ ansible_fqdn }}
+    ServerName {{ inventory_hostname }}
 
     ServerAdmin {{ email }}
     DocumentRoot /var/www/radio
@@ -9,6 +9,9 @@
 
     ProxyPass "/"  "http://localhost:8080/"
     ProxyPassReverse "/"  "http://localhost:8080/"
+
+    AddOutputFilterByType DEFLATE application/xml text/xml
+    AddOutputFilterByType DEFLATE application/json
 
     <Directory /var/www/radio/>
         AllowOverride All

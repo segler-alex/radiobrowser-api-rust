@@ -28,10 +28,14 @@
   template:
     src: ../templates/radio-browser.conf.j2
     dest: /etc/apache2/sites-available/radio-browser.conf
-- name: Enable apache2 modules
+- name: Enable apache2 module proxy
   apache2_module:
     state: present
     name: proxy_http
+- name: Enable apache2 module HTTP/2
+  apache2_module:
+    state: present
+    name: http2
 - name: Disable default site
   command: a2dissite 000-default
 - name: Enable radiobrowser site
@@ -46,4 +50,4 @@
     state: restarted
     enabled: yes
 - name: Setup certbot
-  command: certbot --apache --agree-tos -m {{email}} -d {{ansible_fqdn}} -n --redirect
+  command: certbot --apache --agree-tos -m {{email}} -d {{inventory_hostname}} -n --redirect
