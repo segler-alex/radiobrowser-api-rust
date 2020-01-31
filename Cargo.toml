@@ -48,6 +48,7 @@ assets = [
     ["init/*", "etc/systemd/system/", "644"],
     ["radiobrowser.toml", "etc/radiobrowser/config-example.toml", "644"],
     ["radiobrowser.toml", "etc/radiobrowser/config.toml", "644"],
+    ["etc/logrotate", "etc/logrotate.d/radiobrowser", "644"],
 ]
 conf-files = [
     "etc/radiobrowser/config.toml",

@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- DEB: logrotate config
+
 ### Fixed
 - API: return change lists (stations, checks, clicks) from start if lastuuid not found
 
