@@ -4,8 +4,8 @@
     ServerAdmin {{ email }}
     DocumentRoot /var/www/radio
 
-    ErrorLog ${APACHE_LOG_DIR}/error.radio.log
-    CustomLog ${APACHE_LOG_DIR}/access.radio.log combined
+    #ErrorLog ${APACHE_LOG_DIR}/error.radio.log
+    #CustomLog ${APACHE_LOG_DIR}/access.radio.log combined
 
     ProxyPass "/"  "http://localhost:8080/"
     ProxyPassReverse "/"  "http://localhost:8080/"

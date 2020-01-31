@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - CLEANUP: remove all non http/https content from favicon field of stations
+- ANSIBLE: disabled all apache2 logging by default
 
 ## [0.6.8] 2020-01-22
 ### Fixed

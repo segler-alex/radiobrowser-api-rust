@@ -41,6 +41,8 @@
     path: /etc/apache2/apache2.conf
     regexp: '^Protocols h2'
     line: Protocols h2 h2c http/1.1
+- name: Disable logging
+  command: a2disconf other-vhosts-access-log
 - name: Disable default site
   command: a2dissite 000-default
 - name: Enable radiobrowser site
