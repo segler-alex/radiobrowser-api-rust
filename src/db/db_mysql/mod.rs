@@ -230,6 +230,12 @@ impl DbConnection for MysqlConnection {
         Ok(())
     }
 
+    fn remove_illegal_icon_links(&mut self) -> Result<(), Box<dyn Error>> {
+        let query = r#"UPDATE Station SET Favicon="" WHERE LOWER(Favicon) NOT LIKE 'http://%' AND LOWER(Favicon) NOT LIKE'https://%' AND Favicon<>"";"#;
+        self.pool.prep_exec(query, ())?;
+        Ok(())
+    }
+
     fn update_stations_clickcount(&self) -> Result<(), Box<dyn Error>> {
         let query = "UPDATE Station st SET 
         clickcount=IFNULL((SELECT COUNT(*) FROM StationClick sc WHERE st.StationUuid=sc.StationUuid),0),

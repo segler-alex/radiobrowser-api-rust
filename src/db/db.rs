@@ -73,7 +73,8 @@ pub trait DbConnection {
     fn delete_old_checks(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
     fn delete_old_clicks(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
     fn remove_unused_ip_infos_from_stationclicks(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
-
+    fn remove_illegal_icon_links(&mut self) -> Result<(), Box<dyn Error>>;
+    
     fn update_stations_clickcount(&self) -> Result<(), Box<dyn Error>>;
 
     fn get_stations_multi_items(&self, column_name: &str) -> Result<HashMap<String, (u32,u32)>, Box<dyn Error>>;

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - API: return change lists (stations, checks, clicks) from start if lastuuid not found
 
+### Changed
+- CLEANUP: remove all non http/https content from favicon field of stations
+
 ## [0.6.8] 2020-01-22
 ### Fixed
 - Fixed wrong sql delete
