@@ -560,7 +560,9 @@ impl DbConnection for MysqlConnection {
 
     fn get_changes(&self, stationuuid: Option<String>, changeuuid: Option<String>) -> Result<Vec<StationHistoryItem>, Box<dyn Error>> {
         let changeuuid_str = if changeuuid.is_some() {
-            " AND StationChangeID>=(SELECT StationChangeID FROM StationHistory WHERE ChangeUuid=:changeuuid) AND StationChangeID <= (SELECT MAX(StationChangeID) FROM StationHistory WHERE Creation <= UTC_TIMESTAMP() - INTERVAL 60 SECOND) AND ChangeUuid<>:changeuuid"
+            " AND StationChangeID >= IFNULL((SELECT StationChangeID FROM StationHistory WHERE ChangeUuid=:changeuuid),0)
+              AND StationChangeID <= (SELECT MAX(StationChangeID) FROM StationHistory WHERE Creation <= UTC_TIMESTAMP() - INTERVAL 60 SECOND)
+              AND ChangeUuid<>:changeuuid"
         } else {
             ""
         };
@@ -1068,35 +1070,29 @@ impl DbConnection for MysqlConnection {
             String::from("")
         };
 
-        let results = match stationuuid {
-            Some(stationuuid) => {
-                let mut query_params = params!{"stationuuid" => stationuuid};
-                let where_checkuuid_str = if checkuuid.is_some() {
-                    query_params.push((String::from("checkuuid"), checkuuid.unwrap().into(),));
-                    format!(" AND CheckID>=(SELECT CheckID FROM {table_name} WHERE CheckUuid=:checkuuid) AND CheckID <= (SELECT MAX(CheckID) FROM {table_name} WHERE InsertTime <= UTC_TIMESTAMP() - INTERVAL 60 SECOND) AND CheckUuid<>:checkuuid", table_name = table_name)
-                } else {
-                    String::from("")
-                };
+        let mut query_params = params!{"one" => 1};
+        let where_checkuuid_str = match checkuuid {
+            Some(checkuuid) => {
+                query_params.push((String::from("checkuuid"), checkuuid.into(),));
+                format!(" AND CheckID >= IFNULL((SELECT CheckID FROM {table_name} WHERE CheckUuid=:checkuuid),0)
+                          AND CheckID <= (SELECT MAX(CheckID) FROM {table_name} WHERE InsertTime <= UTC_TIMESTAMP() - INTERVAL 60 SECOND)
+                          AND CheckUuid<>:checkuuid", table_name = table_name)
+            },
+            None => String::from("")
+        };
 
-                let query = format!("SELECT {columns} FROM {table_name} WHERE StationUuid=:stationuuid {where_checkuuid} {where_seconds} ORDER BY CheckID", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name);
-                trace!("get_checks() {}", query);
-                self.pool.prep_exec(query, query_params)
+        let query = match stationuuid {
+            Some(stationuuid) => {
+                query_params.push((String::from("stationuuid"), stationuuid.into(),));
+                format!("SELECT {columns} FROM {table_name} WHERE StationUuid=:stationuuid {where_checkuuid} {where_seconds} ORDER BY CheckID", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name)
             }
             None => {
-                let mut query_params = params!{"one" => 1};
-                let where_checkuuid_str = match checkuuid {
-                    Some(checkuuid) => {
-                        query_params.push((String::from("checkuuid"), checkuuid.into(),));
-                        format!(" AND CheckID>=(SELECT CheckID FROM {table_name} WHERE CheckUuid=:checkuuid) AND CheckID <= (SELECT MAX(CheckID) FROM {table_name} WHERE InsertTime <= UTC_TIMESTAMP() - INTERVAL 60 SECOND) AND CheckUuid<>:checkuuid", table_name = table_name)
-                    },
-                    None => String::from("")
-                };
-
-                let query = format!("SELECT {columns} FROM {table_name} WHERE 1=:one {where_checkuuid} {where_seconds} ORDER BY CheckID", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name);
-                trace!("get_checks() {}", query);
-                self.pool.prep_exec(query, query_params)
+                format!("SELECT {columns} FROM {table_name} WHERE 1=:one {where_checkuuid} {where_seconds} ORDER BY CheckID", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name)
             }
         };
+
+        trace!("get_checks() {}", query);
+        let results = self.pool.prep_exec(query, query_params);
 
         self.get_list_from_query_result(results?)
     }
@@ -1111,35 +1107,28 @@ impl DbConnection for MysqlConnection {
             String::from("")
         };
 
-        let results = match stationuuid {
+        let mut query_params = params!{"one" => 1};
+        let where_clickuuid_str = match clickuuid {
+            Some(clickuuid) => {
+                query_params.push((String::from("clickuuid"), clickuuid.into(),));
+                " AND ClickID >= IFNULL((SELECT ClickID FROM StationClick WHERE ClickUuid=:clickuuid),0)
+                  AND ClickID <= (SELECT MAX(ClickID) FROM StationClick WHERE InsertTime <= UTC_TIMESTAMP() - INTERVAL 60 SECOND)
+                  AND ClickUuid<>:clickuuid"
+            },
+            None => ""
+        };
+        let query = match stationuuid {
             Some(stationuuid) => {
-                let mut query_params = params!{"stationuuid" => stationuuid};
-                let where_clickuuid_str = match clickuuid {
-                    Some(clickuuid) => {
-                        query_params.push((String::from("clickuuid"), clickuuid.into(),));
-                        " AND ClickID>=(SELECT ClickID FROM StationClick WHERE ClickUuid=:clickuuid) AND ClickID <= (SELECT MAX(ClickID) FROM StationClick WHERE InsertTime <= UTC_TIMESTAMP() - INTERVAL 60 SECOND) AND ClickUuid<>:clickuuid"
-                    },
-                    None => ""
-                };
-
-                let query = format!("SELECT {columns} FROM StationClick WHERE StationUuid=:stationuuid {where_clickuuid} {where_seconds} ORDER BY ClickID LIMIT 10000", columns = MysqlConnection::COLUMNS_CLICK, where_seconds = where_seconds, where_clickuuid = where_clickuuid_str);
-                trace!("get_clicks() {}", query);
-                self.pool.prep_exec(query, query_params)
+                query_params.push((String::from("stationuuid"), stationuuid.into(),));
+                format!("SELECT {columns} FROM StationClick WHERE StationUuid=:stationuuid {where_clickuuid} {where_seconds} ORDER BY ClickID LIMIT 10000", columns = MysqlConnection::COLUMNS_CLICK, where_seconds = where_seconds, where_clickuuid = where_clickuuid_str)
             }
             None => {
-                let mut query_params = params!{"one" => 1};
-                let where_clickuuid_str = if clickuuid.is_some() {
-                    query_params.push((String::from("clickuuid"), clickuuid.unwrap().into(),));
-                    " AND ClickID>=(SELECT ClickID FROM StationClick WHERE ClickUuid=:clickuuid) AND ClickID <= (SELECT MAX(ClickID) FROM StationClick WHERE InsertTime <= UTC_TIMESTAMP() - INTERVAL 60 SECOND) AND ClickUuid<>:clickuuid"
-                } else {
-                    ""
-                };
-                
-                let query = format!("SELECT {columns} FROM StationClick WHERE 1=:one {where_clickuuid} {where_seconds} ORDER BY ClickID LIMIT 10000", columns = MysqlConnection::COLUMNS_CLICK, where_seconds = where_seconds, where_clickuuid = where_clickuuid_str);
-                trace!("get_clicks() {}", query);
-                self.pool.prep_exec(query, query_params)
+                format!("SELECT {columns} FROM StationClick WHERE 1=:one {where_clickuuid} {where_seconds} ORDER BY ClickID LIMIT 10000", columns = MysqlConnection::COLUMNS_CLICK, where_seconds = where_seconds, where_clickuuid = where_clickuuid_str)
             }
         };
+
+        trace!("get_clicks() {}", query);
+        let results = self.pool.prep_exec(query, query_params);
 
         self.get_list_from_query_result(results?)
     }
