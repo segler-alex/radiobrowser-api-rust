@@ -5,6 +5,7 @@ mod station_history;
 mod status;
 mod result_message;
 mod station_click;
+mod config;
 
 pub use self::station_add_result::StationAddResult;
 pub use self::station_check::StationCheck;
@@ -18,3 +19,4 @@ pub use self::station_click::StationClick;
 pub use self::station_click::StationClickV0;
 pub use self::status::Status;
 pub use self::result_message::ResultMessage;
+pub use self::config::ApiConfig;

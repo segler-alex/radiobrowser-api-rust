@@ -39,6 +39,7 @@
             </li>
             <li><a class="dropdown-item" href="#Server_stats">Server stats</a></li>
             <li><a class="dropdown-item" href="#Server_mirrors">Server mirrors</a></li>
+            <li><a class="dropdown-item" href="#Server_config">Server config</a></li>
             <li><a class="dropdown-item" href="#Server_prometheus">Prometheus monitoring</a></li>
           </ul>
         </li>
@@ -845,7 +846,7 @@
             <td>hidebroken</td>
             <td>false</td>
             <td>true, false</td>
-            <td>do not list/not list broken stations</td>
+            <td>do list/not list broken stations</td>
           </tr>
         </tbody>
       </table>
@@ -1796,20 +1797,12 @@
         "name": "nl1.api.radio-browser.info"
     },
     {
-        "ip": "91.132.145.114",
-        "name": "de2.api.radio-browser.info"
-    },
-    {
         "ip": "45.77.62.161",
         "name": "fr1.api.radio-browser.info"
     },
     {
         "ip": "188.68.62.16",
         "name": "de1.api.radio-browser.info"
-    },
-    {
-        "ip": "2a03:4000:37:42:c4fe:4cff:fea7:8941",
-        "name": "de2.api.radio-browser.info"
     },
     {
         "ip": "2a03:4000:6:8077::1",
@@ -1828,7 +1821,79 @@
 
       <div class="h5 mt-2">Example:</div>
       <ul class="list-unstyled ml-4">
-        <li><a href="{{ API_SERVER }}/json/servers" target="_blank">{{ API_SERVER }}/json/servers</a></li>
+        <li><a href="{{ API_SERVER }}/json/config" target="_blank">{{ API_SERVER }}/json/config</a></li>
+      </ul>
+    </div>
+
+        <div class="jumbotron mt-2 shadow p-3 mb-5" id="Server_config">
+      <h1 class="display-4">Server config</h1>
+      <p class="lead ">The current active server config, 
+        supported output formats: JSON, XML</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>{{ API_SERVER }}/json/stats</li>
+          <li>{{ API_SERVER }}/xml/stats</li>
+        </ul>
+      </div>
+      <div class="h5">Result JSON:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">{
+    "check_enabled": false,
+    "prometheus_exporter_enabled": true,
+    "pull_servers": [
+        "http://www.radio-browser.info/webservice",
+        "http://de1.api.radio-browser.info"
+    ],
+    "tcp_timeout_seconds": 10,
+    "broken_stations_never_working_timeout_seconds": 259200,
+    "broken_stations_timeout_seconds": 2592000,
+    "checks_timeout_seconds": 2592000,
+    "click_valid_timeout_seconds": 86400,
+    "clicks_timeout_seconds": 2592000,
+    "mirror_pull_interval_seconds": 300,
+    "update_caches_interval_seconds": 300,
+    "server_name": "gaia",
+    "check_retries": 5,
+    "check_batchsize": 100,
+    "check_pause_seconds": 60,
+    "api_threads": 5
+}
+        </pre>
+      </div>
+
+      <div class="h5">Result XML:</div>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4">
+&lt;config&gt;
+  &lt;check_enabled&gt;false&lt;/check_enabled&gt;
+  &lt;prometheus_exporter_enabled&gt;true&lt;/prometheus_exporter_enabled&gt;
+  &lt;pull_servers&gt;
+    &lt;url&gt;http://www.radio-browser.info/webservice&lt;/url&gt;
+    &lt;url&gt;http://de1.api.radio-browser.info&lt;/url&gt;
+  &lt;/pull_servers&gt;
+  &lt;tcp_timeout_seconds&gt;10&lt;/tcp_timeout_seconds&gt;
+  &lt;broken_stations_never_working_timeout_seconds&gt;259200&lt;/broken_stations_never_working_timeout_seconds&gt;
+  &lt;broken_stations_timeout_seconds&gt;2592000&lt;/broken_stations_timeout_seconds&gt;
+  &lt;checks_timeout_seconds&gt;2592000&lt;/checks_timeout_seconds&gt;
+  &lt;click_valid_timeout_seconds&gt;86400&lt;/click_valid_timeout_seconds&gt;
+  &lt;clicks_timeout_seconds&gt;2592000&lt;/clicks_timeout_seconds&gt;
+  &lt;mirror_pull_interval_seconds&gt;300&lt;/mirror_pull_interval_seconds&gt;
+  &lt;update_caches_interval_seconds&gt;300&lt;/update_caches_interval_seconds&gt;
+  &lt;server_name&gt;gaia&lt;/server_name&gt;
+  &lt;check_retries&gt;5&lt;/check_retries&gt;
+  &lt;check_batchsize&gt;100&lt;/check_batchsize&gt;
+  &lt;check_pause_seconds&gt;60&lt;/check_pause_seconds&gt;
+  &lt;api_threads&gt;5&lt;/api_threads&gt;
+&lt;/config&gt;
+        </pre>
+      </div>
+
+      <div class="h5 mt-2">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="{{ API_SERVER }}/json/servers" target="_blank">{{ API_SERVER }}/json/config</a></li>
+        <li><a href="{{ API_SERVER }}/xml/servers" target="_blank">{{ API_SERVER }}/xml/config</a></li>
       </ul>
     </div>
 

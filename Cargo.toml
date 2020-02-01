@@ -4,7 +4,7 @@ description = "Radio-Browser Server with REST API"
 license = "agpl-3.0"
 name = "radiobrowser-api-rust"
 readme = "README.md"
-version = "0.6.8"
+version = "0.6.9"
 edition = "2018"
 
 [dependencies]
@@ -14,8 +14,9 @@ clap = "2.33.0"
 colored = "1.9.2"
 dns-lookup = "1.0.1"
 env_logger = "0.7.1"
-handlebars = "2.0.4"
+handlebars = "3.0.1"
 hostname = "0.3.0"
+humantime = "2.0.0"
 log = "0.4.8"
 mysql = "17.0.0"
 native-tls = "0.2.3"
@@ -24,7 +25,7 @@ reqwest = "0.9.24"
 rouille = "3.0.0"
 serde = "1.0.104"
 serde_derive ="1.0.104"
-serde_json = "1.0.44"
+serde_json = "1.0.45"
 threadpool = "1.7.1"
 toml = "0.5.6"
 url = "2.1.1"
@@ -46,8 +47,9 @@ assets = [
     ["static/*", "usr/share/radiobrowser/", "644"],
     ["init.sql", "usr/share/radiobrowser/init.sql", "644"],
     ["init/*", "etc/systemd/system/", "644"],
-    ["radiobrowser.toml", "etc/radiobrowser/config-example.toml", "644"],
-    ["radiobrowser.toml", "etc/radiobrowser/config.toml", "644"],
+    ["etc/config-example.toml", "etc/radiobrowser/config-example.toml", "644"],
+    ["etc/config-example.toml", "etc/radiobrowser/config.toml", "644"],
+    ["etc/logrotate", "etc/logrotate.d/radiobrowser", "644"],
 ]
 conf-files = [
     "etc/radiobrowser/config.toml",

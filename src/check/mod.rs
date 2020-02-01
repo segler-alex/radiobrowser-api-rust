@@ -10,7 +10,7 @@ pub fn start(
     concurrency: usize,
     check_stations: u32,
     useragent: String,
-    tcp_timeout: u32,
+    tcp_timeout: u64,
     max_depth: u8,
     retries: u8,
     favicon: bool,

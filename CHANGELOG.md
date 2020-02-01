@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- DEB: logrotate config
+- API: more exports to metrics
+- API: config endpoint
+
+### Fixed
+- API: return change lists (stations, checks, clicks) from start if lastuuid not found
+
+### Changed
+- CLEANUP: remove all non http/https content from favicon field of stations
+- ANSIBLE: disabled all apache2 logging by default
+- CONFIG: type errors do not get ignored with default value
+- CONFIG: use human readable durations instead of fixed seconds or hours
+
 ## [0.6.8] 2020-01-22
 ### Fixed
 - Fixed wrong sql delete

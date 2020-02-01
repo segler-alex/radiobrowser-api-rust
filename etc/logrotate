@@ -1,0 +1,19 @@
+/var/log/radiobrowser/access.log {
+    daily
+    rotate 10
+    copytruncate
+    compress
+    delaycompress
+    notifempty
+    missingok
+}
+
+/var/log/radiobrowser/error.log {
+    daily
+    rotate 10
+    copytruncate
+    compress
+    delaycompress
+    notifempty
+    missingok
+}

@@ -13,6 +13,7 @@ sudo cp etc/config-example.toml /etc/radiobrowser/config-example.toml
 if [ ! -f /etc/radiobrowser/config.toml ]; then
     sudo cp etc/config-example.toml /etc/radiobrowser/config.toml
 fi
+sudo cp etc/logrotate /etc/logrotate.d/radiobrowser
 
 sudo chmod ugo+x /usr/bin/radiobrowser
 sudo groupadd --system radiobrowser

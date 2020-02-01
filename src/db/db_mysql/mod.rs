@@ -193,40 +193,46 @@ impl MysqlConnection {
 }
 
 impl DbConnection for MysqlConnection {
-    fn delete_old_checks(&mut self, hours: u32) -> Result<(), Box<dyn Error>> {
-        let p = params!(hours);
-        let delete_old_checks_history_query = "DELETE FROM StationCheckHistory WHERE CheckTime < UTC_TIMESTAMP() - INTERVAL :hours HOUR";
+    fn delete_old_checks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
+        let p = params!(seconds);
+        let delete_old_checks_history_query = "DELETE FROM StationCheckHistory WHERE CheckTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut delete_old_checks_history_stmt = self.pool.prepare(delete_old_checks_history_query)?;
         delete_old_checks_history_stmt.execute(&p)?;
 
         Ok(())
     }
 
-    fn delete_old_clicks(&mut self, hours: u32) -> Result<(), Box<dyn Error>> {
-        let delete_old_clicks_query = "DELETE FROM StationClick WHERE ClickTimestamp < UTC_TIMESTAMP() - INTERVAL :hours HOUR";
+    fn delete_old_clicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
+        let delete_old_clicks_query = "DELETE FROM StationClick WHERE ClickTimestamp < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut delete_old_clicks_stmt = self.pool.prepare(delete_old_clicks_query)?;
-        delete_old_clicks_stmt.execute(params!(hours))?;
+        delete_old_clicks_stmt.execute(params!(seconds))?;
         Ok(())
     }
 
-    fn delete_never_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>> {
-        let delete_never_working_query = "DELETE FROM Station WHERE LastCheckOkTime IS NULL AND Creation < UTC_TIMESTAMP() - INTERVAL :hours HOUR";
+    fn delete_never_working(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
+        let delete_never_working_query = "DELETE FROM Station WHERE LastCheckOkTime IS NULL AND Creation < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut delete_never_working_stmt = self.pool.prepare(delete_never_working_query)?;
-        delete_never_working_stmt.execute(params!(hours))?;
+        delete_never_working_stmt.execute(params!(seconds))?;
         Ok(())
     }
 
-    fn delete_were_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>> {
-        let delete_were_working_query = "DELETE FROM Station WHERE LastCheckOK=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < UTC_TIMESTAMP() - INTERVAL :hours HOUR";
+    fn delete_were_working(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
+        let delete_were_working_query = "DELETE FROM Station WHERE LastCheckOK=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut delete_were_working_stmt = self.pool.prepare(delete_were_working_query)?;
-        delete_were_working_stmt.execute(params!(hours))?;
+        delete_were_working_stmt.execute(params!(seconds))?;
         Ok(())
     }
 
-    fn remove_unused_ip_infos_from_stationclicks(&mut self, hours: u32) -> Result<(), Box<dyn Error>> {
-        let query = "UPDATE StationClick SET IP=NULL WHERE InsertTime < UTC_TIMESTAMP() - INTERVAL :hours HOUR";
+    fn remove_unused_ip_infos_from_stationclicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
+        let query = "UPDATE StationClick SET IP=NULL WHERE InsertTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut stmt = self.pool.prepare(query)?;
-        stmt.execute(params!(hours))?;
+        stmt.execute(params!(seconds))?;
+        Ok(())
+    }
+
+    fn remove_illegal_icon_links(&mut self) -> Result<(), Box<dyn Error>> {
+        let query = r#"UPDATE Station SET Favicon="" WHERE LOWER(Favicon) NOT LIKE 'http://%' AND LOWER(Favicon) NOT LIKE'https://%' AND Favicon<>"";"#;
+        self.pool.prep_exec(query, ())?;
         Ok(())
     }
 
@@ -273,6 +279,9 @@ impl DbConnection for MysqlConnection {
         self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(HOUR,ClickTimestamp,UTC_TIMESTAMP())<=24;"#)
     }
 
+    /**
+     * Get number of stations that do not have any checks in the last x hours
+     */
     fn get_station_count_todo(&self, hours: u32) -> Result<u64, Box<dyn Error>> {
         self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastLocalCheckTime IS NULL OR LastLocalCheckTime < UTC_TIMESTAMP() - INTERVAL :hours HOUR", params!(hours))
     }
@@ -292,16 +301,12 @@ impl DbConnection for MysqlConnection {
         self.get_list_from_query_result(results)
     }
 
-    fn get_checks_todo_count(&self, hours: u32, source: &str) -> Result<u64, Box<dyn Error>> {
-        self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM StationCheckHistory WHERE Source=:source AND CheckTime > UTC_TIMESTAMP() - INTERVAL :hours HOUR",params!(hours, source))
+    fn get_deletable_never_working(&self, seconds: u64) -> Result<u64, Box<dyn Error>> {
+        self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOkTime IS NULL AND Creation < UTC_TIMESTAMP() - INTERVAL :seconds SECOND", params!(seconds))
     }
 
-    fn get_deletable_never_working(&self, hours: u32) -> Result<u64, Box<dyn Error>> {
-        self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOkTime IS NULL AND Creation < UTC_TIMESTAMP() - INTERVAL :hours HOUR", params!(hours))
-    }
-
-    fn get_deletable_were_working(&self, hours: u32) -> Result<u64, Box<dyn Error>> {
-        self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOK=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < UTC_TIMESTAMP() - INTERVAL :hours HOUR", params!(hours))
+    fn get_deletable_were_working(&self, seconds: u64) -> Result<u64, Box<dyn Error>> {
+        self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOK=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND", params!(seconds))
     }
 
     fn get_stations_broken(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
@@ -560,7 +565,9 @@ impl DbConnection for MysqlConnection {
 
     fn get_changes(&self, stationuuid: Option<String>, changeuuid: Option<String>) -> Result<Vec<StationHistoryItem>, Box<dyn Error>> {
         let changeuuid_str = if changeuuid.is_some() {
-            " AND StationChangeID>=(SELECT StationChangeID FROM StationHistory WHERE ChangeUuid=:changeuuid) AND StationChangeID <= (SELECT MAX(StationChangeID) FROM StationHistory WHERE Creation <= UTC_TIMESTAMP() - INTERVAL 60 SECOND) AND ChangeUuid<>:changeuuid"
+            " AND StationChangeID >= IFNULL((SELECT StationChangeID FROM StationHistory WHERE ChangeUuid=:changeuuid),0)
+              AND StationChangeID <= (SELECT MAX(StationChangeID) FROM StationHistory WHERE Creation <= UTC_TIMESTAMP() - INTERVAL 60 SECOND)
+              AND ChangeUuid<>:changeuuid"
         } else {
             ""
         };
@@ -1068,35 +1075,29 @@ impl DbConnection for MysqlConnection {
             String::from("")
         };
 
-        let results = match stationuuid {
-            Some(stationuuid) => {
-                let mut query_params = params!{"stationuuid" => stationuuid};
-                let where_checkuuid_str = if checkuuid.is_some() {
-                    query_params.push((String::from("checkuuid"), checkuuid.unwrap().into(),));
-                    format!(" AND CheckID>=(SELECT CheckID FROM {table_name} WHERE CheckUuid=:checkuuid) AND CheckID <= (SELECT MAX(CheckID) FROM {table_name} WHERE InsertTime <= UTC_TIMESTAMP() - INTERVAL 60 SECOND) AND CheckUuid<>:checkuuid", table_name = table_name)
-                } else {
-                    String::from("")
-                };
+        let mut query_params = params!{"one" => 1};
+        let where_checkuuid_str = match checkuuid {
+            Some(checkuuid) => {
+                query_params.push((String::from("checkuuid"), checkuuid.into(),));
+                format!(" AND CheckID >= IFNULL((SELECT CheckID FROM {table_name} WHERE CheckUuid=:checkuuid),0)
+                          AND CheckID <= (SELECT MAX(CheckID) FROM {table_name} WHERE InsertTime <= UTC_TIMESTAMP() - INTERVAL 60 SECOND)
+                          AND CheckUuid<>:checkuuid", table_name = table_name)
+            },
+            None => String::from("")
+        };
 
-                let query = format!("SELECT {columns} FROM {table_name} WHERE StationUuid=:stationuuid {where_checkuuid} {where_seconds} ORDER BY CheckID", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name);
-                trace!("get_checks() {}", query);
-                self.pool.prep_exec(query, query_params)
+        let query = match stationuuid {
+            Some(stationuuid) => {
+                query_params.push((String::from("stationuuid"), stationuuid.into(),));
+                format!("SELECT {columns} FROM {table_name} WHERE StationUuid=:stationuuid {where_checkuuid} {where_seconds} ORDER BY CheckID", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name)
             }
             None => {
-                let mut query_params = params!{"one" => 1};
-                let where_checkuuid_str = match checkuuid {
-                    Some(checkuuid) => {
-                        query_params.push((String::from("checkuuid"), checkuuid.into(),));
-                        format!(" AND CheckID>=(SELECT CheckID FROM {table_name} WHERE CheckUuid=:checkuuid) AND CheckID <= (SELECT MAX(CheckID) FROM {table_name} WHERE InsertTime <= UTC_TIMESTAMP() - INTERVAL 60 SECOND) AND CheckUuid<>:checkuuid", table_name = table_name)
-                    },
-                    None => String::from("")
-                };
-
-                let query = format!("SELECT {columns} FROM {table_name} WHERE 1=:one {where_checkuuid} {where_seconds} ORDER BY CheckID", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name);
-                trace!("get_checks() {}", query);
-                self.pool.prep_exec(query, query_params)
+                format!("SELECT {columns} FROM {table_name} WHERE 1=:one {where_checkuuid} {where_seconds} ORDER BY CheckID", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name)
             }
         };
+
+        trace!("get_checks() {}", query);
+        let results = self.pool.prep_exec(query, query_params);
 
         self.get_list_from_query_result(results?)
     }
@@ -1111,35 +1112,28 @@ impl DbConnection for MysqlConnection {
             String::from("")
         };
 
-        let results = match stationuuid {
+        let mut query_params = params!{"one" => 1};
+        let where_clickuuid_str = match clickuuid {
+            Some(clickuuid) => {
+                query_params.push((String::from("clickuuid"), clickuuid.into(),));
+                " AND ClickID >= IFNULL((SELECT ClickID FROM StationClick WHERE ClickUuid=:clickuuid),0)
+                  AND ClickID <= (SELECT MAX(ClickID) FROM StationClick WHERE InsertTime <= UTC_TIMESTAMP() - INTERVAL 60 SECOND)
+                  AND ClickUuid<>:clickuuid"
+            },
+            None => ""
+        };
+        let query = match stationuuid {
             Some(stationuuid) => {
-                let mut query_params = params!{"stationuuid" => stationuuid};
-                let where_clickuuid_str = match clickuuid {
-                    Some(clickuuid) => {
-                        query_params.push((String::from("clickuuid"), clickuuid.into(),));
-                        " AND ClickID>=(SELECT ClickID FROM StationClick WHERE ClickUuid=:clickuuid) AND ClickID <= (SELECT MAX(ClickID) FROM StationClick WHERE InsertTime <= UTC_TIMESTAMP() - INTERVAL 60 SECOND) AND ClickUuid<>:clickuuid"
-                    },
-                    None => ""
-                };
-
-                let query = format!("SELECT {columns} FROM StationClick WHERE StationUuid=:stationuuid {where_clickuuid} {where_seconds} ORDER BY ClickID LIMIT 10000", columns = MysqlConnection::COLUMNS_CLICK, where_seconds = where_seconds, where_clickuuid = where_clickuuid_str);
-                trace!("get_clicks() {}", query);
-                self.pool.prep_exec(query, query_params)
+                query_params.push((String::from("stationuuid"), stationuuid.into(),));
+                format!("SELECT {columns} FROM StationClick WHERE StationUuid=:stationuuid {where_clickuuid} {where_seconds} ORDER BY ClickID LIMIT 10000", columns = MysqlConnection::COLUMNS_CLICK, where_seconds = where_seconds, where_clickuuid = where_clickuuid_str)
             }
             None => {
-                let mut query_params = params!{"one" => 1};
-                let where_clickuuid_str = if clickuuid.is_some() {
-                    query_params.push((String::from("clickuuid"), clickuuid.unwrap().into(),));
-                    " AND ClickID>=(SELECT ClickID FROM StationClick WHERE ClickUuid=:clickuuid) AND ClickID <= (SELECT MAX(ClickID) FROM StationClick WHERE InsertTime <= UTC_TIMESTAMP() - INTERVAL 60 SECOND) AND ClickUuid<>:clickuuid"
-                } else {
-                    ""
-                };
-                
-                let query = format!("SELECT {columns} FROM StationClick WHERE 1=:one {where_clickuuid} {where_seconds} ORDER BY ClickID LIMIT 10000", columns = MysqlConnection::COLUMNS_CLICK, where_seconds = where_seconds, where_clickuuid = where_clickuuid_str);
-                trace!("get_clicks() {}", query);
-                self.pool.prep_exec(query, query_params)
+                format!("SELECT {columns} FROM StationClick WHERE 1=:one {where_clickuuid} {where_seconds} ORDER BY ClickID LIMIT 10000", columns = MysqlConnection::COLUMNS_CLICK, where_seconds = where_seconds, where_clickuuid = where_clickuuid_str)
             }
         };
+
+        trace!("get_clicks() {}", query);
+        let results = self.pool.prep_exec(query, query_params);
 
         self.get_list_from_query_result(results?)
     }
@@ -1394,9 +1388,9 @@ impl DbConnection for MysqlConnection {
         }
     }
 
-    fn increase_clicks(&self, ip: &str, station: &StationItem, hours: u32) -> Result<bool,Box<dyn std::error::Error>> {
-        let query = "SELECT StationUuid, IP FROM StationClick WHERE StationUuid=:stationuuid AND IP=ip AND TIME_TO_SEC(TIMEDIFF(Now(),ClickTimestamp))<:hours*60*60";
-        let result = self.pool.prep_exec(query, params!{"stationuuid" => &station.stationuuid, ip, hours})?;
+    fn increase_clicks(&self, ip: &str, station: &StationItem, seconds: u64) -> Result<bool,Box<dyn std::error::Error>> {
+        let query = "SELECT StationUuid, IP FROM StationClick WHERE StationUuid=:stationuuid AND IP=ip AND TIME_TO_SEC(TIMEDIFF(Now(),ClickTimestamp))<:seconds";
+        let result = self.pool.prep_exec(query, params!{"stationuuid" => &station.stationuuid, ip, seconds})?;
 
         for _ in result {
             return Ok(false);
