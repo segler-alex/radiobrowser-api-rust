@@ -3,14 +3,16 @@ use crate::db::DbConnection;
 pub fn render<A>(
     connection_new: &A,
     prefix: &str,
+    broken_stations_never_working_timeout: u64,
+    broken_stations_timeout: u64,
 ) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
     let clicks_last_hour = connection_new.get_click_count_last_hour()?;
     let clicks_last_day = connection_new.get_click_count_last_day()?;
     let stations_broken = connection_new.get_station_count_broken()?;
     let stations_working = connection_new.get_station_count_working()?;
     let stations_todo = connection_new.get_station_count_todo(24)?;
-    let stations_deletable_never_worked = connection_new.get_deletable_never_working(24 * 3)?;
-    let stations_deletable_were_working = connection_new.get_deletable_were_working(24 * 30)?;
+    let stations_deletable_never_worked = connection_new.get_deletable_never_working(broken_stations_never_working_timeout)?;
+    let stations_deletable_were_working = connection_new.get_deletable_were_working(broken_stations_timeout)?;
 
     let country_count = connection_new.get_country_count()?;
     let tags_count = connection_new.get_tag_count()?;
@@ -33,7 +35,7 @@ pub fn render<A>(
 # TYPE {prefix}stations_working gauge
 {prefix}stations_working {stations_working}
 
-# HELP {prefix}stations_todo Count of stations that need are in the queue for checking
+# HELP {prefix}stations_todo Count of stations that are in the queue for checking
 # TYPE {prefix}stations_todo gauge
 {prefix}stations_todo {stations_todo}
 

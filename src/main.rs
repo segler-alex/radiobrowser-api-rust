@@ -93,6 +93,8 @@ fn main() {
                             config.prometheus_exporter,
                             &config.prometheus_exporter_prefix,
                             click_valid_timeout.as_secs(),
+                            config.broken_stations_never_working_timeout.as_secs(),
+                            config.broken_stations_timeout.as_secs(),
                         );
                     }
                     Err(err) => {

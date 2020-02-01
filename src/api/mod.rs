@@ -208,7 +208,20 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Re
     }
 }
 
-pub fn start<A: 'static +  std::clone::Clone>(connection_new: A, host : String, port : i32, threads : usize, server_name: &str, static_dir: &str, log_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str, clicks_valid_timeout: u64) where A: DbConnection, A: std::marker::Send, A: std::marker::Sync {
+pub fn start<A: 'static +  std::clone::Clone>(
+    connection_new: A,
+    host : String,
+    port : i32,
+    threads : usize,
+    server_name: &str,
+    static_dir: &str,
+    log_dir: &str,
+    prometheus_exporter_enabled: bool,
+    prometheus_exporter_prefix: &str,
+    clicks_valid_timeout: u64,
+    broken_stations_never_working_timeout: u64,
+    broken_stations_timeout: u64,
+) where A: DbConnection, A: std::marker::Send, A: std::marker::Sync {
     let listen_str = format!("{}:{}", host, port);
     info!("Listen on {} with {} threads", listen_str, threads);
     let x : Option<usize> = Some(threads);
@@ -217,7 +230,7 @@ pub fn start<A: 'static +  std::clone::Clone>(connection_new: A, host : String, 
     let log_dir = log_dir.to_string();
     let prometheus_exporter_prefix = prometheus_exporter_prefix.to_string();
     rouille::start_server_with_pool(listen_str, x, move |request| {
-        handle_connection(&connection_new, request, &y, &static_dir, &log_dir, prometheus_exporter_enabled, &prometheus_exporter_prefix, clicks_valid_timeout)
+        handle_connection(&connection_new, request, &y, &static_dir, &log_dir, prometheus_exporter_enabled, &prometheus_exporter_prefix, clicks_valid_timeout, broken_stations_never_working_timeout, broken_stations_timeout)
     });
 }
 
@@ -281,7 +294,18 @@ fn log_to_file(file_name: &str, line: &str) {
     }
 }
 
-fn handle_connection<A>(connection_new: &A, request: &rouille::Request, server_name: &str, static_dir: &str, log_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str, clicks_valid_timeout: u64) -> rouille::Response where A: DbConnection {
+fn handle_connection<A>(
+    connection_new: &A,
+    request: &rouille::Request,
+    server_name: &str,
+    static_dir: &str,
+    log_dir: &str,
+    prometheus_exporter_enabled: bool,
+    prometheus_exporter_prefix: &str,
+    clicks_valid_timeout: u64,
+    broken_stations_never_working_timeout: u64,
+    broken_stations_timeout: u64,
+) -> rouille::Response where A: DbConnection {
     let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
     let referer: String = request.header("Referer").unwrap_or(&"-".to_string()).to_string();
     let user_agent: String = request.header("User-agent").unwrap_or(&"-".to_string()).to_string();
@@ -300,7 +324,7 @@ fn handle_connection<A>(connection_new: &A, request: &rouille::Request, server_n
         log_to_file(&log_file, &line);
     };
     rouille::log_custom(request, log_ok, log_err, || {
-        let result = handle_connection_internal(connection_new, request, server_name, static_dir, prometheus_exporter_enabled, prometheus_exporter_prefix, clicks_valid_timeout);
+        let result = handle_connection_internal(connection_new, request, server_name, static_dir, prometheus_exporter_enabled, prometheus_exporter_prefix, clicks_valid_timeout, broken_stations_never_working_timeout,broken_stations_timeout);
         match result {
             Ok(response) => response,
             Err(err) => rouille::Response::text(err.to_string()).with_status_code(500),
@@ -308,7 +332,17 @@ fn handle_connection<A>(connection_new: &A, request: &rouille::Request, server_n
     })
 }
 
-fn handle_connection_internal<A>(connection_new: &A, request: &rouille::Request, server_name: &str, static_dir: &str, prometheus_exporter_enabled: bool, prometheus_exporter_prefix: &str, clicks_valid_timeout: u64) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
+fn handle_connection_internal<A>(
+    connection_new: &A,
+    request: &rouille::Request,
+    server_name: &str,
+    static_dir: &str,
+    prometheus_exporter_enabled: bool,
+    prometheus_exporter_prefix: &str,
+    clicks_valid_timeout: u64,
+    broken_stations_never_working_timeout: u64,
+    broken_stations_timeout: u64,
+) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
     if request.method() != "POST" && request.method() != "GET" {
         return Ok(rouille::Response::empty_404());
     }
@@ -370,7 +404,7 @@ fn handle_connection_internal<A>(connection_new: &A, request: &rouille::Request,
         match file_name {
             "metrics" => {
                 if prometheus_exporter_enabled {
-                    Ok(prometheus_exporter::render(connection_new, prometheus_exporter_prefix)?)
+                    Ok(prometheus_exporter::render(connection_new, prometheus_exporter_prefix, broken_stations_never_working_timeout, broken_stations_timeout)?)
                 }else{
                     Ok(rouille::Response::text("Exporter not enabled!").with_status_code(423))
                 }
