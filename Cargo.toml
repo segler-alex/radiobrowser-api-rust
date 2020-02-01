@@ -4,7 +4,7 @@ description = "Radio-Browser Server with REST API"
 license = "agpl-3.0"
 name = "radiobrowser-api-rust"
 readme = "README.md"
-version = "0.6.8"
+version = "0.6.9"
 edition = "2018"
 
 [dependencies]
@@ -47,8 +47,8 @@ assets = [
     ["static/*", "usr/share/radiobrowser/", "644"],
     ["init.sql", "usr/share/radiobrowser/init.sql", "644"],
     ["init/*", "etc/systemd/system/", "644"],
-    ["radiobrowser.toml", "etc/radiobrowser/config-example.toml", "644"],
-    ["radiobrowser.toml", "etc/radiobrowser/config.toml", "644"],
+    ["etc/config-example.toml", "etc/radiobrowser/config-example.toml", "644"],
+    ["etc/config-example.toml", "etc/radiobrowser/config.toml", "644"],
     ["etc/logrotate", "etc/logrotate.d/radiobrowser", "644"],
 ]
 conf-files = [

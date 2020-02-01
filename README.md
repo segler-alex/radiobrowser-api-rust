@@ -80,7 +80,7 @@ docker stack deploy -c docker-compose-traefik.yml rb
 # download distribution
 mkdir -p radiobrowser
 cd radiobrowser
-wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.6.8/radiobrowser-dist.tar.gz
+wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.6.9/radiobrowser-dist.tar.gz
 tar -zxf radiobrowser-dist.tar.gz
 
 # config database
@@ -101,9 +101,9 @@ sudo systemctl start radiobrowser
 * create database and database user
 
 ```bash
-wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.6.8/radiobrowser-api-rust_0.6.8_amd64.deb
+wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.6.9/radiobrowser-api-rust_0.6.9_amd64.deb
 sudo apt install default-mysql-server
-sudo dpkg -i radiobrowser-api-rust_0.6.8_amd64.deb
+sudo dpkg -i radiobrowser-api-rust_0.6.9_amd64.deb
 cat /usr/share/radiobrowser/init.sql | mysql
 ```
 
@@ -193,7 +193,7 @@ cd radiobrowser-api-rust
 # checkout stable
 git checkout stable
 # deploy, change email adress, for ssl with certbot
-ansible-playbook -e "email=test@example.com" -e "version=0.6.8" -e "ansible_python_interpreter=auto" -i "test.example.com,test2.example.com" ansible/playbook.yml
+ansible-playbook -e "email=test@example.com" -e "version=0.6.9" -e "ansible_python_interpreter=auto" -i "test.example.com,test2.example.com" ansible/playbook.yml
 ```
 
 ## Building
