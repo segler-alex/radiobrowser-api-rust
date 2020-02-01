@@ -1079,9 +1079,9 @@ impl DbConnection for MysqlConnection {
         let where_checkuuid_str = match checkuuid {
             Some(checkuuid) => {
                 query_params.push((String::from("checkuuid"), checkuuid.into(),));
-                format!(" AND CheckID >= IFNULL((SELECT CheckID FROM {table_name} WHERE CheckUuid=:checkuuid),0)
-                          AND CheckID <= (SELECT MAX(CheckID) FROM {table_name} WHERE InsertTime <= UTC_TIMESTAMP() - INTERVAL 60 SECOND)
-                          AND CheckUuid<>:checkuuid", table_name = table_name)
+                format!(" AND CheckID >= IFNULL((SELECT CheckID FROM StationCheckHistory WHERE CheckUuid=:checkuuid),0)
+                          AND CheckID <= (SELECT MAX(CheckID) FROM StationCheckHistory WHERE InsertTime <= UTC_TIMESTAMP() - INTERVAL 60 SECOND)
+                          AND CheckUuid<>:checkuuid")
             },
             None => String::from("")
         };
