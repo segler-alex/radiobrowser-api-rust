@@ -1,35 +1,46 @@
+mod config_error;
+
 use clap::{App, Arg};
 use std::fs;
+use std::time::Duration;
+use std::error::Error;
+
+use humantime;
+
+pub use config_error::ConfigError;
 
 #[derive(Debug)]
 pub struct Config {
+    pub allow_database_downgrade: bool,
+    pub broken_stations_never_working_timeout: Duration,
+    pub broken_stations_timeout: Duration,
+    pub check_stations: u32,
+    pub checks_timeout: Duration,
+    pub click_valid_timeout: Duration,
+    pub clicks_timeout: Duration,
+    pub concurrency: usize,
+    pub connection_string: String,
+    pub delete: bool,
+    pub enable_check: bool,
+    pub favicon: bool,
+    pub ignore_migration_errors: bool,
     pub listen_host: String,
     pub listen_port: i32,
-    pub prometheus_exporter: bool,
-    pub prometheus_exporter_prefix: String,
-    pub connection_string: String,
-    pub update_caches_interval: u64,
-    pub ignore_migration_errors: bool,
-    pub allow_database_downgrade: bool,
-    pub threads: usize,
-    pub server_url: String,
-    pub static_files_dir: String,
     pub log_dir: String,
-    pub servers_pull: Vec<String>,
-    pub mirror_pull_interval: u64,
     pub log_level: usize,
-    pub click_timeout_hours: u32,
-
-    pub concurrency: usize,
-    pub check_stations: u32,
-    pub enable_check: bool,
-    pub delete: bool,
-    pub favicon: bool,
-    pub pause_seconds: u64,
-    pub tcp_timeout: u64,
     pub max_depth: u8,
+    pub mirror_pull_interval: Duration,
+    pub pause: Duration,
+    pub prometheus_exporter_prefix: String,
+    pub prometheus_exporter: bool,
     pub retries: u8,
+    pub server_url: String,
+    pub servers_pull: Vec<String>,
     pub source: String,
+    pub static_files_dir: String,
+    pub tcp_timeout: Duration,
+    pub threads: usize,
+    pub update_caches_interval: Duration,
     pub useragent: String,
 }
 
@@ -38,10 +49,10 @@ fn get_option_string(
     config: &toml::Value,
     setting_name: &str,
     default_value: String,
-) -> String {
+) -> Result<String, Box<dyn Error>> {
     let value_from_clap = matches.value_of(setting_name);
     if let Some(value_from_clap) = value_from_clap {
-        return value_from_clap.to_string();
+        return Ok(value_from_clap.to_string());
     }
 
     let setting = config.get(setting_name);
@@ -49,12 +60,24 @@ fn get_option_string(
         if setting.is_str() {
             let setting_decoded = setting.as_str();
             if let Some(setting_decoded) = setting_decoded {
-                return String::from(setting_decoded);
+                return Ok(String::from(setting_decoded));
             }
+        }else{
+            return Err(Box::new(ConfigError::TypeError(setting_name.into(), setting.to_string())));
         }
     }
 
-    default_value
+    Ok(default_value)
+}
+
+fn get_option_duration(
+    matches: &clap::ArgMatches,
+    config: &toml::Value,
+    setting_name: &str,
+    default_value: String,
+) -> Result<Duration, Box<dyn Error>> {
+    let s = get_option_string(matches, config, setting_name, default_value)?;
+    Ok(s.parse::<humantime::Duration>()?.into())
 }
 
 fn get_option_number(
@@ -62,21 +85,25 @@ fn get_option_number(
     config: &toml::Value,
     setting_name: &str,
     default_value: i64,
-) -> i64 {
+) -> Result<i64, Box<dyn Error>> {
     let value_from_clap = matches.value_of(setting_name);
     if let Some(value_from_clap) = value_from_clap {
-        return value_from_clap.to_string().parse().unwrap_or(default_value);
+        return Ok(value_from_clap.to_string().parse()?);
     }
 
     let setting = config.get(setting_name);
     if let Some(setting) = setting {
-        let setting_decoded = setting.as_integer();
-        if let Some(setting_decoded) = setting_decoded {
-            return setting_decoded;
+        if setting.is_integer() {
+            let setting_decoded = setting.as_integer();
+            if let Some(setting_decoded) = setting_decoded {
+                return Ok(setting_decoded);
+            }
+        }else{
+            return Err(Box::new(ConfigError::TypeError(setting_name.into(), setting.to_string())));
         }
     }
 
-    default_value
+    Ok(default_value)
 }
 
 fn get_option_bool(
@@ -84,44 +111,44 @@ fn get_option_bool(
     config: &toml::Value,
     setting_name: &str,
     default_value: bool,
-) -> bool {
+) -> Result<bool, Box<dyn Error>> {
     let value_from_clap = matches.value_of(setting_name);
     if let Some(value_from_clap) = value_from_clap {
-        return value_from_clap.to_string().parse().unwrap_or(default_value);
+        return Ok(value_from_clap.to_string().parse()?);
     }
 
     let setting = config.get(setting_name);
     if let Some(setting) = setting {
-        let setting_decoded = setting.as_bool();
-        if let Some(setting_decoded) = setting_decoded {
-            return setting_decoded;
+        if setting.is_bool(){
+            let setting_decoded = setting.as_bool();
+            if let Some(setting_decoded) = setting_decoded {
+                return Ok(setting_decoded);
+            }
+        }else{
+            return Err(Box::new(ConfigError::TypeError(setting_name.into(), setting.to_string())));
         }
     }
 
-    default_value
+    Ok(default_value)
 }
 
-fn get_hosts_from_config(config: &toml::Value) -> Vec<String> {
+fn get_hosts_from_config(config: &toml::Value) -> Result<Vec<String>, Box<dyn Error>> {
     let mut list = vec![];
     let setting = config.get("pullservers");
     if let Some(setting) = setting {
-        let setting_decoded = setting.as_table();
-        if let Some(setting_decoded) = setting_decoded {
-            for i in setting_decoded {
-                let host = i.1.get("host");
-                if let Some(host) = host {
-                    let host_str = host.as_str();
-                    if let Some(host_str) = host_str {
-                        list.push(host_str.to_string());
-                    }
-                }
+        let setting_decoded = setting.as_table().ok_or(Box::new(ConfigError::TypeError("pullservers".into(), setting.to_string())))?;
+        for i in setting_decoded {
+            let host = i.1.get("host");
+            if let Some(host) = host {
+                let host_str = host.as_str().ok_or(Box::new(ConfigError::TypeError("host".into(), host.to_string())))?;
+                list.push(host_str.to_string());
             }
         }
     }
-    list
+    Ok(list)
 }
 
-pub fn load_config() -> Config {
+pub fn load_config() -> Result<Config, Box<dyn Error>> {
     let hostname_str: String = hostname::get().map(|os_string| os_string.to_string_lossy().into_owned()).unwrap_or("".to_string());
 
     let matches = App::new("stream-check")
@@ -211,7 +238,7 @@ pub fn load_config() -> Config {
                 .short("u")
                 .long("update-caches-interval")
                 .value_name("UPDATE_CACHES_INTERVAL")
-                .help("update caches at an interval in seconds")
+                .help("update caches at an interval")
                 .env("UPDATE_CACHES_INTERVAL")
                 .takes_value(true),
         ).arg(
@@ -219,7 +246,7 @@ pub fn load_config() -> Config {
                 .short("q")
                 .long("mirror-pull-interval")
                 .value_name("MIRROR_PULL_INTERVAL")
-                .help("pull from mirrors at an interval in seconds")
+                .help("pull from mirrors at an interval")
                 .env("MIRROR_PULL_INTERVAL")
                 .takes_value(true),
         ).arg(
@@ -278,11 +305,43 @@ pub fn load_config() -> Config {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("click-timeout-hours")
-                .long("click_timeout_hours")
-                .value_name("CLICK_TIMEOUT_HOURS")
+            Arg::with_name("click-valid-timeout")
+                .long("click_valid_timeout")
+                .value_name("CLICK_VALID_TIMEOUT")
                 .help("Possible clicks from the same IP. IPs are removed after this timespan.")
-                .env("CLICK_TIMEOUT_HOURS")
+                .env("CLICK_VALID_TIMEOUT")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("broken-stations-never-working-timeout")
+                .long("broken_stations_never_working_timeout")
+                .value_name("BROKEN_STATIONS_NEVER_WORKING_TIMEOUT")
+                .help("Broken streams are removed after this timespan, if they have never worked.")
+                .env("BROKEN_STATIONS_NEVER_WORKING_TIMEOUT")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("broken-stations-timeout")
+                .long("broken_stations_timeout")
+                .value_name("BROKEN_STATIONS_TIMEOUT")
+                .help("Broken streams are removed after this timespan.")
+                .env("BROKEN_STATIONS_TIMEOUT")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("checks-timeout")
+                .long("checks_timeout")
+                .value_name("CHECKS_TIMEOUT")
+                .help("Checks are removed after this timespan.")
+                .env("CHECKS_TIMEOUT")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("clicks-timeout")
+                .long("clicks_timeout")
+                .value_name("CLICKS_TIMEOUT")
+                .help("Clicks are removed after this timespan.")
+                .env("CLICKS_TIMEOUT")
                 .takes_value(true),
         )
         .arg(
@@ -297,16 +356,16 @@ pub fn load_config() -> Config {
             Arg::with_name("tcp-timeout")
                 .long("tcp_timeout")
                 .value_name("TCP_TIMEOUT")
-                .help("tcp connect/read timeout in seconds")
+                .help("tcp connect/read timeout")
                 .env("TCP_TIMEOUT")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("pause-seconds")
-                .long("pause_seconds")
-                .value_name("PAUSE_SECONDS")
-                .help("database check pauses in seconds")
-                .env("PAUSE_SECONDS")
+            Arg::with_name("pause")
+                .long("pause")
+                .value_name("PAUSE")
+                .help("database check pauses")
+                .env("PAUSE")
                 .takes_value(true),
         )
         .arg(
@@ -356,72 +415,61 @@ pub fn load_config() -> Config {
     let config_file_path: String = matches.value_of("config-file").unwrap().to_string();
 
     debug!("Load settings from file {}", config_file_path);
-    let config = {
-        let contents = fs::read_to_string(config_file_path);
-        match contents {
-            Ok(contents) => {
-                let config = toml::from_str::<toml::Value>(&contents);
-                match config {
-                    Ok(config) => config,
-                    Err(err) => {
-                        panic!("Could not decode config file: {}", err);
-                    }
-                }
-            }
-            Err(err) => {
-                error!("Could not load config file: {}", err);
-                toml::from_str::<toml::Value>("").unwrap()
-            }
-        }
-    };
+    let contents = fs::read_to_string(config_file_path)?;
+    let config = toml::from_str::<toml::Value>(&contents)?;
 
     let connection_string = get_option_string(
         &matches,
         &config,
         "database",
         String::from("mysql://radiouser:password@localhost/radio"),
-    );
+    )?;
     let static_files_dir: String = get_option_string(
         &matches,
         &config,
         "static-files-dir",
         String::from("./static/"),
-    );
-    let log_dir: String = get_option_string(&matches, &config, "log-dir", String::from("."));
+    )?;
+    let log_dir: String = get_option_string(&matches, &config, "log-dir", String::from("."))?;
     let listen_host: String =
-        get_option_string(&matches, &config, "listen-host", String::from("127.0.0.1"));
-    let listen_port: i32 = get_option_number(&matches, &config, "listen-port", 8080) as i32;
+        get_option_string(&matches, &config, "listen-host", String::from("127.0.0.1"))?;
+    let listen_port: i32 = get_option_number(&matches, &config, "listen-port", 8080)? as i32;
 
-    let prometheus_exporter: bool = get_option_bool(&matches, &config, "prometheus-exporter", true);
-    let prometheus_exporter_prefix: String = get_option_string(&matches, &config, "prometheus-exporter-prefix", String::from("radio_browser_"));
+    let prometheus_exporter: bool = get_option_bool(&matches, &config, "prometheus-exporter", true)?;
+    let prometheus_exporter_prefix: String = get_option_string(&matches, &config, "prometheus-exporter-prefix", String::from("radio_browser_"))?;
 
     let server_url: String = get_option_string(
         &matches,
         &config,
         "server-url",
         String::from("http://localhost"),
-    );
-    let threads: usize = get_option_number(&matches, &config, "threads", 1) as usize;
-    let update_caches_interval: u64 =
-        get_option_number(&matches, &config, "update-caches-interval", 0) as u64;
-    let mirror_pull_interval: u64 =
-        get_option_number(&matches, &config, "mirror-pull-interval", 30) as u64;
-    let ignore_migration_errors: bool = get_option_bool(&matches, &config, "ignore-migration-errors", false);
-    let allow_database_downgrade: bool = get_option_bool(&matches, &config, "allow-database-downgrade", false);
+    )?;
+    let threads: usize = get_option_number(&matches, &config, "threads", 1)? as usize;
+    let update_caches_interval =
+        get_option_duration(&matches, &config, "update-caches-interval", String::from("2mins"))?;
+    let mirror_pull_interval =
+        get_option_duration(&matches, &config, "mirror-pull-interval", String::from("5mins"))?;
+    let ignore_migration_errors: bool = get_option_bool(&matches, &config, "ignore-migration-errors", false)?;
+    let allow_database_downgrade: bool = get_option_bool(&matches, &config, "allow-database-downgrade", false)?;
     let log_level: usize = matches.occurrences_of("log-level") as usize;
 
-    let concurrency: usize = get_option_number(&matches, &config, "concurrency", 1) as usize;
-    let check_stations: u32 = get_option_number(&matches, &config, "stations", 10) as u32;
-    let enable_check: bool = get_option_bool(&matches, &config, "enable-check", false);
-    let delete: bool = get_option_bool(&matches, &config, "delete", false);
-    let favicon: bool = get_option_bool(&matches, &config, "favicon", false);
-    let pause_seconds: u64 = get_option_number(&matches, &config, "pause-seconds", 10) as u64;
-    let tcp_timeout: u64 = get_option_number(&matches, &config, "tcp-timeout", 10) as u64;
-    let max_depth: u8 = get_option_number(&matches, &config, "max-depth", 5) as u8;
-    let retries: u8 = get_option_number(&matches, &config, "retries", 5) as u8;
-    let source: String = get_option_string(&matches, &config, "source", hostname_str);
-    let useragent = get_option_string(&matches, &config, "useragent", String::from("stream-check/0.1"));
-    let click_timeout_hours = get_option_number(&matches, &config, "click-timeout-hours", 24) as u32;
+    let concurrency: usize = get_option_number(&matches, &config, "concurrency", 1)? as usize;
+    let check_stations: u32 = get_option_number(&matches, &config, "stations", 10)? as u32;
+    let enable_check: bool = get_option_bool(&matches, &config, "enable-check", false)?;
+    let delete: bool = get_option_bool(&matches, &config, "delete", false)?;
+    let favicon: bool = get_option_bool(&matches, &config, "favicon", false)?;
+    let pause = get_option_duration(&matches, &config, "pause", String::from("10secs"))?;
+    let tcp_timeout = get_option_duration(&matches, &config, "tcp-timeout", String::from("10secs"))?;
+    let max_depth: u8 = get_option_number(&matches, &config, "max-depth", 5)? as u8;
+    let retries: u8 = get_option_number(&matches, &config, "retries", 5)? as u8;
+    let source: String = get_option_string(&matches, &config, "source", hostname_str)?;
+    let useragent = get_option_string(&matches, &config, "useragent", String::from("stream-check/0.1"))?;
+    let click_valid_timeout = get_option_duration(&matches, &config, "click-valid-timeout", String::from("1day"))?;
+    let broken_stations_never_working_timeout = get_option_duration(&matches, &config, "broken-stations-never-working-timeout", String::from("3days"))?;
+    let broken_stations_timeout = get_option_duration(&matches, &config, "broken-stations-timeout", String::from("30days"))?;
+    let checks_timeout = get_option_duration(&matches, &config, "checks-timeout", String::from("30days"))?;
+    let clicks_timeout = get_option_duration(&matches, &config, "clicks-timeout", String::from("30days"))?;
+
     let mut servers_pull = vec![];
     let mirrors = matches.values_of("mirror");
     if let Some(mirrors) = mirrors {
@@ -431,36 +479,39 @@ pub fn load_config() -> Config {
         }
     }
 
-    let mut servers = get_hosts_from_config(&config);
+    let mut servers = get_hosts_from_config(&config)?;
     servers_pull.append(&mut servers);
-
-    Config {
+    Ok(Config {
+        allow_database_downgrade,
+        broken_stations_never_working_timeout,
+        broken_stations_timeout,
+        check_stations,
+        checks_timeout,
+        click_valid_timeout,
+        clicks_timeout,
+        concurrency,
+        connection_string,
+        delete,
+        enable_check,
+        favicon,
+        ignore_migration_errors,
         listen_host,
         listen_port,
-        prometheus_exporter,
-        prometheus_exporter_prefix,
-        connection_string,
-        update_caches_interval,
-        ignore_migration_errors,
-        allow_database_downgrade,
-        mirror_pull_interval,
-        servers_pull,
-        threads,
-        server_url,
-        static_files_dir,
         log_dir,
         log_level,
-        concurrency,
-        check_stations,
-        enable_check,
-        delete,
-        favicon,
-        pause_seconds,
-        tcp_timeout,
         max_depth,
+        mirror_pull_interval,
+        pause,
+        prometheus_exporter_prefix,
+        prometheus_exporter,
         retries,
+        server_url,
+        servers_pull,
         source,
+        static_files_dir,
+        tcp_timeout,
+        threads,
+        update_caches_interval,
         useragent,
-        click_timeout_hours,
-    }
+    })
 }

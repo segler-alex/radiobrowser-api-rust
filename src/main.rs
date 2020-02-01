@@ -10,6 +10,7 @@ extern crate toml;
 #[macro_use]
 extern crate log;
 
+extern crate humantime;
 extern crate uuid;
 
 extern crate av_stream_info_rust;
@@ -22,17 +23,17 @@ extern crate website_icon_extract;
 use std::{thread, time};
 
 mod api;
-mod config;
 mod check;
-mod db;
-mod refresh;
-mod pull;
 mod cleanup;
+mod config;
+mod db;
+mod pull;
+mod refresh;
 
 fn main() {
     env_logger::init();
 
-    let config = config::load_config();
+    let config = config::load_config().expect("Unable to load config file");
 
     info!("Config: {:#?}", config);
 
@@ -46,21 +47,40 @@ fn main() {
                 );
                 match migration_result {
                     Ok(_) => {
-                        refresh::start(config.connection_string.clone(), config.update_caches_interval);
-                        pull::start(config.connection_string.clone(), config.servers_pull, config.mirror_pull_interval);
-                        cleanup::start(config.connection_string.clone(), config.source.clone(), config.delete, 3600, config.click_timeout_hours);
+                        let click_valid_timeout: std::time::Duration = config.click_valid_timeout.into();
+
+                        refresh::start(
+                            config.connection_string.clone(),
+                            config.update_caches_interval.as_secs(),
+                        );
+                        pull::start(
+                            config.connection_string.clone(),
+                            config.servers_pull,
+                            config.mirror_pull_interval.as_secs(),
+                        );
+                        cleanup::start(
+                            config.connection_string.clone(),
+                            config.source.clone(),
+                            config.delete,
+                            3600,
+                            click_valid_timeout.as_secs(),
+                            config.broken_stations_never_working_timeout.as_secs(),
+                            config.broken_stations_timeout.as_secs(),
+                            config.checks_timeout.as_secs(),
+                            config.clicks_timeout.as_secs(),
+                        );
                         check::start(
                             config.connection_string,
                             config.source,
                             config.concurrency,
                             config.check_stations,
                             config.useragent,
-                            config.tcp_timeout as u32,
+                            config.tcp_timeout.as_secs(),
                             config.max_depth,
                             config.retries,
                             config.favicon,
                             config.enable_check,
-                            config.pause_seconds,
+                            config.pause.as_secs(),
                         );
 
                         api::start(
@@ -73,7 +93,7 @@ fn main() {
                             &config.log_dir,
                             config.prometheus_exporter,
                             &config.prometheus_exporter_prefix,
-                            config.click_timeout_hours,
+                            click_valid_timeout.as_secs(),
                         );
                     }
                     Err(err) => {

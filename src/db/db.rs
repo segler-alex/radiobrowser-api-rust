@@ -19,8 +19,8 @@ pub trait DbConnection {
     fn get_station_count_working(&self) -> Result<u64, Box<dyn Error>>;
     fn get_station_count_todo(&self, hours: u32) -> Result<u64, Box<dyn Error>>;
     fn get_checks_todo_count(&self, hours: u32, source: &str) -> Result<u64, Box<dyn Error>>;
-    fn get_deletable_never_working(&self, hours: u32) -> Result<u64, Box<dyn Error>>;
-    fn get_deletable_were_working(&self, hours: u32) -> Result<u64, Box<dyn Error>>;
+    fn get_deletable_never_working(&self, seconds: u64) -> Result<u64, Box<dyn Error>>;
+    fn get_deletable_were_working(&self, seconds: u64) -> Result<u64, Box<dyn Error>>;
     fn get_tag_count(&self) -> Result<u64, Box<dyn Error>>;
     fn get_country_count(&self) -> Result<u64, Box<dyn Error>>;
     fn get_language_count(&self) -> Result<u64, Box<dyn Error>>;
@@ -68,11 +68,11 @@ pub trait DbConnection {
 
     fn insert_clicks(&self, list: &Vec<StationClickItemNew>) -> Result<(), Box<dyn Error>>;
 
-    fn delete_never_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
-    fn delete_were_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
-    fn delete_old_checks(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
-    fn delete_old_clicks(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
-    fn remove_unused_ip_infos_from_stationclicks(&mut self, hours: u32) -> Result<(), Box<dyn Error>>;
+    fn delete_never_working(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
+    fn delete_were_working(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
+    fn delete_old_checks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
+    fn delete_old_clicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
+    fn remove_unused_ip_infos_from_stationclicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn remove_illegal_icon_links(&mut self) -> Result<(), Box<dyn Error>>;
     
     fn update_stations_clickcount(&self) -> Result<(), Box<dyn Error>>;
@@ -84,7 +84,7 @@ pub trait DbConnection {
     fn remove_from_cache(&self, tags: Vec<&String>, table_name: &str, column_name: &str) -> Result<(), Box<dyn Error>>;
 
     fn vote_for_station(&self, ip: &str, station: Option<StationItem>) -> Result<String, Box<dyn Error>>;
-    fn increase_clicks(&self, ip: &str, station: &StationItem, hours: u32) -> Result<bool,Box<dyn Error>>;
+    fn increase_clicks(&self, ip: &str, station: &StationItem, seconds: u64) -> Result<bool,Box<dyn Error>>;
     fn sync_votes(&self, list: Vec<Station>) -> Result<(), Box<dyn Error>>;
 }
 

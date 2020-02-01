@@ -193,40 +193,40 @@ impl MysqlConnection {
 }
 
 impl DbConnection for MysqlConnection {
-    fn delete_old_checks(&mut self, hours: u32) -> Result<(), Box<dyn Error>> {
-        let p = params!(hours);
-        let delete_old_checks_history_query = "DELETE FROM StationCheckHistory WHERE CheckTime < UTC_TIMESTAMP() - INTERVAL :hours HOUR";
+    fn delete_old_checks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
+        let p = params!(seconds);
+        let delete_old_checks_history_query = "DELETE FROM StationCheckHistory WHERE CheckTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut delete_old_checks_history_stmt = self.pool.prepare(delete_old_checks_history_query)?;
         delete_old_checks_history_stmt.execute(&p)?;
 
         Ok(())
     }
 
-    fn delete_old_clicks(&mut self, hours: u32) -> Result<(), Box<dyn Error>> {
-        let delete_old_clicks_query = "DELETE FROM StationClick WHERE ClickTimestamp < UTC_TIMESTAMP() - INTERVAL :hours HOUR";
+    fn delete_old_clicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
+        let delete_old_clicks_query = "DELETE FROM StationClick WHERE ClickTimestamp < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut delete_old_clicks_stmt = self.pool.prepare(delete_old_clicks_query)?;
-        delete_old_clicks_stmt.execute(params!(hours))?;
+        delete_old_clicks_stmt.execute(params!(seconds))?;
         Ok(())
     }
 
-    fn delete_never_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>> {
-        let delete_never_working_query = "DELETE FROM Station WHERE LastCheckOkTime IS NULL AND Creation < UTC_TIMESTAMP() - INTERVAL :hours HOUR";
+    fn delete_never_working(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
+        let delete_never_working_query = "DELETE FROM Station WHERE LastCheckOkTime IS NULL AND Creation < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut delete_never_working_stmt = self.pool.prepare(delete_never_working_query)?;
-        delete_never_working_stmt.execute(params!(hours))?;
+        delete_never_working_stmt.execute(params!(seconds))?;
         Ok(())
     }
 
-    fn delete_were_working(&mut self, hours: u32) -> Result<(), Box<dyn Error>> {
-        let delete_were_working_query = "DELETE FROM Station WHERE LastCheckOK=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < UTC_TIMESTAMP() - INTERVAL :hours HOUR";
+    fn delete_were_working(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
+        let delete_were_working_query = "DELETE FROM Station WHERE LastCheckOK=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut delete_were_working_stmt = self.pool.prepare(delete_were_working_query)?;
-        delete_were_working_stmt.execute(params!(hours))?;
+        delete_were_working_stmt.execute(params!(seconds))?;
         Ok(())
     }
 
-    fn remove_unused_ip_infos_from_stationclicks(&mut self, hours: u32) -> Result<(), Box<dyn Error>> {
-        let query = "UPDATE StationClick SET IP=NULL WHERE InsertTime < UTC_TIMESTAMP() - INTERVAL :hours HOUR";
+    fn remove_unused_ip_infos_from_stationclicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
+        let query = "UPDATE StationClick SET IP=NULL WHERE InsertTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut stmt = self.pool.prepare(query)?;
-        stmt.execute(params!(hours))?;
+        stmt.execute(params!(seconds))?;
         Ok(())
     }
 
@@ -302,12 +302,12 @@ impl DbConnection for MysqlConnection {
         self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM StationCheckHistory WHERE Source=:source AND CheckTime > UTC_TIMESTAMP() - INTERVAL :hours HOUR",params!(hours, source))
     }
 
-    fn get_deletable_never_working(&self, hours: u32) -> Result<u64, Box<dyn Error>> {
-        self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOkTime IS NULL AND Creation < UTC_TIMESTAMP() - INTERVAL :hours HOUR", params!(hours))
+    fn get_deletable_never_working(&self, seconds: u64) -> Result<u64, Box<dyn Error>> {
+        self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOkTime IS NULL AND Creation < UTC_TIMESTAMP() - INTERVAL :seconds SECOND", params!(seconds))
     }
 
-    fn get_deletable_were_working(&self, hours: u32) -> Result<u64, Box<dyn Error>> {
-        self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOK=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < UTC_TIMESTAMP() - INTERVAL :hours HOUR", params!(hours))
+    fn get_deletable_were_working(&self, seconds: u64) -> Result<u64, Box<dyn Error>> {
+        self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOK=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND", params!(seconds))
     }
 
     fn get_stations_broken(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
@@ -1389,9 +1389,9 @@ impl DbConnection for MysqlConnection {
         }
     }
 
-    fn increase_clicks(&self, ip: &str, station: &StationItem, hours: u32) -> Result<bool,Box<dyn std::error::Error>> {
-        let query = "SELECT StationUuid, IP FROM StationClick WHERE StationUuid=:stationuuid AND IP=ip AND TIME_TO_SEC(TIMEDIFF(Now(),ClickTimestamp))<:hours*60*60";
-        let result = self.pool.prep_exec(query, params!{"stationuuid" => &station.stationuuid, ip, hours})?;
+    fn increase_clicks(&self, ip: &str, station: &StationItem, seconds: u64) -> Result<bool,Box<dyn std::error::Error>> {
+        let query = "SELECT StationUuid, IP FROM StationClick WHERE StationUuid=:stationuuid AND IP=ip AND TIME_TO_SEC(TIMEDIFF(Now(),ClickTimestamp))<:seconds";
+        let result = self.pool.prep_exec(query, params!{"stationuuid" => &station.stationuuid, ip, seconds})?;
 
         for _ in result {
             return Ok(false);

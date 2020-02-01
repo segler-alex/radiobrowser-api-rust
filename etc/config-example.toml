@@ -1,31 +1,40 @@
-## database connection string (mysql, mariadb)
-database = "mysql://radiouser:password@localhost/radio"
+## API
+## ===
 ## Directory for static and template files
 static-files-dir = "/usr/share/radiobrowser"
 ## Log file path
 log-dir = "/var/log/radiobrowser/"
-
 ## Listening IP
 listen-host = "127.0.0.1"
 ## Listening port
 listen-port = 8080
+## How many concurrent threads used by socket
+threads = 5
+## Update caches at an interval
+update-caches-interval = "5mins"
+## The same ip cannot do clicks for the same stream in this timespan
+click-valid-timeout = "1day"
+## Broken streams are removed after this timespan, if they have never worked.
+broken-stations-never-working-timeout = "3days"
+## Broken streams are removed after this timespan.
+broken-stations-timeout = "30days"
+## Checks are removed after this timespan.
+checks-timeout = "30days"
+## Checks are removed after this timespan.
+clicks-timeout = "30days"
+## Documentation url to be used if automatic is not working
+#server-url = "https://de1.api.radio-browser.info"
 
-## Update caches at an interval in seconds
-update-caches-interval = 120
+## Database
+## ========
+## database connection string (mysql, mariadb)
+database = "mysql://radiouser:password@localhost/radio"
 ## Ignore errors on database migration scripts
 ## ONLY use this if you know what you are doing
 ignore-migration-errors = false
 ## Allow database to downgrade if you start an older version
 ## of the radio browser binary
 allow-database-downgrade = false
-## How many concurrent threads used by socket
-threads = 5
-## Documentation url to be used if automatic is not working
-server-url = "https://de1.api.radio-browser.info"
-## Mirror pull interval in seconds
-mirror-pull-interval = 300
-## The same ip cannot do clicks for the same stream in this timespan
-click-timeout-hours = 24
 
 ## Prometheus exporter
 ## ===================
@@ -37,43 +46,40 @@ prometheus-exporter-prefix = "radio_browser_"
 
 ## Stream check
 ## ============
-
 ## Enable the checking of stations
 enable-check = false
-
 ## Concurrent checks
 concurrency = 10
-
 ## Batchsize of stations to get from the database at a time
 stations = 100
-
 ## Enable delete logic for stations
 delete = true
-
 ## Automatic favicon check for stations (experimental)
 favicon = false
-
 ## Interval in seconds to wait after every batch of checks
-pause-seconds = 60
-
+pause = "60secs"
 ## Timeout for tcp connections
-tcp-timeout = 10
-
+tcp-timeout = "10secs"
 ## Recursive depth for real stream link resolution
 max-depth = 5
-
 ## Retries for each station check until marked as broken
 retries = 5
-
 ## Hostname for the check-entries in the database, defaults to the local hostname
 #source = "myhostname"
-
 ## User agent for the stream check
 #useragent = "useragent/1.0"
 
+## Mirroring
+## =========
+## Mirror pull interval in seconds
+mirror-pull-interval = "5mins"
 ## Mirror from server
 [pullservers]
 [pullservers.alpha]
 host = "http://www.radio-browser.info/webservice"
 #[pullservers.beta]
 #host = "http://de1.api.radio-browser.info"
+#[pullservers.gamma]
+#host = "http://fr1.api.radio-browser.info"
+#[pullservers.delta]
+#host = "http://nl1.api.radio-browser.info"

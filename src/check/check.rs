@@ -106,7 +106,7 @@ fn dbcheck_internal(
     pool: &ThreadPool,
     stations: Vec<StationItem>,
     source: &str,
-    timeout: u32,
+    timeout: u64,
     max_depth: u8,
     retries: u8,
     result_sender: Sender<StationOldNew>,
@@ -120,7 +120,7 @@ fn dbcheck_internal(
             {
                 let (_, receiver): (Sender<i32>, Receiver<i32>) = channel();
                 let station_name = station.name.clone();
-                let max_timeout = (retries as u32) * timeout * 2;
+                let max_timeout = (retries as u64) * timeout * 2;
                 thread::spawn(move || {
                     for _ in 0..max_timeout {
                         thread::sleep(Duration::from_secs(1));
@@ -142,7 +142,7 @@ fn dbcheck_internal(
                 });
             }
 
-            let mut items = av_stream_info_rust::check(&station.url, timeout, max_depth, retries);
+            let mut items = av_stream_info_rust::check(&station.url, timeout as u32, max_depth, retries);
             for item in items.drain(..) {
                 match item {
                     Ok(item) => {
@@ -229,7 +229,7 @@ pub fn dbcheck(
     concurrency: usize,
     stations_count: u32,
     useragent: &str,
-    timeout: u32,
+    timeout: u64,
     max_depth: u8,
     retries: u8,
     favicon_checks: bool,
@@ -248,7 +248,7 @@ pub fn dbcheck(
         let station = oldnew.old;
         let new_item = oldnew.new;
         if favicon_checks {
-            let new_favicon = favicon::check(&station.homepage, &station.favicon, &useragent, timeout)?;
+            let new_favicon = favicon::check(&station.homepage, &station.favicon, &useragent, timeout as u32)?;
             update_station(&mut conn, &station, new_item, &new_favicon)?;
         } else {
             update_station(&mut conn, &station, new_item, &station.favicon)?;
