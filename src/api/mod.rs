@@ -20,6 +20,7 @@ use crate::api::data::StationCheck;
 use crate::api::data::StationAddResult;
 use crate::api::data::Status;
 use crate::api::data::StationClick;
+use crate::api::data::ApiConfig;
 use crate::db::DbConnection;
 use crate::db::models::ExtraInfo;
 use crate::db::models::State;
@@ -29,6 +30,8 @@ use crate::api::rouille::Request;
 use std;
 use self::dns_lookup::lookup_host;
 use self::dns_lookup::lookup_addr;
+
+use crate::config::Config;
 
 use std::fs::File;
 use self::serde_json::value::{Map};
@@ -210,27 +213,12 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Re
 
 pub fn start<A: 'static +  std::clone::Clone>(
     connection_new: A,
-    host : String,
-    port : i32,
-    threads : usize,
-    server_name: &str,
-    static_dir: &str,
-    log_dir: &str,
-    prometheus_exporter_enabled: bool,
-    prometheus_exporter_prefix: &str,
-    clicks_valid_timeout: u64,
-    broken_stations_never_working_timeout: u64,
-    broken_stations_timeout: u64,
+    config: Config,
 ) where A: DbConnection, A: std::marker::Send, A: std::marker::Sync {
-    let listen_str = format!("{}:{}", host, port);
-    info!("Listen on {} with {} threads", listen_str, threads);
-    let x : Option<usize> = Some(threads);
-    let y = String::from(server_name);
-    let static_dir = static_dir.to_string();
-    let log_dir = log_dir.to_string();
-    let prometheus_exporter_prefix = prometheus_exporter_prefix.to_string();
-    rouille::start_server_with_pool(listen_str, x, move |request| {
-        handle_connection(&connection_new, request, &y, &static_dir, &log_dir, prometheus_exporter_enabled, &prometheus_exporter_prefix, clicks_valid_timeout, broken_stations_never_working_timeout, broken_stations_timeout)
+    let listen_str = format!("{}:{}", config.listen_host, config.listen_port);
+    info!("Listen on {} with {} threads", listen_str, config.threads);
+    rouille::start_server_with_pool(listen_str, Some(config.threads), move |request| {
+        handle_connection(&connection_new, request, config.clone())
     });
 }
 
@@ -297,19 +285,13 @@ fn log_to_file(file_name: &str, line: &str) {
 fn handle_connection<A>(
     connection_new: &A,
     request: &rouille::Request,
-    server_name: &str,
-    static_dir: &str,
-    log_dir: &str,
-    prometheus_exporter_enabled: bool,
-    prometheus_exporter_prefix: &str,
-    clicks_valid_timeout: u64,
-    broken_stations_never_working_timeout: u64,
-    broken_stations_timeout: u64,
+    config: Config,
 ) -> rouille::Response where A: DbConnection {
     let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
     let referer: String = request.header("Referer").unwrap_or(&"-".to_string()).to_string();
     let user_agent: String = request.header("User-agent").unwrap_or(&"-".to_string()).to_string();
 
+    let log_dir = config.log_dir.clone();
     let now = chrono::Utc::now().format("%d/%m/%Y:%H:%M:%S%.6f");
     let log_ok = |req: &Request, resp: &Response, _elap: std::time::Duration| {
         let line = format!(r#"{} - - [{}] "{} {}" {} {} "{}" "{}""#, remote_ip, now, req.method(), req.raw_url(), resp.status_code, 0, referer, user_agent);
@@ -324,7 +306,7 @@ fn handle_connection<A>(
         log_to_file(&log_file, &line);
     };
     rouille::log_custom(request, log_ok, log_err, || {
-        let result = handle_connection_internal(connection_new, request, server_name, static_dir, prometheus_exporter_enabled, prometheus_exporter_prefix, clicks_valid_timeout, broken_stations_never_working_timeout,broken_stations_timeout);
+        let result = handle_connection_internal(connection_new, request, config);
         match result {
             Ok(response) => response,
             Err(err) => rouille::Response::text(err.to_string()).with_status_code(500),
@@ -335,19 +317,19 @@ fn handle_connection<A>(
 fn handle_connection_internal<A>(
     connection_new: &A,
     request: &rouille::Request,
-    server_name: &str,
-    static_dir: &str,
-    prometheus_exporter_enabled: bool,
-    prometheus_exporter_prefix: &str,
-    clicks_valid_timeout: u64,
-    broken_stations_never_working_timeout: u64,
-    broken_stations_timeout: u64,
+    config: Config,
 ) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
     if request.method() != "POST" && request.method() != "GET" {
         return Ok(rouille::Response::empty_404());
     }
 
-    let header_host: &str = request.header("X-Forwarded-Host").unwrap_or(request.header("Host").unwrap_or(server_name));
+    let header_host = request.header("X-Forwarded-Host").or(request.header("Host"));
+    let base_url = match header_host {
+        Some(header_host) => format!("http://{host}", host = header_host),
+        None => config.server_url.clone(),
+    };
+    trace!("header_host: {:?}", header_host);
+    trace!("base_url: {:?}", base_url);
     let content_type_raw: &str = request.header("Content-Type").unwrap_or("nothing");
     let content_type_arr: Vec<&str> = content_type_raw.split(";").collect();
     if content_type_arr.len() == 0{
@@ -403,22 +385,22 @@ fn handle_connection_internal<A>(
         let file_name: &str = &items[1];
         match file_name {
             "metrics" => {
-                if prometheus_exporter_enabled {
-                    Ok(prometheus_exporter::render(connection_new, prometheus_exporter_prefix, broken_stations_never_working_timeout, broken_stations_timeout)?)
+                if config.prometheus_exporter {
+                    Ok(prometheus_exporter::render(connection_new, &config.prometheus_exporter_prefix, config.broken_stations_never_working_timeout.as_secs(), config.broken_stations_timeout.as_secs())?)
                 }else{
                     Ok(rouille::Response::text("Exporter not enabled!").with_status_code(423))
                 }
             },
-            "favicon.ico" => Ok(send_file(&format!("{}/{}",static_dir,"favicon.ico"), "image/png")),
-            "robots.txt" => Ok(send_file(&format!("{}/{}",static_dir,"robots.txt"), "text/plain")),
-            "main.css" => Ok(send_file(&format!("{}/{}",static_dir,"main.css"),"text/css")),
+            "favicon.ico" => Ok(send_file(&format!("{}/{}",config.static_files_dir,"favicon.ico"), "image/png")),
+            "robots.txt" => Ok(send_file(&format!("{}/{}",config.static_files_dir,"robots.txt"), "text/plain")),
+            "main.css" => Ok(send_file(&format!("{}/{}",config.static_files_dir,"main.css"),"text/css")),
             "" => {
                 let mut handlebars = Handlebars::new();
-                let y = handlebars.register_template_file("docs.hbs", &format!("{}/{}",static_dir,"docs.hbs"));
+                let y = handlebars.register_template_file("docs.hbs", &format!("{}/{}",config.static_files_dir,"docs.hbs"));
                 if y.is_ok() {
                     let pkg_version = env!("CARGO_PKG_VERSION");
                     let mut data = Map::new();
-                    data.insert(String::from("API_SERVER"), to_json(format!("http://{name}",name = header_host)));
+                    data.insert(String::from("API_SERVER"), to_json(base_url));
                     data.insert(String::from("SERVER_VERSION"), to_json(format!("{version}",version = pkg_version)));
                     let rendered = handlebars.render("docs.hbs", &data)?;
                     Ok(rouille::Response::html(rendered).with_no_cache())
@@ -443,10 +425,11 @@ fn handle_connection_internal<A>(
             "tags" => Ok(add_cors(encode_extra(connection_new.get_extra("TagCache", "TagName", filter, param_order, param_reverse, param_hidebroken)?, format, "tag")?)),
             "stations" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_all(&param_order, param_reverse, param_hidebroken, param_offset, param_limit)?.drain(..).map(|x|x.into()).collect(), format)?)),
             "servers" => Ok(add_cors(dns_resolve(format)?)),
-            "stats" => Ok(add_cors(encode_status(get_status(connection_new)?, format, static_dir))),
+            "stats" => Ok(add_cors(encode_status(get_status(connection_new)?, format, &config.static_files_dir))),
             "checks" => Ok(add_cors(StationCheck::get_response(connection_new.get_checks(None, param_last_checkuuid, param_seconds, false)?.drain(..).map(|x|x.into()).collect(),format)?)),
             "clicks" => Ok(add_cors(StationClick::get_response(connection_new.get_clicks(None, param_last_clickuuid, param_seconds)?.drain(..).map(|x|x.into()).collect(),format)?)),
             "add" => Ok(add_cors(StationAddResult::from(connection_new.add_station_opt(param_name, param_url, param_homepage, param_favicon, param_country, param_countrycode, param_state, param_language, param_tags)).get_response(format)?)),
+            "config" => Ok(add_cors(ApiConfig::get_response(config.into(),format)?)),
             _ => Ok(rouille::Response::empty_404()),
         }
     } else if items.len() == 4 {
@@ -462,7 +445,7 @@ fn handle_connection_internal<A>(
             "tags" => Ok(add_cors(encode_extra(connection_new.get_extra("TagCache", "TagName", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "tag")?)),
             "states" => Ok(add_cors(encode_states(connection_new.get_states(None, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format)?)),
             "vote" => Ok(add_cors(encode_message(connection_new.vote_for_station(&remote_ip, get_only_first_item(connection_new.get_station_by_uuid(parameter)?)), format)?)),
-            "url" => Ok(add_cors(encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(parameter)?), &remote_ip, format, clicks_valid_timeout)?)),
+            "url" => Ok(add_cors(encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(parameter)?), &remote_ip, format, config.click_valid_timeout.as_secs())?)),
             "stations" => {
                 match parameter {
                     "topvote" => Ok(add_cors(Station::get_response(connection_new.get_stations_topvote(999999)?.drain(..).map(|x| x.into()).collect(), format)?)),
@@ -491,7 +474,7 @@ fn handle_connection_internal<A>(
             let format = command;
             let command = parameter;
             match command {
-                "url" => Ok(add_cors(encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(search)?), &remote_ip, format, clicks_valid_timeout)?)),
+                "url" => Ok(add_cors(encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(search)?), &remote_ip, format, config.click_valid_timeout.as_secs())?)),
                 _ => Ok(rouille::Response::empty_404()),
             }
         }else{

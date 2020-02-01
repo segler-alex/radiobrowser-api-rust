@@ -47,7 +47,7 @@ fn main() {
                 );
                 match migration_result {
                     Ok(_) => {
-                        let click_valid_timeout: std::time::Duration = config.click_valid_timeout.into();
+                        let config_for_api = config.clone();
 
                         refresh::start(
                             config.connection_string.clone(),
@@ -62,7 +62,7 @@ fn main() {
                             config.connection_string.clone(),
                             config.delete,
                             3600,
-                            click_valid_timeout.as_secs(),
+                            config.click_valid_timeout.as_secs(),
                             config.broken_stations_never_working_timeout.as_secs(),
                             config.broken_stations_timeout.as_secs(),
                             config.checks_timeout.as_secs(),
@@ -84,17 +84,7 @@ fn main() {
 
                         api::start(
                             connection,
-                            config.listen_host,
-                            config.listen_port,
-                            config.threads,
-                            &config.server_url,
-                            &config.static_files_dir,
-                            &config.log_dir,
-                            config.prometheus_exporter,
-                            &config.prometheus_exporter_prefix,
-                            click_valid_timeout.as_secs(),
-                            config.broken_stations_never_working_timeout.as_secs(),
-                            config.broken_stations_timeout.as_secs(),
+                            config_for_api,
                         );
                     }
                     Err(err) => {

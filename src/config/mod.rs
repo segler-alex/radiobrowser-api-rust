@@ -9,7 +9,7 @@ use humantime;
 
 pub use config_error::ConfigError;
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Config {
     pub allow_database_downgrade: bool,
     pub broken_stations_never_working_timeout: Duration,
