@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.9] 2020-02-01
 ### Added
 - DEB: logrotate config
 - API: more exports to metrics
