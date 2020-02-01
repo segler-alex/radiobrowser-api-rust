@@ -279,6 +279,9 @@ impl DbConnection for MysqlConnection {
         self.get_single_column_number(r#"SELECT COUNT(*) FROM StationClick WHERE TIMESTAMPDIFF(HOUR,ClickTimestamp,UTC_TIMESTAMP())<=24;"#)
     }
 
+    /**
+     * Get number of stations that do not have any checks in the last x hours
+     */
     fn get_station_count_todo(&self, hours: u32) -> Result<u64, Box<dyn Error>> {
         self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastLocalCheckTime IS NULL OR LastLocalCheckTime < UTC_TIMESTAMP() - INTERVAL :hours HOUR", params!(hours))
     }
@@ -296,10 +299,6 @@ impl DbConnection for MysqlConnection {
         );
         let results = self.pool.prep_exec(query, (id_str,))?;
         self.get_list_from_query_result(results)
-    }
-
-    fn get_checks_todo_count(&self, hours: u32, source: &str) -> Result<u64, Box<dyn Error>> {
-        self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM StationCheckHistory WHERE Source=:source AND CheckTime > UTC_TIMESTAMP() - INTERVAL :hours HOUR",params!(hours, source))
     }
 
     fn get_deletable_never_working(&self, seconds: u64) -> Result<u64, Box<dyn Error>> {

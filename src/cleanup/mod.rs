@@ -5,7 +5,6 @@ use std::time::Duration;
 fn do_cleanup(
     delete: bool,
     database_url: String,
-    source: &str,
     click_valid_timeout: u64,
     broken_stations_never_working_timeout: u64,
     broken_stations_timeout: u64,
@@ -14,8 +13,8 @@ fn do_cleanup(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut conn_new_style = connect(database_url)?;
 
-    let checks_hour = conn_new_style.get_checks_todo_count(1, source)?;
-    let checks_day = conn_new_style.get_checks_todo_count(24, source)?;
+    let checks_hour = conn_new_style.get_station_count_todo(1)?;
+    let checks_day = conn_new_style.get_station_count_todo(24)?;
     let stations_broken = conn_new_style.get_station_count_broken()?;
     let stations_working = conn_new_style.get_station_count_working()?;
     let stations_todo = conn_new_style.get_station_count_todo(24)?;
@@ -40,7 +39,6 @@ fn do_cleanup(
 
 pub fn start(
     database_url: String,
-    source: String,
     delete: bool,
     pause_seconds: u64,
     clicks_valid_timeout: u64,
@@ -53,7 +51,6 @@ pub fn start(
         let result = do_cleanup(
             delete,
             database_url.clone(),
-            &source,
             clicks_valid_timeout,
             broken_stations_never_working_timeout,
             broken_stations_timeout,

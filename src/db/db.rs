@@ -18,7 +18,6 @@ pub trait DbConnection {
     fn get_station_count_broken(&self) -> Result<u64, Box<dyn Error>>;
     fn get_station_count_working(&self) -> Result<u64, Box<dyn Error>>;
     fn get_station_count_todo(&self, hours: u32) -> Result<u64, Box<dyn Error>>;
-    fn get_checks_todo_count(&self, hours: u32, source: &str) -> Result<u64, Box<dyn Error>>;
     fn get_deletable_never_working(&self, seconds: u64) -> Result<u64, Box<dyn Error>>;
     fn get_deletable_were_working(&self, seconds: u64) -> Result<u64, Box<dyn Error>>;
     fn get_tag_count(&self) -> Result<u64, Box<dyn Error>>;

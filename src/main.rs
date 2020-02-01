@@ -60,7 +60,6 @@ fn main() {
                         );
                         cleanup::start(
                             config.connection_string.clone(),
-                            config.source.clone(),
                             config.delete,
                             3600,
                             click_valid_timeout.as_secs(),
