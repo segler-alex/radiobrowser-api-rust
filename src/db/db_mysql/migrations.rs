@@ -362,5 +362,13 @@ r#"ALTER TABLE StationClick ADD CONSTRAINT FK_Station FOREIGN KEY(StationUuid) R
 r#"ALTER TABLE StationClick ADD CONSTRAINT FK_StationClick_Station FOREIGN KEY(StationUuid) REFERENCES Station(StationUuid) ON DELETE CASCADE;"#,
 r#"ALTER TABLE StationClick DROP FOREIGN KEY FK_StationClick_Station;"#);
 
+    migrations.add_migration("20200202_003500_Add_Index_StationCheckHistory_StationUuid_Source",
+r#"ALTER TABLE StationCheckHistory ADD INDEX IN_StationCheckHistory_StationUuid_Source(StationUuid,Source);"#,
+r#"ALTER TABLE StationCheckHistory DROP INDEX IN_StationCheckHistory_StationUuid_Source;"#);
+
+    migrations.add_migration("20200202_003700_Add_Index_StationCheckHistory_InsertTime",
+r#"ALTER TABLE StationCheckHistory ADD INDEX IN_StationCheckHistory_InsertTime(InsertTime);"#,
+r#"ALTER TABLE StationCheckHistory DROP INDEX IN_StationCheckHistory_InsertTime;"#);
+
     Ok(migrations)
 }
