@@ -370,5 +370,9 @@ r#"ALTER TABLE StationCheckHistory DROP INDEX IN_StationCheckHistory_StationUuid
 r#"ALTER TABLE StationCheckHistory ADD INDEX IN_StationCheckHistory_InsertTime(InsertTime);"#,
 r#"ALTER TABLE StationCheckHistory DROP INDEX IN_StationCheckHistory_InsertTime;"#);
 
+    migrations.add_migration("20200202_012500_Add_Index_StationClick_StationUuid_ClickTimestamp",
+r#"ALTER TABLE StationClick ADD INDEX IN_StationClick_StationUuid_ClickTimestamp(StationUuid, ClickTimestamp);"#,
+r#"ALTER TABLE StationClick DROP INDEX IN_StationClick_StationUuid_ClickTimestamp;"#);
+
     Ok(migrations)
 }

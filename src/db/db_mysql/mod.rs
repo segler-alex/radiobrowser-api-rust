@@ -237,6 +237,7 @@ impl DbConnection for MysqlConnection {
     }
 
     fn update_stations_clickcount(&self) -> Result<(), Box<dyn Error>> {
+        trace!("update_stations_clickcount() 1");
         let query = "UPDATE Station st SET 
         clickcount=IFNULL((SELECT COUNT(*) FROM StationClick sc WHERE st.StationUuid=sc.StationUuid),0),
         ClickTrend=
@@ -247,7 +248,7 @@ impl DbConnection for MysqlConnection {
         ClickTimestamp=(SELECT Max(ClickTimestamp) FROM StationClick sc WHERE sc.StationUuid=st.StationUuid);";
         let mut stmt = self.pool.prepare(query)?;
         stmt.execute(())?;
-
+        trace!("update_stations_clickcount() 2");
         Ok(())
     }
 
@@ -1410,14 +1411,40 @@ impl DbConnection for MysqlConnection {
     }
 
     fn sync_votes(&self, list: Vec<Station>) -> Result<(), Box<dyn Error>> {
+        trace!("sync_votes() 1");
         let mut transaction = self.pool.start_transaction(false, None, None)?;
+        // get current list of votes in database
+        let mut stations_current: HashMap<String, i32> = HashMap::new();
         {
-            let mut stmt = transaction.prepare("UPDATE Station SET Votes=GREATEST(Votes,:votes) WHERE StationUuid=:stationuuid;")?;
-            for item in list {
-                stmt.execute(params!("votes"=>item.votes,"stationuuid"=>item.stationuuid))?;
+            let result = transaction.prep_exec("SELECT StationUuid,Votes FROM Station",())?;
+            for row in result {
+                let (stationuuid, votes): (String, i32) = mysql::from_row_opt(row?)?;
+                stations_current.insert(stationuuid, votes);
             }
         }
+        trace!("sync_votes() 2");
+        // compare and search for changes
+        let mut rows_to_update: Vec<(String,i32)> = vec![];
+        for station in list {
+            let entry = stations_current.remove_entry(&station.stationuuid);
+            if let Some(entry) = entry {
+                let (stationuuid, votes) = entry;
+                if votes != station.votes {
+                    rows_to_update.push((stationuuid, votes));
+                }
+            }
+        }
+        trace!("sync_votes() 3");
+        // update changed votes
+        {
+            let mut stmt = transaction.prepare("UPDATE Station SET Votes=GREATEST(Votes,:votes) WHERE StationUuid=:stationuuid;")?;
+            for (stationuuid, votes) in rows_to_update {
+                stmt.execute(params!(votes, stationuuid))?;
+            }
+        }
+        trace!("sync_votes() 4");
         transaction.commit()?;
+        trace!("sync_votes() 5");
         Ok(())
     }
 }
