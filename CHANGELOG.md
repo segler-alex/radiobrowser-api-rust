@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - API: Wrong links in docs
 - API: Faster select from stationcheck view with added index
-- API: Only update stations with changed votes
+- SYNC: Only update stations with changed votes
+- SYNC: Faster update of station's clicks with added index
 
 ## [0.6.9] 2020-02-01
 ### Added
