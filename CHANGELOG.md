@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.10] 2020-02-01
+### Fixed
+- API: Wrong links in docs
+- API: Faster select from stationcheck view with added index
+- API: Only update stations with changed votes
+
 ## [0.6.9] 2020-02-01
 ### Added
 - DEB: logrotate config

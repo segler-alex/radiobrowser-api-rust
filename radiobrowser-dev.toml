@@ -79,7 +79,7 @@ mirror-pull-interval = "5mins"
 host = "http://www.radio-browser.info/webservice"
 #[pullservers.beta]
 #host = "http://de1.api.radio-browser.info"
-#[pullservers.gamma]
-#host = "http://fr1.api.radio-browser.info"
-#[pullservers.delta]
-#host = "http://nl1.api.radio-browser.info"
+[pullservers.gamma]
+host = "http://fr1.api.radio-browser.info"
+[pullservers.delta]
+host = "http://nl1.api.radio-browser.info"
