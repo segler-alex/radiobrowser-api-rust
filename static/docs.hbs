@@ -295,6 +295,22 @@
     clicktrend=&quot;0&quot;/&gt;
             </pre>
           </div>
+
+          <div class="h5 mt-3">Example M3U playlist with extension field:</div>
+          The M3U files created by this server are extended with an additional field, that can be used to identify entries of the file with this server.
+          The field is added as a special comment, so it will not interfere with normal operations of players, that use this playlist.
+          <div class="well well-sm bg-light border border-secondary rounded">
+            <pre class="mt-4">
+  #EXTM3U
+  #RADIOBROWSERUUID:9637967a-0601-11e8-ae97-52543be04c81
+  #EXTINF:-1,Technikum GOLD
+  http://technikumhitclassics.macjingle.at:8204/;stream/1
+
+  #RADIOBROWSERUUID:9614b318-0601-11e8-ae97-52543be04c81
+  #EXTINF:-1,Zwischen-Welten
+  http://radio.zwischen-welten.info:8000/listen/
+            </pre>
+          </div>
         </div>
       </div>
     </div>

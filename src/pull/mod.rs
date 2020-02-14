@@ -241,7 +241,7 @@ fn pull_server(connection_new: &Box<dyn DbConnection>, server: &str) -> Result<(
         connection_new.sync_votes(list_stations)?;
     }
 
-    info!("Pull from '{}' OK (Added station changes: {}, Added station checks: {}, Added station clicks: {})", server, station_change_count, station_check_count, station_click_count);
+    debug!("Pull from '{}' OK (Added station changes: {}, Added station checks: {}, Added station clicks: {})", server, station_change_count, station_check_count, station_click_count);
     Ok(())
 }
 
