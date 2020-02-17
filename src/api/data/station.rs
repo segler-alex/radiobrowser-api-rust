@@ -145,6 +145,10 @@ impl Station {
         let mut j = String::with_capacity(200 * list.len());
         j.push_str("#EXTM3U\r\n");
         for item in list {
+            j.push_str("#RADIOBROWSERUUID:");
+            j.push_str(&item.stationuuid);
+            j.push_str("\r\n");
+            
             j.push_str("#EXTINF:1,");
             j.push_str(&item.name);
             j.push_str("\r\n");

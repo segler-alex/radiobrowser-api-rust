@@ -1,4 +1,4 @@
-mod api_error;
+mod pull_error;
 
 use std::error::Error;
 use std::thread;
@@ -79,7 +79,7 @@ fn pull_history(server: &str, api_version: u32, lastid: Option<String>) -> Resul
             Ok(list)
         },
         _ => {
-            Err(Box::new(api_error::ApiError::UnknownApiVersion(api_version)))
+            Err(Box::new(pull_error::PullError::UnknownApiVersion(api_version)))
         }
     }
 }
@@ -103,7 +103,7 @@ fn pull_checks(server: &str, api_version: u32, lastid: Option<String>) -> Result
             Ok(list)
         },
         _ => {
-            Err(Box::new(api_error::ApiError::UnknownApiVersion(api_version)))
+            Err(Box::new(pull_error::PullError::UnknownApiVersion(api_version)))
         }
     }
 }
@@ -127,7 +127,7 @@ fn pull_clicks(server: &str, api_version: u32, lastid: Option<String>) -> Result
             Ok(list)
         },
         _ => {
-            Err(Box::new(api_error::ApiError::UnknownApiVersion(api_version)))
+            Err(Box::new(pull_error::PullError::UnknownApiVersion(api_version)))
         }
     }
 }
@@ -147,7 +147,7 @@ fn pull_stations(server: &str, api_version: u32) -> Result<Vec<Station>, Box<dyn
             Ok(list)
         },
         _ => {
-            Err(Box::new(api_error::ApiError::UnknownApiVersion(api_version)))
+            Err(Box::new(pull_error::PullError::UnknownApiVersion(api_version)))
         }
     }
 }
@@ -241,7 +241,7 @@ fn pull_server(connection_new: &Box<dyn DbConnection>, server: &str) -> Result<(
         connection_new.sync_votes(list_stations)?;
     }
 
-    info!("Pull from '{}' OK (Added station changes: {}, Added station checks: {}, Added station clicks: {})", server, station_change_count, station_check_count, station_click_count);
+    debug!("Pull from '{}' OK (Added station changes: {}, Added station checks: {}, Added station clicks: {})", server, station_change_count, station_check_count, station_click_count);
     Ok(())
 }
 

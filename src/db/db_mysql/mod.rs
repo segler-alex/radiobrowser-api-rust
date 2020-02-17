@@ -1148,6 +1148,7 @@ impl DbConnection for MysqlConnection {
         reverse: bool,
         hidebroken: bool,
     ) -> Result<Vec<ExtraInfo>, Box<dyn Error>> {
+        let order = filter_order_1_n(&order)?;
         let mut params: Vec<Value> = Vec::with_capacity(1);
         let mut items = vec![];
         let reverse_string = if reverse { "DESC" } else { "ASC" };
@@ -1183,6 +1184,7 @@ impl DbConnection for MysqlConnection {
         reverse: bool,
         hidebroken: bool,
     ) -> Result<Vec<ExtraInfo>, Box<dyn Error>> {
+        let order = filter_order_1_n(&order)?;
         let query: String;
         let reverse_string = if reverse { "DESC" } else { "ASC" };
         let hidebroken_string = if hidebroken {
@@ -1474,5 +1476,13 @@ fn filter_order(order: &str) -> &str {
         "clicktrend" => "ClickTrend",
         "random" => "RAND()",
         _ => "Name",
+    }
+}
+
+fn filter_order_1_n(order: &str) -> Result<&str, Box<dyn Error>> {
+    match order {
+        "name" => Ok("name"),
+        "stationcount" => Ok("stationcount"),
+        _ => Err(Box::new(DbError::IllegalOrderError(String::from(order)))),
     }
 }

@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.11] 2020-02-17
+### Added
+- API: Added stationuuid to m3u output
+
+### Fixed
+- API: Filter order column for extra tables
+
 ## [0.6.10] 2020-02-01
 ### Fixed
 - API: Wrong links in docs

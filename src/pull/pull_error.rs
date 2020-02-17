@@ -4,19 +4,19 @@ use std::fmt::Formatter;
 use std::fmt::Result;
 
 #[derive(Debug, Clone)]
-pub enum ApiError {
+pub enum PullError {
     UnknownApiVersion(u32),
 }
 
-impl Display for ApiError {
+impl Display for PullError {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match *self {
-            ApiError::UnknownApiVersion(ref v) => write!(f, "UnknownApiVersion {}", v),
+            PullError::UnknownApiVersion(ref v) => write!(f, "UnknownApiVersion {}", v),
         }
     }
 }
 
-impl Error for ApiError {
+impl Error for PullError {
     fn description(&self) -> &str {
         "invalid first item to double"
     }
