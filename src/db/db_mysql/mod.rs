@@ -530,7 +530,7 @@ impl DbConnection for MysqlConnection {
             }
         }
         if codec.is_some() {
-            query.push_str(" AND Codec=:codec");
+            query.push_str(" AND LOWER(Codec)=LOWER(:codec)");
         }
         let mut params = params!{
             "name" => name.unwrap_or_default(),
