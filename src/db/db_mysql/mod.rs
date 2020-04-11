@@ -470,6 +470,7 @@ impl DbConnection for MysqlConnection {
         tag: Option<String>,
         tag_exact: bool,
         tag_list: Vec<String>,
+        codec: Option<String>,
         bitrate_min: u32,
         bitrate_max: u32,
         order: &str,
@@ -528,6 +529,9 @@ impl DbConnection for MysqlConnection {
                 query.push_str(" AND Tags LIKE CONCAT('%',:tag,'%')");
             }
         }
+        if codec.is_some() {
+            query.push_str(" AND LOWER(Codec)=LOWER(:codec)");
+        }
         let mut params = params!{
             "name" => name.unwrap_or_default(),
             "country" => country.unwrap_or_default(),
@@ -535,6 +539,7 @@ impl DbConnection for MysqlConnection {
             "state" => state.unwrap_or_default(),
             "language" => language.unwrap_or_default(),
             "tag" => tag.unwrap_or_default(),
+            "codec" => codec.unwrap_or_default(),
             "bitrate_min" => bitrate_min,
             "bitrate_max" => bitrate_max,
         };
@@ -1392,7 +1397,7 @@ impl DbConnection for MysqlConnection {
     }
 
     fn increase_clicks(&self, ip: &str, station: &StationItem, seconds: u64) -> Result<bool,Box<dyn std::error::Error>> {
-        let query = "SELECT StationUuid, IP FROM StationClick WHERE StationUuid=:stationuuid AND IP=ip AND TIME_TO_SEC(TIMEDIFF(Now(),ClickTimestamp))<:seconds";
+        let query = "SELECT StationUuid, IP FROM StationClick WHERE StationUuid=:stationuuid AND IP=ip AND TIME_TO_SEC(TIMEDIFF(UTC_TIMESTAMP(),ClickTimestamp))<:seconds";
         let result = self.pool.prep_exec(query, params!{"stationuuid" => &station.stationuuid, ip, seconds})?;
 
         for _ in result {

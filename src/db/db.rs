@@ -33,6 +33,7 @@ pub trait DbConnection {
         &self,name: Option<String>,name_exact: bool,country: Option<String>,country_exact: bool,countrycode: Option<String>,
         state: Option<String>,state_exact: bool,language: Option<String>,
         language_exact: bool,tag: Option<String>,tag_exact: bool,tag_list: Vec<String>,
+        codec: Option<String>,
         bitrate_min: u32,bitrate_max: u32,order: &str,reverse: bool,hidebroken: bool,offset: u32,limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
     fn get_changes(&self, stationuuid: Option<String>, changeuuid: Option<String>) -> Result<Vec<StationHistoryItem>, Box<dyn Error>>;
     

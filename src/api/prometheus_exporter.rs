@@ -1,10 +1,17 @@
 use crate::db::DbConnection;
 
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+};
+
 pub fn render<A>(
     connection_new: &A,
     prefix: &str,
     broken_stations_never_working_timeout: u64,
     broken_stations_timeout: u64,
+    counter_all: Arc<AtomicUsize>,
+    counter_clicks: Arc<AtomicUsize>,
 ) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
     let clicks_last_hour = connection_new.get_click_count_last_hour()?;
     let clicks_last_day = connection_new.get_click_count_last_day()?;
@@ -18,6 +25,9 @@ pub fn render<A>(
     let tags_count = connection_new.get_tag_count()?;
     let language_count = connection_new.get_language_count()?;
 
+    let station_clicks = counter_clicks.load(Ordering::Relaxed);
+    let api_calls = counter_all.load(Ordering::Relaxed);
+
     let out = format!(
         "# HELP {prefix}clicks_last_hour Clicks in the last hour
 # TYPE {prefix}clicks_last_hour gauge
@@ -26,6 +36,14 @@ pub fn render<A>(
 # HELP {prefix}clicks_last_day Clicks in the last day
 # TYPE {prefix}clicks_last_day gauge
 {prefix}clicks_last_day {clicks_last_day}
+
+# HELP {prefix}station_clicks Clicks on stations
+# TYPE {prefix}station_clicks counter
+{prefix}station_clicks {station_clicks}
+
+# HELP {prefix}api_calls Calls to the api
+# TYPE {prefix}api_calls counter
+{prefix}api_calls {api_calls}
 
 # HELP {prefix}stations_broken Count of stations that are broken
 # TYPE {prefix}stations_broken gauge
@@ -70,6 +88,8 @@ pub fn render<A>(
         country_count = country_count,
         tags_count = tags_count,
         language_count = language_count,
+        station_clicks = station_clicks,
+        api_calls = api_calls,
     );
 
     // Output to the standard output.

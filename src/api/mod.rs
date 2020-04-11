@@ -36,6 +36,11 @@ use crate::config::Config;
 use std::fs::File;
 use self::serde_json::value::{Map};
 
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+};
+
 use handlebars::{
     to_json, Handlebars,
 };
@@ -114,9 +119,10 @@ fn encode_message(status: Result<String, Box<dyn Error>>, format : &str) -> Resu
     })
 }
 
-fn encode_station_url<A>(connection_new: &A, station: Option<StationItem>, ip: &str, format : &str, seconds: u64) -> Result<rouille::Response, Box<dyn Error>> where A: DbConnection {
+fn encode_station_url<A>(connection_new: &A, station: Option<StationItem>, ip: &str, format : &str, seconds: u64, counter_clicks: Arc<AtomicUsize>) -> Result<rouille::Response, Box<dyn Error>> where A: DbConnection {
     Ok(match station {
         Some(station) => {
+            counter_clicks.fetch_add(1,Ordering::Relaxed);
             let _ = connection_new.increase_clicks(&ip, &station, seconds);
             let station = station.into();
             match format {
@@ -217,8 +223,14 @@ pub fn start<A: 'static +  std::clone::Clone>(
 ) where A: DbConnection, A: std::marker::Send, A: std::marker::Sync {
     let listen_str = format!("{}:{}", config.listen_host, config.listen_port);
     info!("Listen on {} with {} threads", listen_str, config.threads);
+
+    let counter_all = Arc::new(AtomicUsize::new(0));
+    let counter_click = Arc::new(AtomicUsize::new(0));
+
     rouille::start_server_with_pool(listen_str, Some(config.threads), move |request| {
-        handle_connection(&connection_new, request, config.clone())
+        let counter_all_2 = counter_all.clone();
+        counter_all_2.fetch_add(1, Ordering::Relaxed);
+        handle_connection(&connection_new, request, config.clone(), counter_all_2, counter_click.clone())
     });
 }
 
@@ -286,6 +298,8 @@ fn handle_connection<A>(
     connection_new: &A,
     request: &rouille::Request,
     config: Config,
+    counter_all: Arc<AtomicUsize>,
+    counter_clicks: Arc<AtomicUsize>,
 ) -> rouille::Response where A: DbConnection {
     let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
     let referer: String = request.header("Referer").unwrap_or(&"-".to_string()).to_string();
@@ -306,7 +320,7 @@ fn handle_connection<A>(
         log_to_file(&log_file, &line);
     };
     rouille::log_custom(request, log_ok, log_err, || {
-        let result = handle_connection_internal(connection_new, request, config);
+        let result = handle_connection_internal(connection_new, request, config, counter_all, counter_clicks);
         match result {
             Ok(response) => response,
             Err(err) => rouille::Response::text(err.to_string()).with_status_code(500),
@@ -318,6 +332,8 @@ fn handle_connection_internal<A>(
     connection_new: &A,
     request: &rouille::Request,
     config: Config,
+    counter_all: Arc<AtomicUsize>,
+    counter_clicks: Arc<AtomicUsize>,
 ) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
     if request.method() != "POST" && request.method() != "GET" {
         return Ok(rouille::Response::empty_404());
@@ -361,6 +377,7 @@ fn handle_connection_internal<A>(
     let param_tag: Option<String> = ppp.get_string("tag");
     let param_tag_exact: bool = ppp.get_bool("tagExact", false);
     let param_tag_list: Vec<String> = str_to_arr(&ppp.get_string("tagList").unwrap_or(String::new()));
+    let param_codec: Option<String> = ppp.get_string("codec");
 
     let param_bitrate_min : u32 = ppp.get_number("bitrateMin", 0);
     let param_bitrate_max : u32 = ppp.get_number("bitrateMax", 1000000);
@@ -386,7 +403,7 @@ fn handle_connection_internal<A>(
         match file_name {
             "metrics" => {
                 if config.prometheus_exporter {
-                    Ok(prometheus_exporter::render(connection_new, &config.prometheus_exporter_prefix, config.broken_stations_never_working_timeout.as_secs(), config.broken_stations_timeout.as_secs())?)
+                    Ok(prometheus_exporter::render(connection_new, &config.prometheus_exporter_prefix, config.broken_stations_never_working_timeout.as_secs(), config.broken_stations_timeout.as_secs(), counter_all, counter_clicks)?)
                 }else{
                     Ok(rouille::Response::text("Exporter not enabled!").with_status_code(423))
                 }
@@ -445,7 +462,7 @@ fn handle_connection_internal<A>(
             "tags" => Ok(add_cors(encode_extra(connection_new.get_extra("TagCache", "TagName", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "tag")?)),
             "states" => Ok(add_cors(encode_states(connection_new.get_states(None, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format)?)),
             "vote" => Ok(add_cors(encode_message(connection_new.vote_for_station(&remote_ip, get_only_first_item(connection_new.get_station_by_uuid(parameter)?)), format)?)),
-            "url" => Ok(add_cors(encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(parameter)?), &remote_ip, format, config.click_valid_timeout.as_secs())?)),
+            "url" => Ok(add_cors(encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(parameter)?), &remote_ip, format, config.click_valid_timeout.as_secs(),counter_clicks)?)),
             "stations" => {
                 match parameter {
                     "topvote" => Ok(add_cors(Station::get_response(connection_new.get_stations_topvote(999999)?.drain(..).map(|x| x.into()).collect(), format)?)),
@@ -456,7 +473,7 @@ fn handle_connection_internal<A>(
                     "improvable" => Ok(add_cors(Station::get_response(connection_new.get_stations_improvable(999999)?.drain(..).map(|x| x.into()).collect(), format)?)),
                     "changed" => Ok(add_cors(encode_changes(connection_new.get_changes(None, param_last_changeuuid)?.drain(..).map(|x| x.into()).collect(), format)?)),
                     "byurl" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_column_multiple("Url", param_url,true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
-                    "search" => Ok(add_cors(Station::get_response(connection_new.get_stations_advanced(param_name, param_name_exact, param_country, param_country_exact, param_countrycode, param_state, param_state_exact, param_language, param_language_exact, param_tag, param_tag_exact, param_tag_list, param_bitrate_min, param_bitrate_max, &param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    "search" => Ok(add_cors(Station::get_response(connection_new.get_stations_advanced(param_name, param_name_exact, param_country, param_country_exact, param_countrycode, param_state, param_state_exact, param_language, param_language_exact, param_tag, param_tag_exact, param_tag_list, param_codec, param_bitrate_min, param_bitrate_max, &param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
                     _ => Ok(rouille::Response::empty_404()),
                 }
             },
@@ -474,7 +491,7 @@ fn handle_connection_internal<A>(
             let format = command;
             let command = parameter;
             match command {
-                "url" => Ok(add_cors(encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(search)?), &remote_ip, format, config.click_valid_timeout.as_secs())?)),
+                "url" => Ok(add_cors(encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(search)?), &remote_ip, format, config.click_valid_timeout.as_secs(), counter_clicks)?)),
                 _ => Ok(rouille::Response::empty_404()),
             }
         }else{
