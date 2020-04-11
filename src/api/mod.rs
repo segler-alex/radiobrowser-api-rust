@@ -377,6 +377,7 @@ fn handle_connection_internal<A>(
     let param_tag: Option<String> = ppp.get_string("tag");
     let param_tag_exact: bool = ppp.get_bool("tagExact", false);
     let param_tag_list: Vec<String> = str_to_arr(&ppp.get_string("tagList").unwrap_or(String::new()));
+    let param_codec: Option<String> = ppp.get_string("codec");
 
     let param_bitrate_min : u32 = ppp.get_number("bitrateMin", 0);
     let param_bitrate_max : u32 = ppp.get_number("bitrateMax", 1000000);
@@ -472,7 +473,7 @@ fn handle_connection_internal<A>(
                     "improvable" => Ok(add_cors(Station::get_response(connection_new.get_stations_improvable(999999)?.drain(..).map(|x| x.into()).collect(), format)?)),
                     "changed" => Ok(add_cors(encode_changes(connection_new.get_changes(None, param_last_changeuuid)?.drain(..).map(|x| x.into()).collect(), format)?)),
                     "byurl" => Ok(add_cors(Station::get_response(connection_new.get_stations_by_column_multiple("Url", param_url,true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
-                    "search" => Ok(add_cors(Station::get_response(connection_new.get_stations_advanced(param_name, param_name_exact, param_country, param_country_exact, param_countrycode, param_state, param_state_exact, param_language, param_language_exact, param_tag, param_tag_exact, param_tag_list, param_bitrate_min, param_bitrate_max, &param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    "search" => Ok(add_cors(Station::get_response(connection_new.get_stations_advanced(param_name, param_name_exact, param_country, param_country_exact, param_countrycode, param_state, param_state_exact, param_language, param_language_exact, param_tag, param_tag_exact, param_tag_list, param_codec, param_bitrate_min, param_bitrate_max, &param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
                     _ => Ok(rouille::Response::empty_404()),
                 }
             },
