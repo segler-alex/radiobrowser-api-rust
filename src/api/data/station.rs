@@ -169,12 +169,12 @@ impl Station {
         j.push_str(&format!("NumberOfEntries={}\r\n", list.len()));
         for item in list {
             let i_str = i.to_string();
-            j.push_str("File");
+            j.push_str("Title");
             j.push_str(&i_str);
             j.push_str("=");
             j.push_str(&item.name);
             j.push_str("\r\n");
-            j.push_str("Title");
+            j.push_str("File");
             j.push_str(&i_str);
             j.push_str("=");
             if use_cached_url {
