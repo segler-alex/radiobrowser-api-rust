@@ -323,7 +323,11 @@ fn handle_connection<A>(
         let result = handle_connection_internal(connection_new, request, config, counter_all, counter_clicks);
         match result {
             Ok(response) => add_cors(response),
-            Err(err) => add_cors(rouille::Response::text(err.to_string()).with_status_code(500)),
+            Err(err) => {
+                let err_str = err.to_string();
+                trace!("{}", err_str);
+                add_cors(rouille::Response::text(err_str).with_status_code(500))
+            } 
         }
     })
 }
