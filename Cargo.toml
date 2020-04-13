@@ -4,7 +4,7 @@ description = "Radio-Browser Server with REST API"
 license = "agpl-3.0"
 name = "radiobrowser-api-rust"
 readme = "README.md"
-version = "0.6.12"
+version = "0.6.13"
 edition = "2018"
 
 [dependencies]
