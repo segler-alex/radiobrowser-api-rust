@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.14] 2020-04-13
+### Fixed
+- PLS files had title and file content reversed
+
 ## [0.6.13] 2020-04-13
 ### Fixed
 - Always add CORS header, even on errors
