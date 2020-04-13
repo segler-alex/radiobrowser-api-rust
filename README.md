@@ -101,9 +101,9 @@ sudo systemctl start radiobrowser
 * create database and database user
 
 ```bash
-wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.6.13/radiobrowser-api-rust_0.6.10_amd64.deb
+wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.6.13/radiobrowser-api-rust_0.6.13_amd64.deb
 sudo apt install default-mysql-server
-sudo dpkg -i radiobrowser-api-rust_0.6.10_amd64.deb
+sudo dpkg -i radiobrowser-api-rust_0.6.13_amd64.deb
 cat /usr/share/radiobrowser/init.sql | mysql
 ```
 
