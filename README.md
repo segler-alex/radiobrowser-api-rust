@@ -12,7 +12,7 @@ The main server on <http://www.radio-browser.info> still has an older version ru
 
 Send me feature requests, bug reports or extend it yourself. I license it freely, you could also start your own server if you wish.
 
-You can find the API documentation on <http://www.radio-browser.info/gui/#!/api>
+You can find the API documentation on <https://api.radio-browser.info/>
 
 ## Setup
 
