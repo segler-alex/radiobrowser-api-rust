@@ -13,8 +13,6 @@ pub fn render<A>(
     counter_all: Arc<AtomicUsize>,
     counter_clicks: Arc<AtomicUsize>,
 ) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
-    let clicks_last_hour = connection_new.get_click_count_last_hour()?;
-    let clicks_last_day = connection_new.get_click_count_last_day()?;
     let stations_broken = connection_new.get_station_count_broken()?;
     let stations_working = connection_new.get_station_count_working()?;
     let stations_todo = connection_new.get_station_count_todo(24)?;
@@ -29,15 +27,7 @@ pub fn render<A>(
     let api_calls = counter_all.load(Ordering::Relaxed);
 
     let out = format!(
-        "# HELP {prefix}clicks_last_hour Clicks in the last hour
-# TYPE {prefix}clicks_last_hour gauge
-{prefix}clicks_last_hour {clicks_last_hour}
-
-# HELP {prefix}clicks_last_day Clicks in the last day
-# TYPE {prefix}clicks_last_day gauge
-{prefix}clicks_last_day {clicks_last_day}
-
-# HELP {prefix}station_clicks Clicks on stations
+        "# HELP {prefix}station_clicks Clicks on stations
 # TYPE {prefix}station_clicks counter
 {prefix}station_clicks {station_clicks}
 
@@ -78,8 +68,6 @@ pub fn render<A>(
 {prefix}language_count {language_count}
     ",
         prefix = prefix,
-        clicks_last_hour = clicks_last_hour,
-        clicks_last_day = clicks_last_day,
         stations_broken = stations_broken,
         stations_working = stations_working,
         stations_todo = stations_todo,
