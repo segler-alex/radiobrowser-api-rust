@@ -307,14 +307,14 @@ fn handle_connection<A>(
 
     let log_dir = config.log_dir.clone();
     let now = chrono::Utc::now().format("%d/%m/%Y:%H:%M:%S%.6f");
-    let log_ok = |req: &Request, resp: &Response, _elap: std::time::Duration| {
-        let line = format!(r#"{} - - [{}] "{} {}" {} {} "{}" "{}""#, remote_ip, now, req.method(), req.raw_url(), resp.status_code, 0, referer, user_agent);
+    let log_ok = |req: &Request, resp: &Response, elap: std::time::Duration| {
+        let line = format!(r#"{} {},{:09} - [{}] "{} {}" {} {} "{}" "{}""#, remote_ip, elap.as_secs(), elap.subsec_nanos(), now, req.method(), req.raw_url(), resp.status_code, 0, referer, user_agent);
         debug!("{}", line);
         let log_file = format!("{}/access.log",log_dir);
         log_to_file(&log_file, &line);
     };
-    let log_err = |req: &Request, _elap: std::time::Duration| {
-        let line = format!("{} {} Handler panicked: {} {}", remote_ip, now, req.method(), req.raw_url());
+    let log_err = |req: &Request, elap: std::time::Duration| {
+        let line = format!("{} {},{:09} {} Handler panicked: {} {}", remote_ip, elap.as_secs(), elap.subsec_nanos(), now, req.method(), req.raw_url());
         error!("{}", line);
         let log_file = format!("{}/access.log", log_dir);
         log_to_file(&log_file, &line);
