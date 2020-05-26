@@ -314,7 +314,7 @@ fn handle_connection<A>(
         log_to_file(&log_file, &line);
     };
     let log_err = |req: &Request, elap: std::time::Duration| {
-        let line = format!("{} {},{:09} {} Handler panicked: {} {}", remote_ip, elap.as_secs(), elap.subsec_nanos(), now, req.method(), req.raw_url());
+        let line = format!(r#"{} {},{:09} - [{}] "{} {}" {}"#, remote_ip, elap.as_secs(), elap.subsec_nanos(), now, req.method(), req.raw_url(), 500);
         error!("{}", line);
         let log_file = format!("{}/access.log", log_dir);
         log_to_file(&log_file, &line);
