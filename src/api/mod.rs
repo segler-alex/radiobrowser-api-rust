@@ -315,8 +315,8 @@ fn handle_connection<A>(
     };
     let log_err = |req: &Request, _elap: std::time::Duration| {
         let line = format!("{} {} Handler panicked: {} {}", remote_ip, now, req.method(), req.raw_url());
-        debug!("{}", line);
-        let log_file = format!("{}/error.log", log_dir);
+        error!("{}", line);
+        let log_file = format!("{}/access.log", log_dir);
         log_to_file(&log_file, &line);
     };
     rouille::log_custom(request, log_ok, log_err, || {
@@ -325,7 +325,7 @@ fn handle_connection<A>(
             Ok(response) => add_cors(response),
             Err(err) => {
                 let err_str = err.to_string();
-                trace!("{}", err_str);
+                error!("{}", err_str);
                 add_cors(rouille::Response::text(err_str).with_status_code(500))
             } 
         }

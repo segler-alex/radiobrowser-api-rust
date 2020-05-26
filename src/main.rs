@@ -29,11 +29,15 @@ mod config;
 mod db;
 mod pull;
 mod refresh;
+mod logger;
 
 fn main() {
-    env_logger::init();
-
     let config = config::load_config().expect("Unable to load config file");
+
+    let logger = logger::setup_logger(config.log_level, &config.log_dir, false);
+    if let Err(logger) = logger {
+        panic!("Logger could not be initialized! {}", logger);
+    }
 
     info!("Config: {:#?}", config);
 

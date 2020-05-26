@@ -414,7 +414,6 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
 
     let config_file_path: String = matches.value_of("config-file").unwrap().to_string();
 
-    debug!("Load settings from file {}", config_file_path);
     let contents = fs::read_to_string(config_file_path)?;
     let config = toml::from_str::<toml::Value>(&contents)?;
 
@@ -474,7 +473,6 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
     let mirrors = matches.values_of("mirror");
     if let Some(mirrors) = mirrors {
         for mirror in mirrors {
-            info!("Will pull from '{}'", mirror);
             servers_pull.push(mirror.to_string());
         }
     }
