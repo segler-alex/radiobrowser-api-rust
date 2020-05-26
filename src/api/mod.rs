@@ -472,12 +472,12 @@ fn handle_connection_internal<A>(
             "url" => Ok(encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(parameter)?), &remote_ip, format, config.click_valid_timeout.as_secs(),counter_clicks)?),
             "stations" => {
                 match parameter {
-                    "topvote" => Ok(Station::get_response(connection_new.get_stations_topvote(999999)?.drain(..).map(|x| x.into()).collect(), format)?),
-                    "topclick" => Ok(Station::get_response(connection_new.get_stations_topclick(999999)?.drain(..).map(|x| x.into()).collect(), format)?),
-                    "lastclick" => Ok(Station::get_response(connection_new.get_stations_lastclick(999999)?.drain(..).map(|x| x.into()).collect(), format)?),
-                    "lastchange" => Ok(Station::get_response(connection_new.get_stations_lastchange(999999)?.drain(..).map(|x| x.into()).collect(), format)?),
-                    "broken" => Ok(Station::get_response(connection_new.get_stations_broken(999999)?.drain(..).map(|x| x.into()).collect(), format)?),
-                    "improvable" => Ok(Station::get_response(connection_new.get_stations_improvable(999999)?.drain(..).map(|x| x.into()).collect(), format)?),
+                    "topvote" => Ok(Station::get_response(connection_new.get_stations_topvote(param_limit)?.drain(..).map(|x| x.into()).collect(), format)?),
+                    "topclick" => Ok(Station::get_response(connection_new.get_stations_topclick(param_limit)?.drain(..).map(|x| x.into()).collect(), format)?),
+                    "lastclick" => Ok(Station::get_response(connection_new.get_stations_lastclick(param_limit)?.drain(..).map(|x| x.into()).collect(), format)?),
+                    "lastchange" => Ok(Station::get_response(connection_new.get_stations_lastchange(param_limit)?.drain(..).map(|x| x.into()).collect(), format)?),
+                    "broken" => Ok(Station::get_response(connection_new.get_stations_broken(param_limit)?.drain(..).map(|x| x.into()).collect(), format)?),
+                    "improvable" => Ok(Station::get_response(connection_new.get_stations_improvable(param_limit)?.drain(..).map(|x| x.into()).collect(), format)?),
                     "changed" => Ok(encode_changes(connection_new.get_changes(None, param_last_changeuuid)?.drain(..).map(|x| x.into()).collect(), format)?),
                     "byurl" => Ok(Station::get_response(connection_new.get_stations_by_column_multiple("Url", param_url,true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?),
                     "search" => Ok(Station::get_response(connection_new.get_stations_advanced(param_name, param_name_exact, param_country, param_country_exact, param_countrycode, param_state, param_state_exact, param_language, param_language_exact, param_tag, param_tag_exact, param_tag_list, param_codec, param_bitrate_min, param_bitrate_max, &param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?),
