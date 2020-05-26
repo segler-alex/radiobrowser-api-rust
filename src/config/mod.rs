@@ -292,7 +292,7 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         ).arg(
             Arg::with_name("log-level")
                 .short("v")
-                .long("log-level")
+                .long("verbose")
                 .value_name("LOG_LEVEL")
                 .takes_value(false)
                 .multiple(true)
