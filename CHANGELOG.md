@@ -5,12 +5,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## Added
+- Support for JSON log format
+- Show api call timing information in log file
+
 ### Fixed
 - CLI: Verbose did not work
 - Fixed station voting from IPv6 address (Fixed: #69)
 
 ### Changed
 - DEPENDENCY: Use fern logger instead of env_logger
+- API: Use limit parameter if limit is not otherwise provided (Fixed: #64)
+
+### Removed
+- API: Old style click count from metrics
 
 ## [0.6.14] 2020-04-13
 ### Fixed

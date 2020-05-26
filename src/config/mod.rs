@@ -28,6 +28,7 @@ pub struct Config {
     pub listen_port: i32,
     pub log_dir: String,
     pub log_level: usize,
+    pub log_json: bool,
     pub max_depth: u8,
     pub mirror_pull_interval: Duration,
     pub pause: Duration,
@@ -198,6 +199,13 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .help("Path to log dir")
                 .env("LOG_DIR")
                 .takes_value(true),
+        ).arg(
+            Arg::with_name("log-json")
+                .short("j")
+                .long("log-json")
+                .value_name("LOG_JSON")
+                .takes_value(true)
+                .help("Log in JSON format"),
         ).arg(
             Arg::with_name("database")
                 .short("d")
@@ -477,6 +485,7 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
     let ignore_migration_errors: bool = get_option_bool(&matches, &config, "ignore-migration-errors", false)?;
     let allow_database_downgrade: bool = get_option_bool(&matches, &config, "allow-database-downgrade", false)?;
     let log_level: usize = get_option_number_occurences(&matches, &config,"log-level", 0)?;
+    let log_json: bool = get_option_bool(&matches, &config, "log-json", false)?;
 
     let concurrency: usize = get_option_number(&matches, &config, "concurrency", 1)? as usize;
     let check_stations: u32 = get_option_number(&matches, &config, "stations", 10)? as u32;
@@ -523,6 +532,7 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         listen_port,
         log_dir,
         log_level,
+        log_json,
         max_depth,
         mirror_pull_interval,
         pause,

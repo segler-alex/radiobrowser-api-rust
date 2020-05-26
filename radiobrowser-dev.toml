@@ -6,6 +6,8 @@ static-files-dir = "./static"
 log-dir = "./"
 ## Log level 0(WARN)-3(TRACE)
 log-level = 3
+## Log in JSON format
+log-json = false
 ## Listening IP
 listen-host = "127.0.0.1"
 ## Listening port
