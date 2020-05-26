@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- CLI: Verbose did not work
+- Fixed station voting from IPv6 address (Fixed: #69)
+
+### Changed
+- DEPENDENCY: Use fern logger instead of env_logger
 
 ## [0.6.14] 2020-04-13
 ### Fixed

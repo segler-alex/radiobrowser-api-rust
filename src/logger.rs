@@ -1,7 +1,7 @@
 use fern::colors::{Color, ColoredLevelConfig};
 use std::io;
 
-pub fn setup_logger(verbosity: usize, log_dir: &str, json: bool) -> Result<(), fern::InitError> {
+pub fn setup_logger(verbosity: usize, log_dir: &str, _json: bool) -> Result<(), fern::InitError> {
     let mut base_config = fern::Dispatch::new();
 
     let log_file_path = format!("{}/main.log", log_dir);
