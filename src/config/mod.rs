@@ -286,7 +286,7 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
             Arg::with_name("allow-database-downgrade")
                 .short("a")
                 .long("allow-database-downgrade")
-                .value_name("IGNORE_MIGRATION_ERRORS")
+                .value_name("ALLOW_DATABASE_DOWNGRADE")
                 .takes_value(true)
                 .help("allows downgrade of database if tables were created with newer software version"),
         ).arg(
