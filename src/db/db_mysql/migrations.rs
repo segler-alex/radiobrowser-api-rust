@@ -374,5 +374,9 @@ r#"ALTER TABLE StationCheckHistory DROP INDEX IN_StationCheckHistory_InsertTime;
 r#"ALTER TABLE StationClick ADD INDEX IN_StationClick_StationUuid_ClickTimestamp(StationUuid, ClickTimestamp);"#,
 r#"ALTER TABLE StationClick DROP INDEX IN_StationClick_StationUuid_ClickTimestamp;"#);
 
+    migrations.add_migration("20200526_211500_Modify_IPVoteCheck_IP_IPv6",
+r#"ALTER TABLE IPVoteCheck MODIFY COLUMN IP VARCHAR(50) NOT NULL;"#,
+r#"ALTER TABLE IPVoteCheck MODIFY COLUMN IP VARCHAR(15) NOT NULL;"#);
+
     Ok(migrations)
 }
