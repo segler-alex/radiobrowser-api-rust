@@ -4,6 +4,8 @@
 static-files-dir = "./static"
 ## Log file path
 log-dir = "./"
+## Log level 0(WARN)-3(TRACE)
+log-level = 3
 ## Listening IP
 listen-host = "127.0.0.1"
 ## Listening port

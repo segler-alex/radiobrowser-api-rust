@@ -7,8 +7,6 @@ WantedBy=multi-user.target
 
 [Service]
 
-Environment="RUST_LOG=radiobrowser_api_rust=info"
-
 ##############################################################################
 ## Core requirements
 ##

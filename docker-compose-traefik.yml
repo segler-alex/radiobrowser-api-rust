@@ -19,7 +19,6 @@ services:
     networks:
       - mynet
     environment:
-       - RUST_LOG=radiobrowser_api_rust=debug
        - SOURCE
        - ENABLE_CHECK
        - DATABASE_URL=mysql://radiouser:password@dbserver/radio

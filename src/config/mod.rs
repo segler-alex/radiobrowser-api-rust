@@ -106,6 +106,32 @@ fn get_option_number(
     Ok(default_value)
 }
 
+fn get_option_number_occurences(
+    matches: &clap::ArgMatches,
+    config: &toml::Value,
+    setting_name: &str,
+    default_value: usize,
+) -> Result<usize, Box<dyn Error>> {
+    let value_from_clap = matches.occurrences_of(setting_name) as usize;
+    if value_from_clap > 0 {
+        return Ok(value_from_clap);
+    }
+
+    let setting = config.get(setting_name);
+    if let Some(setting) = setting {
+        if setting.is_integer() {
+            let setting_decoded = setting.as_integer();
+            if let Some(setting_decoded) = setting_decoded {
+                return Ok(setting_decoded as usize);
+            }
+        }else{
+            return Err(Box::new(ConfigError::TypeError(setting_name.into(), setting.to_string())));
+        }
+    }
+
+    Ok(default_value)
+}
+
 fn get_option_bool(
     matches: &clap::ArgMatches,
     config: &toml::Value,
@@ -450,7 +476,7 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         get_option_duration(&matches, &config, "mirror-pull-interval", String::from("5mins"))?;
     let ignore_migration_errors: bool = get_option_bool(&matches, &config, "ignore-migration-errors", false)?;
     let allow_database_downgrade: bool = get_option_bool(&matches, &config, "allow-database-downgrade", false)?;
-    let log_level: usize = matches.occurrences_of("log-level") as usize;
+    let log_level: usize = get_option_number_occurences(&matches, &config,"log-level", 0)?;
 
     let concurrency: usize = get_option_number(&matches, &config, "concurrency", 1)? as usize;
     let check_stations: u32 = get_option_number(&matches, &config, "stations", 10)? as u32;
