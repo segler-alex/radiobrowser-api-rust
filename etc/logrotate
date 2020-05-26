@@ -8,7 +8,7 @@
     missingok
 }
 
-/var/log/radiobrowser/error.log {
+/var/log/radiobrowser/main.log {
     daily
     rotate 10
     copytruncate
