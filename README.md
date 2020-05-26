@@ -213,11 +213,15 @@ cargo deb # run this in your Cargo project directory
 
 ## Development
 
-### Run a test environment
+### Run a test environment in multiple shells
 
 ```bash
-# start db
+# 1. Shell: start db
 docker run -e MYSQL_DATABASE=radio -e MYSQL_USER=radiouser -e MYSQL_PASSWORD=password -e MYSQL_RANDOM_ROOT_PASSWORD=true -p 3306:3306 --rm --name dbserver mariadb --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-# start radiobrowser with local config
+# 2. Shell: start radiobrowser with local config
 cargo run -- -f radiobrowser-dev.toml
+
+# 3.Shell IF NEEDED: check content of database directly
+docker exec -it dbserver bash
+mysql -D radio -u radiouser -ppassword
 ```
