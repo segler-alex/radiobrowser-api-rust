@@ -7,8 +7,12 @@ extern crate dns_lookup;
 pub mod data;
 mod parameters;
 mod prometheus_exporter;
+mod api_error;
 
+use std::collections::HashMap;
+use std::sync::Mutex;
 use std::error::Error;
+use api_error::ApiError;
 
 use self::parameters::RequestParameters;
 
@@ -224,13 +228,11 @@ pub fn start<A: 'static +  std::clone::Clone>(
     let listen_str = format!("{}:{}", config.listen_host, config.listen_port);
     info!("Listen on {} with {} threads", listen_str, config.threads);
 
-    let counter_all = Arc::new(AtomicUsize::new(0));
+    let counter_all = Arc::new(Mutex::new(HashMap::new()));
     let counter_click = Arc::new(AtomicUsize::new(0));
 
     rouille::start_server_with_pool(listen_str, Some(config.threads), move |request| {
-        let counter_all_2 = counter_all.clone();
-        counter_all_2.fetch_add(1, Ordering::Relaxed);
-        handle_connection(&connection_new, request, config.clone(), counter_all_2, counter_click.clone())
+        handle_connection(&connection_new, request, config.clone(), counter_all.clone(), counter_click.clone())
     });
 }
 
@@ -294,11 +296,34 @@ fn log_to_file(file_name: &str, line: &str) {
     }
 }
 
+fn clean_url(original_url: &str) -> Result<&str, Box<dyn Error>>{
+    let url_without_query: Vec<&str> = original_url.split("?").collect();
+    if url_without_query.len() > 0 {
+        let matches = url_without_query[0].matches("/");
+        let filtered = match matches.count() {
+            4 => {
+                url_without_query[0].rsplitn(2, "/").collect::<Vec<&str>>()[1]
+            },
+            3 => {
+                if url_without_query[0].contains("/stations/"){
+                    url_without_query[0]
+                }else{
+                    url_without_query[0].rsplitn(2, "/").collect::<Vec<&str>>()[1]
+                }
+            },
+            _ => url_without_query[0]
+        };
+        Ok(filtered)
+    }else{
+        return Err(Box::new(ApiError::InternalError(format!("Invalid url split result: {}", original_url))));
+    }
+}
+
 fn handle_connection<A>(
     connection_new: &A,
     request: &rouille::Request,
     config: Config,
-    counter_all: Arc<AtomicUsize>,
+    counter_all: Arc<Mutex<HashMap<String, usize>>>,
     counter_clicks: Arc<AtomicUsize>,
 ) -> rouille::Response where A: DbConnection {
     let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
@@ -307,16 +332,57 @@ fn handle_connection<A>(
 
     let log_dir = config.log_dir.clone();
     let now = chrono::Utc::now().format("%d/%m/%Y:%H:%M:%S%.6f");
-    let log_ok = |req: &Request, resp: &Response, _elap: std::time::Duration| {
-        let line = format!(r#"{} - - [{}] "{} {}" {} {} "{}" "{}""#, remote_ip, now, req.method(), req.raw_url(), resp.status_code, 0, referer, user_agent);
+    let counter_all_2 = counter_all.clone();
+    let log_ok = |req: &Request, resp: &Response, elap: std::time::Duration| {
+        let counter_all_locked = counter_all_2.lock();
+        match counter_all_locked {
+            Ok(mut counter_all) => {
+                let cleaned_url = clean_url(req.raw_url());
+                match cleaned_url {
+                    Ok(cleaned_url) => {
+                        let key = format!(r#"method="{}",url="{}",status_code="{}""#, req.method(), cleaned_url, resp.status_code);
+                        let counter = counter_all.entry(key).or_insert(0);
+                        *counter += 1;
+                    },
+                    Err(err) => {
+                        error!("Invalid url split result: {} {}", req.raw_url(), err);
+                    }
+                }
+            },
+            Err(err) => {
+                error!("Unable to increase counter: {}", err);
+            }
+        }
+
+        let line = format!(r#"{} {},{:09} - [{}] "{} {}" {} {} "{}" "{}""#, remote_ip, elap.as_secs(), elap.subsec_nanos(), now, req.method(), req.raw_url(), resp.status_code, 0, referer, user_agent);
         debug!("{}", line);
         let log_file = format!("{}/access.log",log_dir);
         log_to_file(&log_file, &line);
     };
-    let log_err = |req: &Request, _elap: std::time::Duration| {
-        let line = format!("{} {} Handler panicked: {} {}", remote_ip, now, req.method(), req.raw_url());
-        debug!("{}", line);
-        let log_file = format!("{}/error.log", log_dir);
+    let log_err = |req: &Request, elap: std::time::Duration| {
+        let counter_all_locked = counter_all_2.lock();
+        match counter_all_locked {
+            Ok(mut counter_all) => {
+                let cleaned_url = clean_url(req.raw_url());
+                match cleaned_url {
+                    Ok(cleaned_url) => {
+                        let key = format!(r#"method="{}",url="{}",status_code="{}""#, req.method(), cleaned_url, 500);
+                        let counter = counter_all.entry(key).or_insert(0);
+                        *counter += 1;
+                    },
+                    Err(err) => {
+                        error!("Invalid url split result: {} {}", req.raw_url(), err);
+                    }
+                }
+            },
+            Err(err) => {
+                error!("Unable to increase counter: {}", err);
+            }
+        }
+
+        let line = format!(r#"{} {},{:09} - [{}] "{} {}" {}"#, remote_ip, elap.as_secs(), elap.subsec_nanos(), now, req.method(), req.raw_url(), 500);
+        error!("{}", line);
+        let log_file = format!("{}/access.log", log_dir);
         log_to_file(&log_file, &line);
     };
     rouille::log_custom(request, log_ok, log_err, || {
@@ -325,7 +391,7 @@ fn handle_connection<A>(
             Ok(response) => add_cors(response),
             Err(err) => {
                 let err_str = err.to_string();
-                trace!("{}", err_str);
+                error!("{}", err_str);
                 add_cors(rouille::Response::text(err_str).with_status_code(500))
             } 
         }
@@ -336,7 +402,7 @@ fn handle_connection_internal<A>(
     connection_new: &A,
     request: &rouille::Request,
     config: Config,
-    counter_all: Arc<AtomicUsize>,
+    counter_all: Arc<Mutex<HashMap<String, usize>>>,
     counter_clicks: Arc<AtomicUsize>,
 ) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
     if request.method() == "OPTIONS" {
@@ -472,12 +538,12 @@ fn handle_connection_internal<A>(
             "url" => Ok(encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(parameter)?), &remote_ip, format, config.click_valid_timeout.as_secs(),counter_clicks)?),
             "stations" => {
                 match parameter {
-                    "topvote" => Ok(Station::get_response(connection_new.get_stations_topvote(999999)?.drain(..).map(|x| x.into()).collect(), format)?),
-                    "topclick" => Ok(Station::get_response(connection_new.get_stations_topclick(999999)?.drain(..).map(|x| x.into()).collect(), format)?),
-                    "lastclick" => Ok(Station::get_response(connection_new.get_stations_lastclick(999999)?.drain(..).map(|x| x.into()).collect(), format)?),
-                    "lastchange" => Ok(Station::get_response(connection_new.get_stations_lastchange(999999)?.drain(..).map(|x| x.into()).collect(), format)?),
-                    "broken" => Ok(Station::get_response(connection_new.get_stations_broken(999999)?.drain(..).map(|x| x.into()).collect(), format)?),
-                    "improvable" => Ok(Station::get_response(connection_new.get_stations_improvable(999999)?.drain(..).map(|x| x.into()).collect(), format)?),
+                    "topvote" => Ok(Station::get_response(connection_new.get_stations_topvote(param_limit)?.drain(..).map(|x| x.into()).collect(), format)?),
+                    "topclick" => Ok(Station::get_response(connection_new.get_stations_topclick(param_limit)?.drain(..).map(|x| x.into()).collect(), format)?),
+                    "lastclick" => Ok(Station::get_response(connection_new.get_stations_lastclick(param_limit)?.drain(..).map(|x| x.into()).collect(), format)?),
+                    "lastchange" => Ok(Station::get_response(connection_new.get_stations_lastchange(param_limit)?.drain(..).map(|x| x.into()).collect(), format)?),
+                    "broken" => Ok(Station::get_response(connection_new.get_stations_broken(param_limit)?.drain(..).map(|x| x.into()).collect(), format)?),
+                    "improvable" => Ok(Station::get_response(connection_new.get_stations_improvable(param_limit)?.drain(..).map(|x| x.into()).collect(), format)?),
                     "changed" => Ok(encode_changes(connection_new.get_changes(None, param_last_changeuuid)?.drain(..).map(|x| x.into()).collect(), format)?),
                     "byurl" => Ok(Station::get_response(connection_new.get_stations_by_column_multiple("Url", param_url,true,&param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?),
                     "search" => Ok(Station::get_response(connection_new.get_stations_advanced(param_name, param_name_exact, param_country, param_country_exact, param_countrycode, param_state, param_state_exact, param_language, param_language_exact, param_tag, param_tag_exact, param_tag_list, param_codec, param_bitrate_min, param_bitrate_max, &param_order,param_reverse,param_hidebroken,param_offset,param_limit)?.drain(..).map(|x| x.into()).collect(), format)?),

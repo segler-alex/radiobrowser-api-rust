@@ -1362,7 +1362,7 @@ impl DbConnection for MysqlConnection {
         match station {
             Some(station) => {
                 // delete ipcheck entries after 1 day minutes
-                let query_1_delete = format!(r#"DELETE FROM IPVoteCheck WHERE TIME_TO_SEC(TIMEDIFF(Now(),VoteTimestamp))>24*60*60"#);
+                let query_1_delete = format!(r#"DELETE FROM IPVoteCheck WHERE TIME_TO_SEC(TIMEDIFF(UTC_TIMESTAMP,VoteTimestamp))>24*60*60"#);
                 let _result_1_delete = self.pool.prep_exec(query_1_delete, ())?;
 
                 // was there a vote from the ip in the last 1 day?

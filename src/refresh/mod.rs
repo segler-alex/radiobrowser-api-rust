@@ -35,7 +35,7 @@ pub fn refresh_cache_items(
             if item_current.len() < max_cache_item_len {
                 to_insert.insert(item_current, *items_current.get(item_current).unwrap_or(&(0,0)));
             }else{
-                warn!("cached '{}' item too long: '{}'", station_column_name, item_current);
+                debug!("cached '{}' item too long: '{}'", station_column_name, item_current);
             }
         } else {
             let value_new = *items_current.get(item_current).unwrap_or(&(0,0));

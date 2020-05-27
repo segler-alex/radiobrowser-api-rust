@@ -1,7 +1,9 @@
+use std::collections::HashMap;
 use crate::db::DbConnection;
 
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
+    Mutex,
     Arc,
 };
 
@@ -10,11 +12,9 @@ pub fn render<A>(
     prefix: &str,
     broken_stations_never_working_timeout: u64,
     broken_stations_timeout: u64,
-    counter_all: Arc<AtomicUsize>,
+    counter_all: Arc<Mutex<HashMap<String, usize>>>,
     counter_clicks: Arc<AtomicUsize>,
 ) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
-    let clicks_last_hour = connection_new.get_click_count_last_hour()?;
-    let clicks_last_day = connection_new.get_click_count_last_day()?;
     let stations_broken = connection_new.get_station_count_broken()?;
     let stations_working = connection_new.get_station_count_working()?;
     let stations_todo = connection_new.get_station_count_todo(24)?;
@@ -26,25 +26,35 @@ pub fn render<A>(
     let language_count = connection_new.get_language_count()?;
 
     let station_clicks = counter_clicks.load(Ordering::Relaxed);
-    let api_calls = counter_all.load(Ordering::Relaxed);
+    let mut api_calls = "".to_string();
+    {
+        let locked = counter_all.lock();
+        match locked {
+            Ok(locked) => {
+                let x = &*locked;
+                for (key, val) in x {
+                    api_calls.push_str(prefix);
+                    api_calls.push_str("api_calls{");
+                    api_calls.push_str(&key);
+                    api_calls.push_str("} ");
+                    api_calls.push_str(&val.to_string());
+                    api_calls.push_str("\n");
+                }
+            },
+            Err(err) => {
+                error!("Unable to lock counter for read: {}", err);
+            }
+        }
+    }
 
     let out = format!(
-        "# HELP {prefix}clicks_last_hour Clicks in the last hour
-# TYPE {prefix}clicks_last_hour gauge
-{prefix}clicks_last_hour {clicks_last_hour}
-
-# HELP {prefix}clicks_last_day Clicks in the last day
-# TYPE {prefix}clicks_last_day gauge
-{prefix}clicks_last_day {clicks_last_day}
-
-# HELP {prefix}station_clicks Clicks on stations
+        "# HELP {prefix}station_clicks Clicks on stations
 # TYPE {prefix}station_clicks counter
 {prefix}station_clicks {station_clicks}
 
 # HELP {prefix}api_calls Calls to the api
 # TYPE {prefix}api_calls counter
-{prefix}api_calls {api_calls}
-
+{api_calls}
 # HELP {prefix}stations_broken Count of stations that are broken
 # TYPE {prefix}stations_broken gauge
 {prefix}stations_broken {stations_broken}
@@ -78,8 +88,6 @@ pub fn render<A>(
 {prefix}language_count {language_count}
     ",
         prefix = prefix,
-        clicks_last_hour = clicks_last_hour,
-        clicks_last_day = clicks_last_day,
         stations_broken = stations_broken,
         stations_working = stations_working,
         stations_todo = stations_todo,

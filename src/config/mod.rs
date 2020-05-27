@@ -28,6 +28,7 @@ pub struct Config {
     pub listen_port: i32,
     pub log_dir: String,
     pub log_level: usize,
+    pub log_json: bool,
     pub max_depth: u8,
     pub mirror_pull_interval: Duration,
     pub pause: Duration,
@@ -106,6 +107,32 @@ fn get_option_number(
     Ok(default_value)
 }
 
+fn get_option_number_occurences(
+    matches: &clap::ArgMatches,
+    config: &toml::Value,
+    setting_name: &str,
+    default_value: usize,
+) -> Result<usize, Box<dyn Error>> {
+    let value_from_clap = matches.occurrences_of(setting_name) as usize;
+    if value_from_clap > 0 {
+        return Ok(value_from_clap);
+    }
+
+    let setting = config.get(setting_name);
+    if let Some(setting) = setting {
+        if setting.is_integer() {
+            let setting_decoded = setting.as_integer();
+            if let Some(setting_decoded) = setting_decoded {
+                return Ok(setting_decoded as usize);
+            }
+        }else{
+            return Err(Box::new(ConfigError::TypeError(setting_name.into(), setting.to_string())));
+        }
+    }
+
+    Ok(default_value)
+}
+
 fn get_option_bool(
     matches: &clap::ArgMatches,
     config: &toml::Value,
@@ -172,6 +199,13 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .help("Path to log dir")
                 .env("LOG_DIR")
                 .takes_value(true),
+        ).arg(
+            Arg::with_name("log-json")
+                .short("j")
+                .long("log-json")
+                .value_name("LOG_JSON")
+                .takes_value(true)
+                .help("Log in JSON format"),
         ).arg(
             Arg::with_name("database")
                 .short("d")
@@ -260,13 +294,13 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
             Arg::with_name("allow-database-downgrade")
                 .short("a")
                 .long("allow-database-downgrade")
-                .value_name("IGNORE_MIGRATION_ERRORS")
+                .value_name("ALLOW_DATABASE_DOWNGRADE")
                 .takes_value(true)
                 .help("allows downgrade of database if tables were created with newer software version"),
         ).arg(
             Arg::with_name("log-level")
                 .short("v")
-                .long("log-level")
+                .long("verbose")
                 .value_name("LOG_LEVEL")
                 .takes_value(false)
                 .multiple(true)
@@ -414,7 +448,6 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
 
     let config_file_path: String = matches.value_of("config-file").unwrap().to_string();
 
-    debug!("Load settings from file {}", config_file_path);
     let contents = fs::read_to_string(config_file_path)?;
     let config = toml::from_str::<toml::Value>(&contents)?;
 
@@ -451,7 +484,8 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         get_option_duration(&matches, &config, "mirror-pull-interval", String::from("5mins"))?;
     let ignore_migration_errors: bool = get_option_bool(&matches, &config, "ignore-migration-errors", false)?;
     let allow_database_downgrade: bool = get_option_bool(&matches, &config, "allow-database-downgrade", false)?;
-    let log_level: usize = matches.occurrences_of("log-level") as usize;
+    let log_level: usize = get_option_number_occurences(&matches, &config,"log-level", 0)?;
+    let log_json: bool = get_option_bool(&matches, &config, "log-json", false)?;
 
     let concurrency: usize = get_option_number(&matches, &config, "concurrency", 1)? as usize;
     let check_stations: u32 = get_option_number(&matches, &config, "stations", 10)? as u32;
@@ -474,7 +508,6 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
     let mirrors = matches.values_of("mirror");
     if let Some(mirrors) = mirrors {
         for mirror in mirrors {
-            info!("Will pull from '{}'", mirror);
             servers_pull.push(mirror.to_string());
         }
     }
@@ -499,6 +532,7 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         listen_port,
         log_dir,
         log_level,
+        log_json,
         max_depth,
         mirror_pull_interval,
         pause,

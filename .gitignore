@@ -8,3 +8,4 @@ radio\.sql\.gz
 
 access\.log
 dist/
+*.log

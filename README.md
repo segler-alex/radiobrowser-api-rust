@@ -12,7 +12,7 @@ The main server on <http://www.radio-browser.info> still has an older version ru
 
 Send me feature requests, bug reports or extend it yourself. I license it freely, you could also start your own server if you wish.
 
-You can find the API documentation on <http://www.radio-browser.info/gui/#!/api>
+You can find the API documentation on <https://api.radio-browser.info/>
 
 ## Setup
 
@@ -80,7 +80,7 @@ docker stack deploy -c docker-compose-traefik.yml rb
 # download distribution
 mkdir -p radiobrowser
 cd radiobrowser
-wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.6.14/radiobrowser-dist.tar.gz
+wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.6.16/radiobrowser-dist.tar.gz
 tar -zxf radiobrowser-dist.tar.gz
 
 # config database
@@ -101,9 +101,9 @@ sudo systemctl start radiobrowser
 * create database and database user
 
 ```bash
-wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.6.14/radiobrowser-api-rust_0.6.14_amd64.deb
+wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.6.16/radiobrowser-api-rust_0.6.16_amd64.deb
 sudo apt install default-mysql-server
-sudo dpkg -i radiobrowser-api-rust_0.6.14_amd64.deb
+sudo dpkg -i radiobrowser-api-rust_0.6.16_amd64.deb
 cat /usr/share/radiobrowser/init.sql | mysql
 ```
 
@@ -193,7 +193,7 @@ cd radiobrowser-api-rust
 # checkout stable
 git checkout stable
 # deploy, change email adress, for ssl with certbot
-ansible-playbook -e "email=test@example.com" -e "version=0.6.14" -e "ansible_python_interpreter=auto" -i "test.example.com,test2.example.com" ansible/playbook.yml
+ansible-playbook -e "email=test@example.com" -e "version=0.6.16" -e "ansible_python_interpreter=auto" -i "test.example.com,test2.example.com" ansible/playbook.yml
 ```
 
 ## Building
@@ -209,4 +209,19 @@ ansible-playbook -e "email=test@example.com" -e "version=0.6.14" -e "ansible_pyt
 ```bash
 cargo install cargo-deb
 cargo deb # run this in your Cargo project directory
+```
+
+## Development
+
+### Run a test environment in multiple shells
+
+```bash
+# 1.Shell: start db
+docker run -e MYSQL_DATABASE=radio -e MYSQL_USER=radiouser -e MYSQL_PASSWORD=password -e MYSQL_RANDOM_ROOT_PASSWORD=true -p 3306:3306 --rm --name dbserver mariadb --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+# 2.Shell: start radiobrowser with local config
+cargo run -- -f radiobrowser-dev.toml
+
+# 3.Shell IF NEEDED: check content of database directly
+docker exec -it dbserver bash
+mysql -D radio -u radiouser -ppassword
 ```

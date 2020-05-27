@@ -2,7 +2,7 @@ version: "3.2"
 services:
   api:
     build: ./
-    image: segleralex/radiobrowser-api-rust:0.6.14
+    image: segleralex/radiobrowser-api-rust:0.6.16
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=Host(`${SOURCE}`)"
@@ -19,7 +19,6 @@ services:
     networks:
       - mynet
     environment:
-       - RUST_LOG=radiobrowser_api_rust=debug
        - SOURCE
        - ENABLE_CHECK
        - DATABASE_URL=mysql://radiouser:password@dbserver/radio
