@@ -8,6 +8,8 @@ pub mod data;
 mod parameters;
 mod prometheus_exporter;
 
+use std::collections::HashMap;
+use std::sync::Mutex;
 use std::error::Error;
 
 use self::parameters::RequestParameters;
@@ -224,13 +226,11 @@ pub fn start<A: 'static +  std::clone::Clone>(
     let listen_str = format!("{}:{}", config.listen_host, config.listen_port);
     info!("Listen on {} with {} threads", listen_str, config.threads);
 
-    let counter_all = Arc::new(AtomicUsize::new(0));
+    let counter_all = Arc::new(Mutex::new(HashMap::new()));
     let counter_click = Arc::new(AtomicUsize::new(0));
 
     rouille::start_server_with_pool(listen_str, Some(config.threads), move |request| {
-        let counter_all_2 = counter_all.clone();
-        counter_all_2.fetch_add(1, Ordering::Relaxed);
-        handle_connection(&connection_new, request, config.clone(), counter_all_2, counter_click.clone())
+        handle_connection(&connection_new, request, config.clone(), counter_all.clone(), counter_click.clone())
     });
 }
 
@@ -298,7 +298,7 @@ fn handle_connection<A>(
     connection_new: &A,
     request: &rouille::Request,
     config: Config,
-    counter_all: Arc<AtomicUsize>,
+    counter_all: Arc<Mutex<HashMap<String, usize>>>,
     counter_clicks: Arc<AtomicUsize>,
 ) -> rouille::Response where A: DbConnection {
     let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
@@ -307,13 +307,48 @@ fn handle_connection<A>(
 
     let log_dir = config.log_dir.clone();
     let now = chrono::Utc::now().format("%d/%m/%Y:%H:%M:%S%.6f");
+    let counter_all_2 = counter_all.clone();
     let log_ok = |req: &Request, resp: &Response, elap: std::time::Duration| {
+        let counter_all_locked = counter_all_2.lock();
+        match counter_all_locked {
+            Ok(mut counter_all) => {
+                let cleaned_url: Vec<&str> = req.raw_url().split("?").collect();
+                if cleaned_url.len() > 0 {
+                    let key = format!(r#"method="{}",url="{}",status_code="{}""#, req.method(), cleaned_url[0], resp.status_code);
+                    let counter = counter_all.entry(key).or_insert(0);
+                    *counter += 1;
+                }else{
+                    error!("Invalid url split result: {}", req.raw_url());
+                }
+            },
+            Err(err) => {
+                error!("Unable to increase counter: {}", err);
+            }
+        }
+
         let line = format!(r#"{} {},{:09} - [{}] "{} {}" {} {} "{}" "{}""#, remote_ip, elap.as_secs(), elap.subsec_nanos(), now, req.method(), req.raw_url(), resp.status_code, 0, referer, user_agent);
         debug!("{}", line);
         let log_file = format!("{}/access.log",log_dir);
         log_to_file(&log_file, &line);
     };
     let log_err = |req: &Request, elap: std::time::Duration| {
+        let counter_all_locked = counter_all_2.lock();
+        match counter_all_locked {
+            Ok(mut counter_all) => {
+                let cleaned_url: Vec<&str> = req.raw_url().split("?").collect();
+                if cleaned_url.len() > 0 {
+                    let key = format!(r#"method="{}",url="{}",status_code="{}""#, req.method(), cleaned_url[0], 500);
+                    let counter = counter_all.entry(key).or_insert(0);
+                    *counter += 1;
+                }else{
+                    error!("Invalid url split result: {}", req.raw_url());
+                }
+            },
+            Err(err) => {
+                error!("Unable to increase counter: {}", err);
+            }
+        }
+
         let line = format!(r#"{} {},{:09} - [{}] "{} {}" {}"#, remote_ip, elap.as_secs(), elap.subsec_nanos(), now, req.method(), req.raw_url(), 500);
         error!("{}", line);
         let log_file = format!("{}/access.log", log_dir);
@@ -336,7 +371,7 @@ fn handle_connection_internal<A>(
     connection_new: &A,
     request: &rouille::Request,
     config: Config,
-    counter_all: Arc<AtomicUsize>,
+    counter_all: Arc<Mutex<HashMap<String, usize>>>,
     counter_clicks: Arc<AtomicUsize>,
 ) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
     if request.method() == "OPTIONS" {

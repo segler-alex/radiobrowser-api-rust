@@ -1,7 +1,9 @@
+use std::collections::HashMap;
 use crate::db::DbConnection;
 
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
+    Mutex,
     Arc,
 };
 
@@ -10,7 +12,7 @@ pub fn render<A>(
     prefix: &str,
     broken_stations_never_working_timeout: u64,
     broken_stations_timeout: u64,
-    counter_all: Arc<AtomicUsize>,
+    counter_all: Arc<Mutex<HashMap<String, usize>>>,
     counter_clicks: Arc<AtomicUsize>,
 ) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
     let stations_broken = connection_new.get_station_count_broken()?;
@@ -24,7 +26,26 @@ pub fn render<A>(
     let language_count = connection_new.get_language_count()?;
 
     let station_clicks = counter_clicks.load(Ordering::Relaxed);
-    let api_calls = counter_all.load(Ordering::Relaxed);
+    let mut api_calls = "".to_string();
+    {
+        let locked = counter_all.lock();
+        match locked {
+            Ok(locked) => {
+                let x = &*locked;
+                for (key, val) in x {
+                    api_calls.push_str(prefix);
+                    api_calls.push_str("api_calls{");
+                    api_calls.push_str(&key);
+                    api_calls.push_str("} ");
+                    api_calls.push_str(&val.to_string());
+                    api_calls.push_str("\n");
+                }
+            },
+            Err(err) => {
+                error!("Unable to lock counter for read: {}", err);
+            }
+        }
+    }
 
     let out = format!(
         "# HELP {prefix}station_clicks Clicks on stations
@@ -33,8 +54,7 @@ pub fn render<A>(
 
 # HELP {prefix}api_calls Calls to the api
 # TYPE {prefix}api_calls counter
-{prefix}api_calls {api_calls}
-
+{api_calls}
 # HELP {prefix}stations_broken Count of stations that are broken
 # TYPE {prefix}stations_broken gauge
 {prefix}stations_broken {stations_broken}

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Added
 - Support for JSON log format
 - Show api call timing information in log file
+- Split up api calls in prometheus endpoint with tags
 
 ### Fixed
 - CLI: Verbose did not work
