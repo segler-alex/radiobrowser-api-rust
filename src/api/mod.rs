@@ -7,10 +7,12 @@ extern crate dns_lookup;
 pub mod data;
 mod parameters;
 mod prometheus_exporter;
+mod api_error;
 
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::error::Error;
+use api_error::ApiError;
 
 use self::parameters::RequestParameters;
 
@@ -294,6 +296,29 @@ fn log_to_file(file_name: &str, line: &str) {
     }
 }
 
+fn clean_url(original_url: &str) -> Result<&str, Box<dyn Error>>{
+    let url_without_query: Vec<&str> = original_url.split("?").collect();
+    if url_without_query.len() > 0 {
+        let matches = url_without_query[0].matches("/");
+        let filtered = match matches.count() {
+            4 => {
+                url_without_query[0].rsplitn(2, "/").collect::<Vec<&str>>()[1]
+            },
+            3 => {
+                if url_without_query[0].contains("/stations/"){
+                    url_without_query[0]
+                }else{
+                    url_without_query[0].rsplitn(2, "/").collect::<Vec<&str>>()[1]
+                }
+            },
+            _ => url_without_query[0]
+        };
+        Ok(filtered)
+    }else{
+        return Err(Box::new(ApiError::InternalError(format!("Invalid url split result: {}", original_url))));
+    }
+}
+
 fn handle_connection<A>(
     connection_new: &A,
     request: &rouille::Request,
@@ -312,13 +337,16 @@ fn handle_connection<A>(
         let counter_all_locked = counter_all_2.lock();
         match counter_all_locked {
             Ok(mut counter_all) => {
-                let cleaned_url: Vec<&str> = req.raw_url().split("?").collect();
-                if cleaned_url.len() > 0 {
-                    let key = format!(r#"method="{}",url="{}",status_code="{}""#, req.method(), cleaned_url[0], resp.status_code);
-                    let counter = counter_all.entry(key).or_insert(0);
-                    *counter += 1;
-                }else{
-                    error!("Invalid url split result: {}", req.raw_url());
+                let cleaned_url = clean_url(req.raw_url());
+                match cleaned_url {
+                    Ok(cleaned_url) => {
+                        let key = format!(r#"method="{}",url="{}",status_code="{}""#, req.method(), cleaned_url, resp.status_code);
+                        let counter = counter_all.entry(key).or_insert(0);
+                        *counter += 1;
+                    },
+                    Err(err) => {
+                        error!("Invalid url split result: {} {}", req.raw_url(), err);
+                    }
                 }
             },
             Err(err) => {
@@ -335,13 +363,16 @@ fn handle_connection<A>(
         let counter_all_locked = counter_all_2.lock();
         match counter_all_locked {
             Ok(mut counter_all) => {
-                let cleaned_url: Vec<&str> = req.raw_url().split("?").collect();
-                if cleaned_url.len() > 0 {
-                    let key = format!(r#"method="{}",url="{}",status_code="{}""#, req.method(), cleaned_url[0], 500);
-                    let counter = counter_all.entry(key).or_insert(0);
-                    *counter += 1;
-                }else{
-                    error!("Invalid url split result: {}", req.raw_url());
+                let cleaned_url = clean_url(req.raw_url());
+                match cleaned_url {
+                    Ok(cleaned_url) => {
+                        let key = format!(r#"method="{}",url="{}",status_code="{}""#, req.method(), cleaned_url, 500);
+                        let counter = counter_all.entry(key).or_insert(0);
+                        *counter += 1;
+                    },
+                    Err(err) => {
+                        error!("Invalid url split result: {} {}", req.raw_url(), err);
+                    }
                 }
             },
             Err(err) => {

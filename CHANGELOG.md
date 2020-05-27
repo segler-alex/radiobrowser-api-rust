@@ -6,8 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.16] 2020-05-27
+### Fixed
+- METRICS: do not expose search information in call counts
+
 ## [0.6.15] 2020-05-27
-## Added
+### Added
 - Support for JSON log format
 - Show api call timing information in log file
 - Split up api calls in prometheus endpoint with tags
