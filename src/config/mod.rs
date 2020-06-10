@@ -10,6 +10,14 @@ use humantime;
 pub use config_error::ConfigError;
 
 #[derive(Debug,Clone)]
+pub enum CacheType {
+    None,
+    BuiltIn,
+    Redis,
+    Memcached,
+}
+
+#[derive(Debug,Clone)]
 pub struct Config {
     pub allow_database_downgrade: bool,
     pub broken_stations_never_working_timeout: Duration,
@@ -43,6 +51,9 @@ pub struct Config {
     pub threads: usize,
     pub update_caches_interval: Duration,
     pub useragent: String,
+    pub cache_type: CacheType,
+    pub cache_url: String,
+    pub cache_ttl: Duration,
 }
 
 fn get_option_string(
@@ -330,6 +341,30 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name("cache-type")
+                .long("cache-type")
+                .value_name("CACHETYPE")
+                .help("one of none,builtin,redis,memcached")
+                .env("CACHETYPE")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("cache-url")
+                .long("cache-url")
+                .value_name("URL")
+                .help("url to access cache server")
+                .env("CACHEURL")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("cache-ttl")
+                .long("cache-ttl")
+                .value_name("DURATION")
+                .help("time to life for cache items")
+                .env("CACHETTL")
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("retries")
                 .short("r")
                 .long("retries")
@@ -504,6 +539,18 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
     let checks_timeout = get_option_duration(&matches, &config, "checks-timeout", String::from("30days"))?;
     let clicks_timeout = get_option_duration(&matches, &config, "clicks-timeout", String::from("30days"))?;
 
+    let cache_type_str: String = get_option_string(&matches, &config, "cache-type", String::from("none"))?;
+    let cache_url: String = get_option_string(&matches, &config, "cache-url", String::from(""))?;
+    let cache_ttl = get_option_duration(&matches, &config, "cache-ttl", String::from("60secs"))?;
+    
+    let cache_type: CacheType = match cache_type_str.as_str() {
+        "none" => Ok(CacheType::None),
+        "builtin" => Ok(CacheType::BuiltIn),
+        "redis" => Ok(CacheType::Redis),
+        "memcached" => Ok(CacheType::Memcached),
+        _ => Err(ConfigError::TypeError("cache-type".into(), "possible values are none,builtin,redis,memcached".into())),
+    }?;
+
     let mut servers_pull = vec![];
     let mirrors = matches.values_of("mirror");
     if let Some(mirrors) = mirrors {
@@ -547,5 +594,8 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         threads,
         update_caches_interval,
         useragent,
+        cache_type,
+        cache_url,
+        cache_ttl,
     })
 }

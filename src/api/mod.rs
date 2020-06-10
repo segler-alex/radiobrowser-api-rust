@@ -8,6 +8,7 @@ pub mod data;
 mod parameters;
 mod prometheus_exporter;
 mod api_error;
+mod cache;
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -36,6 +37,7 @@ use self::dns_lookup::lookup_host;
 use self::dns_lookup::lookup_addr;
 
 use crate::config::Config;
+use crate::config::CacheType;
 
 use std::fs::File;
 use self::serde_json::value::{Map};
@@ -171,18 +173,63 @@ fn encode_states(list : Vec<State>, format : &str) -> Result<rouille::Response, 
     })
 }
 
-fn encode_extra(list : Vec<ExtraInfo>, format : &str, tag_name: &str) -> Result<rouille::Response, Box<dyn Error>> {
-    Ok(match format {
-        "json" => {
-            let j = serde_json::to_string(&list)?;
-            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
-        },
-        "xml" => {
-            let j = ExtraInfo::serialize_extra_list(list, tag_name)?;
-            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
-        },
-        _ => rouille::Response::empty_406()
-    })
+#[derive(PartialEq, Eq, Serialize, Deserialize)]
+struct RequestDataExtra {
+    table_name: Option<&'static str>,
+    column_name: String,
+    format: String,
+    search: Option<String>,
+    order: String,
+    reverse: bool,
+    hidebroken: bool,
+}
+
+impl RequestDataExtra {
+    pub fn new(format: &str, table_name: Option<&'static str>, column_name: &str, search: Option<String>, order: String, reverse: bool, hidebroken: bool) -> Self {
+        RequestDataExtra{
+            format: format.to_string(),
+            table_name,
+            column_name: column_name.to_string(),
+            search,
+            order,
+            reverse,
+            hidebroken,
+        }
+    }
+    pub fn to_string(&self) -> Result<String, Box<dyn Error>> {
+        Ok(serde_json::to_string(&self)?)
+    }
+}
+
+fn encode_extra<A>(db: &A, mut cache: CacheConnection, request_data: RequestDataExtra, tag_name: &str) -> Result<rouille::Response, Box<dyn Error>> where A: DbConnection {
+    let key = request_data.to_string()?;
+    let cached_item = cache.cache.get(&key);
+    let result = match cached_item {
+        Some(cached_item) => cached_item,
+        None => {
+            let list: Vec<ExtraInfo> = match request_data.table_name {
+                Some(table_name) => db.get_extra(&table_name, &request_data.column_name, request_data.search, request_data.order, request_data.reverse, request_data.hidebroken)?,
+                None => db.get_1_n(&request_data.column_name, request_data.search, request_data.order, request_data.reverse, request_data.hidebroken)?,
+            };
+            
+            let result = match request_data.format.as_str() {
+                "json" => serde_json::to_string(&list)?,
+                "xml" => ExtraInfo::serialize_extra_list(list, tag_name)?,
+                _ => String::from("xxx"),
+            };
+            cache.cache.set(&key, &result);
+
+            result
+        }
+    };
+    
+    let content_type = match request_data.format.as_str() {
+        "json" => "application/json",
+        "xml" => "text/xml",
+        _ => "xxx",//rouille::Response::empty_406()
+    };
+
+    Ok(rouille::Response::text(result).with_no_cache().with_unique_header("Content-Type", content_type))
 }
 
 fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Response {
@@ -230,9 +277,12 @@ pub fn start<A: 'static +  std::clone::Clone>(
 
     let counter_all = Arc::new(Mutex::new(HashMap::new()));
     let counter_click = Arc::new(AtomicUsize::new(0));
+    
+    use std::convert::TryInto;
 
     rouille::start_server_with_pool(listen_str, Some(config.threads), move |request| {
-        handle_connection(&connection_new, request, config.clone(), counter_all.clone(), counter_click.clone())
+        let cache: CacheConnection = CacheConnection::new(config.cache_type.clone().into(), config.cache_url.clone(), config.cache_ttl.as_secs().try_into().expect("cache-ttl is too high"));
+        handle_connection(&connection_new, request, config.clone(), counter_all.clone(), counter_click.clone(), cache)
     });
 }
 
@@ -254,10 +304,30 @@ fn get_status<A>(connection_new: &A) -> Result<Status, Box<dyn std::error::Error
     )
 }
 
+/*
+pub enum ApiResponse{
+    Text(String),
+    File(String, File),
+    Error(u8),
+}
+
+fn send_file(path: &str, content_type: &'static str) -> ApiResponse {
+    let file = File::open(path);
+    match file {
+        Ok(file) => {
+            ApiResponse::File(content_type.to_string(), file)
+        },
+        _ => ApiResponse::Error(404)
+    }
+}
+*/
+
 fn send_file(path: &str, content_type: &'static str) -> rouille::Response {
     let file = File::open(path);
     match file {
-        Ok(file) => {rouille::Response::from_file(content_type, file)},
+        Ok(file) => {
+            rouille::Response::from_file(content_type, file)
+        },
         _ => rouille::Response::empty_404()
     }
 }
@@ -325,6 +395,7 @@ fn handle_connection<A>(
     config: Config,
     counter_all: Arc<Mutex<HashMap<String, usize>>>,
     counter_clicks: Arc<AtomicUsize>,
+    cache: CacheConnection,
 ) -> rouille::Response where A: DbConnection {
     let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
     let referer: String = request.header("Referer").unwrap_or(&"-".to_string()).to_string();
@@ -386,7 +457,7 @@ fn handle_connection<A>(
         log_to_file(&log_file, &line);
     };
     rouille::log_custom(request, log_ok, log_err, || {
-        let result = handle_connection_internal(connection_new, request, config, counter_all, counter_clicks);
+        let result = handle_connection_internal(connection_new, request, config, counter_all, counter_clicks, cache);
         match result {
             Ok(response) => add_cors(response),
             Err(err) => {
@@ -398,12 +469,27 @@ fn handle_connection<A>(
     })
 }
 
+use cache::CacheConnection;
+
+impl From<CacheType> for cache::CacheType {
+
+    fn from(t: CacheType) -> Self {
+        match t{
+            CacheType::None => cache::CacheType::None,
+            CacheType::BuiltIn => cache::CacheType::BuiltIn,
+            CacheType::Redis => cache::CacheType::Redis,
+            CacheType::Memcached => cache::CacheType::Memcached,
+        } 
+     }
+}
+
 fn handle_connection_internal<A>(
     connection_new: &A,
     request: &rouille::Request,
     config: Config,
     counter_all: Arc<Mutex<HashMap<String, usize>>>,
     counter_clicks: Arc<AtomicUsize>,
+    cache: CacheConnection,
 ) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
     if request.method() == "OPTIONS" {
         return Ok(rouille::Response::empty_204());
@@ -471,6 +557,7 @@ fn handle_connection_internal<A>(
         let y = x.decode_utf8_lossy();
         y.into_owned()
     }).collect();
+
     if items.len() == 2 {
         let file_name: &str = &items[1];
         match file_name {
@@ -507,12 +594,12 @@ fn handle_connection_internal<A>(
         let filter : Option<String> = None;
 
         match command {
-            "languages" => Ok(encode_extra(connection_new.get_extra("LanguageCache", "LanguageName", filter, param_order, param_reverse, param_hidebroken)?, format, "language")?),
-            "countries" => Ok(encode_extra(connection_new.get_1_n("Country", filter, param_order, param_reverse, param_hidebroken)?, format, "country")?),
-            "countrycodes" => Ok(encode_extra(connection_new.get_1_n("CountryCode", filter, param_order, param_reverse, param_hidebroken)?, format, "countrycode")?),
+            "languages" => Ok(encode_extra(connection_new, cache, RequestDataExtra::new(format, Some("LanguageCache"), "LanguageName", filter, param_order, param_reverse, param_hidebroken), "language")?),
+            "countries" => Ok(encode_extra(connection_new, cache, RequestDataExtra::new(format, None, "Country", filter, param_order, param_reverse, param_hidebroken), "country")?),
+            "countrycodes" => Ok(encode_extra(connection_new, cache, RequestDataExtra::new(format, None, "CountryCode", filter, param_order, param_reverse, param_hidebroken), "countrycode")?),
             "states" => Ok(encode_states(connection_new.get_states(None, filter, param_order, param_reverse, param_hidebroken)?, format)?),
-            "codecs" => Ok(encode_extra(connection_new.get_1_n("Codec", filter, param_order, param_reverse, param_hidebroken)?, format, "codec")?),
-            "tags" => Ok(encode_extra(connection_new.get_extra("TagCache", "TagName", filter, param_order, param_reverse, param_hidebroken)?, format, "tag")?),
+            "codecs" => Ok(encode_extra(connection_new, cache, RequestDataExtra::new(format, None, "Codec", filter, param_order, param_reverse, param_hidebroken), "codec")?),
+            "tags" => Ok(encode_extra(connection_new, cache, RequestDataExtra::new(format, Some("TagCache"), "TagName", filter, param_order, param_reverse, param_hidebroken), "tag")?),
             "stations" => Ok(Station::get_response(connection_new.get_stations_by_all(&param_order, param_reverse, param_hidebroken, param_offset, param_limit)?.drain(..).map(|x|x.into()).collect(), format)?),
             "servers" => Ok(dns_resolve(format)?),
             "stats" => Ok(encode_status(get_status(connection_new)?, format, &config.static_files_dir)),
@@ -527,12 +614,13 @@ fn handle_connection_internal<A>(
         let command:&str = &items[2];
         let parameter:&str = &items[3];
 
+        // None => connection_new.get_1_n("Country", filter, param_order, param_reverse, param_hidebroken)?, format, "country")?,
         match command {
-            "languages" => Ok(encode_extra(connection_new.get_extra("LanguageCache", "LanguageName", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "language")?),
-            "countries" => Ok(encode_extra(connection_new.get_1_n("Country", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "country")?),
-            "countrycodes" => Ok(encode_extra(connection_new.get_1_n("CountryCode", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "countrycode")?),
-            "codecs" => Ok(encode_extra(connection_new.get_1_n("Codec", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "codec")?),
-            "tags" => Ok(encode_extra(connection_new.get_extra("TagCache", "TagName", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format, "tag")?),
+            "languages" => Ok(encode_extra(connection_new, cache, RequestDataExtra::new(format, Some("LanguageCache"), "LanguageName", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), "language")?),
+            "countries" => Ok(encode_extra(connection_new, cache, RequestDataExtra::new(format, None, "Country", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), "country")?),
+            "countrycodes" => Ok(encode_extra(connection_new, cache, RequestDataExtra::new(format, None, "CountryCode", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), "countrycode")?),
+            "codecs" => Ok(encode_extra(connection_new, cache, RequestDataExtra::new(format, None, "Codec", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), "codec")?),
+            "tags" => Ok(encode_extra(connection_new, cache, RequestDataExtra::new(format, Some("TagCache"), "TagName", Some(String::from(parameter)), param_order, param_reverse, param_hidebroken), "tag")?),
             "states" => Ok(encode_states(connection_new.get_states(None, Some(String::from(parameter)), param_order, param_reverse, param_hidebroken)?, format)?),
             "vote" => Ok(encode_message(connection_new.vote_for_station(&remote_ip, get_only_first_item(connection_new.get_station_by_uuid(parameter)?)), format)?),
             "url" => Ok(encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(parameter)?), &remote_ip, format, config.click_valid_timeout.as_secs(),counter_clicks)?),
