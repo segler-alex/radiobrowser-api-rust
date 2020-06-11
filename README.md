@@ -2,7 +2,7 @@
 
 This is the radio browser server part providing the API on the second level servers for <http://www.radio-browser.info>
 
-The server addresses are:
+The official server addresses are:
 
 * <https://de1.api.radio-browser.info>
 * <https://fr1.api.radio-browser.info>
