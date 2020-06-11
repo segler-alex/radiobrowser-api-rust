@@ -14,6 +14,20 @@ Send me feature requests, bug reports or extend it yourself. I license it freely
 
 You can find the API documentation on <https://api.radio-browser.info/>
 
+## What is radiobrowser-api-rust?
+In short it is an API for an index of web streams (audio and video). Streams can be added and searched by any user of the API.
+
+## Features
+* Open source
+* Freely licensed
+* Well documented API
+* Automatic regular online checking of streams
+* Highliy configurable
+* Easy setup for multiple configurations (native, deb-packages, docker, ansible)
+* Implemented in Rust-lang
+* Optional: multi-server setup with automatic mirroring
+* Optional: response caching in internal or external cache (redis, memcached)
+
 ## Setup
 
 You can do a native setup or a docker setup

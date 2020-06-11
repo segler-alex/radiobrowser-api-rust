@@ -13,6 +13,9 @@ mod cache;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::error::Error;
+use std::convert::TryInto;
+use std::thread;
+use std::time::Duration;
 use api_error::ApiError;
 
 use self::parameters::RequestParameters;
@@ -289,12 +292,7 @@ pub fn start<A: 'static +  std::clone::Clone>(
     let counter_all = Arc::new(Mutex::new(HashMap::new()));
     let counter_click = Arc::new(AtomicUsize::new(0));
     
-    use std::convert::TryInto;
     let cache = cache::GenericCache::new(config.cache_type.clone().into(), config.cache_url.clone(), config.cache_ttl.as_secs().try_into().expect("cache-ttl is too high"));
-
-    use std::thread;
-    use std::time::Duration;
-
     let mut cache_cleanup = cache.clone();
     thread::spawn(move || {
         loop{
