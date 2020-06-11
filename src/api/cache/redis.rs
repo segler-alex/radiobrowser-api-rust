@@ -1,4 +1,4 @@
-use super::generic_cache::GenericCache;
+//use super::generic_cache::GenericCache;
 use redis;
 use redis::Commands;
 use std::error::Error;
@@ -29,10 +29,7 @@ impl RedisCache {
         con.set_ex(key, value, expire)?;
         Ok(())
     }
-}
-
-impl GenericCache for RedisCache {
-    fn get(&self, key: &str) -> Option<String> {
+    pub fn get(&self, key: &str) -> Option<String> {
         trace!("GET {}", key);
         let result = self.get_internal(key);
         match result {
@@ -43,12 +40,11 @@ impl GenericCache for RedisCache {
             }
         }
     }
-    fn set(&mut self, key: &str, value: &str) {
+    pub fn set(&mut self, key: &str, value: &str) {
         trace!("SET {}={}", key, value);
         let result = self.set_internal(key, value, self.ttl);
         if let Err(err) = result {
             error!("Error on set of redis value: {}", err);
         }
     }
-    fn cleanup(&mut self) {}
 }

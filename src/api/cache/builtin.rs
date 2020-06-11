@@ -1,6 +1,6 @@
-use std::sync::Mutex;
 use std::sync::Arc;
-use super::generic_cache::GenericCache;
+use std::sync::Mutex;
+//use super::generic_cache::GenericCache;
 use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
 
@@ -32,25 +32,20 @@ impl BuiltinCache {
             cache: Arc::new(Mutex::new(HashMap::new())),
         }
     }
-}
-
-impl GenericCache for BuiltinCache {
-    fn get(&self, key: &str) -> Option<String> {
+    pub fn get(&self, key: &str) -> Option<String> {
         trace!("GET {}", key);
         let locked = self.cache.lock();
         match locked {
-            Ok(locked) => {
-                match locked.get(key.into()) {
-                    Some(item) => {
-                        let now = SystemTime::now();
-                        if item.expire > now {
-                            Some(item.value.clone())
-                        } else {
-                            None
-                        }
+            Ok(locked) => match locked.get(key.into()) {
+                Some(item) => {
+                    let now = SystemTime::now();
+                    if item.expire > now {
+                        Some(item.value.clone())
+                    } else {
+                        None
                     }
-                    None => None,
                 }
+                None => None,
             },
             Err(err) => {
                 error!("Unable to lock counter for get: {}", err);
@@ -58,27 +53,25 @@ impl GenericCache for BuiltinCache {
             }
         }
     }
-    fn set(&mut self, key: &str, value: &str) {
+    pub fn set(&mut self, key: &str, value: &str) {
         trace!("SET {}={}", key, value);
         let locked = self.cache.lock();
         match locked {
             Ok(mut locked) => {
-                locked
-                    .entry(key.to_string())
-                    .or_insert(Item::new(value.into(), self.ttl));
+                locked.remove(key);
+                locked.insert(key.to_string(), Item::new(value.into(), self.ttl));
             }
             Err(err) => {
                 error!("Unable to lock counter for set: {}", err);
             }
         }
     }
-    fn cleanup(&mut self){
+    pub fn cleanup(&mut self) {
         let locked = self.cache.lock();
         match locked {
             Ok(mut locked) => {
                 let now = SystemTime::now();
                 let mut to_delete: Vec<String> = vec![];
-                        
                 for (key, value) in locked.iter() {
                     if value.expire <= now {
                         to_delete.push(key.clone());

@@ -36,8 +36,8 @@ use std;
 use self::dns_lookup::lookup_host;
 use self::dns_lookup::lookup_addr;
 
+use crate::config;
 use crate::config::Config;
-use crate::config::CacheType;
 
 use std::fs::File;
 use self::serde_json::value::{Map};
@@ -201,9 +201,20 @@ impl RequestDataExtra {
     }
 }
 
-fn encode_extra<A>(db: &A, mut cache: CacheConnection, request_data: RequestDataExtra, tag_name: &str) -> Result<rouille::Response, Box<dyn Error>> where A: DbConnection {
+impl From<config::CacheType> for cache::GenericCacheType {
+    fn from(cache_type: config::CacheType) -> Self {
+        match cache_type {
+            config::CacheType::None => cache::GenericCacheType::None,
+            config::CacheType::BuiltIn => cache::GenericCacheType::BuiltIn,
+            config::CacheType::Redis => cache::GenericCacheType::Redis,
+            config::CacheType::Memcached => cache::GenericCacheType::Memcached,
+        }
+    }
+}
+
+fn encode_extra<A>(db: &A, mut cache: cache::GenericCache, request_data: RequestDataExtra, tag_name: &str) -> Result<rouille::Response, Box<dyn Error>> where A: DbConnection {
     let key = request_data.to_string()?;
-    let cached_item = cache.cache.get(&key);
+    let cached_item = cache.get(&key);
     let result = match cached_item {
         Some(cached_item) => cached_item,
         None => {
@@ -217,7 +228,7 @@ fn encode_extra<A>(db: &A, mut cache: CacheConnection, request_data: RequestData
                 "xml" => ExtraInfo::serialize_extra_list(list, tag_name)?,
                 _ => String::from("xxx"),
             };
-            cache.cache.set(&key, &result);
+            cache.set(&key, &result);
 
             result
         }
@@ -279,10 +290,22 @@ pub fn start<A: 'static +  std::clone::Clone>(
     let counter_click = Arc::new(AtomicUsize::new(0));
     
     use std::convert::TryInto;
+    let cache = cache::GenericCache::new(config.cache_type.clone().into(), config.cache_url.clone(), config.cache_ttl.as_secs().try_into().expect("cache-ttl is too high"));
+
+    use std::thread;
+    use std::time::Duration;
+
+    let mut cache_cleanup = cache.clone();
+    thread::spawn(move || {
+        loop{
+            trace!("Cache cleanup run..");
+            cache_cleanup.cleanup();
+            thread::sleep(Duration::from_secs(60));
+        }
+    });
 
     rouille::start_server_with_pool(listen_str, Some(config.threads), move |request| {
-        let cache: CacheConnection = CacheConnection::new(config.cache_type.clone().into(), config.cache_url.clone(), config.cache_ttl.as_secs().try_into().expect("cache-ttl is too high"));
-        handle_connection(&connection_new, request, config.clone(), counter_all.clone(), counter_click.clone(), cache)
+        handle_connection(&connection_new, request, config.clone(), counter_all.clone(), counter_click.clone(), cache.clone())
     });
 }
 
@@ -395,7 +418,7 @@ fn handle_connection<A>(
     config: Config,
     counter_all: Arc<Mutex<HashMap<String, usize>>>,
     counter_clicks: Arc<AtomicUsize>,
-    cache: CacheConnection,
+    cache: cache::GenericCache,
 ) -> rouille::Response where A: DbConnection {
     let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
     let referer: String = request.header("Referer").unwrap_or(&"-".to_string()).to_string();
@@ -469,27 +492,13 @@ fn handle_connection<A>(
     })
 }
 
-use cache::CacheConnection;
-
-impl From<CacheType> for cache::CacheType {
-
-    fn from(t: CacheType) -> Self {
-        match t{
-            CacheType::None => cache::CacheType::None,
-            CacheType::BuiltIn => cache::CacheType::BuiltIn,
-            CacheType::Redis => cache::CacheType::Redis,
-            CacheType::Memcached => cache::CacheType::Memcached,
-        } 
-     }
-}
-
 fn handle_connection_internal<A>(
     connection_new: &A,
     request: &rouille::Request,
     config: Config,
     counter_all: Arc<Mutex<HashMap<String, usize>>>,
     counter_clicks: Arc<AtomicUsize>,
-    cache: CacheConnection,
+    cache: cache::GenericCache,
 ) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
     if request.method() == "OPTIONS" {
         return Ok(rouille::Response::empty_204());

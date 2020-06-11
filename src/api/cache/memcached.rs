@@ -1,4 +1,4 @@
-use super::generic_cache::GenericCache;
+//use super::generic_cache::GenericCache;
 use memcache;
 use std::error::Error;
 
@@ -22,10 +22,7 @@ impl MemcachedCache {
         client.set(key, value, expire.into())?;
         Ok(())
     }
-}
-
-impl GenericCache for MemcachedCache {
-    fn get(&self, key: &str) -> Option<String> {
+    pub fn get(&self, key: &str) -> Option<String> {
         trace!("GET {}", key);
         let result = self.get_internal(key);
         match result {
@@ -36,12 +33,11 @@ impl GenericCache for MemcachedCache {
             }
         }
     }
-    fn set(&mut self, key: &str, value: &str) {
+    pub fn set(&mut self, key: &str, value: &str) {
         trace!("SET {}={}", key, value);
         let result = self.set_internal(key, value, self.ttl);
         if let Err(err) = result {
             error!("Error on set of memcached value: {}", err);
         }
     }
-    fn cleanup(&mut self) {}
 }
