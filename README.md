@@ -3,6 +3,8 @@
 ## What is radiobrowser-api-rust?
 In short it is an API for an index of web streams (audio and video). Streams can be added and searched by any user of the API.
 
+There is an official deployment of this software at https://api.radio-browser.info
+
 ## Features
 * Open source
 * Freely licensed
