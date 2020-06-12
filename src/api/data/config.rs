@@ -83,6 +83,8 @@ impl ApiConfig {
             &config.check_pause_seconds.to_string(),
         )?;
         xml.elem_text("api_threads", &config.api_threads.to_string())?;
+        xml.elem_text("cache_type", &config.cache_type.to_string())?;
+        xml.elem_text("cache_ttl", &config.cache_ttl.to_string())?;
         xml.end_elem()?;
         xml.close()?;
         xml.flush()?;
