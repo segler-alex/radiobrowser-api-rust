@@ -36,6 +36,9 @@ impl RequestParameters {
                 "application/json" => {
                     RequestParameters::decode_json(req, map);
                 },
+                "nothing" => {
+                    // ignore body
+                },
                 _ =>{
                     error!("unknown content type: {}", content_type);
                 }
