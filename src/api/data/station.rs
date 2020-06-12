@@ -1,3 +1,4 @@
+use crate::api::api_response::ApiResponse;
 use std::error::Error;
 use crate::api::data::StationHistoryCurrent;
 use crate::db::models::StationItem;
@@ -327,33 +328,33 @@ impl Station {
         j
     }
 
-    pub fn get_response(list : Vec<Station>, format : &str) -> Result<rouille::Response, Box<dyn Error>> {
+    pub fn get_response(list : Vec<Station>, format : &str) -> Result<ApiResponse, Box<dyn Error>> {
         Ok(match format {
             "json" => {
                 let j = serde_json::to_string(&list)?;
-                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+                ApiResponse::Text("application/json".to_string(), j)
             },
             "xml" => {
                 let j = Station::serialize_station_list(list)?;
-                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
+                ApiResponse::Text("text/xml".to_string(), j)
             },
             "m3u" => {
                 let j = Station::serialize_to_m3u(list, false);
-                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/mpegurl").with_unique_header("Content-Disposition", r#"inline; filename="playlist.m3u""#)
+                ApiResponse::Text("audio/mpegurl".to_string(), j)
             },
             "pls" => {
                 let j = Station::serialize_to_pls(list, false);
-                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/x-scpls").with_unique_header("Content-Disposition", r#"inline; filename="playlist.pls""#)
+                ApiResponse::Text("audio/x-scpls".to_string(), j)
             },
             "xspf" => {
                 let j = Station::serialize_to_xspf(list)?;
-                rouille::Response::text(j).with_unique_header("Content-Type","application/xspf+xml").with_unique_header("Content-Disposition", r#"inline; filename="playlist.xspf""#)
+                ApiResponse::Text("application/xspf+xml".to_string(), j)
             },
             "ttl" => {
                 let j = Station::serialize_to_ttl(list);
-                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/turtle")
+                ApiResponse::Text("text/turtle".to_string(), j)
             },
-            _ => rouille::Response::empty_406()
+            _ => ApiResponse::UnknownContentType,
         })
     }
 }

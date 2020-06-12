@@ -8,7 +8,10 @@ pub mod data;
 mod parameters;
 mod prometheus_exporter;
 mod api_error;
+mod api_response;
 mod cache;
+
+use api_response::ApiResponse;
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -74,7 +77,7 @@ fn get_only_first_item(mut stations: Vec<StationItem>) -> Option<StationItem>{
     }
 }
 
-fn dns_resolve(format : &str) -> Result<rouille::Response, Box<dyn Error>> {
+fn dns_resolve(format : &str) -> Result<ApiResponse, Box<dyn Error>> {
     let hostname = "all.api.radio-browser.info";
     let ips: Vec<std::net::IpAddr> = lookup_host(hostname)?;
     let mut list: Vec<ServerEntry> = Vec::new();
@@ -88,47 +91,45 @@ fn dns_resolve(format : &str) -> Result<rouille::Response, Box<dyn Error>> {
     match format {
         "json" => {
             let j = serde_json::to_string(&list)?;
-            Ok(rouille::Response::text(j)
-                .with_no_cache()
-                .with_unique_header("Content-Type","application/json"))
+            Ok(ApiResponse::Text("application/json".to_string(), j))
         },
-        _ => Ok(rouille::Response::empty_404())
+        _ => Ok(ApiResponse::NotFound)
     }
 }
 
-fn encode_changes(list : Vec<StationHistoryCurrent>, format : &str) -> Result<rouille::Response, Box<dyn Error>> {
+fn encode_changes(list : Vec<StationHistoryCurrent>, format : &str) -> Result<ApiResponse, Box<dyn Error>> {
     Ok(match format {
         "json" => {
             let j = serde_json::to_string(&list)?;
-            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+            ApiResponse::Text("application/json".to_string(), j)
         },
         "xml" => {
             let j = StationHistoryCurrent::serialize_changes_list(list)?;
-            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
+            ApiResponse::Text("text/xml".to_string(), j)
         },
-        _ => rouille::Response::empty_406()
+        _ => ApiResponse::UnknownContentType
     })
 }
 
-fn encode_message(status: Result<String, Box<dyn Error>>, format : &str) -> Result<rouille::Response, Box<dyn Error>> {
+fn encode_message(status: Result<String, Box<dyn Error>>, format : &str) -> Result<ApiResponse, Box<dyn Error>> {
     Ok(match format {
         "json" => {
             match status {
-                Ok(message) => rouille::Response::text(serde_json::to_string(&ResultMessage::new(true,message))?),
-                Err(err) => rouille::Response::text(serde_json::to_string(&ResultMessage::new(false,err.to_string()))?),
-            }.with_no_cache().with_unique_header("Content-Type","application/json")
+                Ok(message) => ApiResponse::Text("application/json".to_string(), serde_json::to_string(&ResultMessage::new(true,message))?),
+                Err(err) => ApiResponse::Text("application/json".to_string(), serde_json::to_string(&ResultMessage::new(false,err.to_string()))?),
+            }
         },
         "xml" => {
             match status {
-                Ok(message) => rouille::Response::text(ResultMessage::new(true,message).serialize_xml()?),
-                Err(err) => rouille::Response::text(ResultMessage::new(false,err.to_string()).serialize_xml()?),
-            }.with_no_cache().with_unique_header("Content-Type","text/xml")
+                Ok(message) => ApiResponse::Text("text/xml".to_string(), ResultMessage::new(true,message).serialize_xml()?),
+                Err(err) => ApiResponse::Text("text/xml".to_string(), ResultMessage::new(false,err.to_string()).serialize_xml()?),
+            }
         },
-        _ => rouille::Response::empty_406()
+        _ => ApiResponse::UnknownContentType
     })
 }
 
-fn encode_station_url<A>(connection_new: &A, station: Option<StationItem>, ip: &str, format : &str, seconds: u64, counter_clicks: Arc<AtomicUsize>) -> Result<rouille::Response, Box<dyn Error>> where A: DbConnection {
+fn encode_station_url<A>(connection_new: &A, station: Option<StationItem>, ip: &str, format : &str, seconds: u64, counter_clicks: Arc<AtomicUsize>) -> Result<ApiResponse, Box<dyn Error>> where A: DbConnection {
     Ok(match station {
         Some(station) => {
             counter_clicks.fetch_add(1,Ordering::Relaxed);
@@ -138,41 +139,41 @@ fn encode_station_url<A>(connection_new: &A, station: Option<StationItem>, ip: &
                 "json" => {
                     let s = Station::extract_cached_info(station, "retrieved station url");
                     let j = serde_json::to_string(&s)?;
-                    rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+                    ApiResponse::Text("application/json".to_string(), j)
                 },
                 "xml" => {
                     let s = Station::extract_cached_info(station, "retrieved station url");
                     let j = StationCachedInfo::serialize_cached_info(s)?;
-                    rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
+                    ApiResponse::Text("text/xml".to_string(), j)
                 },
                 "m3u" => {
                     let list = vec![station];
                     let j = Station::serialize_to_m3u(list, true);
-                    rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/mpegurl").with_unique_header("Content-Disposition", r#"inline; filename="playlist.m3u""#)
+                    ApiResponse::Text("audio/mpegurl".to_string(), j)
                 },
                 "pls" => {
                     let list = vec![station];
                     let j = Station::serialize_to_pls(list, true);
-                    rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/x-scpls").with_unique_header("Content-Disposition", r#"inline; filename="playlist.pls""#)
+                    ApiResponse::Text("audio/x-scpls".to_string(), j)
                 },
-                _ => rouille::Response::empty_406()
+                _ => ApiResponse::UnknownContentType
             }
         },
-        _ => rouille::Response::empty_404()
+        _ => ApiResponse::NotFound
     })
 }
 
-fn encode_states(list : Vec<State>, format : &str) -> Result<rouille::Response, Box<dyn Error>> {
+fn encode_states(list : Vec<State>, format : &str) -> Result<ApiResponse, Box<dyn Error>> {
     Ok(match format {
         "json" => {
             let j = serde_json::to_string(&list)?;
-            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+            ApiResponse::Text("application/json".to_string(), j)
         },
         "xml" => {
             let j = State::serialize_state_list(list)?;
-            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
+            ApiResponse::Text("text/xml".to_string(), j)
         },
-        _ => rouille::Response::empty_406()
+        _ => ApiResponse::UnknownContentType
     })
 }
 
@@ -187,34 +188,40 @@ impl From<config::CacheType> for cache::GenericCacheType {
     }
 }
 
-fn encode_extra(list : Vec<ExtraInfo>, format : &str, tag_name: &str) -> Result<rouille::Response, Box<dyn Error>> {
+fn encode_extra(list : Vec<ExtraInfo>, format : &str, tag_name: &str) -> Result<ApiResponse, Box<dyn Error>> {
     Ok(match format {
         "json" => {
             let j = serde_json::to_string(&list)?;
-            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+            ApiResponse::Text("application/json".to_string(), j)
         },
         "xml" => {
             let j = ExtraInfo::serialize_extra_list(list, tag_name)?;
-            rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
+            ApiResponse::Text("text/xml".to_string(), j)
         },
-        _ => rouille::Response::empty_406()
+        _ => ApiResponse::UnknownContentType
     })
 }
 
-fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Response {
+fn encode_status(status: Status, format : &str, static_dir: &str) -> ApiResponse {
     match format {
         "json" => {
             let j = serde_json::to_string(&status);
             match j {
-                Ok(j) => rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json"),
-                _ => rouille::Response::text("").with_status_code(500)
+                Ok(j) => ApiResponse::Text("application/json".to_string(), j),
+                Err(err) => {
+                    error!("Unable to serialize object to JSON {}",err);
+                    ApiResponse::ServerError("Unable to serialize object to JSON".to_string())
+                },
             }
         },
         "xml" => {
             let j = status.serialize_xml();
             match j {
-                Ok(j) => rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml"),
-                _ => rouille::Response::text("").with_status_code(500)
+                Ok(j) => ApiResponse::Text("text/xml".to_string(), j),
+                Err(err) => {
+                    error!("Unable to serialize object to XML {}",err);
+                    ApiResponse::ServerError("Unable to serialize object to XML".to_string())
+                },
             }
         },
         "html" => {
@@ -225,15 +232,18 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> rouille::Re
                 data.insert(String::from("status"), to_json(status));
                 let rendered = handlebars.render("stats.hbs", &data);
                 match rendered {
-                    Ok(rendered) => rouille::Response::html(rendered).with_no_cache(),
-                    _ => rouille::Response::text("").with_status_code(500)
+                    Ok(rendered) => ApiResponse::Text("text/html".to_string(), rendered),
+                    Err(err) => {
+                        error!("Unable to render HTML {}",err);
+                        ApiResponse::ServerError("Unable to render HTML".to_string())
+                    },
                 }
             }else{
                 error!("unable register template file: stats.hbs");
-                rouille::Response::text("").with_status_code(500)
+                ApiResponse::ServerError("unable to send stats".to_string())
             }
         },
-        _ => rouille::Response::empty_406()
+        _ => ApiResponse::UnknownContentType
     }
 }
 
@@ -280,31 +290,11 @@ fn get_status<A>(connection_new: &A) -> Result<Status, Box<dyn std::error::Error
     )
 }
 
-/*
-pub enum ApiResponse{
-    Text(String),
-    File(String, File),
-    Error(u8),
-}
-
 fn send_file(path: &str, content_type: &'static str) -> ApiResponse {
     let file = File::open(path);
     match file {
-        Ok(file) => {
-            ApiResponse::File(content_type.to_string(), file)
-        },
-        _ => ApiResponse::Error(404)
-    }
-}
-*/
-
-fn send_file(path: &str, content_type: &'static str) -> rouille::Response {
-    let file = File::open(path);
-    match file {
-        Ok(file) => {
-            rouille::Response::from_file(content_type, file)
-        },
-        _ => rouille::Response::empty_404()
+        Ok(file) => ApiResponse::File(content_type.to_string(), file),
+        _ => ApiResponse::NotFound,
     }
 }
 
@@ -490,7 +480,7 @@ fn handle_cached_connection<A>(
     config: Config,
     counter_all: Arc<Mutex<HashMap<String, usize>>>,
     counter_clicks: Arc<AtomicUsize>,
-    cache: cache::GenericCache,
+    mut cache: cache::GenericCache,
 ) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
     if request.method() == "OPTIONS" {
         return Ok(rouille::Response::empty_204());
@@ -553,38 +543,54 @@ fn handle_cached_connection<A>(
         param_url: ppp.get_string("url"),
     };
 
-    /*
-    let key = allparams.to_string();
+    let key = allparams.to_string()?;
     let cached_item = cache.get(&key);
-    let result = match cached_item {
-        Some(cached_item) => cached_item,
+    let result: rouille::Response = match cached_item {
+        Some(cached_item) => rouille::Response::text(cached_item),
         None => {
-            let list: Vec<ExtraInfo> = match request_data.table_name {
-                Some(table_name) => db.get_extra(&table_name, &request_data.column_name, request_data.search, request_data.order, request_data.reverse, request_data.hidebroken)?,
-                None => db.get_1_n(&request_data.column_name, request_data.search, request_data.order, request_data.reverse, request_data.hidebroken)?,
-            };
-            
-            let result = match request_data.format.as_str() {
-                "json" => serde_json::to_string(&list)?,
-                "xml" => ExtraInfo::serialize_extra_list(list, tag_name)?,
-                _ => String::from("xxx"),
-            };
-            cache.set(&key, &result);
+            let (do_cache, response) = do_api_calls(allparams, connection_new, config, counter_all, counter_clicks, base_url, content_type, remote_ip)?;
 
-            result
+            match response {
+                ApiResponse::Text(content_type, text) => {
+                    if do_cache {
+                        cache.set(&key, &text);
+                        rouille::Response::text(text).with_unique_header("Content-Type",content_type)
+                    }else{
+                        rouille::Response::text(text).with_unique_header("Content-Type",content_type).with_no_cache()
+                    }
+                },
+                ApiResponse::File(content_type, file) => {
+                    rouille::Response::from_file(content_type, file)
+                },
+                ApiResponse::NotFound => {
+                    rouille::Response::empty_404()
+                },
+                ApiResponse::UnknownContentType => {
+                    rouille::Response::empty_406()
+                },
+                ApiResponse::ServerError(msg) => {
+                    rouille::Response::text(msg).with_status_code(500)
+                },
+                ApiResponse::Locked(msg) => {
+                    rouille::Response::text(msg).with_status_code(423)
+                },
+                ApiResponse::ParameterError(msg) => {
+                    rouille::Response::text(msg).with_status_code(400)
+                },
+            }
         }
     };
     
-    let content_type = match request_data.format.as_str() {
-        "json" => "application/json",
-        "xml" => "text/xml",
-        _ => "xxx",//rouille::Response::empty_406()
+    let response = match content_type {
+        "json" => result.with_unique_header("Content-Type", "application/json"),
+        "xml" => result.with_unique_header("Content-Type", "text/xml"),
+        "m3u" => result.with_unique_header("Content-Type", "audio/mpegurl").with_unique_header("Content-Disposition", r#"inline; filename="playlist.m3u""#),
+        "pls" => result.with_unique_header("Content-Type", "audio/x-scpls").with_unique_header("Content-Disposition", r#"inline; filename="playlist.pls""#),
+        "xspf" => result.with_unique_header("Content-Type", "application/xspf+xml").with_unique_header("Content-Disposition", r#"inline; filename="playlist.xspf""#),
+        "ttl" => result.with_unique_header("Content-Type", "text/turtle"),
+        _ => result,
     };
 
-    Ok(rouille::Response::text(result).with_no_cache().with_unique_header("Content-Type", content_type))
-    */
-
-    let (do_cache, response) = do_api_calls(allparams, connection_new, config, counter_all, counter_clicks, base_url, content_type, remote_ip)?;
     Ok(response)
 }
 
@@ -596,7 +602,7 @@ fn do_api_calls<A>(all_params: AllParameters,
     base_url: String,
     content_type: &str,
     remote_ip: String,
-) -> Result<(bool, Response), Box<dyn Error>> where A: DbConnection {
+) -> Result<(bool, ApiResponse), Box<dyn Error>> where A: DbConnection {
     use percent_encoding::{percent_decode_str};
     trace!("content_type: {}", content_type);
     let parts : Vec<&str> = all_params.url.split('?').collect();
@@ -613,7 +619,7 @@ fn do_api_calls<A>(all_params: AllParameters,
                 if config.prometheus_exporter {
                     Ok((false, prometheus_exporter::render(connection_new, &config.prometheus_exporter_prefix, config.broken_stations_never_working_timeout.as_secs(), config.broken_stations_timeout.as_secs(), counter_all, counter_clicks)?))
                 }else{
-                    Ok((true, rouille::Response::text("Exporter not enabled!").with_status_code(423)))
+                    Ok((true, ApiResponse::Locked("Exporter not enabled!".to_string())))
                 }
             },
             "favicon.ico" => Ok((true,send_file(&format!("{}/{}",config.static_files_dir,"favicon.ico"), "image/png"))),
@@ -628,13 +634,13 @@ fn do_api_calls<A>(all_params: AllParameters,
                     data.insert(String::from("API_SERVER"), to_json(base_url));
                     data.insert(String::from("SERVER_VERSION"), to_json(format!("{version}",version = pkg_version)));
                     let rendered = handlebars.render("docs.hbs", &data)?;
-                    Ok((true, rouille::Response::html(rendered).with_no_cache()))
+                    Ok((true, ApiResponse::Text("text/html".to_string(), rendered)))
                 }else{
                     error!("unable register template file: docs.hbs");
-                    Ok((false, rouille::Response::text("").with_status_code(500)))
+                    Ok((false, ApiResponse::ServerError("unable to render docs".to_string())))
                 }
             }
-            _ => Ok((false, rouille::Response::empty_404())),
+            _ => Ok((false, ApiResponse::NotFound)),
         }
     } else if items.len() == 3 {
         let format:&str = &items[1];
@@ -655,7 +661,7 @@ fn do_api_calls<A>(all_params: AllParameters,
             "clicks" => Ok((true,StationClick::get_response(connection_new.get_clicks(None, all_params.param_last_clickuuid, all_params.param_seconds)?.drain(..).map(|x|x.into()).collect(),format)?)),
             "add" => Ok((false,StationAddResult::from(connection_new.add_station_opt(all_params.param_name, all_params.param_url, all_params.param_homepage, all_params.param_favicon, all_params.param_country, all_params.param_countrycode, all_params.param_state, all_params.param_language, all_params.param_tags)).get_response(format)?)),
             "config" => Ok((true,ApiConfig::get_response(config.into(),format)?)),
-            _ => Ok((true,rouille::Response::empty_404())),
+            _ => Ok((true,ApiResponse::NotFound)),
         }
     } else if items.len() == 4 {
         let format:&str = &items[1];
@@ -687,12 +693,12 @@ fn do_api_calls<A>(all_params: AllParameters,
                         all_params.param_country_exact, all_params.param_countrycode, all_params.param_state, all_params.param_state_exact, all_params.param_language, all_params.param_language_exact, all_params.param_tag,
                         all_params.param_tag_exact, all_params.param_tag_list, all_params.param_codec, all_params.param_bitrate_min, all_params.param_bitrate_max, &all_params.param_order,all_params.param_reverse,
                         all_params.param_hidebroken,all_params.param_offset,all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
-                    _ => Ok((true,rouille::Response::empty_404())),
+                    _ => Ok((true,ApiResponse::NotFound)),
                 }
             },
             "checks" => Ok((true,StationCheck::get_response(connection_new.get_checks(Some(parameter.to_string()), all_params.param_last_checkuuid, all_params.param_seconds, true)?.drain(..).map(|x|x.into()).collect(), format)?)),
             "clicks" => Ok((true,StationClick::get_response(connection_new.get_clicks(Some(parameter.to_string()), all_params.param_last_clickuuid, all_params.param_seconds)?.drain(..).map(|x|x.into()).collect(), format)?)),
-            _ => Ok((true,rouille::Response::empty_404())),
+            _ => Ok((true,ApiResponse::NotFound)),
         }
     } else if items.len() == 5 {
         let format:&str = &items[1];
@@ -705,7 +711,7 @@ fn do_api_calls<A>(all_params: AllParameters,
             let command = parameter;
             match command {
                 "url" => Ok((false,encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(search)?), &remote_ip, format, config.click_valid_timeout.as_secs(), counter_clicks)?)),
-                _ => Ok((false,rouille::Response::empty_404())),
+                _ => Ok((false,ApiResponse::NotFound)),
             }
         }else{
             match command {
@@ -734,13 +740,13 @@ fn do_api_calls<A>(all_params: AllParameters,
                         "bylanguageexact" => Ok((true,Station::get_response(connection_new.get_stations_by_column_multiple("Language", Some(search.to_string()),true,&all_params.param_order,all_params.param_reverse,all_params.param_hidebroken,all_params.param_offset,all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
                         "byuuid" => Ok((true,Station::get_response(connection_new.get_stations_by_column("StationUuid", search.to_string(),true,&all_params.param_order,all_params.param_reverse,all_params.param_hidebroken,all_params.param_offset,all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
                         "changed" => Ok((true,encode_changes(connection_new.get_changes(Some(search.to_string()),all_params.param_last_changeuuid)?.drain(..).map(|x| x.into()).collect(), format)?)),
-                        _ => Ok((true,rouille::Response::empty_404())),
+                        _ => Ok((true,ApiResponse::NotFound)),
                     }
                 },
-                _ => Ok((true,rouille::Response::empty_404())),
+                _ => Ok((true,ApiResponse::NotFound)),
             }
         }
     } else {
-        Ok((true,rouille::Response::empty_404()))
+        Ok((true,ApiResponse::NotFound))
     }
 }

@@ -1,3 +1,4 @@
+use crate::api::api_response::ApiResponse;
 use crate::db::models::StationClickItem;
 use std::convert::TryFrom;
 use std::error::Error;
@@ -29,7 +30,7 @@ impl StationClick {
         }
     }
 
-    pub fn serialize_station_checks(entries: Vec<StationClick>) -> std::io::Result<String> {
+    pub fn serialize_station_clicks(entries: Vec<StationClick>) -> std::io::Result<String> {
         let mut xml = xml_writer::XmlWriter::new(Vec::new());
         xml.begin_elem("result")?;
         for entry in entries {
@@ -45,17 +46,17 @@ impl StationClick {
         Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
     }
 
-    pub fn get_response(list: Vec<StationClick>, format: &str) -> Result<rouille::Response, Box<dyn Error>> {
+    pub fn get_response(list: Vec<StationClick>, format: &str) -> Result<ApiResponse, Box<dyn Error>> {
         Ok(match format {
             "json" => {
                 let j = serde_json::to_string(&list)?;
-                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
-            },
+                ApiResponse::Text("application/json".to_string(), j)
+            }
             "xml" => {
-                let j = StationClick::serialize_station_checks(list)?;
-                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
-            },
-            _ => rouille::Response::empty_406()
+                let j = StationClick::serialize_station_clicks(list)?;
+                ApiResponse::Text("text/xml".to_string(), j)
+            }
+            _ => ApiResponse::UnknownContentType,
         })
     }
 }

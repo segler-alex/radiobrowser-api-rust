@@ -1,3 +1,4 @@
+use crate::api::api_response::ApiResponse;
 use crate::config::Config;
 use std::error::Error;
 
@@ -71,14 +72,14 @@ impl ApiConfig {
             "update_caches_interval_seconds",
             &config.update_caches_interval_seconds.to_string(),
         )?;
-        xml.elem_text(
-            "server_name",
-            &config.server_name,
-        )?;
+        xml.elem_text("server_name", &config.server_name)?;
 
         xml.elem_text("check_retries", &config.check_retries.to_string())?;
         xml.elem_text("check_batchsize", &config.check_batchsize.to_string())?;
-        xml.elem_text("check_pause_seconds", &config.check_pause_seconds.to_string())?;
+        xml.elem_text(
+            "check_pause_seconds",
+            &config.check_pause_seconds.to_string(),
+        )?;
         xml.elem_text("api_threads", &config.api_threads.to_string())?;
         xml.end_elem()?;
         xml.close()?;
@@ -86,24 +87,17 @@ impl ApiConfig {
         Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
     }
 
-    pub fn get_response(
-        config: ApiConfig,
-        format: &str,
-    ) -> Result<rouille::Response, Box<dyn Error>> {
+    pub fn get_response(config: ApiConfig, format: &str) -> Result<ApiResponse, Box<dyn Error>> {
         Ok(match format {
             "json" => {
                 let j = serde_json::to_string(&config)?;
-                rouille::Response::text(j)
-                    .with_no_cache()
-                    .with_unique_header("Content-Type", "application/json")
+                ApiResponse::Text("application/json".to_string(), j)
             }
             "xml" => {
                 let j = ApiConfig::serialize_config(config)?;
-                rouille::Response::text(j)
-                    .with_no_cache()
-                    .with_unique_header("Content-Type", "text/xml")
+                ApiResponse::Text("text/xml".to_string(), j)
             }
-            _ => rouille::Response::empty_406(),
+            _ => ApiResponse::UnknownContentType,
         })
     }
 }

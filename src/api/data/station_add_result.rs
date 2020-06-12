@@ -1,3 +1,4 @@
+use crate::api::api_response::ApiResponse;
 use std::error::Error;
 
 #[derive(Serialize, Deserialize)]
@@ -45,17 +46,17 @@ impl StationAddResult {
         }
     }
 
-    pub fn get_response(&self, format: &str) -> Result<rouille::Response, Box<dyn Error>> {
+    pub fn get_response(&self, format: &str) -> Result<ApiResponse, Box<dyn Error>> {
         Ok(match format {
             "json" => {
                 let j = serde_json::to_string(&self)?;
-                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
+                ApiResponse::Text("application/json".to_string(), j)
             },
             "xml" => {
                 let j = self.serialize_xml()?;
-                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
+                ApiResponse::Text("text/xml".to_string(), j)
             },
-            _ => rouille::Response::empty_406()
+            _ => ApiResponse::UnknownContentType,
         })
     }
 }

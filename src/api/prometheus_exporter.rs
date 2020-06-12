@@ -1,3 +1,4 @@
+use crate::api::api_response::ApiResponse;
 use std::collections::HashMap;
 use crate::db::DbConnection;
 
@@ -14,7 +15,7 @@ pub fn render<A>(
     broken_stations_timeout: u64,
     counter_all: Arc<Mutex<HashMap<String, usize>>>,
     counter_clicks: Arc<AtomicUsize>,
-) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
+) -> Result<ApiResponse, Box<dyn std::error::Error>> where A: DbConnection {
     let stations_broken = connection_new.get_station_count_broken()?;
     let stations_working = connection_new.get_station_count_working()?;
     let stations_todo = connection_new.get_station_count_todo(24)?;
@@ -101,5 +102,5 @@ pub fn render<A>(
     );
 
     // Output to the standard output.
-    Ok(rouille::Response::text(out).with_status_code(200))
+    Ok(ApiResponse::Text("text/plain".to_string(), out))
 }
