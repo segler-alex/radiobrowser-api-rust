@@ -17,6 +17,17 @@ pub enum CacheType {
     Memcached,
 }
 
+impl From<CacheType> for String {
+    fn from(c: CacheType) -> Self {
+        match c {
+            CacheType::None => String::from("none"),
+            CacheType::BuiltIn => String::from("builtin"),
+            CacheType::Redis => String::from("redis"),
+            CacheType::Memcached => String::from("memcached"),
+        }
+    }
+}
+
 #[derive(Debug,Clone)]
 pub struct Config {
     pub allow_database_downgrade: bool,

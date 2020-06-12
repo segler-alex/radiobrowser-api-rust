@@ -20,6 +20,8 @@ pub struct ApiConfig {
     pub check_batchsize: u32,
     pub check_pause_seconds: u64,
     pub api_threads: usize,
+    pub cache_type: String,
+    pub cache_ttl: u64,
 }
 
 impl ApiConfig {
@@ -123,6 +125,8 @@ impl From<Config> for ApiConfig {
             check_batchsize: item.check_stations,
             check_pause_seconds: item.pause.as_secs(),
             api_threads: item.threads,
+            cache_type: item.cache_type.into(),
+            cache_ttl: item.cache_ttl.as_secs(),
         }
     }
 }
