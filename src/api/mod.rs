@@ -574,9 +574,11 @@ fn handle_cached_connection<A>(
                 ApiResponse::Locked(msg) => {
                     rouille::Response::text(msg).with_status_code(423)
                 },
+                /*
                 ApiResponse::ParameterError(msg) => {
                     rouille::Response::text(msg).with_status_code(400)
                 },
+                */
             }
         }
     };

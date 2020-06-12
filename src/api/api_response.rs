@@ -6,6 +6,6 @@ pub enum ApiResponse {
     ServerError(String),
     NotFound,
     UnknownContentType,
-    ParameterError(String),
+    //ParameterError(String),
     Locked(String),
 }
