@@ -583,14 +583,22 @@ fn handle_cached_connection<A>(
         }
     };
     
-    let response = match content_type {
-        "json" => result.with_unique_header("Content-Type", "application/json"),
-        "xml" => result.with_unique_header("Content-Type", "text/xml"),
-        "m3u" => result.with_unique_header("Content-Type", "audio/mpegurl").with_unique_header("Content-Disposition", r#"inline; filename="playlist.m3u""#),
-        "pls" => result.with_unique_header("Content-Type", "audio/x-scpls").with_unique_header("Content-Disposition", r#"inline; filename="playlist.pls""#),
-        "xspf" => result.with_unique_header("Content-Type", "application/xspf+xml").with_unique_header("Content-Disposition", r#"inline; filename="playlist.xspf""#),
-        "ttl" => result.with_unique_header("Content-Type", "text/turtle"),
-        _ => result,
+    let url_path = request.url();
+    let url_parts: Vec<&str> = url_path.split('/').collect();
+    let response = if url_parts.len() > 1 {
+        let output_content_type_short = url_parts[1];
+        trace!("Parsed output content type: '{}'",output_content_type_short);
+        match output_content_type_short {
+            "json" => result.with_unique_header("Content-Type", "application/json"),
+            "xml" => result.with_unique_header("Content-Type", "text/xml"),
+            "m3u" => result.with_unique_header("Content-Type", "audio/mpegurl").with_unique_header("Content-Disposition", r#"inline; filename="playlist.m3u""#),
+            "pls" => result.with_unique_header("Content-Type", "audio/x-scpls").with_unique_header("Content-Disposition", r#"inline; filename="playlist.pls""#),
+            "xspf" => result.with_unique_header("Content-Type", "application/xspf+xml").with_unique_header("Content-Disposition", r#"inline; filename="playlist.xspf""#),
+            "ttl" => result.with_unique_header("Content-Type", "text/turtle"),
+            _ => result,
+        }
+    }else{
+        result
     };
 
     Ok(response)
