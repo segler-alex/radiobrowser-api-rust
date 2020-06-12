@@ -636,7 +636,8 @@ fn do_api_calls<A>(all_params: AllParameters,
                     data.insert(String::from("API_SERVER"), to_json(base_url));
                     data.insert(String::from("SERVER_VERSION"), to_json(format!("{version}",version = pkg_version)));
                     let rendered = handlebars.render("docs.hbs", &data)?;
-                    Ok((true, ApiResponse::Text("text/html".to_string(), rendered)))
+                    //TODO: make this call cachable
+                    Ok((false, ApiResponse::Text("text/html".to_string(), rendered)))
                 }else{
                     error!("unable register template file: docs.hbs");
                     Ok((false, ApiResponse::ServerError("unable to render docs".to_string())))
