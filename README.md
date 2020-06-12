@@ -1,19 +1,5 @@
 # radiobrowser-api-rust
 
-This is the radio browser server part providing the API on the second level servers for <http://www.radio-browser.info>
-
-The official server addresses are:
-
-* <https://de1.api.radio-browser.info>
-* <https://fr1.api.radio-browser.info>
-* <https://nl1.api.radio-browser.info>
-
-The main server on <http://www.radio-browser.info> still has an older version running which will not be upgraded anymore.
-
-Send me feature requests, bug reports or extend it yourself. I license it freely, you could also start your own server if you wish.
-
-You can find the API documentation on <https://api.radio-browser.info/>
-
 ## What is radiobrowser-api-rust?
 In short it is an API for an index of web streams (audio and video). Streams can be added and searched by any user of the API.
 
