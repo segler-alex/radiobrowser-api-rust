@@ -389,16 +389,18 @@ fn handle_connection<A>(
         log_to_file(&log_file, &line);
     };
     rouille::log_custom(request, log_ok, log_err, || {
-        //let timer = HTTP_REQ_HISTOGRAM.with_label_values(&["all"]).start_timer();
+        let timer = registry.timer.with_label_values(&["all"]).start_timer();
         let result = handle_cached_connection(connection_new, request, config, registry, cache);
-        match result {
+        let r = match result {
             Ok(response) => add_cors(response),
             Err(err) => {
                 let err_str = err.to_string();
                 error!("{}", err_str);
                 add_cors(rouille::Response::text(err_str).with_status_code(500))
             } 
-        }
+        };
+        timer.observe_duration();
+        r
     })
 }
 

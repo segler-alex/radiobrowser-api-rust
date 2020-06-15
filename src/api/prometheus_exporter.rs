@@ -1,11 +1,13 @@
 use crate::api::api_response::ApiResponse;
 use crate::db::DbConnection;
-use prometheus::{Encoder, IntCounter, IntCounterVec, IntGauge, TextEncoder};
+use prometheus::{Encoder, IntCounter, IntCounterVec, IntGauge, HistogramVec, TextEncoder};
 use std::error::Error;
 use std::convert::TryInto;
 
 #[derive(Clone)]
 pub struct RegistryLinks {
+    pub timer: HistogramVec,
+
     pub api_calls: IntCounterVec,
     pub clicks: IntCounter,
     pub cache_hits: IntCounter,
@@ -23,6 +25,11 @@ pub struct RegistryLinks {
 
 pub fn create_registry(prefix: &str) -> Result<RegistryLinks, Box<dyn Error>> {
     // Create a Counter.
+    let timer = register_histogram_vec!(
+        format!("{}timer", prefix),
+        "Timer for the api".to_string(),
+        &["method"]
+    )?;
     let api_calls = register_int_counter_vec!(
         format!("{}api_calls", prefix),
         "Calls to the api".to_string(),
@@ -71,6 +78,7 @@ pub fn create_registry(prefix: &str) -> Result<RegistryLinks, Box<dyn Error>> {
     )?;
 
     Ok(RegistryLinks {
+        timer,
         api_calls,
         clicks,
         cache_hits,
