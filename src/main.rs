@@ -14,6 +14,9 @@ extern crate humantime;
 extern crate uuid;
 
 extern crate redis;
+extern crate memcache;
+#[macro_use]
+extern crate prometheus;
 
 extern crate av_stream_info_rust;
 extern crate colored;

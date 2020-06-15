@@ -22,6 +22,7 @@ memcache = "0.14.0"
 mysql = "17.0.0"
 native-tls = "0.2.4"
 percent-encoding = "2.1.0"
+prometheus = { version = "0.9.0", features = ["process"] }
 redis = { version = "0.16.0" }
 reqwest = "0.9.24"
 rouille = "3.0.0"

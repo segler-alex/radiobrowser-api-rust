@@ -13,11 +13,10 @@ mod cache;
 mod all_params;
 
 use all_params::AllParameters;
+use prometheus_exporter::RegistryLinks;
 
 use api_response::ApiResponse;
 
-use std::collections::HashMap;
-use std::sync::Mutex;
 use std::error::Error;
 use std::convert::TryInto;
 use std::thread;
@@ -50,11 +49,6 @@ use crate::config::Config;
 
 use std::fs::File;
 use self::serde_json::value::{Map};
-
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-};
 
 use handlebars::{
     to_json, Handlebars,
@@ -127,10 +121,10 @@ fn encode_message(status: Result<String, Box<dyn Error>>, format : &str) -> Resu
     })
 }
 
-fn encode_station_url<A>(connection_new: &A, station: Option<StationItem>, ip: &str, format : &str, seconds: u64, counter_clicks: Arc<AtomicUsize>) -> Result<ApiResponse, Box<dyn Error>> where A: DbConnection {
+fn encode_station_url<A>(connection_new: &A, station: Option<StationItem>, ip: &str, format : &str, seconds: u64, registry: RegistryLinks) -> Result<ApiResponse, Box<dyn Error>> where A: DbConnection {
     Ok(match station {
         Some(station) => {
-            counter_clicks.fetch_add(1,Ordering::Relaxed);
+            registry.clicks.inc();
             let _ = connection_new.increase_clicks(&ip, &station, seconds);
             let station = station.into();
             match format {
@@ -244,25 +238,25 @@ pub fn start<A: 'static +  std::clone::Clone>(
     let listen_str = format!("{}:{}", config.listen_host, config.listen_port);
     info!("Listen on {} with {} threads", listen_str, config.threads);
 
-    let counter_all = Arc::new(Mutex::new(HashMap::new()));
-    let counter_click = Arc::new(AtomicUsize::new(0));
-    
-    let cache = cache::GenericCache::new(config.cache_type.clone().into(), config.cache_url.clone(), config.cache_ttl.as_secs().try_into().expect("cache-ttl is too high"));
+    let registry = prometheus_exporter::create_registry(&config.prometheus_exporter_prefix);
+    if let Ok(registry) = registry {
+        let cache = cache::GenericCache::new(config.cache_type.clone().into(), config.cache_url.clone(), config.cache_ttl.as_secs().try_into().expect("cache-ttl is too high"));
 
-    if cache.needs_cleanup() {
-        let mut cache_cleanup = cache.clone();
-        thread::spawn(move || {
-            loop{
-                trace!("Cache cleanup run..");
-                cache_cleanup.cleanup();
-                thread::sleep(Duration::from_secs(60));
-            }
+        if cache.needs_cleanup() {
+            let mut cache_cleanup = cache.clone();
+            thread::spawn(move || {
+                loop{
+                    trace!("Cache cleanup run..");
+                    cache_cleanup.cleanup();
+                    thread::sleep(Duration::from_secs(60));
+                }
+            });
+        }
+
+        rouille::start_server_with_pool(listen_str, Some(config.threads), move |request| {
+            handle_connection(&connection_new, request, config.clone(), registry.clone(), cache.clone())
         });
     }
-
-    rouille::start_server_with_pool(listen_str, Some(config.threads), move |request| {
-        handle_connection(&connection_new, request, config.clone(), counter_all.clone(), counter_click.clone(), cache.clone())
-    });
 }
 
 fn get_status<A>(connection_new: &A) -> Result<Status, Box<dyn std::error::Error>> where A: DbConnection {
@@ -352,8 +346,7 @@ fn handle_connection<A>(
     connection_new: &A,
     request: &rouille::Request,
     config: Config,
-    counter_all: Arc<Mutex<HashMap<String, usize>>>,
-    counter_clicks: Arc<AtomicUsize>,
+    registry: RegistryLinks,
     cache: cache::GenericCache,
 ) -> rouille::Response where A: DbConnection {
     let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
@@ -362,25 +355,15 @@ fn handle_connection<A>(
 
     let log_dir = config.log_dir.clone();
     let now = chrono::Utc::now().format("%d/%m/%Y:%H:%M:%S%.6f");
-    let counter_all_2 = counter_all.clone();
+    let registry2 = registry.clone();
     let log_ok = |req: &Request, resp: &Response, elap: std::time::Duration| {
-        let counter_all_locked = counter_all_2.lock();
-        match counter_all_locked {
-            Ok(mut counter_all) => {
-                let cleaned_url = clean_url(req.raw_url());
-                match cleaned_url {
-                    Ok(cleaned_url) => {
-                        let key = format!(r#"method="{}",url="{}",status_code="{}""#, req.method(), cleaned_url, resp.status_code);
-                        let counter = counter_all.entry(key).or_insert(0);
-                        *counter += 1;
-                    },
-                    Err(err) => {
-                        error!("Invalid url split result: {} {}", req.raw_url(), err);
-                    }
-                }
+        let cleaned_url = clean_url(req.raw_url());
+        match cleaned_url {
+            Ok(cleaned_url) => {
+                registry2.api_calls.with_label_values(&[req.method(), cleaned_url, &resp.status_code.to_string()]).inc();
             },
             Err(err) => {
-                error!("Unable to increase counter: {}", err);
+                error!("Invalid url split result: {} {}", req.raw_url(), err);
             }
         }
 
@@ -390,23 +373,13 @@ fn handle_connection<A>(
         log_to_file(&log_file, &line);
     };
     let log_err = |req: &Request, elap: std::time::Duration| {
-        let counter_all_locked = counter_all_2.lock();
-        match counter_all_locked {
-            Ok(mut counter_all) => {
-                let cleaned_url = clean_url(req.raw_url());
-                match cleaned_url {
-                    Ok(cleaned_url) => {
-                        let key = format!(r#"method="{}",url="{}",status_code="{}""#, req.method(), cleaned_url, 500);
-                        let counter = counter_all.entry(key).or_insert(0);
-                        *counter += 1;
-                    },
-                    Err(err) => {
-                        error!("Invalid url split result: {} {}", req.raw_url(), err);
-                    }
-                }
+        let cleaned_url = clean_url(req.raw_url());
+        match cleaned_url {
+            Ok(cleaned_url) => {
+                registry2.api_calls.with_label_values(&[req.method(), cleaned_url, "500"]).inc();
             },
             Err(err) => {
-                error!("Unable to increase counter: {}", err);
+                error!("Invalid url split result: {} {}", req.raw_url(), err);
             }
         }
 
@@ -416,7 +389,8 @@ fn handle_connection<A>(
         log_to_file(&log_file, &line);
     };
     rouille::log_custom(request, log_ok, log_err, || {
-        let result = handle_cached_connection(connection_new, request, config, counter_all, counter_clicks, cache);
+        //let timer = HTTP_REQ_HISTOGRAM.with_label_values(&["all"]).start_timer();
+        let result = handle_cached_connection(connection_new, request, config, registry, cache);
         match result {
             Ok(response) => add_cors(response),
             Err(err) => {
@@ -432,8 +406,7 @@ fn handle_cached_connection<A>(
     connection_new: &A,
     request: &rouille::Request,
     config: Config,
-    counter_all: Arc<Mutex<HashMap<String, usize>>>,
-    counter_clicks: Arc<AtomicUsize>,
+    registry: RegistryLinks,
     mut cache: cache::GenericCache,
 ) -> Result<rouille::Response, Box<dyn std::error::Error>> where A: DbConnection {
     if request.method() == "OPTIONS" {
@@ -502,11 +475,13 @@ fn handle_cached_connection<A>(
     let mut is_text = false;
     let result: rouille::Response = match cached_item {
         Some(cached_item) => {
+            registry.cache_hits.inc();
             is_text = true;
             rouille::Response::text(cached_item)
         },
         None => {
-            let (do_cache, response) = do_api_calls(allparams, connection_new, config, counter_all, counter_clicks, base_url, content_type, remote_ip)?;
+            registry.cache_misses.inc();
+            let (do_cache, response) = do_api_calls(allparams, connection_new, config, registry, base_url, content_type, remote_ip)?;
 
             match response {
                 ApiResponse::Text(text) => {
@@ -572,8 +547,7 @@ fn handle_cached_connection<A>(
 fn do_api_calls<A>(all_params: AllParameters,
     connection_new: &A,
     config: Config,
-    counter_all: Arc<Mutex<HashMap<String, usize>>>,
-    counter_clicks: Arc<AtomicUsize>,
+    registry: RegistryLinks,
     base_url: String,
     content_type: &str,
     remote_ip: String,
@@ -592,7 +566,7 @@ fn do_api_calls<A>(all_params: AllParameters,
         match file_name {
             "metrics" => {
                 if config.prometheus_exporter {
-                    Ok((false, prometheus_exporter::render(connection_new, &config.prometheus_exporter_prefix, config.broken_stations_never_working_timeout.as_secs(), config.broken_stations_timeout.as_secs(), counter_all, counter_clicks)?))
+                    Ok((false, prometheus_exporter::render(connection_new, config.broken_stations_never_working_timeout.as_secs(), config.broken_stations_timeout.as_secs(), registry)?))
                 }else{
                     Ok((true, ApiResponse::Locked("Exporter not enabled!".to_string())))
                 }
@@ -652,7 +626,7 @@ fn do_api_calls<A>(all_params: AllParameters,
             "tags" => Ok((true,encode_extra(connection_new.get_extra("TagCache", "TagName", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "tag")?)),
             "states" => Ok((true,encode_states(connection_new.get_states(None, Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format)?)),
             "vote" => Ok((false,encode_message(connection_new.vote_for_station(&remote_ip, get_only_first_item(connection_new.get_station_by_uuid(parameter)?)), format)?)),
-            "url" => Ok((false,encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(parameter)?), &remote_ip, format, config.click_valid_timeout.as_secs(),counter_clicks)?)),
+            "url" => Ok((false,encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(parameter)?), &remote_ip, format, config.click_valid_timeout.as_secs(),registry)?)),
             "stations" => {
                 match parameter {
                     "topvote" => Ok((true,Station::get_response(connection_new.get_stations_topvote(all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
@@ -685,7 +659,7 @@ fn do_api_calls<A>(all_params: AllParameters,
             let format = command;
             let command = parameter;
             match command {
-                "url" => Ok((false,encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(search)?), &remote_ip, format, config.click_valid_timeout.as_secs(), counter_clicks)?)),
+                "url" => Ok((false,encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(search)?), &remote_ip, format, config.click_valid_timeout.as_secs(), registry)?)),
                 _ => Ok((false,ApiResponse::NotFound)),
             }
         }else{
