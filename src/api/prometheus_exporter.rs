@@ -1,11 +1,14 @@
 use crate::api::api_response::ApiResponse;
 use crate::db::DbConnection;
-use prometheus::{Encoder, IntCounter, IntCounterVec, IntGauge, HistogramVec, TextEncoder};
-use std::error::Error;
+use prometheus::{
+    Encoder, HistogramVec, IntCounter, IntCounterVec, IntGauge, Registry, TextEncoder,
+};
 use std::convert::TryInto;
+use std::error::Error;
 
 #[derive(Clone)]
 pub struct RegistryLinks {
+    pub registry: Registry,
     pub timer: HistogramVec,
 
     pub api_calls: IntCounterVec,
@@ -25,59 +28,53 @@ pub struct RegistryLinks {
 
 pub fn create_registry(prefix: &str) -> Result<RegistryLinks, Box<dyn Error>> {
     // Create a Counter.
-    let timer = register_histogram_vec!(
-        format!("{}timer", prefix),
-        "Timer for the api".to_string(),
-        &["method"]
+    let timer = register_histogram_vec!("timer", "Timer for the api", &["method"])?;
+    let api_calls = IntCounterVec::new(
+        opts!("api_calls", "Calls to the api"),
+        &["method", "url", "status_code"],
     )?;
-    let api_calls = register_int_counter_vec!(
-        format!("{}api_calls", prefix),
-        "Calls to the api".to_string(),
-        &["method", "url", "status_code"]
-    )?;
-    let clicks = register_int_counter!(
-        format!("{}station_clicks", prefix),
-        "Clicks on stations".to_string()
-    )?;
-    let cache_hits = register_int_counter!(
-        format!("{}cache_hits", prefix),
-        "Calls to the api".to_string()
-    )?;
-    let cache_misses = register_int_counter!(format!("{}cache_misses", prefix), "def".to_string())?;
+    let clicks = IntCounter::new("station_clicks", "Clicks on stations")?;
+    let cache_hits = IntCounter::new("cache_hits", "Cache hits")?;
+    let cache_misses = IntCounter::new("cache_misses", "Cache misses")?;
 
-    let stations_broken = register_int_gauge!(
-        format!("{}stations_broken", prefix),
-        "Count of stations that are broken".to_string()
+    let stations_broken = IntGauge::new("stations_broken", "Count of stations that are broken")?;
+    let stations_working = IntGauge::new(
+        "stations_working",
+        "Count of stations that are working/usable",
     )?;
-    let stations_working = register_int_gauge!(
-        format!("{}stations_working", prefix),
-        "Count of stations that are working/usable".to_string()
+    let stations_todo = IntGauge::new(
+        "stations_todo",
+        "Count of stations that are in the queue for checking",
     )?;
-    let stations_todo = register_int_gauge!(
-        format!("{}stations_todo", prefix),
-        "Count of stations that are in the queue for checking".to_string()
+    let stations_deletable_never_worked = IntGauge::new(
+        "stations_deletable_never_worked",
+        "Count of stations that are in the list for deletion and which never worked",
     )?;
-    let stations_deletable_never_worked = register_int_gauge!(
-        format!("{}stations_deletable_never_worked", prefix),
-        "Count of stations that are in the list for deletion and which never worked".to_string()
+    let stations_deletable_were_working = IntGauge::new(
+        "stations_deletable_were_working",
+        "Count of stations that are in the list for deletion and which worked at some point",
     )?;
-    let stations_deletable_were_working = register_int_gauge!(
-        format!("{}stations_deletable_were_working", prefix),
-        "Count of stations that are in the list for deletion and which worked at some point"
-            .to_string()
-    )?;
-    let country_count = register_int_gauge!(
-        format!("{}country_count", prefix),
-        "Count of countries".to_string()
-    )?;
-    let tags_count =
-        register_int_gauge!(format!("{}tags_count", prefix), "Count of tags".to_string())?;
-    let language_count = register_int_gauge!(
-        format!("{}language_count", prefix),
-        "Count of languages".to_string()
-    )?;
+    let country_count = IntGauge::new("country_count", "Count of countries")?;
+    let tags_count = IntGauge::new("tags_count", "Count of tags")?;
+    let language_count = IntGauge::new("language_count", "Count of languages")?;
+
+    let registry = Registry::new_custom(Some(prefix.to_string()), None)?;
+    registry.register(Box::new(timer.clone()))?;
+    registry.register(Box::new(api_calls.clone()))?;
+    registry.register(Box::new(clicks.clone()))?;
+    registry.register(Box::new(cache_hits.clone()))?;
+    registry.register(Box::new(cache_misses.clone()))?;
+    registry.register(Box::new(stations_broken.clone()))?;
+    registry.register(Box::new(stations_working.clone()))?;
+    registry.register(Box::new(stations_todo.clone()))?;
+    registry.register(Box::new(stations_deletable_never_worked.clone()))?;
+    registry.register(Box::new(stations_deletable_were_working.clone()))?;
+    registry.register(Box::new(country_count.clone()))?;
+    registry.register(Box::new(tags_count.clone()))?;
+    registry.register(Box::new(language_count.clone()))?;
 
     Ok(RegistryLinks {
+        registry,
         timer,
         api_calls,
         clicks,
@@ -118,8 +115,12 @@ where
     registry.stations_broken.set(stations_broken.try_into()?);
     registry.stations_working.set(stations_working.try_into()?);
     registry.stations_todo.set(stations_todo.try_into()?);
-    registry.stations_deletable_never_worked.set(stations_deletable_never_worked.try_into()?);
-    registry.stations_deletable_were_working.set(stations_deletable_were_working.try_into()?);
+    registry
+        .stations_deletable_never_worked
+        .set(stations_deletable_never_worked.try_into()?);
+    registry
+        .stations_deletable_were_working
+        .set(stations_deletable_were_working.try_into()?);
     registry.country_count.set(country_count.try_into()?);
     registry.tags_count.set(tags_count.try_into()?);
     registry.language_count.set(language_count.try_into()?);
@@ -127,7 +128,7 @@ where
     // Gather the metrics.
     let mut buffer = vec![];
     let encoder = TextEncoder::new();
-    let metric_families = prometheus::default_registry().gather();
+    let metric_families = registry.registry.gather();
     encoder.encode(&metric_families, &mut buffer)?;
 
     // Output to the standard output.
