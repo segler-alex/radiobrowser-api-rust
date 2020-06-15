@@ -389,7 +389,7 @@ fn handle_connection<A>(
         log_to_file(&log_file, &line);
     };
     rouille::log_custom(request, log_ok, log_err, || {
-        let timer = registry.timer.with_label_values(&["all"]).start_timer();
+        let timer = registry.timer.with_label_values(&[request.method()]).start_timer();
         let result = handle_cached_connection(connection_new, request, config, registry, cache);
         let r = match result {
             Ok(response) => add_cors(response),
