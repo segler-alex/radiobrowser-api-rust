@@ -41,7 +41,7 @@ impl RedisCache {
         }
     }
     pub fn set(&mut self, key: &str, value: &str) {
-        trace!("SET {}", key);
+        trace!("SET {} {}", key.len(), key);
         let result = self.set_internal(key, value, self.ttl);
         if let Err(err) = result {
             error!("Error on set of redis value: {}", err);

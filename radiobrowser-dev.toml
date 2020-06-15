@@ -32,11 +32,11 @@ server-url = "https://de1.api.radio-browser.info"
 ## Cache support
 ## =============
 ## cache type can be "none" or "builtin" or "redis" or "memcached"
-cache-type = "redis"
+cache-type = "memcached"
 ## redis connection string
-cache-url = "redis://localhost:6379"
+# cache-url = "redis://localhost:6379"
 ## memcached connection string
-# cache-url = "memcache://localhost:11211"
+cache-url = "memcache://localhost:11211"
 ## Time to live for cache items
 cache-ttl = "10secs"
 

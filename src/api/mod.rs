@@ -425,36 +425,67 @@ fn handle_connection<A>(
     })
 }
 
+use serde_with::skip_serializing_none;
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize)]
 struct AllParameters{
+    #[serde(rename = "u")]
     url: String,
+    #[serde(rename = "ts")]
     param_tags: Option<String>,
+    #[serde(rename = "hp")]
     param_homepage: Option<String>,
+    #[serde(rename = "fv")]
     param_favicon: Option<String>,
+    #[serde(rename = "aid")]
     param_last_changeuuid: Option<String>,
+    #[serde(rename = "eid")]
     param_last_checkuuid: Option<String>,
+    #[serde(rename = "iid")]
     param_last_clickuuid: Option<String>,
+    #[serde(rename = "na")]
     param_name: Option<String>,
+    #[serde(rename = "nx")]
     param_name_exact: bool,
+    #[serde(rename = "c")]
     param_country: Option<String>,
+    #[serde(rename = "cx")]
     param_country_exact: bool,
+    #[serde(rename = "cc")]
     param_countrycode: Option<String>,
+    #[serde(rename = "st")]
     param_state: Option<String>,
+    #[serde(rename = "sx")]
     param_state_exact: bool,
+    #[serde(rename = "lg")]
     param_language: Option<String>,
+    #[serde(rename = "lx")]
     param_language_exact: bool,
+    #[serde(rename = "tg")]
     param_tag: Option<String>,
+    #[serde(rename = "tx")]
     param_tag_exact: bool,
+    #[serde(rename = "tl")]
     param_tag_list: Vec<String>,
+    #[serde(rename = "co")]
     param_codec: Option<String>,
+    #[serde(rename = "bi")]
     param_bitrate_min : u32,
+    #[serde(rename = "ba")]
     param_bitrate_max : u32,
+    #[serde(rename = "or")]
     param_order : String,
+    #[serde(rename = "re")]
     param_reverse : bool,
+    #[serde(rename = "hb")]
     param_hidebroken : bool,
+    #[serde(rename = "of")]
     param_offset : u32,
+    #[serde(rename = "li")]
     param_limit : u32,
+    #[serde(rename = "se")]
     param_seconds: u32,
+    #[serde(rename = "up")]
     param_url: Option<String>,
 }
 
