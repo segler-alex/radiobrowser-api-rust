@@ -83,4 +83,10 @@ impl GenericCache {
             }
         }
     }
+    pub fn needs_cleanup(&self) -> bool {
+        if let GenericCache::BuiltIn(_) = self {
+            return true;
+        }
+        return false;
+    }
 }

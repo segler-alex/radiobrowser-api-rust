@@ -258,14 +258,17 @@ pub fn start<A: 'static +  std::clone::Clone>(
     let counter_click = Arc::new(AtomicUsize::new(0));
     
     let cache = cache::GenericCache::new(config.cache_type.clone().into(), config.cache_url.clone(), config.cache_ttl.as_secs().try_into().expect("cache-ttl is too high"));
-    let mut cache_cleanup = cache.clone();
-    thread::spawn(move || {
-        loop{
-            trace!("Cache cleanup run..");
-            cache_cleanup.cleanup();
-            thread::sleep(Duration::from_secs(60));
-        }
-    });
+
+    if cache.needs_cleanup() {
+        let mut cache_cleanup = cache.clone();
+        thread::spawn(move || {
+            loop{
+                trace!("Cache cleanup run..");
+                cache_cleanup.cleanup();
+                thread::sleep(Duration::from_secs(60));
+            }
+        });
+    }
 
     rouille::start_server_with_pool(listen_str, Some(config.threads), move |request| {
         handle_connection(&connection_new, request, config.clone(), counter_all.clone(), counter_click.clone(), cache.clone())
