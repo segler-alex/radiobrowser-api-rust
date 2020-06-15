@@ -5,12 +5,12 @@ use std::error::Error;
 pub struct StationAddResult {
     ok: bool,
     message: String,
-    uuid: String
+    uuid: String,
 }
 
 impl StationAddResult {
     pub fn new_ok(stationuuid: String) -> StationAddResult {
-        StationAddResult{
+        StationAddResult {
             ok: true,
             message: "added station successfully".to_string(),
             uuid: stationuuid,
@@ -18,7 +18,7 @@ impl StationAddResult {
     }
 
     pub fn new_err(err: &str) -> StationAddResult {
-        StationAddResult{
+        StationAddResult {
             ok: false,
             message: err.to_string(),
             uuid: "".to_string(),
@@ -41,21 +41,15 @@ impl StationAddResult {
 
     pub fn from(result: Result<String, Box<dyn Error>>) -> StationAddResult {
         match result {
-            Ok(res)=>StationAddResult::new_ok(res),
-            Err(err)=>StationAddResult::new_err(&err.to_string())
+            Ok(res) => StationAddResult::new_ok(res),
+            Err(err) => StationAddResult::new_err(&err.to_string()),
         }
     }
 
     pub fn get_response(&self, format: &str) -> Result<ApiResponse, Box<dyn Error>> {
         Ok(match format {
-            "json" => {
-                let j = serde_json::to_string(&self)?;
-                ApiResponse::Text("application/json".to_string(), j)
-            },
-            "xml" => {
-                let j = self.serialize_xml()?;
-                ApiResponse::Text("text/xml".to_string(), j)
-            },
+            "json" => ApiResponse::Text(serde_json::to_string(&self)?),
+            "xml" => ApiResponse::Text(self.serialize_xml()?),
             _ => ApiResponse::UnknownContentType,
         })
     }

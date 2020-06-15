@@ -93,14 +93,8 @@ impl ApiConfig {
 
     pub fn get_response(config: ApiConfig, format: &str) -> Result<ApiResponse, Box<dyn Error>> {
         Ok(match format {
-            "json" => {
-                let j = serde_json::to_string(&config)?;
-                ApiResponse::Text("application/json".to_string(), j)
-            }
-            "xml" => {
-                let j = ApiConfig::serialize_config(config)?;
-                ApiResponse::Text("text/xml".to_string(), j)
-            }
+            "json" => ApiResponse::Text(serde_json::to_string(&config)?),
+            "xml" => ApiResponse::Text(ApiConfig::serialize_config(config)?),
             _ => ApiResponse::UnknownContentType,
         })
     }

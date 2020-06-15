@@ -48,14 +48,8 @@ impl StationClick {
 
     pub fn get_response(list: Vec<StationClick>, format: &str) -> Result<ApiResponse, Box<dyn Error>> {
         Ok(match format {
-            "json" => {
-                let j = serde_json::to_string(&list)?;
-                ApiResponse::Text("application/json".to_string(), j)
-            }
-            "xml" => {
-                let j = StationClick::serialize_station_clicks(list)?;
-                ApiResponse::Text("text/xml".to_string(), j)
-            }
+            "json" => ApiResponse::Text(serde_json::to_string(&list)?),
+            "xml" => ApiResponse::Text(StationClick::serialize_station_clicks(list)?),
             _ => ApiResponse::UnknownContentType,
         })
     }

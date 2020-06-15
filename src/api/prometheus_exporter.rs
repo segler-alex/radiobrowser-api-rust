@@ -102,5 +102,5 @@ pub fn render<A>(
     );
 
     // Output to the standard output.
-    Ok(ApiResponse::Text("text/plain".to_string(), out))
+    Ok(ApiResponse::Text(out))
 }

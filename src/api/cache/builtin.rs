@@ -54,7 +54,7 @@ impl BuiltinCache {
         }
     }
     pub fn set(&mut self, key: &str, value: &str) {
-        trace!("SET {}={}", key, value);
+        trace!("SET {}", key);
         let locked = self.cache.lock();
         match locked {
             Ok(mut locked) => {

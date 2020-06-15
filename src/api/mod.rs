@@ -89,10 +89,7 @@ fn dns_resolve(format : &str) -> Result<ApiResponse, Box<dyn Error>> {
     }
 
     match format {
-        "json" => {
-            let j = serde_json::to_string(&list)?;
-            Ok(ApiResponse::Text("application/json".to_string(), j))
-        },
+        "json" => Ok(ApiResponse::Text(serde_json::to_string(&list)?)),
         _ => Ok(ApiResponse::NotFound)
     }
 }
@@ -100,12 +97,10 @@ fn dns_resolve(format : &str) -> Result<ApiResponse, Box<dyn Error>> {
 fn encode_changes(list : Vec<StationHistoryCurrent>, format : &str) -> Result<ApiResponse, Box<dyn Error>> {
     Ok(match format {
         "json" => {
-            let j = serde_json::to_string(&list)?;
-            ApiResponse::Text("application/json".to_string(), j)
+            ApiResponse::Text(serde_json::to_string(&list)?)
         },
         "xml" => {
-            let j = StationHistoryCurrent::serialize_changes_list(list)?;
-            ApiResponse::Text("text/xml".to_string(), j)
+            ApiResponse::Text(StationHistoryCurrent::serialize_changes_list(list)?)
         },
         _ => ApiResponse::UnknownContentType
     })
@@ -115,14 +110,14 @@ fn encode_message(status: Result<String, Box<dyn Error>>, format : &str) -> Resu
     Ok(match format {
         "json" => {
             match status {
-                Ok(message) => ApiResponse::Text("application/json".to_string(), serde_json::to_string(&ResultMessage::new(true,message))?),
-                Err(err) => ApiResponse::Text("application/json".to_string(), serde_json::to_string(&ResultMessage::new(false,err.to_string()))?),
+                Ok(message) => ApiResponse::Text(serde_json::to_string(&ResultMessage::new(true,message))?),
+                Err(err) => ApiResponse::Text(serde_json::to_string(&ResultMessage::new(false,err.to_string()))?),
             }
         },
         "xml" => {
             match status {
-                Ok(message) => ApiResponse::Text("text/xml".to_string(), ResultMessage::new(true,message).serialize_xml()?),
-                Err(err) => ApiResponse::Text("text/xml".to_string(), ResultMessage::new(false,err.to_string()).serialize_xml()?),
+                Ok(message) => ApiResponse::Text(ResultMessage::new(true,message).serialize_xml()?),
+                Err(err) => ApiResponse::Text(ResultMessage::new(false,err.to_string()).serialize_xml()?),
             }
         },
         _ => ApiResponse::UnknownContentType
@@ -138,23 +133,19 @@ fn encode_station_url<A>(connection_new: &A, station: Option<StationItem>, ip: &
             match format {
                 "json" => {
                     let s = Station::extract_cached_info(station, "retrieved station url");
-                    let j = serde_json::to_string(&s)?;
-                    ApiResponse::Text("application/json".to_string(), j)
+                    ApiResponse::Text(serde_json::to_string(&s)?)
                 },
                 "xml" => {
                     let s = Station::extract_cached_info(station, "retrieved station url");
-                    let j = StationCachedInfo::serialize_cached_info(s)?;
-                    ApiResponse::Text("text/xml".to_string(), j)
+                    ApiResponse::Text(StationCachedInfo::serialize_cached_info(s)?)
                 },
                 "m3u" => {
                     let list = vec![station];
-                    let j = Station::serialize_to_m3u(list, true);
-                    ApiResponse::Text("audio/mpegurl".to_string(), j)
+                    ApiResponse::Text(Station::serialize_to_m3u(list, true))
                 },
                 "pls" => {
                     let list = vec![station];
-                    let j = Station::serialize_to_pls(list, true);
-                    ApiResponse::Text("audio/x-scpls".to_string(), j)
+                    ApiResponse::Text(Station::serialize_to_pls(list, true))
                 },
                 _ => ApiResponse::UnknownContentType
             }
@@ -166,12 +157,10 @@ fn encode_station_url<A>(connection_new: &A, station: Option<StationItem>, ip: &
 fn encode_states(list : Vec<State>, format : &str) -> Result<ApiResponse, Box<dyn Error>> {
     Ok(match format {
         "json" => {
-            let j = serde_json::to_string(&list)?;
-            ApiResponse::Text("application/json".to_string(), j)
+            ApiResponse::Text(serde_json::to_string(&list)?)
         },
         "xml" => {
-            let j = State::serialize_state_list(list)?;
-            ApiResponse::Text("text/xml".to_string(), j)
+            ApiResponse::Text(State::serialize_state_list(list)?)
         },
         _ => ApiResponse::UnknownContentType
     })
@@ -191,12 +180,10 @@ impl From<config::CacheType> for cache::GenericCacheType {
 fn encode_extra(list : Vec<ExtraInfo>, format : &str, tag_name: &str) -> Result<ApiResponse, Box<dyn Error>> {
     Ok(match format {
         "json" => {
-            let j = serde_json::to_string(&list)?;
-            ApiResponse::Text("application/json".to_string(), j)
+            ApiResponse::Text(serde_json::to_string(&list)?)
         },
         "xml" => {
-            let j = ExtraInfo::serialize_extra_list(list, tag_name)?;
-            ApiResponse::Text("text/xml".to_string(), j)
+            ApiResponse::Text(ExtraInfo::serialize_extra_list(list, tag_name)?)
         },
         _ => ApiResponse::UnknownContentType
     })
@@ -207,7 +194,7 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> ApiResponse
         "json" => {
             let j = serde_json::to_string(&status);
             match j {
-                Ok(j) => ApiResponse::Text("application/json".to_string(), j),
+                Ok(j) => ApiResponse::Text(j),
                 Err(err) => {
                     error!("Unable to serialize object to JSON {}",err);
                     ApiResponse::ServerError("Unable to serialize object to JSON".to_string())
@@ -217,7 +204,7 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> ApiResponse
         "xml" => {
             let j = status.serialize_xml();
             match j {
-                Ok(j) => ApiResponse::Text("text/xml".to_string(), j),
+                Ok(j) => ApiResponse::Text(j),
                 Err(err) => {
                     error!("Unable to serialize object to XML {}",err);
                     ApiResponse::ServerError("Unable to serialize object to XML".to_string())
@@ -232,7 +219,7 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> ApiResponse
                 data.insert(String::from("status"), to_json(status));
                 let rendered = handlebars.render("stats.hbs", &data);
                 match rendered {
-                    Ok(rendered) => ApiResponse::Text("text/html".to_string(), rendered),
+                    Ok(rendered) => ApiResponse::Text(rendered),
                     Err(err) => {
                         error!("Unable to render HTML {}",err);
                         ApiResponse::ServerError("Unable to render HTML".to_string())
@@ -548,18 +535,23 @@ fn handle_cached_connection<A>(
 
     let key = allparams.to_string()?;
     let cached_item = cache.get(&key);
+    let mut is_text = false;
     let result: rouille::Response = match cached_item {
-        Some(cached_item) => rouille::Response::text(cached_item),
+        Some(cached_item) => {
+            is_text = true;
+            rouille::Response::text(cached_item)
+        },
         None => {
             let (do_cache, response) = do_api_calls(allparams, connection_new, config, counter_all, counter_clicks, base_url, content_type, remote_ip)?;
 
             match response {
-                ApiResponse::Text(content_type, text) => {
+                ApiResponse::Text(text) => {
+                    is_text = true;
                     if do_cache {
                         cache.set(&key, &text);
-                        rouille::Response::text(text).with_unique_header("Content-Type",content_type)
+                        rouille::Response::text(text)
                     }else{
-                        rouille::Response::text(text).with_unique_header("Content-Type",content_type).with_no_cache()
+                        rouille::Response::text(text).with_no_cache()
                     }
                 },
                 ApiResponse::File(content_type, file) => {
@@ -585,26 +577,32 @@ fn handle_cached_connection<A>(
             }
         }
     };
-    
-    let url_path = request.url();
-    let url_parts: Vec<&str> = url_path.split('/').collect();
-    let response = if url_parts.len() > 1 {
-        let output_content_type_short = url_parts[1];
-        trace!("Parsed output content type: '{}'",output_content_type_short);
-        match output_content_type_short {
-            "json" => result.with_unique_header("Content-Type", "application/json"),
-            "xml" => result.with_unique_header("Content-Type", "text/xml"),
-            "m3u" => result.with_unique_header("Content-Type", "audio/mpegurl").with_unique_header("Content-Disposition", r#"inline; filename="playlist.m3u""#),
-            "pls" => result.with_unique_header("Content-Type", "audio/x-scpls").with_unique_header("Content-Disposition", r#"inline; filename="playlist.pls""#),
-            "xspf" => result.with_unique_header("Content-Type", "application/xspf+xml").with_unique_header("Content-Disposition", r#"inline; filename="playlist.xspf""#),
-            "ttl" => result.with_unique_header("Content-Type", "text/turtle"),
-            _ => result,
-        }
-    }else{
-        result
-    };
 
-    Ok(response)
+    if is_text {
+        let url_path = request.url();
+        let url_parts: Vec<&str> = url_path.split('/').collect();
+        let response = if url_parts.len() > 1 {
+            let output_content_type_short = url_parts[1];
+            trace!("Parsed output content type: '{}'",output_content_type_short);
+            match output_content_type_short {
+                "html" => result.with_unique_header("Content-Type", "text/html"),
+                "" => result.with_unique_header("Content-Type", "text/html"),
+                "json" => result.with_unique_header("Content-Type", "application/json"),
+                "xml" => result.with_unique_header("Content-Type", "text/xml"),
+                "m3u" => result.with_unique_header("Content-Type", "audio/mpegurl").with_unique_header("Content-Disposition", r#"inline; filename="playlist.m3u""#),
+                "pls" => result.with_unique_header("Content-Type", "audio/x-scpls").with_unique_header("Content-Disposition", r#"inline; filename="playlist.pls""#),
+                "xspf" => result.with_unique_header("Content-Type", "application/xspf+xml").with_unique_header("Content-Disposition", r#"inline; filename="playlist.xspf""#),
+                "ttl" => result.with_unique_header("Content-Type", "text/turtle"),
+                _ => result,
+            }
+        }else{
+            result
+        };
+
+        Ok(response)
+    }else{
+        Ok(result)
+    }
 }
 
 fn do_api_calls<A>(all_params: AllParameters,
@@ -647,8 +645,7 @@ fn do_api_calls<A>(all_params: AllParameters,
                     data.insert(String::from("API_SERVER"), to_json(base_url));
                     data.insert(String::from("SERVER_VERSION"), to_json(format!("{version}",version = pkg_version)));
                     let rendered = handlebars.render("docs.hbs", &data)?;
-                    //TODO: make this call cachable
-                    Ok((false, ApiResponse::Text("text/html".to_string(), rendered)))
+                    Ok((true, ApiResponse::Text(rendered)))
                 }else{
                     error!("unable register template file: docs.hbs");
                     Ok((false, ApiResponse::ServerError("unable to render docs".to_string())))

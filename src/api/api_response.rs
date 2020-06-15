@@ -1,7 +1,7 @@
 use std::fs::File;
 
 pub enum ApiResponse {
-    Text(String, String),
+    Text(String),
     File(String, File),
     ServerError(String),
     NotFound,
