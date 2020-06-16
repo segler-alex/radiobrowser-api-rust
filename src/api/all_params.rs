@@ -6,6 +6,8 @@ use serde_with::skip_serializing_none;
 pub struct AllParameters {
     #[serde(rename = "u")]
     pub url: String,
+    #[serde(rename = "ul")]
+    pub param_uuids: Vec<String>,
     #[serde(rename = "ts")]
     pub param_tags: Option<String>,
     #[serde(rename = "hp")]

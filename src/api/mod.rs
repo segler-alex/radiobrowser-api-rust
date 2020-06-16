@@ -438,6 +438,7 @@ fn handle_cached_connection<A>(
 
     let allparams = AllParameters {
         url: request.raw_url().to_string(),
+        param_uuids: str_to_arr(&ppp.get_string("uuids").unwrap_or(String::new())),
         param_tags: ppp.get_string("tags"),
         param_homepage: ppp.get_string("homepage"),
         param_favicon: ppp.get_string("favicon"),
@@ -640,6 +641,7 @@ fn do_api_calls<A>(all_params: AllParameters,
                     "changed" => Ok((true,encode_changes(connection_new.get_changes(None, all_params.param_last_changeuuid)?.drain(..).map(|x| x.into()).collect(), format)?)),
                     "byurl" => Ok((true,Station::get_response(connection_new.get_stations_by_column_multiple("Url", all_params.param_url,true,&all_params.param_order,all_params.param_reverse,
                         all_params.param_hidebroken,all_params.param_offset,all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    "byuuid" => Ok((true,Station::get_response(connection_new.get_stations_by_uuid(all_params.param_uuids)?.drain(..).map(|x| x.into()).collect(), format)?)),
                     "search" => Ok((true,Station::get_response(connection_new.get_stations_advanced(all_params.param_name, all_params.param_name_exact, all_params.param_country,
                         all_params.param_country_exact, all_params.param_countrycode, all_params.param_state, all_params.param_state_exact, all_params.param_language, all_params.param_language_exact, all_params.param_tag,
                         all_params.param_tag_exact, all_params.param_tag_list, all_params.param_codec, all_params.param_bitrate_min, all_params.param_bitrate_max, &all_params.param_order,all_params.param_reverse,

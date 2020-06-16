@@ -302,6 +302,19 @@ impl DbConnection for MysqlConnection {
         self.get_list_from_query_result(results)
     }
 
+    fn get_stations_by_uuid(&self, uuids: Vec<String>) -> Result<Vec<StationItem>, Box<dyn Error>> {
+        let search_params: Vec<Value> = uuids.iter().map(|item| item.clone().into()).collect();
+        let search_query: Vec<&str> = (0..search_params.len()).map(|_item| "?").collect();
+
+        if search_query.len() > 0 {
+            let query_select_stations_by_uuid = format!("SELECT {columns} FROM Station WHERE StationUuid IN ({items})", items=search_query.join(","),columns=MysqlConnection::COLUMNS);
+            let result = self.pool.prep_exec(query_select_stations_by_uuid, search_params)?;
+            self.get_list_from_query_result(result)
+        }else{
+            Ok(vec![])
+        }
+    }
+
     fn get_deletable_never_working(&self, seconds: u64) -> Result<u64, Box<dyn Error>> {
         self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOkTime IS NULL AND Creation < UTC_TIMESTAMP() - INTERVAL :seconds SECOND", params!(seconds))
     }
