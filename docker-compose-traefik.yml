@@ -2,7 +2,7 @@ version: "3.2"
 services:
   api:
     build: ./
-    image: segleralex/radiobrowser-api-rust:0.7.0
+    image: segleralex/radiobrowser-api-rust:0.7.1
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=Host(`${SOURCE}`)"
