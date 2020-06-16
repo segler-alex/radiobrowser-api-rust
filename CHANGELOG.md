@@ -6,9 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.7.1] 2020-06-16
+## [0.7.1] 2020-06-17
 ### Added
 - API: endpoint for fetching multiple streams by uuid
+- PULL: use correct user agent
 
 ### Fixed
 - CACHE: shorter keys to make memcached work
