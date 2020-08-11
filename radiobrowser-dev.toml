@@ -89,12 +89,10 @@ retries = 5
 ## Mirror pull interval in seconds
 mirror-pull-interval = "5mins"
 ## Mirror from server
-#[pullservers]
-#[pullservers.alpha]
-#host = "http://www.radio-browser.info/webservice"
+[pullservers]
+[pullservers.alpha]
+host = "http://nl1.api.radio-browser.info"
 #[pullservers.beta]
 #host = "http://de1.api.radio-browser.info"
 #[pullservers.gamma]
 #host = "http://fr1.api.radio-browser.info"
-#[pullservers.delta]
-#host = "http://nl1.api.radio-browser.info"
