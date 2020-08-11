@@ -5,8 +5,8 @@ use std::thread;
 use crate::time;
 use std::convert::TryFrom;
 
-use reqwest::Client;
-use reqwest::RequestBuilder;
+use reqwest::blocking::Client;
+use reqwest::blocking::RequestBuilder;
 use reqwest::header::USER_AGENT;
 
 use crate::api::data::StationHistoryCurrent;
@@ -77,7 +77,7 @@ fn pull_history(client: &Client, server: &str, api_version: u32, lastid: Option<
         None => format!("{}/json/stations/changed",server),
     };
     trace!("{}", path);
-    let mut result = add_default_request_headers(client.get(&path)).send()?;
+    let result = add_default_request_headers(client.get(&path)).send()?;
     match api_version {
         0 => {
             let list: Vec<StationHistoryV0> = result.json()?;
@@ -101,7 +101,7 @@ fn pull_checks(client: &Client, server: &str, api_version: u32, lastid: Option<S
         None => format!("{}/json/checks",server),
     };
     trace!("{}", path);
-    let mut result = add_default_request_headers(client.get(&path)).send()?;
+    let result = add_default_request_headers(client.get(&path)).send()?;
     match api_version {
         0 => {
             let mut list: Vec<StationCheckV0> = result.json()?;
@@ -125,7 +125,7 @@ fn pull_clicks(client: &Client, server: &str, api_version: u32, lastid: Option<S
         None => format!("{}/json/clicks",server),
     };
     trace!("{}", path);
-    let mut result = add_default_request_headers(client.get(&path)).send()?;
+    let result = add_default_request_headers(client.get(&path)).send()?;
     match api_version {
         0 => {
             let mut list: Vec<StationClickV0> = result.json()?;
@@ -145,7 +145,7 @@ fn pull_clicks(client: &Client, server: &str, api_version: u32, lastid: Option<S
 fn pull_stations(client: &Client, server: &str, api_version: u32) -> Result<Vec<Station>, Box<dyn Error>> {
     let path = format!("{}/json/stations",server);
     trace!("{}", path);
-    let mut result = add_default_request_headers(client.get(&path)).send()?;
+    let result = add_default_request_headers(client.get(&path)).send()?;
     match api_version {
         0 => {
             let mut list: Vec<StationV0> = result.json()?;
