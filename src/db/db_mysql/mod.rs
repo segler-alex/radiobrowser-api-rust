@@ -1410,7 +1410,7 @@ impl DbConnection for MysqlConnection {
     }
 
     fn increase_clicks(&self, ip: &str, station: &StationItem, seconds: u64) -> Result<bool,Box<dyn std::error::Error>> {
-        let query = "SELECT StationUuid, IP FROM StationClick WHERE StationUuid=:stationuuid AND IP=ip AND TIME_TO_SEC(TIMEDIFF(UTC_TIMESTAMP(),ClickTimestamp))<:seconds";
+        let query = "SELECT StationUuid, IP FROM StationClick WHERE StationUuid=:stationuuid AND IP=:ip AND TIME_TO_SEC(TIMEDIFF(UTC_TIMESTAMP(),ClickTimestamp))<:seconds";
         let result = self.pool.prep_exec(query, params!{"stationuuid" => &station.stationuuid, ip, seconds})?;
 
         for _ in result {
