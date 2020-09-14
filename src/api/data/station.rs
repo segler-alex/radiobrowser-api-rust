@@ -1,6 +1,7 @@
-use std::error::Error;
+use crate::api::api_response::ApiResponse;
 use crate::api::data::StationHistoryCurrent;
 use crate::db::models::StationItem;
+use std::error::Error;
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct StationCachedInfo {
@@ -148,7 +149,6 @@ impl Station {
             j.push_str("#RADIOBROWSERUUID:");
             j.push_str(&item.stationuuid);
             j.push_str("\r\n");
-            
             j.push_str("#EXTINF:1,");
             j.push_str(&item.name);
             j.push_str("\r\n");
@@ -327,33 +327,15 @@ impl Station {
         j
     }
 
-    pub fn get_response(list : Vec<Station>, format : &str) -> Result<rouille::Response, Box<dyn Error>> {
+    pub fn get_response(list: Vec<Station>, format: &str) -> Result<ApiResponse, Box<dyn Error>> {
         Ok(match format {
-            "json" => {
-                let j = serde_json::to_string(&list)?;
-                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
-            },
-            "xml" => {
-                let j = Station::serialize_station_list(list)?;
-                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
-            },
-            "m3u" => {
-                let j = Station::serialize_to_m3u(list, false);
-                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/mpegurl").with_unique_header("Content-Disposition", r#"inline; filename="playlist.m3u""#)
-            },
-            "pls" => {
-                let j = Station::serialize_to_pls(list, false);
-                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","audio/x-scpls").with_unique_header("Content-Disposition", r#"inline; filename="playlist.pls""#)
-            },
-            "xspf" => {
-                let j = Station::serialize_to_xspf(list)?;
-                rouille::Response::text(j).with_unique_header("Content-Type","application/xspf+xml").with_unique_header("Content-Disposition", r#"inline; filename="playlist.xspf""#)
-            },
-            "ttl" => {
-                let j = Station::serialize_to_ttl(list);
-                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/turtle")
-            },
-            _ => rouille::Response::empty_406()
+            "json" => ApiResponse::Text(serde_json::to_string(&list)?),
+            "xml" => ApiResponse::Text(Station::serialize_station_list(list)?),
+            "m3u" => ApiResponse::Text(Station::serialize_to_m3u(list, false)),
+            "pls" => ApiResponse::Text(Station::serialize_to_pls(list, false)),
+            "xspf" => ApiResponse::Text(Station::serialize_to_xspf(list)?),
+            "ttl" => ApiResponse::Text(Station::serialize_to_ttl(list)),
+            _ => ApiResponse::UnknownContentType,
         })
     }
 }
@@ -410,8 +392,8 @@ impl From<StationItem> for Station {
             clicktimestamp: item.clicktimestamp,
             clicktrend: item.clicktrend,
             codec: item.codec,
-            hls: if item.hls {1} else {0},
-            lastcheckok: if item.lastcheckok {1} else {0},
+            hls: if item.hls { 1 } else { 0 },
+            lastcheckok: if item.lastcheckok { 1 } else { 0 },
             lastcheckoktime: item.lastcheckoktime,
             lastchecktime: item.lastchecktime,
             lastlocalchecktime: item.lastlocalchecktime,

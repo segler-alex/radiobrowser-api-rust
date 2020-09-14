@@ -29,6 +29,17 @@ clicks-timeout = "30days"
 ## Documentation url to be used if automatic way is not working (HTTP/1.0)
 server-url = "https://de1.api.radio-browser.info"
 
+## Cache support
+## =============
+## cache type can be "none" or "builtin" or "redis" or "memcached"
+cache-type = "memcached"
+## redis connection string
+# cache-url = "redis://localhost:6379"
+## memcached connection string
+cache-url = "memcache://localhost:11211"
+## Time to live for cache items
+cache-ttl = "10secs"
+
 ## Database
 ## ========
 ## database connection string (mysql, mariadb)
@@ -46,7 +57,7 @@ allow-database-downgrade = false
 ## You can reach it by doing a "GET /metrics"
 prometheus-exporter = true
 ## Prefix for all exported keys
-prometheus-exporter-prefix = "radio_browser_"
+prometheus-exporter-prefix = "radio_browser"
 
 ## Stream check
 ## ============
@@ -80,10 +91,8 @@ mirror-pull-interval = "5mins"
 ## Mirror from server
 [pullservers]
 [pullservers.alpha]
-host = "http://www.radio-browser.info/webservice"
+host = "http://nl1.api.radio-browser.info"
 #[pullservers.beta]
 #host = "http://de1.api.radio-browser.info"
 #[pullservers.gamma]
 #host = "http://fr1.api.radio-browser.info"
-#[pullservers.delta]
-#host = "http://nl1.api.radio-browser.info"

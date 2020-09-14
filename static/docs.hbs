@@ -33,6 +33,7 @@
               <div role="separator" class="dropdown-divider"></div>
             </li>
             <li><a class="dropdown-item" href="#Advanced_station_search">Advanced station search</a></li>
+            <li><a class="dropdown-item" href="#Search_radio_stations_by_uuid">Search radio stations by UUIDs</a></li>
             <li><a class="dropdown-item" href="#Search_radio_stations_by_url">Search radio stations by URL</a></li>
             <li>
               <div role="separator" class="dropdown-divider"></div>
@@ -1399,6 +1400,43 @@
         <li><a href="{{ API_SERVER }}/json/stations/search" target="_blank">{{ API_SERVER }}/json/stations/search</a></li>
       </ul>
     </div>
+
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Search_radio_stations_by_uuid">
+      <h1 class="display-4">Search radio stations by UUID</h1>
+      <p class="lead">A list of radio stations that have an exact UUID match, supported output formats: JSON, XML, M3U, PLS, XSPF, TTL</p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">{{ API_SERVER }}/xml/stations/byuuid
+        <br /> {{ API_SERVER }}/json/stations/byuuid
+      </div>
+      <div class="h5">Parameter:</div>
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Example value</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>uuids</td>
+            <td>110e57c5-0601-11e8-ae97-52543be04c81,220e57c5-0601-11e8-ae97-52543be04c81,330e57c5-0601-11e8-ae97-52543be04c81</td>
+            <td>MANDATORY, comma-separated list of UUIDs </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="h5">Result:</div>
+      <p>
+        Array of <a href="#Struct_station">Struct station</a>
+      </p>
+      <div class="h5">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="{{ API_SERVER }}/json/stations/byuuid" target="_blank">{{ API_SERVER }}/json/stations/byuuid</a></li>
+      </ul>
+    </div>
+
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Search_radio_stations_by_url">
       <h1 class="display-4">Search radio stations by URL</h1>

@@ -6,6 +6,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.2] 2020-09-14
+### Fixed
+- API: clicks are counted correctly
+
+## [0.7.1] 2020-06-17
+### Added
+- API: endpoint for fetching multiple streams by uuid
+- PULL: use correct user agent
+
+### Fixed
+- CACHE: shorter keys to make memcached work
+
+## [0.7.0] 2020-06-15
+### Added
+- API: Response caching with builtin, redis and memcached
+
+### Changed
+- LOG: Ignore content-type nothing in requests
+
 ## [0.6.16] 2020-05-27
 ### Fixed
 - METRICS: do not expose search information in call counts

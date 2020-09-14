@@ -5,6 +5,10 @@ use std::thread;
 use crate::time;
 use std::convert::TryFrom;
 
+use reqwest::blocking::Client;
+use reqwest::blocking::RequestBuilder;
+use reqwest::header::USER_AGENT;
+
 use crate::api::data::StationHistoryCurrent;
 use crate::api::data::StationHistoryV0;
 use crate::api::data::StationCheck;
@@ -20,10 +24,15 @@ use crate::db::models::StationCheckItemNew;
 use crate::db::models::StationChangeItemNew;
 use crate::db::models::StationClickItemNew;
 
-fn pull_worker(connection_string: String, mirrors: &Vec<String>) -> Result<(),Box<dyn Error>> {
+fn add_default_request_headers(req: RequestBuilder) -> RequestBuilder {
+    let pkg_version = env!("CARGO_PKG_VERSION");
+    req.header(USER_AGENT, format!("radiobrowser-api-rust/{}",pkg_version))
+}
+
+fn pull_worker(client: &Client, connection_string: String, mirrors: &Vec<String>) -> Result<(),Box<dyn Error>> {
     let pool = connect(connection_string)?;
     for server in mirrors.iter() {
-        let result = pull_server(&pool, &server);
+        let result = pull_server(client, &pool, &server);
         match result {
             Ok(_) => {
             },
@@ -38,8 +47,9 @@ fn pull_worker(connection_string: String, mirrors: &Vec<String>) -> Result<(),Bo
 pub fn start(connection_string: String, mirrors: Vec<String>, pull_interval: u64) {
     if mirrors.len() > 0 {
         thread::spawn(move || {
+            let client = Client::new();
             loop {
-                let result = pull_worker(connection_string.clone(), &mirrors);
+                let result = pull_worker(&client, connection_string.clone(), &mirrors);
                 match result {
                     Ok(_) => {
                     },
@@ -53,21 +63,21 @@ pub fn start(connection_string: String, mirrors: Vec<String>, pull_interval: u64
     }
 }
 
-fn get_remote_version(server: &str) -> Result<u32,Box<dyn std::error::Error>> {
+fn get_remote_version(client: &Client, server: &str) -> Result<u32,Box<dyn std::error::Error>> {
     debug!("Check server status of '{}' ..", server);
     let path = format!("{}/json/stats",server);
-    let status: Status = reqwest::get(&path)?.json()?;
+    let status: Status = add_default_request_headers(client.get(&path)).send()?.json()?;
     Ok(status.supported_version)
 }
 
-fn pull_history(server: &str, api_version: u32, lastid: Option<String>) -> Result<Vec<StationHistoryCurrent>, Box<dyn std::error::Error>> {
+fn pull_history(client: &Client, server: &str, api_version: u32, lastid: Option<String>) -> Result<Vec<StationHistoryCurrent>, Box<dyn std::error::Error>> {
     trace!("Pull history from '{}' (API: {}) ..", server, api_version);
     let path = match lastid {
         Some(id) => format!("{}/json/stations/changed?lastchangeuuid={}",server, id),
         None => format!("{}/json/stations/changed",server),
     };
     trace!("{}", path);
-    let mut result = reqwest::get(&path)?;
+    let result = add_default_request_headers(client.get(&path)).send()?;
     match api_version {
         0 => {
             let list: Vec<StationHistoryV0> = result.json()?;
@@ -84,14 +94,14 @@ fn pull_history(server: &str, api_version: u32, lastid: Option<String>) -> Resul
     }
 }
 
-fn pull_checks(server: &str, api_version: u32, lastid: Option<String>) -> Result<Vec<StationCheck>, Box<dyn std::error::Error>> {
+fn pull_checks(client: &Client, server: &str, api_version: u32, lastid: Option<String>) -> Result<Vec<StationCheck>, Box<dyn std::error::Error>> {
     trace!("Pull checks from '{}' (API: {}) ..", server, api_version);
     let path = match lastid {
         Some(id) => format!("{}/json/checks?lastcheckuuid={}",server, id),
         None => format!("{}/json/checks",server),
     };
     trace!("{}", path);
-    let mut result = reqwest::get(&path)?;
+    let result = add_default_request_headers(client.get(&path)).send()?;
     match api_version {
         0 => {
             let mut list: Vec<StationCheckV0> = result.json()?;
@@ -108,14 +118,14 @@ fn pull_checks(server: &str, api_version: u32, lastid: Option<String>) -> Result
     }
 }
 
-fn pull_clicks(server: &str, api_version: u32, lastid: Option<String>) -> Result<Vec<StationClick>, Box<dyn std::error::Error>> {
+fn pull_clicks(client: &Client, server: &str, api_version: u32, lastid: Option<String>) -> Result<Vec<StationClick>, Box<dyn std::error::Error>> {
     trace!("Pull clicks from '{}' (API: {}) ..", server, api_version);
     let path = match lastid {
         Some(id) => format!("{}/json/clicks?lastclickuuid={}",server, id),
         None => format!("{}/json/clicks",server),
     };
     trace!("{}", path);
-    let mut result = reqwest::get(&path)?;
+    let result = add_default_request_headers(client.get(&path)).send()?;
     match api_version {
         0 => {
             let mut list: Vec<StationClickV0> = result.json()?;
@@ -132,10 +142,10 @@ fn pull_clicks(server: &str, api_version: u32, lastid: Option<String>) -> Result
     }
 }
 
-fn pull_stations(server: &str, api_version: u32) -> Result<Vec<Station>, Box<dyn Error>> {
+fn pull_stations(client: &Client, server: &str, api_version: u32) -> Result<Vec<Station>, Box<dyn Error>> {
     let path = format!("{}/json/stations",server);
     trace!("{}", path);
-    let mut result = reqwest::get(&path)?;
+    let result = add_default_request_headers(client.get(&path)).send()?;
     match api_version {
         0 => {
             let mut list: Vec<StationV0> = result.json()?;
@@ -152,16 +162,16 @@ fn pull_stations(server: &str, api_version: u32) -> Result<Vec<Station>, Box<dyn
     }
 }
 
-fn pull_server(connection_new: &Box<dyn DbConnection>, server: &str) -> Result<(),Box<dyn std::error::Error>> {
+fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: &str) -> Result<(),Box<dyn std::error::Error>> {
     let insert_chunksize = 1000;
     let mut station_change_count = 0;
     let mut station_check_count = 0;
     let mut station_click_count = 0;
 
-    let api_version = get_remote_version(server)?;
+    let api_version = get_remote_version(client, server)?;
     {
         let lastid = connection_new.get_pull_server_lastid(server);
-        let list_changes = pull_history(server, api_version, lastid)?;
+        let list_changes = pull_history(client, server, api_version, lastid)?;
         let len = list_changes.len();
 
         trace!("Incremental station change sync ({})..", len);
@@ -182,7 +192,7 @@ fn pull_server(connection_new: &Box<dyn DbConnection>, server: &str) -> Result<(
 
     {
         let lastcheckid = connection_new.get_pull_server_lastcheckid(server);
-        let list_checks = pull_checks(server, api_version, lastcheckid)?;
+        let list_checks = pull_checks(client, server, api_version, lastcheckid)?;
         let len = list_checks.len();
 
         trace!("Incremental checks sync ({})..", len);
@@ -208,7 +218,7 @@ fn pull_server(connection_new: &Box<dyn DbConnection>, server: &str) -> Result<(
         let download_chunksize = 10000;
         let insert_chunksize = 5000;
         let lastclickuuid = connection_new.get_pull_server_lastclickid(server);
-        let list_clicks = pull_clicks(server, api_version, lastclickuuid)?;
+        let list_clicks = pull_clicks(client, server, api_version, lastclickuuid)?;
         let len = list_clicks.len();
         let mut local_station_click_count = 0;
 
@@ -237,7 +247,7 @@ fn pull_server(connection_new: &Box<dyn DbConnection>, server: &str) -> Result<(
     connection_new.update_stations_clickcount()?;
 
     {
-        let list_stations = pull_stations(server, api_version)?;
+        let list_stations = pull_stations(client, server, api_version)?;
         connection_new.sync_votes(list_stations)?;
     }
 

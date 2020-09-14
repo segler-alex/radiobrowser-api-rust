@@ -1,3 +1,4 @@
+use crate::api::api_response::ApiResponse;
 use crate::config::Config;
 use std::error::Error;
 
@@ -19,6 +20,8 @@ pub struct ApiConfig {
     pub check_batchsize: u32,
     pub check_pause_seconds: u64,
     pub api_threads: usize,
+    pub cache_type: String,
+    pub cache_ttl: u64,
 }
 
 impl ApiConfig {
@@ -71,39 +74,28 @@ impl ApiConfig {
             "update_caches_interval_seconds",
             &config.update_caches_interval_seconds.to_string(),
         )?;
-        xml.elem_text(
-            "server_name",
-            &config.server_name,
-        )?;
+        xml.elem_text("server_name", &config.server_name)?;
 
         xml.elem_text("check_retries", &config.check_retries.to_string())?;
         xml.elem_text("check_batchsize", &config.check_batchsize.to_string())?;
-        xml.elem_text("check_pause_seconds", &config.check_pause_seconds.to_string())?;
+        xml.elem_text(
+            "check_pause_seconds",
+            &config.check_pause_seconds.to_string(),
+        )?;
         xml.elem_text("api_threads", &config.api_threads.to_string())?;
+        xml.elem_text("cache_type", &config.cache_type.to_string())?;
+        xml.elem_text("cache_ttl", &config.cache_ttl.to_string())?;
         xml.end_elem()?;
         xml.close()?;
         xml.flush()?;
         Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
     }
 
-    pub fn get_response(
-        config: ApiConfig,
-        format: &str,
-    ) -> Result<rouille::Response, Box<dyn Error>> {
+    pub fn get_response(config: ApiConfig, format: &str) -> Result<ApiResponse, Box<dyn Error>> {
         Ok(match format {
-            "json" => {
-                let j = serde_json::to_string(&config)?;
-                rouille::Response::text(j)
-                    .with_no_cache()
-                    .with_unique_header("Content-Type", "application/json")
-            }
-            "xml" => {
-                let j = ApiConfig::serialize_config(config)?;
-                rouille::Response::text(j)
-                    .with_no_cache()
-                    .with_unique_header("Content-Type", "text/xml")
-            }
-            _ => rouille::Response::empty_406(),
+            "json" => ApiResponse::Text(serde_json::to_string(&config)?),
+            "xml" => ApiResponse::Text(ApiConfig::serialize_config(config)?),
+            _ => ApiResponse::UnknownContentType,
         })
     }
 }
@@ -129,6 +121,8 @@ impl From<Config> for ApiConfig {
             check_batchsize: item.check_stations,
             check_pause_seconds: item.pause.as_secs(),
             api_threads: item.threads,
+            cache_type: item.cache_type.into(),
+            cache_ttl: item.cache_ttl.as_secs(),
         }
     }
 }

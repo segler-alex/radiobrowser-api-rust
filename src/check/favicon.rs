@@ -1,4 +1,4 @@
-use reqwest;
+use reqwest::blocking::Client;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::header::USER_AGENT;
 use std::time::Duration;
@@ -27,7 +27,7 @@ pub fn check(
 }
 
 fn check_url(url: &str, useragent: &str, timeout: u32) -> bool {
-    let client = reqwest::Client::builder()
+    let client = Client::builder()
         .timeout(Duration::from_secs(timeout.into()))
         .build();
     if client.is_err() {

@@ -27,6 +27,7 @@ pub trait DbConnection {
     fn get_click_count_last_day(&self) -> Result<u64, Box<dyn Error>>;
     fn get_stations_to_check(&mut self, hours: u32, itemcount: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
     fn get_station_by_uuid(&self, id_str: &str) -> Result<Vec<StationItem>,Box<dyn Error>>;
+    fn get_stations_by_uuid(&self, uuids: Vec<String>) -> Result<Vec<StationItem>,Box<dyn Error>>;
     fn get_stations_by_column_multiple(&self,column_name: &str,search: Option<String>,exact: bool,order: &str,reverse: bool,hidebroken: bool,offset: u32,limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
     fn get_stations_by_all(&self,order: &str,reverse: bool,hidebroken: bool,offset: u32,limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
     fn get_stations_advanced(

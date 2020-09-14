@@ -1,3 +1,4 @@
+use crate::api::api_response::ApiResponse;
 use crate::db::models::StationCheckItem;
 use std::convert::TryFrom;
 use std::error::Error;
@@ -115,17 +116,11 @@ impl StationCheck {
         Ok(String::from_utf8(xml.into_inner()).unwrap_or("encoding error".to_string()))
     }
 
-    pub fn get_response(list: Vec<StationCheck>, format: &str) -> Result<rouille::Response, Box<dyn Error>> {
+    pub fn get_response(list: Vec<StationCheck>, format: &str) -> Result<ApiResponse, Box<dyn Error>> {
         Ok(match format {
-            "json" => {
-                let j = serde_json::to_string(&list)?;
-                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","application/json")
-            },
-            "xml" => {
-                let j = StationCheck::serialize_station_checks(list)?;
-                rouille::Response::text(j).with_no_cache().with_unique_header("Content-Type","text/xml")
-            },
-            _ => rouille::Response::empty_406()
+            "json" => ApiResponse::Text(serde_json::to_string(&list)?),
+            "xml" => ApiResponse::Text(StationCheck::serialize_station_checks(list)?),
+            _ => ApiResponse::UnknownContentType,
         })
     }
 }

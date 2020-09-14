@@ -1,18 +1,22 @@
 # radiobrowser-api-rust
 
-This is the radio browser server part providing the API on the second level servers for <http://www.radio-browser.info>
+## What is radiobrowser-api-rust?
+In short it is an API for an index of web streams (audio and video). Streams can be added and searched by any user of the API.
 
-The server addresses are:
+There is an official deployment of this software that is also freely usable at https://api.radio-browser.info
 
-* <https://de1.api.radio-browser.info>
-* <https://fr1.api.radio-browser.info>
-* <https://nl1.api.radio-browser.info>
-
-The main server on <http://www.radio-browser.info> still has an older version running which will not be upgraded anymore.
-
-Send me feature requests, bug reports or extend it yourself. I license it freely, you could also start your own server if you wish.
-
-You can find the API documentation on <https://api.radio-browser.info/>
+## Features
+* Open source
+* Freely licensed
+* Well documented API
+* Automatic regular online checking of streams
+* Highliy configurable
+* Easy setup for multiple configurations (native, deb-packages, docker, ansible)
+* Implemented in Rust-lang
+* Multiple request types: query, json, x-www-form-urlencoded, form-data
+* Multiple output types: xml, json, m3u, pls, xspf, ttl
+* Optional: multi-server setup with automatic mirroring
+* Optional: response caching in internal or external cache (redis, memcached)
 
 ## Setup
 
@@ -80,7 +84,7 @@ docker stack deploy -c docker-compose-traefik.yml rb
 # download distribution
 mkdir -p radiobrowser
 cd radiobrowser
-wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.6.16/radiobrowser-dist.tar.gz
+wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.7.2/radiobrowser-dist.tar.gz
 tar -zxf radiobrowser-dist.tar.gz
 
 # config database
@@ -101,9 +105,9 @@ sudo systemctl start radiobrowser
 * create database and database user
 
 ```bash
-wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.6.16/radiobrowser-api-rust_0.6.16_amd64.deb
+wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.7.2/radiobrowser-api-rust_0.7.2_amd64.deb
 sudo apt install default-mysql-server
-sudo dpkg -i radiobrowser-api-rust_0.6.16_amd64.deb
+sudo dpkg -i radiobrowser-api-rust_0.7.1_amd64.deb
 cat /usr/share/radiobrowser/init.sql | mysql
 ```
 
@@ -193,7 +197,7 @@ cd radiobrowser-api-rust
 # checkout stable
 git checkout stable
 # deploy, change email adress, for ssl with certbot
-ansible-playbook -e "email=test@example.com" -e "version=0.6.16" -e "ansible_python_interpreter=auto" -i "test.example.com,test2.example.com" ansible/playbook.yml
+ansible-playbook -e "email=test@example.com" -e "version=0.7.2" -e "ansible_python_interpreter=auto" -i "test.example.com,test2.example.com" ansible/playbook.yml
 ```
 
 ## Building
