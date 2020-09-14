@@ -12,7 +12,7 @@ av-stream-info-rust = "0.7.3"
 chrono = { version = "0.4.15", features = ["serde"] }
 clap = "2.33.3"
 colored = "2.0.0"
-dns-lookup = "1.0.3"
+dns-lookup = "1.0.4"
 fern = { version = "0.6.0", features = ["colored"] }
 handlebars = "3.4.0"
 hostname = "0.3.1"
@@ -22,12 +22,12 @@ memcache = "0.14.0"
 mysql = "17.0.0"
 native-tls = "0.2.4"
 percent-encoding = "2.1.0"
-prometheus = { version = "0.9.0" }
+prometheus = { version = "0.10.0" }
 redis = { version = "0.17.0" }
 reqwest = { version = "0.10.8", features = ["blocking", "json"] }
 rouille = "3.0.0"
-serde = "1.0.115"
-serde_derive = "1.0.115"
+serde = "1.0.116"
+serde_derive = "1.0.116"
 serde_json = "1.0.57"
 serde_with = "1.4.0"
 threadpool = "1.8.1"
