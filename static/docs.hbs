@@ -1893,8 +1893,8 @@
       <div class="h5">Syntax:</div>
       <div class="syntax">
         <ul class="list-unstyled ml-4">
-          <li>{{ API_SERVER }}/json/stats</li>
-          <li>{{ API_SERVER }}/xml/stats</li>
+          <li>{{ API_SERVER }}/json/config</li>
+          <li>{{ API_SERVER }}/xml/config</li>
         </ul>
       </div>
       <div class="h5">Result JSON:</div>
@@ -1918,7 +1918,10 @@
     "check_retries": 5,
     "check_batchsize": 100,
     "check_pause_seconds": 60,
-    "api_threads": 5
+    "api_threads": 5,
+    "cache_type": "redis",
+    "cache_ttl": 60
+
 }
         </pre>
       </div>
@@ -1946,6 +1949,8 @@
   &lt;check_batchsize&gt;100&lt;/check_batchsize&gt;
   &lt;check_pause_seconds&gt;60&lt;/check_pause_seconds&gt;
   &lt;api_threads&gt;5&lt;/api_threads&gt;
+  &lt;cache_type&gt;redis&lt;/cache_type&gt;
+  &lt;cache_ttl&gt;60&lt;/cache_ttl&gt;
 &lt;/config&gt;
         </pre>
       </div>
