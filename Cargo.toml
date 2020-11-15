@@ -9,30 +9,30 @@ edition = "2018"
 
 [dependencies]
 av-stream-info-rust = "0.7.3"
-chrono = { version = "0.4.15", features = ["serde"] }
+chrono = { version = "0.4.19", features = ["serde"] }
 clap = "2.33.3"
 colored = "2.0.0"
-dns-lookup = "1.0.4"
+dns-lookup = "1.0.5"
 fern = { version = "0.6.0", features = ["colored"] }
-handlebars = "3.4.0"
+handlebars = "3.5.1"
 hostname = "0.3.1"
 humantime = "2.0.1"
 log = "0.4.11"
 memcache = "0.14.0"
 mysql = "17.0.0"
-native-tls = "0.2.4"
+native-tls = "0.2.6"
 percent-encoding = "2.1.0"
 prometheus = { version = "0.10.0" }
 redis = { version = "0.17.0" }
 reqwest = { version = "0.10.8", features = ["blocking", "json"] }
 rouille = "3.0.0"
-serde = "1.0.116"
-serde_derive = "1.0.116"
-serde_json = "1.0.57"
-serde_with = "1.4.0"
+serde = "1.0.117"
+serde_derive = "1.0.117"
+serde_json = "1.0.59"
+serde_with = "1.5.1"
 threadpool = "1.8.1"
-toml = "0.5.6"
-url = "2.1.1"
+toml = "0.5.7"
+url = "2.2.0"
 uuid = { version = "0.8.1", features = ["serde", "v4"] }
 website-icon-extract = "0.4.1"
 xml_writer = "0.4.0"
