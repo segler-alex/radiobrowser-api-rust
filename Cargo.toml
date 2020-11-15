@@ -19,7 +19,7 @@ hostname = "0.3.1"
 humantime = "2.0.1"
 log = "0.4.11"
 memcache = "0.14.0"
-mysql = "17.0.0"
+mysql = "20.0.1"
 native-tls = "0.2.6"
 percent-encoding = "2.1.0"
 prometheus = { version = "0.10.0" }
