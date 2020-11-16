@@ -21,16 +21,13 @@ impl<'a> Migrations<'a> {
     }
 
     fn ensure_tables(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let conn = self.pool.get_conn()?;
-        conn.query_drop(
+        self.pool.get_conn()?.query_drop(
             "CREATE TABLE IF NOT EXISTS __migrations(id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, name TEXT NOT NULL, up TEXT NOT NULL, down TEXT NOT NULL);")?;
         Ok(())
     }
 
     fn get_applied_migrations(&self) -> Result<Vec<Migration>, Box<dyn std::error::Error>> {
-        let conn = self.pool.get_conn()?;
-        let mut list = vec![];
-        let list = conn.query_map(
+        let list = self.pool.get_conn()?.query_map(
             "SELECT id,name,up,down FROM __migrations ORDER BY name;",
             |(name,up,down)| {
                 Migration { name, up, down }
@@ -45,8 +42,7 @@ impl<'a> Migrations<'a> {
         up: &str,
         down: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let conn = self.pool.get_conn()?;
-        conn.exec_drop(
+        self.pool.get_conn()?.exec_drop(
             "INSERT INTO __migrations(name, up , down) VALUES (:name,:up,:down);",
             params! {
                 name, up, down,
@@ -56,8 +52,7 @@ impl<'a> Migrations<'a> {
     }
 
     fn delete_db_migration(&self, name: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let conn = self.pool.get_conn()?;
-        conn.exec_drop(
+        self.pool.get_conn()?.exec_drop(
             "DELETE FROM __migrations WHERE name=:name;",
             params! {
                 name,
@@ -83,8 +78,7 @@ impl<'a> Migrations<'a> {
         ignore_errors: bool,
     ) -> Result<(), Box<dyn std::error::Error>> {
         info!("APPLY UP '{}'", migration.name);
-        let conn = self.pool.get_conn()?;
-        let result = conn.query_drop(&migration.up);
+        let result = self.pool.get_conn()?.query_drop(&migration.up);
         match result {
             Err(err) => {
                 if !ignore_errors {
@@ -103,8 +97,7 @@ impl<'a> Migrations<'a> {
         ignore_errors: bool,
     ) -> Result<(), Box<dyn std::error::Error>> {
         info!("APPLY DOWN '{}'", migration.name);
-        let conn = self.pool.get_conn()?;
-        let result = conn.query_drop(&migration.down);
+        let result = self.pool.get_conn()?.query_drop(&migration.down);
         match result {
             Err(err) => {
                 if !ignore_errors {
