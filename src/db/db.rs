@@ -49,11 +49,11 @@ pub trait DbConnection {
     fn get_stations_lastchange(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
     fn get_stations_by_column(&self,column_name: &str,search: String,exact: bool,order: &str,reverse: bool,hidebroken: bool,offset: u32,limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
 
-    fn get_pull_server_lastid(&self, server: &str) -> Option<String>;
+    fn get_pull_server_lastid(&self, server: &str) -> Result<Option<String>, Box<dyn Error>>;
     fn set_pull_server_lastid(&self, server: &str, lastid: &str) -> Result<(),Box<dyn std::error::Error>>;
-    fn get_pull_server_lastcheckid(&self, server: &str) -> Option<String>;
+    fn get_pull_server_lastcheckid(&self, server: &str) -> Result<Option<String>, Box<dyn Error>>;
     fn set_pull_server_lastcheckid(&self, server: &str, lastcheckid: &str) -> Result<(),Box<dyn std::error::Error>>;
-    fn get_pull_server_lastclickid(&self, server: &str) -> Option<String>;
+    fn get_pull_server_lastclickid(&self, server: &str) -> Result<Option<String>, Box<dyn Error>>;
     fn set_pull_server_lastclickid(&self, server: &str, lastclickuuid: &str) -> Result<(),Box<dyn std::error::Error>>;
 
     fn insert_station_by_change(&self, list_station_changes: &Vec<StationChangeItemNew>) -> Result<Vec<String>,Box<dyn std::error::Error>>;

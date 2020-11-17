@@ -170,7 +170,7 @@ fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: 
 
     let api_version = get_remote_version(client, server)?;
     {
-        let lastid = connection_new.get_pull_server_lastid(server);
+        let lastid = connection_new.get_pull_server_lastid(server)?;
         let list_changes = pull_history(client, server, api_version, lastid)?;
         let len = list_changes.len();
 
@@ -191,7 +191,7 @@ fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: 
     }
 
     {
-        let lastcheckid = connection_new.get_pull_server_lastcheckid(server);
+        let lastcheckid = connection_new.get_pull_server_lastcheckid(server)?;
         let list_checks = pull_checks(client, server, api_version, lastcheckid)?;
         let len = list_checks.len();
 
@@ -217,7 +217,7 @@ fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: 
         // default chunksize from server is 10000
         let download_chunksize = 10000;
         let insert_chunksize = 5000;
-        let lastclickuuid = connection_new.get_pull_server_lastclickid(server);
+        let lastclickuuid = connection_new.get_pull_server_lastclickid(server)?;
         let list_clicks = pull_clicks(client, server, api_version, lastclickuuid)?;
         let len = list_clicks.len();
         let mut local_station_click_count = 0;
