@@ -8,6 +8,7 @@ use crate::db::db_error::DbError;
 use std;
 use std::collections::HashMap;
 
+use celes::Country;
 use crate::uuid::Uuid;
 use crate::db::models::State;
 use crate::db::models::ExtraInfo;
@@ -620,8 +621,11 @@ impl DbConnection for MysqlConnection {
     }
 
     fn add_station_opt(&self, name: Option<String>, url: Option<String>, homepage: Option<String>, favicon: Option<String>,
-        country: Option<String>, countrycode: Option<String>, state: Option<String>, language: Option<String>, tags: Option<String>) -> Result<String, Box<dyn Error>> {
+        countrycode: Option<String>, state: Option<String>, language: Option<String>, tags: Option<String>) -> Result<String, Box<dyn Error>> {
         let mut transaction = self.pool.start_transaction(TxOpts::default())?;
+
+        let countrycode: String = countrycode.unwrap_or_default().to_uppercase();
+        let country: String = Country::from_alpha2(&countrycode).map(|c| c.long_name).unwrap_or(String::from(""));
 
         let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache,Creation) 
                         VALUES(:name, :url, :homepage, :favicon, :country, :countrycode, :state, :language, :tags, :changeuuid, :stationuuid, '', UTC_TIMESTAMP())");
@@ -629,6 +633,10 @@ impl DbConnection for MysqlConnection {
         let name = name.ok_or(DbError::AddStationError(String::from("name is empty")))?;
         let url = url.ok_or(DbError::AddStationError(String::from("url is empty")))?;
         
+        if countrycode.len() != 2 {
+            return Err(Box::new(DbError::AddStationError(String::from("countrycode does not have exactly 2 chars"))));
+        }
+
         if name.len() > 400{
             return Err(Box::new(DbError::AddStationError(String::from("name is longer than 400 chars"))));
         }
@@ -640,8 +648,8 @@ impl DbConnection for MysqlConnection {
             "url" => url,
             "homepage" => homepage.unwrap_or_default(),
             "favicon" => favicon.unwrap_or_default(),
-            "country" => country.unwrap_or_default(),
-            "countrycode" => countrycode.unwrap_or_default(),
+            "country" => country,
+            "countrycode" => countrycode,
             "state" => state.unwrap_or_default(),
             "language" => fix_multi_field(&language.unwrap_or_default()),
             "tags" => fix_multi_field(&tags.unwrap_or_default()),
