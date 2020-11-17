@@ -62,7 +62,7 @@ pub struct ServerEntry {
 
 fn add_cors(result : rouille::Response) -> rouille::Response {
     result.with_unique_header("Access-Control-Allow-Origin", "*")
-        .with_unique_header("Access-Control-Allow-Headers", "origin, x-requested-with, content-type")
+        .with_unique_header("Access-Control-Allow-Headers", "origin, x-requested-with, content-type, User-Agent")
         .with_unique_header("Access-Control-Allow-Methods", "GET,POST")
 }
 
