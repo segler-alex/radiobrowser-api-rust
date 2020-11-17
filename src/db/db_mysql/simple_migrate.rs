@@ -28,7 +28,7 @@ impl<'a> Migrations<'a> {
 
     fn get_applied_migrations(&self) -> Result<Vec<Migration>, Box<dyn std::error::Error>> {
         let list = self.pool.get_conn()?.query_map(
-            "SELECT id,name,up,down FROM __migrations ORDER BY name;",
+            "SELECT name,up,down FROM __migrations ORDER BY name;",
             |(name,up,down)| {
                 Migration { name, up, down }
             }
