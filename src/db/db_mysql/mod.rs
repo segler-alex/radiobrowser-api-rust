@@ -1227,7 +1227,7 @@ impl DbConnection for MysqlConnection {
         let mut conn = self.pool.get_conn()?;
         let result = match search {
             Some(value) => {
-                query = format!("SELECT {column} AS name,COUNT(*) AS stationcount FROM Station WHERE {column} LIKE CONCAT('%',?,'%') AND {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
+                query = format!("SELECT {column} AS name,COUNT(*) AS stationcount FROM Station WHERE UPPER({column}) LIKE UPPER(CONCAT('%',?,'%')) AND {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
                 conn.exec_iter(query, (value,))
             }
             None => {
