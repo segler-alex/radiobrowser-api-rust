@@ -378,5 +378,9 @@ r#"ALTER TABLE StationClick DROP INDEX IN_StationClick_StationUuid_ClickTimestam
 r#"ALTER TABLE IPVoteCheck MODIFY COLUMN IP VARCHAR(50) NOT NULL;"#,
 r#"ALTER TABLE IPVoteCheck MODIFY COLUMN IP VARCHAR(15) NOT NULL;"#);
 
+    migrations.add_migration("20201118_204500_Modify_Station_Country",
+r#"ALTER TABLE Station MODIFY COLUMN Country VARCHAR(250);"#,
+r#"ALTER TABLE Station MODIFY COLUMN Country VARCHAR(50);"#);
+
     Ok(migrations)
 }

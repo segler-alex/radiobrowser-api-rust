@@ -75,6 +75,7 @@ pub trait DbConnection {
     fn delete_old_clicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn remove_unused_ip_infos_from_stationclicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn remove_illegal_icon_links(&mut self) -> Result<(), Box<dyn Error>>;
+    fn calc_country_field(&mut self) -> Result<(), Box<dyn Error>>;
     
     fn update_stations_clickcount(&self) -> Result<(), Box<dyn Error>>;
 

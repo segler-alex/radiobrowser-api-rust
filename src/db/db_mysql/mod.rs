@@ -2,6 +2,7 @@ mod migrations;
 mod simple_migrate;
 mod conversions;
 
+use mysql::Params;
 use std::collections::HashSet;
 use crate::db::db_error::DbError;
 
@@ -193,6 +194,38 @@ impl MysqlConnection {
 }
 
 impl DbConnection for MysqlConnection {
+    fn calc_country_field(&mut self) -> Result<(), Box<dyn Error>> {
+        trace!("calc_country_field() 1");
+        let mut transaction = self.pool.start_transaction(TxOpts::default())?;
+        let query_select = "SELECT DISTINCT(CountryCode) FROM Station";
+        let result: Vec<String> = transaction.query(query_select)?;
+        let list: Vec<Params> = result.iter()
+            .map(|cc| { (String::from(cc), Country::from_alpha2(cc).map(|d| d.long_name).unwrap_or(String::from("")) ) })
+            .map(|co| params!{"countrycode" => co.0, "country" => co.1})
+            .collect();
+        
+        trace!("calc_country_field() 2");
+        let query_update = "UPDATE Station SET Country=:country WHERE CountryCode=:countrycode";
+        transaction.exec_batch(query_update, list)?;
+        trace!("calc_country_field() 3");
+        /*
+        let query_select = "SELECT DISTINCT(CountryCode) FROM Station";
+        let result: Vec<String> = transaction.query(query_select)?;
+        for c in result {
+            match Country::from_alpha2(&c) {
+                Ok(_)=>{},
+                Err(_)=>{
+                    warn!("Unknown countrycode '{}'", c);
+                }
+            }
+        }
+        */
+        transaction.commit()?;
+        trace!("calc_country_field() 4");
+
+        Ok(())
+    }
+
     fn delete_old_checks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
         let delete_old_checks_history_query = "DELETE FROM StationCheckHistory WHERE CheckTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut conn = self.pool.get_conn()?;
