@@ -120,8 +120,8 @@ impl MysqlConnection {
                 insert_params.push(stationuuid.into());
                 insert_query.push("?");
             }
-            let query = format!("INSERT INTO StationHistory(Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid)
-                                                     SELECT Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid FROM Station WHERE StationUuid IN ({})", insert_query.join(","));
+            let query = format!("INSERT INTO StationHistory(Name,Url,Homepage,Favicon,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid)
+                                                     SELECT Name,Url,Homepage,Favicon,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid FROM Station WHERE StationUuid IN ({})", insert_query.join(","));
             transaction.exec_drop(query, insert_params)?;
         }
         Ok(())
@@ -639,7 +639,7 @@ impl DbConnection for MysqlConnection {
                 StationUuid,Name,
                 Url,Homepage,
                 Favicon,Tags,
-                Country,Subcountry,
+                Subcountry,
                 CountryCode,
                 Language,Votes,
                 Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated

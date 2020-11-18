@@ -8,7 +8,6 @@ pub struct StationHistoryItem {
     pub homepage: String,
     pub favicon: String,
     pub tags: String,
-    pub country: String,
     pub countrycode: String,
     pub state: String,
     pub language: String,

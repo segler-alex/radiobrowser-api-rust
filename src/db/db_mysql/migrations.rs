@@ -382,5 +382,9 @@ r#"ALTER TABLE IPVoteCheck MODIFY COLUMN IP VARCHAR(15) NOT NULL;"#);
 r#"ALTER TABLE Station MODIFY COLUMN Country VARCHAR(250);"#,
 r#"ALTER TABLE Station MODIFY COLUMN Country VARCHAR(50);"#);
 
+    migrations.add_migration("20201118_205000_Drop_StationHistory_Country",
+r#"ALTER TABLE StationHistory DROP COLUMN Country;"#,
+r#"ALTER TABLE StationHistory ADD COLUMN Country VARCHAR(50);"#);
+
     Ok(migrations)
 }
