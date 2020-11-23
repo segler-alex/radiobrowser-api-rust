@@ -2,12 +2,14 @@ mod migrations;
 mod simple_migrate;
 mod conversions;
 
+use mysql::Params;
 use std::collections::HashSet;
 use crate::db::db_error::DbError;
 
 use std;
 use std::collections::HashMap;
 
+use celes::Country;
 use crate::uuid::Uuid;
 use crate::db::models::State;
 use crate::db::models::ExtraInfo;
@@ -118,8 +120,8 @@ impl MysqlConnection {
                 insert_params.push(stationuuid.into());
                 insert_query.push("?");
             }
-            let query = format!("INSERT INTO StationHistory(Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid)
-                                                     SELECT Name,Url,Homepage,Favicon,Country,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid FROM Station WHERE StationUuid IN ({})", insert_query.join(","));
+            let query = format!("INSERT INTO StationHistory(Name,Url,Homepage,Favicon,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid)
+                                                     SELECT Name,Url,Homepage,Favicon,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid FROM Station WHERE StationUuid IN ({})", insert_query.join(","));
             transaction.exec_drop(query, insert_params)?;
         }
         Ok(())
@@ -192,6 +194,38 @@ impl MysqlConnection {
 }
 
 impl DbConnection for MysqlConnection {
+    fn calc_country_field(&mut self) -> Result<(), Box<dyn Error>> {
+        trace!("calc_country_field() 1");
+        let mut transaction = self.pool.start_transaction(TxOpts::default())?;
+        let query_select = "SELECT DISTINCT(CountryCode) FROM Station";
+        let result: Vec<String> = transaction.query(query_select)?;
+        let list: Vec<Params> = result.iter()
+            .map(|cc| { (String::from(cc), Country::from_alpha2(cc).map(|d| d.long_name).unwrap_or(String::from("")) ) })
+            .map(|co| params!{"countrycode" => co.0, "country" => co.1})
+            .collect();
+        
+        trace!("calc_country_field() 2");
+        let query_update = "UPDATE Station SET Country=:country WHERE CountryCode=:countrycode";
+        transaction.exec_batch(query_update, list)?;
+        trace!("calc_country_field() 3");
+        /*
+        let query_select = "SELECT DISTINCT(CountryCode) FROM Station";
+        let result: Vec<String> = transaction.query(query_select)?;
+        for c in result {
+            match Country::from_alpha2(&c) {
+                Ok(_)=>{},
+                Err(_)=>{
+                    warn!("Unknown countrycode '{}'", c);
+                }
+            }
+        }
+        */
+        transaction.commit()?;
+        trace!("calc_country_field() 4");
+
+        Ok(())
+    }
+
     fn delete_old_checks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
         let delete_old_checks_history_query = "DELETE FROM StationCheckHistory WHERE CheckTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut conn = self.pool.get_conn()?;
@@ -605,7 +639,7 @@ impl DbConnection for MysqlConnection {
                 StationUuid,Name,
                 Url,Homepage,
                 Favicon,Tags,
-                Country,Subcountry,
+                Subcountry,
                 CountryCode,
                 Language,Votes,
                 Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated
@@ -620,8 +654,11 @@ impl DbConnection for MysqlConnection {
     }
 
     fn add_station_opt(&self, name: Option<String>, url: Option<String>, homepage: Option<String>, favicon: Option<String>,
-        country: Option<String>, countrycode: Option<String>, state: Option<String>, language: Option<String>, tags: Option<String>) -> Result<String, Box<dyn Error>> {
+        countrycode: Option<String>, state: Option<String>, language: Option<String>, tags: Option<String>) -> Result<String, Box<dyn Error>> {
         let mut transaction = self.pool.start_transaction(TxOpts::default())?;
+
+        let countrycode: String = countrycode.unwrap_or_default().to_uppercase();
+        let country: String = Country::from_alpha2(&countrycode).map(|c| c.long_name).unwrap_or(String::from(""));
 
         let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache,Creation) 
                         VALUES(:name, :url, :homepage, :favicon, :country, :countrycode, :state, :language, :tags, :changeuuid, :stationuuid, '', UTC_TIMESTAMP())");
@@ -629,6 +666,10 @@ impl DbConnection for MysqlConnection {
         let name = name.ok_or(DbError::AddStationError(String::from("name is empty")))?;
         let url = url.ok_or(DbError::AddStationError(String::from("url is empty")))?;
         
+        if countrycode.len() != 2 {
+            return Err(Box::new(DbError::AddStationError(String::from("countrycode does not have exactly 2 chars"))));
+        }
+
         if name.len() > 400{
             return Err(Box::new(DbError::AddStationError(String::from("name is longer than 400 chars"))));
         }
@@ -640,8 +681,8 @@ impl DbConnection for MysqlConnection {
             "url" => url,
             "homepage" => homepage.unwrap_or_default(),
             "favicon" => favicon.unwrap_or_default(),
-            "country" => country.unwrap_or_default(),
-            "countrycode" => countrycode.unwrap_or_default(),
+            "country" => country,
+            "countrycode" => countrycode,
             "state" => state.unwrap_or_default(),
             "language" => fix_multi_field(&language.unwrap_or_default()),
             "tags" => fix_multi_field(&tags.unwrap_or_default()),
@@ -1219,7 +1260,7 @@ impl DbConnection for MysqlConnection {
         let mut conn = self.pool.get_conn()?;
         let result = match search {
             Some(value) => {
-                query = format!("SELECT {column} AS name,COUNT(*) AS stationcount FROM Station WHERE {column} LIKE CONCAT('%',?,'%') AND {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
+                query = format!("SELECT {column} AS name,COUNT(*) AS stationcount FROM Station WHERE UPPER({column}) LIKE UPPER(CONCAT('%',?,'%')) AND {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
                 conn.exec_iter(query, (value,))
             }
             None => {

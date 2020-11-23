@@ -1,4 +1,5 @@
 use crate::db::models::StationHistoryItem;
+use celes::Country;
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct StationHistoryV0 {
@@ -114,7 +115,7 @@ impl From<StationHistoryItem> for StationHistoryCurrent {
             homepage: item.homepage,
             favicon: item.favicon,
             tags: item.tags,
-            country: item.country,
+            country: Country::from_alpha2(&item.countrycode).map(|c| c.long_name).unwrap_or(String::from("")),
             countrycode: item.countrycode,
             state: item.state,
             language: item.language,

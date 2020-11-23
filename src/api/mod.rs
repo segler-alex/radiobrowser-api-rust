@@ -611,7 +611,7 @@ fn do_api_calls<A>(all_params: AllParameters,
             "stats" => Ok((true,encode_status(get_status(connection_new)?, format, &config.static_files_dir))),
             "checks" => Ok((true,StationCheck::get_response(connection_new.get_checks(None, all_params.param_last_checkuuid, all_params.param_seconds, false)?.drain(..).map(|x|x.into()).collect(),format)?)),
             "clicks" => Ok((true,StationClick::get_response(connection_new.get_clicks(None, all_params.param_last_clickuuid, all_params.param_seconds)?.drain(..).map(|x|x.into()).collect(),format)?)),
-            "add" => Ok((false,StationAddResult::from(connection_new.add_station_opt(all_params.param_name, all_params.param_url, all_params.param_homepage, all_params.param_favicon, all_params.param_country, all_params.param_countrycode, all_params.param_state, all_params.param_language, all_params.param_tags)).get_response(format)?)),
+            "add" => Ok((false,StationAddResult::from(connection_new.add_station_opt(all_params.param_name, all_params.param_url, all_params.param_homepage, all_params.param_favicon, all_params.param_countrycode, all_params.param_state, all_params.param_language, all_params.param_tags)).get_response(format)?)),
             "config" => Ok((true,ApiConfig::get_response(config.into(),format)?)),
             _ => Ok((true,ApiResponse::NotFound)),
         }
