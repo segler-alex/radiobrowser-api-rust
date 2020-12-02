@@ -195,8 +195,14 @@ impl MysqlConnection {
 
 impl DbConnection for MysqlConnection {
     fn calc_country_field(&mut self) -> Result<(), Box<dyn Error>> {
-        trace!("calc_country_field() 1");
+        trace!("calc_country_field() 0");
         let mut transaction = self.pool.start_transaction(TxOpts::default())?;
+
+        transaction.query_drop("UPDATE Station SET CountryCode=UPPER(CountryCode)")?;
+        transaction.query_drop("UPDATE StationHistory SET CountryCode=UPPER(CountryCode)")?;
+
+        trace!("calc_country_field() 1");
+
         let query_select = "SELECT DISTINCT(CountryCode) FROM Station";
         let result: Vec<String> = transaction.query(query_select)?;
         let list: Vec<Params> = result.iter()

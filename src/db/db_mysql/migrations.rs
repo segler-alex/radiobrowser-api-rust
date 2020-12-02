@@ -386,5 +386,13 @@ r#"ALTER TABLE Station MODIFY COLUMN Country VARCHAR(50);"#);
 r#"ALTER TABLE StationHistory DROP COLUMN Country;"#,
 r#"ALTER TABLE StationHistory ADD COLUMN Country VARCHAR(50);"#);
 
+    migrations.add_migration("20201123_220500_Add_Station_CountrySubdivisionCode",
+r#"ALTER TABLE Station ADD COLUMN CountrySubdivisionCode VARCHAR(3) NULL;"#,
+r#"ALTER TABLE Station DROP COLUMN CountrySubdivisionCode;"#);
+
+    migrations.add_migration("20201123_221000_Add_StationCheckHistory_CountrySubdivisionCode",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN CountrySubdivisionCode VARCHAR(3) NULL;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN CountrySubdivisionCode;"#);
+
     Ok(migrations)
 }

@@ -95,6 +95,18 @@ impl Station {
         };
     }
 
+    pub fn serialize_to_csv(entries: Vec<Station>) -> Result<String, Box<dyn Error>> {
+        let mut wtr = csv::Writer::from_writer(Vec::new());
+
+        for entry in entries {
+            wtr.serialize(entry)?;
+        }
+        
+        wtr.flush()?;
+        let x: Vec<u8> = wtr.into_inner()?;
+        Ok(String::from_utf8(x).unwrap_or("encoding error".to_string()))
+    }
+
     pub fn serialize_station_list(entries: Vec<Station>) -> std::io::Result<String> {
         let mut xml = xml_writer::XmlWriter::new(Vec::new());
         xml.begin_elem("result")?;
@@ -329,6 +341,7 @@ impl Station {
 
     pub fn get_response(list: Vec<Station>, format: &str) -> Result<ApiResponse, Box<dyn Error>> {
         Ok(match format {
+            "csv" => ApiResponse::Text(Station::serialize_to_csv(list)?),
             "json" => ApiResponse::Text(serde_json::to_string(&list)?),
             "xml" => ApiResponse::Text(Station::serialize_station_list(list)?),
             "m3u" => ApiResponse::Text(Station::serialize_to_m3u(list, false)),

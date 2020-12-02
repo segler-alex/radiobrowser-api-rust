@@ -14,7 +14,7 @@ There is an official deployment of this software that is also freely usable at h
 * Easy setup for multiple configurations (native, deb-packages, docker, ansible)
 * Implemented in Rust-lang
 * Multiple request types: query, json, x-www-form-urlencoded, form-data
-* Multiple output types: xml, json, m3u, pls, xspf, ttl
+* Multiple output types: xml, json, m3u, pls, xspf, ttl, csv
 * Optional: multi-server setup with automatic mirroring
 * Optional: response caching in internal or external cache (redis, memcached)
 

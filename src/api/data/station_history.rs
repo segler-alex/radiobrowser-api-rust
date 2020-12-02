@@ -1,5 +1,6 @@
 use crate::db::models::StationHistoryItem;
 use celes::Country;
+use std::error::Error;
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct StationHistoryV0 {
@@ -76,6 +77,18 @@ impl From<&StationHistoryV0> for StationHistoryCurrent {
 }
 
 impl StationHistoryCurrent {
+    pub fn serialize_changes_list_csv(entries: Vec<StationHistoryCurrent>) -> Result<String, Box<dyn Error>> {
+        let mut wtr = csv::Writer::from_writer(Vec::new());
+
+        for entry in entries {
+            wtr.serialize(entry)?;
+        }
+        
+        wtr.flush()?;
+        let x: Vec<u8> = wtr.into_inner()?;
+        Ok(String::from_utf8(x).unwrap_or("encoding error".to_string()))
+    }
+
     pub fn serialize_changes_list(entries: Vec<StationHistoryCurrent>) -> std::io::Result<String> {
         let mut xml = xml_writer::XmlWriter::new(Vec::new());
         xml.begin_elem("result")?;
