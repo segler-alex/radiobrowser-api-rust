@@ -25,12 +25,12 @@ mysql = "20.1.0"
 native-tls = "0.2.6"
 percent-encoding = "2.1.0"
 prometheus = { version = "0.11.0" }
-redis = { version = "0.17.0" }
+redis = { version = "0.18.0" }
 reqwest = { version = "0.10.9", features = ["blocking", "json"] }
 rouille = "3.0.0"
 serde = "1.0.117"
 serde_derive = "1.0.117"
-serde_json = "1.0.59"
+serde_json = "1.0.60"
 serde_with = "1.6.0"
 threadpool = "1.8.1"
 toml = "0.5.7"

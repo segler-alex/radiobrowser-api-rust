@@ -13,8 +13,8 @@ extern crate log;
 extern crate humantime;
 extern crate uuid;
 
-extern crate redis;
 extern crate memcache;
+extern crate redis;
 #[macro_use]
 extern crate prometheus;
 
@@ -25,6 +25,9 @@ extern crate native_tls;
 extern crate reqwest;
 extern crate threadpool;
 extern crate website_icon_extract;
+use core::fmt::Display;
+use core::fmt::Formatter;
+use std::error::Error;
 use std::{thread, time};
 
 mod api;
@@ -32,17 +35,35 @@ mod check;
 mod cleanup;
 mod config;
 mod db;
+mod logger;
 mod pull;
 mod refresh;
-mod logger;
 
-fn main() {
-    let config = config::load_config().expect("Unable to load config file");
+#[derive(Debug, Clone)]
+enum MainError {
+    ConfigLoadError(String),
+    LoggerInitError(String),
+}
 
-    let logger = logger::setup_logger(config.log_level, &config.log_dir, config.log_json);
-    if let Err(logger) = logger {
-        panic!("Logger could not be initialized! {}", logger);
+impl Display for MainError {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match *self {
+            MainError::ConfigLoadError(ref msg) => {
+                write!(f, "Unable to load config file: {}", msg)
+            }
+            MainError::LoggerInitError(ref msg) => {
+                write!(f, "Unable to initialize logger: {}", msg)
+            }
+        }
     }
+}
+
+impl Error for MainError {}
+
+fn mainloop() -> Result<(), Box<dyn Error>> {
+    let config = config::load_config().map_err(|e| MainError::ConfigLoadError(e.to_string()))?;
+    logger::setup_logger(config.log_level, &config.log_dir, config.log_json)
+        .map_err(|e| MainError::LoggerInitError(e.to_string()))?;
 
     info!("Config: {:#?}", config);
 
@@ -91,10 +112,7 @@ fn main() {
                             config.pause.as_secs(),
                         );
 
-                        api::start(
-                            connection,
-                            config_for_api,
-                        );
+                        api::start(connection, config_for_api);
                     }
                     Err(err) => {
                         error!("Migrations error: {}", err);
@@ -107,6 +125,19 @@ fn main() {
                 error!("DB connection error: {}", e);
                 thread::sleep(time::Duration::from_millis(1000));
             }
+        }
+    }
+    Ok(())
+}
+
+fn main() {
+    match mainloop() {
+        Err(e) => {
+            println!("{}", e);
+            std::process::exit(1);
+        }
+        Ok(_) => {
+            std::process::exit(0);
         }
     }
 }
