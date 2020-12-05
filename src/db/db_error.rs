@@ -22,12 +22,4 @@ impl Display for DbError {
     }
 }
 
-impl Error for DbError {
-    fn description(&self) -> &str {
-        "NO DESCRIPTION"
-    }
-
-    fn cause(&self) -> Option<&dyn Error> {
-        None
-    }
-}
+impl Error for DbError {}

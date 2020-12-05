@@ -16,12 +16,4 @@ impl Display for ApiError {
     }
 }
 
-impl Error for ApiError {
-    fn description(&self) -> &str {
-        "NO DESCRIPTION"
-    }
-
-    fn cause(&self) -> Option<&dyn Error> {
-        None
-    }
-}
+impl Error for ApiError {}
