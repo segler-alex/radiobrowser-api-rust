@@ -27,6 +27,7 @@ fn do_cleanup(
         conn_new_style.delete_were_working(broken_stations_timeout)?;
         conn_new_style.delete_old_checks(checks_timeout)?;
         conn_new_style.delete_old_clicks(clicks_timeout)?;
+        conn_new_style.delete_removed_from_history()?;
     }
 
     conn_new_style.update_stations_clickcount()?;

@@ -246,6 +246,13 @@ impl DbConnection for MysqlConnection {
         Ok(())
     }
 
+    fn delete_removed_from_history(&mut self) -> Result<(), Box<dyn Error>> {
+        let query = "DELETE h FROM StationHistory h LEFT JOIN Station s ON s.StationUuid=h.StationUuid WHERE s.Tags IS NULL;";
+        let mut conn = self.pool.get_conn()?;
+        conn.query_drop(query)?;
+        Ok(())
+    }
+
     fn delete_never_working(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
         let delete_never_working_query = "DELETE FROM Station WHERE LastCheckOkTime IS NULL AND Creation < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut conn = self.pool.get_conn()?;

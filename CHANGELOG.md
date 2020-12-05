@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API: allow only countrycodes with the exact length of 2 on insert.
 - API: ignore case on subtable selects (/format/codecs, /format/countries, /format/countrycodes)
 - CLEAN: calculate country column in database from countrycode every cleanup cycle
+- CLEAN: remove stations from history, that do not have an active entry in main station table
 
 ## [0.7.2] 2020-09-14
 ### Fixed
