@@ -1514,7 +1514,7 @@ impl DbConnection for MysqlConnection {
         trace!("sync_votes() 3");
         // update changed votes
         {
-            transaction.exec_batch("UPDATE Station SET Votes=GREATEST(Votes,:votes) WHERE StationUuid=:stationuuid;", rows_to_update.iter().map(|(votes, stationuuid)| params!(votes, stationuuid)))?;
+            transaction.exec_batch("UPDATE Station SET Votes=GREATEST(Votes,:votes) WHERE StationUuid=:stationuuid;", rows_to_update.iter().map(|(stationuuid, votes)| params!(votes, stationuuid)))?;
         }
         trace!("sync_votes() 4");
         transaction.commit()?;
