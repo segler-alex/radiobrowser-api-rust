@@ -39,7 +39,7 @@ pub trait DbConnection {
     fn get_changes(&self, stationuuid: Option<String>, changeuuid: Option<String>) -> Result<Vec<StationHistoryItem>, Box<dyn Error>>;
     
     fn add_station_opt(&self, name: Option<String>, url: Option<String>, homepage: Option<String>, favicon: Option<String>,
-        country: Option<String>, countrycode: Option<String>, state: Option<String>, language: Option<String>, tags: Option<String>) -> Result<String, Box<dyn Error>>;
+        countrycode: Option<String>, state: Option<String>, language: Option<String>, tags: Option<String>) -> Result<String, Box<dyn Error>>;
 
     fn get_stations_broken(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
     fn get_stations_improvable(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
@@ -49,11 +49,11 @@ pub trait DbConnection {
     fn get_stations_lastchange(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
     fn get_stations_by_column(&self,column_name: &str,search: String,exact: bool,order: &str,reverse: bool,hidebroken: bool,offset: u32,limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
 
-    fn get_pull_server_lastid(&self, server: &str) -> Option<String>;
+    fn get_pull_server_lastid(&self, server: &str) -> Result<Option<String>, Box<dyn Error>>;
     fn set_pull_server_lastid(&self, server: &str, lastid: &str) -> Result<(),Box<dyn std::error::Error>>;
-    fn get_pull_server_lastcheckid(&self, server: &str) -> Option<String>;
+    fn get_pull_server_lastcheckid(&self, server: &str) -> Result<Option<String>, Box<dyn Error>>;
     fn set_pull_server_lastcheckid(&self, server: &str, lastcheckid: &str) -> Result<(),Box<dyn std::error::Error>>;
-    fn get_pull_server_lastclickid(&self, server: &str) -> Option<String>;
+    fn get_pull_server_lastclickid(&self, server: &str) -> Result<Option<String>, Box<dyn Error>>;
     fn set_pull_server_lastclickid(&self, server: &str, lastclickuuid: &str) -> Result<(),Box<dyn std::error::Error>>;
 
     fn insert_station_by_change(&self, list_station_changes: &Vec<StationChangeItemNew>) -> Result<Vec<String>,Box<dyn std::error::Error>>;
@@ -73,8 +73,10 @@ pub trait DbConnection {
     fn delete_were_working(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn delete_old_checks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn delete_old_clicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
+    fn delete_removed_from_history(&mut self) -> Result<(), Box<dyn Error>>;
     fn remove_unused_ip_infos_from_stationclicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn remove_illegal_icon_links(&mut self) -> Result<(), Box<dyn Error>>;
+    fn calc_country_field(&mut self) -> Result<(), Box<dyn Error>>;
     
     fn update_stations_clickcount(&self) -> Result<(), Box<dyn Error>>;
 

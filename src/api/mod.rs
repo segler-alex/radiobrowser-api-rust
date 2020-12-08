@@ -62,7 +62,7 @@ pub struct ServerEntry {
 
 fn add_cors(result : rouille::Response) -> rouille::Response {
     result.with_unique_header("Access-Control-Allow-Origin", "*")
-        .with_unique_header("Access-Control-Allow-Headers", "origin, x-requested-with, content-type")
+        .with_unique_header("Access-Control-Allow-Headers", "origin, x-requested-with, content-type, User-Agent")
         .with_unique_header("Access-Control-Allow-Methods", "GET,POST")
 }
 
@@ -93,6 +93,9 @@ fn dns_resolve(format : &str) -> Result<ApiResponse, Box<dyn Error>> {
 
 fn encode_changes(list : Vec<StationHistoryCurrent>, format : &str) -> Result<ApiResponse, Box<dyn Error>> {
     Ok(match format {
+        "csv" => {
+            ApiResponse::Text(StationHistoryCurrent::serialize_changes_list_csv(list)?)
+        },
         "json" => {
             ApiResponse::Text(serde_json::to_string(&list)?)
         },
@@ -153,6 +156,9 @@ fn encode_station_url<A>(connection_new: &A, station: Option<StationItem>, ip: &
 
 fn encode_states(list : Vec<State>, format : &str) -> Result<ApiResponse, Box<dyn Error>> {
     Ok(match format {
+        "csv" => {
+            ApiResponse::Text(State::serialize_state_list_csv(list)?)
+        },
         "json" => {
             ApiResponse::Text(serde_json::to_string(&list)?)
         },
@@ -176,6 +182,9 @@ impl From<config::CacheType> for cache::GenericCacheType {
 
 fn encode_extra(list : Vec<ExtraInfo>, format : &str, tag_name: &str) -> Result<ApiResponse, Box<dyn Error>> {
     Ok(match format {
+        "csv" => {
+            ApiResponse::Text(ExtraInfo::serialize_extra_list_csv(list)?)
+        },
         "json" => {
             ApiResponse::Text(serde_json::to_string(&list)?)
         },
@@ -611,7 +620,7 @@ fn do_api_calls<A>(all_params: AllParameters,
             "stats" => Ok((true,encode_status(get_status(connection_new)?, format, &config.static_files_dir))),
             "checks" => Ok((true,StationCheck::get_response(connection_new.get_checks(None, all_params.param_last_checkuuid, all_params.param_seconds, false)?.drain(..).map(|x|x.into()).collect(),format)?)),
             "clicks" => Ok((true,StationClick::get_response(connection_new.get_clicks(None, all_params.param_last_clickuuid, all_params.param_seconds)?.drain(..).map(|x|x.into()).collect(),format)?)),
-            "add" => Ok((false,StationAddResult::from(connection_new.add_station_opt(all_params.param_name, all_params.param_url, all_params.param_homepage, all_params.param_favicon, all_params.param_country, all_params.param_countrycode, all_params.param_state, all_params.param_language, all_params.param_tags)).get_response(format)?)),
+            "add" => Ok((false,StationAddResult::from(connection_new.add_station_opt(all_params.param_name, all_params.param_url, all_params.param_homepage, all_params.param_favicon, all_params.param_countrycode, all_params.param_state, all_params.param_language, all_params.param_tags)).get_response(format)?)),
             "config" => Ok((true,ApiConfig::get_response(config.into(),format)?)),
             _ => Ok((true,ApiResponse::NotFound)),
         }

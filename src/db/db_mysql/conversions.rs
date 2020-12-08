@@ -73,7 +73,6 @@ impl From<Row> for StationHistoryItem {
             url:                row.take_opt("Url").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             favicon:            row.take_opt("Favicon").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             tags:               row.take_opt("Tags").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-            country:            row.take_opt("Country").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             countrycode:        row.take_opt("CountryCode").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             state:              row.take_opt("Subcountry").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             language:           row.take_opt("Language").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),

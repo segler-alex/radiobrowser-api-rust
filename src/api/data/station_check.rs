@@ -84,6 +84,18 @@ impl StationCheck {
         }
     }
 
+    pub fn serialize_station_checks_csv(entries: Vec<StationCheck>) -> Result<String, Box<dyn Error>> {
+        let mut wtr = csv::Writer::from_writer(Vec::new());
+
+        for entry in entries {
+            wtr.serialize(entry)?;
+        }
+        
+        wtr.flush()?;
+        let x: Vec<u8> = wtr.into_inner()?;
+        Ok(String::from_utf8(x).unwrap_or("encoding error".to_string()))
+    }
+
     pub fn serialize_station_checks(entries: Vec<StationCheck>) -> std::io::Result<String> {
         let mut xml = xml_writer::XmlWriter::new(Vec::new());
         xml.begin_elem("result")?;
@@ -118,6 +130,7 @@ impl StationCheck {
 
     pub fn get_response(list: Vec<StationCheck>, format: &str) -> Result<ApiResponse, Box<dyn Error>> {
         Ok(match format {
+            "csv" => ApiResponse::Text(StationCheck::serialize_station_checks_csv(list)?),
             "json" => ApiResponse::Text(serde_json::to_string(&list)?),
             "xml" => ApiResponse::Text(StationCheck::serialize_station_checks(list)?),
             _ => ApiResponse::UnknownContentType,

@@ -30,6 +30,18 @@ impl StationClick {
         }
     }
 
+    pub fn serialize_station_clicks_csv(entries: Vec<StationClick>) -> Result<String, Box<dyn Error>> {
+        let mut wtr = csv::Writer::from_writer(Vec::new());
+
+        for entry in entries {
+            wtr.serialize(entry)?;
+        }
+        
+        wtr.flush()?;
+        let x: Vec<u8> = wtr.into_inner()?;
+        Ok(String::from_utf8(x).unwrap_or("encoding error".to_string()))
+    }
+
     pub fn serialize_station_clicks(entries: Vec<StationClick>) -> std::io::Result<String> {
         let mut xml = xml_writer::XmlWriter::new(Vec::new());
         xml.begin_elem("result")?;
@@ -48,6 +60,7 @@ impl StationClick {
 
     pub fn get_response(list: Vec<StationClick>, format: &str) -> Result<ApiResponse, Box<dyn Error>> {
         Ok(match format {
+            "csv" => ApiResponse::Text(StationClick::serialize_station_clicks_csv(list)?),
             "json" => ApiResponse::Text(serde_json::to_string(&list)?),
             "xml" => ApiResponse::Text(StationClick::serialize_station_clicks(list)?),
             _ => ApiResponse::UnknownContentType,

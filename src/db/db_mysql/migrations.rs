@@ -378,5 +378,21 @@ r#"ALTER TABLE StationClick DROP INDEX IN_StationClick_StationUuid_ClickTimestam
 r#"ALTER TABLE IPVoteCheck MODIFY COLUMN IP VARCHAR(50) NOT NULL;"#,
 r#"ALTER TABLE IPVoteCheck MODIFY COLUMN IP VARCHAR(15) NOT NULL;"#);
 
+    migrations.add_migration("20201118_204500_Modify_Station_Country",
+r#"ALTER TABLE Station MODIFY COLUMN Country VARCHAR(250);"#,
+r#"ALTER TABLE Station MODIFY COLUMN Country VARCHAR(50);"#);
+
+    migrations.add_migration("20201118_205000_Drop_StationHistory_Country",
+r#"ALTER TABLE StationHistory DROP COLUMN Country;"#,
+r#"ALTER TABLE StationHistory ADD COLUMN Country VARCHAR(50);"#);
+
+    migrations.add_migration("20201123_220500_Add_Station_CountrySubdivisionCode",
+r#"ALTER TABLE Station ADD COLUMN CountrySubdivisionCode VARCHAR(3) NULL;"#,
+r#"ALTER TABLE Station DROP COLUMN CountrySubdivisionCode;"#);
+
+    migrations.add_migration("20201123_221000_Add_StationCheckHistory_CountrySubdivisionCode",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN CountrySubdivisionCode VARCHAR(3) NULL;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN CountrySubdivisionCode;"#);
+
     Ok(migrations)
 }

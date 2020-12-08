@@ -27,11 +27,13 @@ fn do_cleanup(
         conn_new_style.delete_were_working(broken_stations_timeout)?;
         conn_new_style.delete_old_checks(checks_timeout)?;
         conn_new_style.delete_old_clicks(clicks_timeout)?;
+        conn_new_style.delete_removed_from_history()?;
     }
 
     conn_new_style.update_stations_clickcount()?;
     conn_new_style.remove_unused_ip_infos_from_stationclicks(click_valid_timeout)?;
     conn_new_style.remove_illegal_icon_links()?;
+    conn_new_style.calc_country_field()?;
 
     info!("STATS: {} Checks/Hour, {} Checks/Day, {} Working stations, {} Broken stations, {} to do, deletable {} + {}", checks_hour, checks_day, stations_working, stations_broken, stations_todo, stations_deletable_never_worked, stations_deletable_were_working);
     Ok(())
