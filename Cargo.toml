@@ -42,7 +42,7 @@ xml_writer = "0.4.0"
 [package.metadata.deb]
 maintainer = "sailor <segler@programmierecke.net>"
 copyright = "2018, sailor <segler@programmierecke.net>"
-depends = "$auto, systemd, default-mysql-server"
+depends = "$auto, systemd"
 extended-description = """\
 Radio-Browser Server with REST API
 """
