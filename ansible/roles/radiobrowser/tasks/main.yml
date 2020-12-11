@@ -19,7 +19,7 @@
     login_unix_socket: /var/run/mysqld/mysqld.sock
 - name: Install a .deb package from the internet.
   apt:
-    deb: "https://github.com/segler-alex/radiobrowser-api-rust/releases/download/{{version}}/radiobrowser-api-rust_{{version}}-ubuntu-focal_amd64.deb"
+    deb: "https://github.com/segler-alex/radiobrowser-api-rust/releases/download/{{version}}/radiobrowser-api-rust_{{version}}_amd64.deb"
 - name: Create www root
   file:
     state: directory
