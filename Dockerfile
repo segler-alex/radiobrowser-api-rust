@@ -15,7 +15,7 @@ RUN groupadd -r radiobrowser && \
  chown -R radiobrowser:radiobrowser /var/log/radiobrowser/
 COPY --from=0 /root/target/release/radiobrowser-api-rust /usr/bin/
 COPY --from=0 /root/static/ /usr/lib/radiobrowser/static/
-COPY --from=0 /root/radiobrowser.toml /etc/radiobrowser.toml
+COPY --from=0 /root/etc/config-example.toml /etc/radiobrowser.toml
 ENV STATIC_FILES_DIR=/usr/lib/radiobrowser/static/
 USER radiobrowser:radiobrowser
 CMD [ "radiobrowser-api-rust", "-f", "/etc/radiobrowser.toml"]
