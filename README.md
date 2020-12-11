@@ -215,6 +215,15 @@ cargo install cargo-deb
 cargo deb # run this in your Cargo project directory
 ```
 
+### With docker
+Generate deb and tar.gz distribution with the help of docker. This has the following upsides:
+* platform independent builds
+* clean builds
+
+```bash
+docker run -w /root -v $(pwd):/root rust:1 bash build_with_docker.sh
+```
+
 ## Development
 
 ### Run a test environment in multiple shells

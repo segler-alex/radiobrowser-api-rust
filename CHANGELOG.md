@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.7.4] 2020-12-11
+### Changed
+- PKG: removed mysql dependency from deb package, this enables use of mariadb
 ### Fixed
 * Docker build
 
@@ -18,7 +22,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API: ignore case on subtable selects (/format/codecs, /format/countries, /format/countrycodes)
 - CLEAN: calculate country column in database from countrycode every cleanup cycle
 - CLEAN: remove stations from history, that do not have an active entry in main station table
-- PKG: removed mysql dependency from deb package, this enables use of mariadb
 
 ## [0.7.2] 2020-09-14
 ### Fixed
