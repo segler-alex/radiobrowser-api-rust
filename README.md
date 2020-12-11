@@ -146,6 +146,47 @@ xdg-open http://localhost/webservice/xml/countries
 docker-compose up --abort-on-container-exit
 ```
 
+### docker from registry
+The repository is at https://hub.docker.com/repository/docker/segleralex/radiobrowser-api-rust
+```bash
+# !!! DO NOT USE THE FOLLOWING FOR PRODUCTION !!!
+# It is just for a quickstart.
+
+# create virtual network for communication between database and backend
+docker network create rbnet
+# start database container
+docker run \
+    --name dbserver \
+    --detach \
+    --network rbnet \
+    --rm \
+    -e MYSQL_DATABASE=radio \
+    -e MYSQL_USER=radiouser \
+    -e MYSQL_PASSWORD=password \
+    -e MYSQL_RANDOM_ROOT_PASSWORD=true \
+    -p 3306:3306 \
+    mariadb --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+# start radiobrowser container
+docker pull segleralex/radiobrowser-api-rust:0.7.4
+docker run \
+    --name radiobrowserapi \
+    --detach \
+    --network rbnet \
+    --rm \
+    -e DATABASE_URL=mysql://radiouser:password@dbserver/radio \
+    -e HOST=0.0.0.0 \
+    -p 8080:8080 \
+    segleralex/radiobrowser-api-rust:0.7.4 radiobrowser-api-rust -vvv
+# show logs
+docker logs -f radiobrowserapi
+# access api with the following link
+# http://localhost:8080
+# stop radiobrowser container
+docker rm -f radiobrowserapi
+# stop database container
+docker rm -f dbserver
+```
+
 ### SSL
 
 Radiobrowser does not yet support connecting with https to it directly. You have to add a reverse proxy like Apache or Nginx.
