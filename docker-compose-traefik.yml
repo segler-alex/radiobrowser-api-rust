@@ -59,6 +59,7 @@ services:
       - "--certificatesresolvers.letsencrypt.acme.storage=acme.json"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
       - "--certificatesresolvers.letsencrypt.acme.httpChallenge.entryPoint=web"
+      - "--providers.file.filename=/traefik-dyn-config.toml"
     deploy:
       placement:
         constraints:
@@ -77,6 +78,7 @@ services:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
       - ./acme.json:/acme.json
+      - ./traefik-dyn-config.toml:/traefik-dyn-config.toml
     networks:
       - mynet
 networks:
