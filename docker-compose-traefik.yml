@@ -8,9 +8,11 @@ services:
       labels:
         - "traefik.enable=true"
         - "traefik.http.middlewares.compress.compress=true"
+        - "traefik.http.middlewares.secureheaders.headers.framedeny=true"
+        - "traefik.http.middlewares.secureheaders.headers.stsSeconds=63072000"
         - "traefik.http.routers.apitls.rule=Host(`${SOURCE}`)"
         - "traefik.http.routers.apitls.entrypoints=websecure"
-        - "traefik.http.routers.apitls.middlewares=compress"
+        - "traefik.http.routers.apitls.middlewares=compress,secureheaders"
         - "traefik.http.services.apiservice.loadbalancer.server.port=8080"
     networks:
       - mynet

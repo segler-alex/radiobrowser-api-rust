@@ -26,17 +26,20 @@ You can do a native setup or a docker setup
 
 #### install
 
-* This has been tested on Ubuntu 18.04
+* This has been tested on Ubuntu 20.04 LTS
 * Automatic redirect from HTTP to HTTPS
 * Automatic generation and update of Let's Encrypt certificates
 * Automatic start on reboot
 * Automatic fetch of station changes and check information from main server
+* A+ rating on https://www.ssllabs.com/ssltest/
 
 ```bash
-# checkout this project
-git clone https://github.com/segler-alex/radiobrowser-api-rust.git
-cd radiobrowser-api-rust
-git checkout stable
+# create radiobrowser directory
+mkdir -p /srv/radiobrowser
+cd /srv/radiobrowser
+# download docker-compose file
+wget https://raw.githubusercontent.com/segler-alex/radiobrowser-api-rust/stable/docker-compose-traefik.yml -O docker-compose-traefik.yml
+wget https://raw.githubusercontent.com/segler-alex/radiobrowser-api-rust/stable/traefik-dyn-config.toml -O traefik-dyn-config.toml
 # create database save directory
 mkdir -p dbdata
 # create ssl certificate cache file
@@ -57,10 +60,10 @@ docker stack deploy -c docker-compose-traefik.yml rb
 #### upgrade
 
 ```bash
-# checkout this project
-cd radiobrowser-api-rust
-git checkout stable
-git pull
+# update compose file
+cd /srv/radiobrowser
+wget https://raw.githubusercontent.com/segler-alex/radiobrowser-api-rust/stable/docker-compose-traefik.yml -O docker-compose-traefik.yml
+wget https://raw.githubusercontent.com/segler-alex/radiobrowser-api-rust/stable/traefik-dyn-config.toml -O traefik-dyn-config.toml
 # set email and domain, they are needed for automatic certificate generation and for the reverse proxy that is included in the package
 export SOURCE="my.domain.org"
 export EMAIL="mymail@mail.com"
@@ -150,7 +153,7 @@ docker-compose up --abort-on-container-exit
 The repository is at https://hub.docker.com/repository/docker/segleralex/radiobrowser-api-rust
 ```bash
 # !!! DO NOT USE THE FOLLOWING FOR PRODUCTION !!!
-# It is just for a quickstart.
+# It is just for a quickstart and is a minimal setup.
 
 # create virtual network for communication between database and backend
 docker network create rbnet
@@ -185,6 +188,8 @@ docker logs -f radiobrowserapi
 docker rm -f radiobrowserapi
 # stop database container
 docker rm -f dbserver
+# remove the virtual network
+docker network rm rbnet
 ```
 
 ### SSL
