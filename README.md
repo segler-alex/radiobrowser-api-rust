@@ -55,6 +55,13 @@ export EMAIL="mymail@mail.com"
 export ENABLE_CHECK="true"
 # deploy app stack
 docker stack deploy -c docker-compose-traefik.yml rb
+
+# For security reasons you should also install fail2ban to secure SSH and enable a firewall
+apt-get install fail2ban -y
+ufw allow ssh
+ufw allow http
+ufw allow https
+ufw enable
 ```
 
 #### upgrade
