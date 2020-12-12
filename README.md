@@ -26,17 +26,20 @@ You can do a native setup or a docker setup
 
 #### install
 
-* This has been tested on Ubuntu 18.04
+* This has been tested on Ubuntu 20.04 LTS
 * Automatic redirect from HTTP to HTTPS
 * Automatic generation and update of Let's Encrypt certificates
 * Automatic start on reboot
 * Automatic fetch of station changes and check information from main server
+* A+ rating on https://www.ssllabs.com/ssltest/
 
 ```bash
-# checkout this project
-git clone https://github.com/segler-alex/radiobrowser-api-rust.git
-cd radiobrowser-api-rust
-git checkout stable
+# create radiobrowser directory
+mkdir -p /srv/radiobrowser
+cd /srv/radiobrowser
+# download docker-compose file
+wget https://raw.githubusercontent.com/segler-alex/radiobrowser-api-rust/stable/docker-compose-traefik.yml -O docker-compose-traefik.yml
+wget https://raw.githubusercontent.com/segler-alex/radiobrowser-api-rust/stable/traefik-dyn-config.toml -O traefik-dyn-config.toml
 # create database save directory
 mkdir -p dbdata
 # create ssl certificate cache file
@@ -57,10 +60,10 @@ docker stack deploy -c docker-compose-traefik.yml rb
 #### upgrade
 
 ```bash
-# checkout this project
-cd radiobrowser-api-rust
-git checkout stable
-git pull
+# update compose file
+cd /srv/radiobrowser
+wget https://raw.githubusercontent.com/segler-alex/radiobrowser-api-rust/stable/docker-compose-traefik.yml -O docker-compose-traefik.yml
+wget https://raw.githubusercontent.com/segler-alex/radiobrowser-api-rust/stable/traefik-dyn-config.toml -O traefik-dyn-config.toml
 # set email and domain, they are needed for automatic certificate generation and for the reverse proxy that is included in the package
 export SOURCE="my.domain.org"
 export EMAIL="mymail@mail.com"
@@ -84,7 +87,7 @@ docker stack deploy -c docker-compose-traefik.yml rb
 # download distribution
 mkdir -p radiobrowser
 cd radiobrowser
-wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.7.3/radiobrowser-dist.tar.gz
+wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.7.4/radiobrowser-dist.tar.gz
 tar -zxf radiobrowser-dist.tar.gz
 
 # config database
@@ -105,7 +108,7 @@ sudo systemctl start radiobrowser
 * create database and database user
 
 ```bash
-wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.7.3/radiobrowser-api-rust_0.7.3_amd64.deb
+wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.7.4/radiobrowser-api-rust_0.7.4_amd64.deb
 sudo apt install default-mysql-server
 sudo dpkg -i radiobrowser-api-rust_0.7.1_amd64.deb
 cat /usr/share/radiobrowser/init.sql | mysql
@@ -144,6 +147,49 @@ xdg-open http://localhost/webservice/xml/countries
 ```bash
 # start db and api server
 docker-compose up --abort-on-container-exit
+```
+
+### docker from registry
+The repository is at https://hub.docker.com/repository/docker/segleralex/radiobrowser-api-rust
+```bash
+# !!! DO NOT USE THE FOLLOWING FOR PRODUCTION !!!
+# It is just for a quickstart and is a minimal setup.
+
+# create virtual network for communication between database and backend
+docker network create rbnet
+# start database container
+docker run \
+    --name dbserver \
+    --detach \
+    --network rbnet \
+    --rm \
+    -e MYSQL_DATABASE=radio \
+    -e MYSQL_USER=radiouser \
+    -e MYSQL_PASSWORD=password \
+    -e MYSQL_RANDOM_ROOT_PASSWORD=true \
+    -p 3306:3306 \
+    mariadb --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+# start radiobrowser container
+docker pull segleralex/radiobrowser-api-rust:0.7.4
+docker run \
+    --name radiobrowserapi \
+    --detach \
+    --network rbnet \
+    --rm \
+    -e DATABASE_URL=mysql://radiouser:password@dbserver/radio \
+    -e HOST=0.0.0.0 \
+    -p 8080:8080 \
+    segleralex/radiobrowser-api-rust:0.7.4 radiobrowser-api-rust -vvv
+# show logs
+docker logs -f radiobrowserapi
+# access api with the following link
+# http://localhost:8080
+# stop radiobrowser container
+docker rm -f radiobrowserapi
+# stop database container
+docker rm -f dbserver
+# remove the virtual network
+docker network rm rbnet
 ```
 
 ### SSL
@@ -197,7 +243,7 @@ cd radiobrowser-api-rust
 # checkout stable
 git checkout stable
 # deploy, change email adress, for ssl with certbot
-ansible-playbook -e "email=test@example.com" -e "version=0.7.3" -e "ansible_python_interpreter=auto" -i "test.example.com,test2.example.com" ansible/playbook.yml
+ansible-playbook -e "email=test@example.com" -e "version=0.7.4" -e "ansible_python_interpreter=auto" -i "test.example.com,test2.example.com" ansible/playbook.yml
 ```
 
 ## Building
@@ -213,6 +259,15 @@ ansible-playbook -e "email=test@example.com" -e "version=0.7.3" -e "ansible_pyth
 ```bash
 cargo install cargo-deb
 cargo deb # run this in your Cargo project directory
+```
+
+### With docker
+Generate deb and tar.gz distribution with the help of docker. This has the following upsides:
+* platform independent builds
+* clean builds
+
+```bash
+docker run -w /root -v $(pwd):/root rust:1 bash build_with_docker.sh
 ```
 
 ## Development

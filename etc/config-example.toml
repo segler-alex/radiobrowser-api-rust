@@ -90,8 +90,8 @@ retries = 5
 mirror-pull-interval = "5mins"
 ## Mirror from server
 [pullservers]
-[pullservers.alpha]
-host = "http://nl1.api.radio-browser.info"
+#[pullservers.alpha]
+#host = "http://nl1.api.radio-browser.info"
 #[pullservers.beta]
 #host = "http://de1.api.radio-browser.info"
 #[pullservers.gamma]

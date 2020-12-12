@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.4] 2020-12-11
+### Changed
+- PKG: removed mysql dependency from deb package, this enables use of mariadb
+### Fixed
+* Docker build
+
 ## [0.7.3] 2020-12-08
 ### Added
 - API: CSV output

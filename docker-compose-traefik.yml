@@ -2,20 +2,18 @@ version: "3.2"
 services:
   api:
     build: ./
-    image: segleralex/radiobrowser-api-rust:0.7.3
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.api.rule=Host(`${SOURCE}`)"
-      - "traefik.http.routers.api.entrypoints=web"
-      - "traefik.http.routers.api.middlewares=redirecttls"
-      - "traefik.http.middlewares.compress.compress=true"
-      - "traefik.http.middlewares.redirecttls.redirectscheme.scheme=https"
-      - "traefik.http.routers.apitls.rule=Host(`${SOURCE}`)"
-      - "traefik.http.routers.apitls.entrypoints=websecure"
-      - "traefik.http.routers.apitls.middlewares=compress"
-      - "traefik.http.routers.apitls.tls.certresolver=letsencrypt"
+    image: segleralex/radiobrowser-api-rust:0.7.4
     deploy:
       replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.middlewares.compress.compress=true"
+        - "traefik.http.middlewares.secureheaders.headers.framedeny=true"
+        - "traefik.http.middlewares.secureheaders.headers.stsSeconds=63072000"
+        - "traefik.http.routers.apitls.rule=Host(`${SOURCE}`)"
+        - "traefik.http.routers.apitls.entrypoints=websecure"
+        - "traefik.http.routers.apitls.middlewares=compress,secureheaders"
+        - "traefik.http.services.apiservice.loadbalancer.server.port=8080"
     networks:
       - mynet
     environment:
@@ -23,6 +21,13 @@ services:
        - ENABLE_CHECK
        - DATABASE_URL=mysql://radiouser:password@dbserver/radio
        - HOST=0.0.0.0
+       - CACHETYPE=redis
+       - CACHETTL=60sec
+       - CACHEURL=redis://cacheserver:6379
+  cacheserver:
+    image: redis
+    networks:
+      - mynet
   dbserver:
     image: mariadb:10.4
     deploy:
@@ -38,21 +43,29 @@ services:
       - ./dbdata:/var/lib/mysql
     command: ["mysqld","--character-set-server=utf8mb4","--collation-server=utf8mb4_unicode_ci"]
   reverse-proxy:
-    # The official v2.0 Traefik docker image
-    image: traefik:v2.0
+    image: traefik:v2.3
     # Enables the web UI and tells Traefik to listen to docker
     command:
-      #- "--api=true"
+      - "--api=true"
+      - "--api.insecure=true"
       - "--log.level=INFO"
       - "--providers.docker=true"
-      #- "--providers.docker.swarmMode=true"
+      - "--providers.docker.swarmMode=true"
       - "--providers.docker.exposedByDefault=false"
       - "--entryPoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       - "--entryPoints.websecure.address=:443"
-      - "--certificatesResolvers.letsencrypt.acme.email=${EMAIL}"
-      - "--certificatesResolvers.letsencrypt.acme.storage=acme.json"
+      - "--entrypoints.websecure.http.tls.certResolver=letsencrypt"
+      - "--certificatesresolvers.letsencrypt.acme.email=${EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=acme.json"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
-      - "--certificatesResolvers.letsencrypt.acme.httpChallenge.entryPoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.httpChallenge.entryPoint=web"
+      - "--providers.file.filename=/traefik-dyn-config.toml"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
     ports:
       - target: 80
         published: 80
@@ -62,11 +75,12 @@ services:
         published: 443
         protocol: tcp
         mode: host
-      #- "8080:8080"
+      - "8080:8080"
     volumes:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
       - ./acme.json:/acme.json
+      - ./traefik-dyn-config.toml:/traefik-dyn-config.toml
     networks:
       - mynet
 networks:
