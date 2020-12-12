@@ -46,9 +46,9 @@ services:
     image: traefik:v2.3
     # Enables the web UI and tells Traefik to listen to docker
     command:
-      - "--api=true"
-      - "--api.insecure=true"
-      - "--log.level=INFO"
+      #- "--api=true"
+      #- "--api.insecure=true"
+      #- "--log.level=INFO"
       - "--providers.docker=true"
       - "--providers.docker.swarmMode=true"
       - "--providers.docker.exposedByDefault=false"
@@ -75,7 +75,7 @@ services:
         published: 443
         protocol: tcp
         mode: host
-      - "8080:8080"
+      #- "8080:8080"
     volumes:
       # So that Traefik can listen to the Docker events
       - /var/run/docker.sock:/var/run/docker.sock
