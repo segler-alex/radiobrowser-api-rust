@@ -147,7 +147,8 @@ fn dbcheck_internal(
                 match item {
                     Ok(item) => {
                         let public = item.Public.unwrap_or(true);
-                        if !public && item.OverrideIndexMetaData {
+                        let override_metadata = item.OverrideIndexMetaData.unwrap_or(false);
+                        if !public && override_metadata {
                             // ignore non public streams
                             debug!("Ignore private stream: {} - {}", station.stationuuid, item.Url);
                         }else{
@@ -161,13 +162,13 @@ fn dbcheck_internal(
                                 station_uuid: station.stationuuid.clone(),
                                 source: source.clone(),
                                 codec: codec,
-                                bitrate: item.Bitrate as u32,
+                                bitrate: item.Bitrate.unwrap_or(0),
                                 hls: item.Hls,
                                 check_ok: true,
                                 url: item.Url.clone(),
                                 timestamp: None,
 
-                                metainfo_overrides_database: item.OverrideIndexMetaData,
+                                metainfo_overrides_database: override_metadata,
                                 public: item.Public,
                                 name: item.Name,
                                 description: item.Description,
@@ -175,7 +176,7 @@ fn dbcheck_internal(
                                 countrycode: item.CountryCode,
                                 homepage: item.Homepage,
                                 favicon: item.LogoUrl,
-                                loadbalancer: item.LoadBalancerUrl,
+                                loadbalancer: item.MainStreamUrl,
                             };
                             let send_result = result_sender.send(StationOldNew {
                                 old: station,

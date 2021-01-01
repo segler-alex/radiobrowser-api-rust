@@ -1021,7 +1021,7 @@ impl DbConnection for MysqlConnection {
                             query.push("Homepage=:homepage");
                         }
                         if let Some(loadbalancer) = &item.loadbalancer {
-                            params.push((String::from("urlcache"),loadbalancer.into(),));
+                            params.push((String::from("loadbalancer"),loadbalancer.into(),));
                         }
                         if let Some(countrycode) = &item.countrycode {
                             params.push((String::from("countrycode"),countrycode.into(),));
