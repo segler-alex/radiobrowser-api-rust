@@ -146,9 +146,9 @@ fn dbcheck_internal(
             for item in items.drain(..) {
                 match item {
                     Ok(item) => {
-                        let public = item.Public.unwrap_or(true);
                         let override_metadata = item.OverrideIndexMetaData.unwrap_or(false);
-                        if !public && override_metadata {
+                        let do_not_index = item.DoNotIndex.unwrap_or(false);
+                        if do_not_index && override_metadata {
                             // ignore non public streams
                             debug!("Ignore private stream: {} - {}", station.stationuuid, item.Url);
                         }else{
