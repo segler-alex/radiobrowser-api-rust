@@ -27,6 +27,7 @@ impl From<Row> for StationCheckItem {
             homepage:       row.take_opt("Homepage").transpose().unwrap_or(None),
             favicon:        row.take_opt("Favicon").transpose().unwrap_or(None),
             loadbalancer:   row.take_opt("Loadbalancer").transpose().unwrap_or(None),
+            do_not_index:   row.take_opt("DoNotIndex").transpose().unwrap_or(None),
         }
     }
 }

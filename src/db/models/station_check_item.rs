@@ -21,4 +21,5 @@ pub struct StationCheckItem {
     pub homepage: Option<String>,
     pub favicon: Option<String>,
     pub loadbalancer: Option<String>,
+    pub do_not_index: Option<bool>,
 }

@@ -1010,8 +1010,8 @@ impl DbConnection for MysqlConnection {
 
                 if item.metainfo_overrides_database {
                     let mut query = vec![];
-                    let public = item.public.unwrap_or(true);
-                    if public {
+                    let do_not_index = item.do_not_index.unwrap_or(false);
+                    if !do_not_index {
                         if let Some(name) = &item.name {
                             params.push((String::from("name"),name.into(),));
                             query.push("Name=:name");
@@ -1022,6 +1022,7 @@ impl DbConnection for MysqlConnection {
                         }
                         if let Some(loadbalancer) = &item.loadbalancer {
                             params.push((String::from("loadbalancer"),loadbalancer.into(),));
+                            query.push("Url=:loadbalancer");
                         }
                         if let Some(countrycode) = &item.countrycode {
                             params.push((String::from("countrycode"),countrycode.into(),));

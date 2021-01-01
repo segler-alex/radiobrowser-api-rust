@@ -277,6 +277,7 @@ impl From<StationCheck> for StationCheckItemNew {
             homepage: item.homepage,
             favicon: item.favicon,
             loadbalancer: item.loadbalancer,
+            do_not_index: item.do_not_index.map(|x| x == 1),
         }
     }
 }

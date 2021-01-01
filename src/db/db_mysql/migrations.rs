@@ -394,5 +394,13 @@ r#"ALTER TABLE Station DROP COLUMN CountrySubdivisionCode;"#);
 r#"ALTER TABLE StationCheckHistory ADD COLUMN CountrySubdivisionCode VARCHAR(3) NULL;"#,
 r#"ALTER TABLE StationCheckHistory DROP COLUMN CountrySubdivisionCode;"#);
 
+    migrations.add_migration("20210101_233000_Add_StationCheckHistory_DoNotIndex",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN DoNotIndex BOOLEAN NULL;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN DoNotIndex;"#);
+
+    migrations.add_migration("20210101_233500_Recreate_View_StationCheck",
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#,
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#);
+
     Ok(migrations)
 }

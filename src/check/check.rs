@@ -177,6 +177,7 @@ fn dbcheck_internal(
                                 homepage: item.Homepage,
                                 favicon: item.LogoUrl,
                                 loadbalancer: item.MainStreamUrl,
+                                do_not_index: item.DoNotIndex,
                             };
                             let send_result = result_sender.send(StationOldNew {
                                 old: station,
@@ -211,6 +212,7 @@ fn dbcheck_internal(
                 homepage: None,
                 favicon: None,
                 loadbalancer: None,
+                do_not_index: None,
             };
             let send_result = result_sender.send(StationOldNew {
                 old: station,
