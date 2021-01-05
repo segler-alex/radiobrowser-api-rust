@@ -1031,7 +1031,7 @@ impl DbConnection for MysqlConnection {
                         }
                         if let Some(countrycode) = &item.countrycode {
                             params.push((String::from("countrycode"),countrycode.into(),));
-                            query.push("CountryCode=:countrycode");
+                            query.push("CountryCode=UPPER(:countrycode)");
                         }
                         if let Some(tags) = &item.tags {
                             params.push((String::from("tags"),fix_multi_field(tags).into(),));
