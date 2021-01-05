@@ -274,7 +274,7 @@ Generate deb and tar.gz distribution with the help of docker. This has the follo
 * clean builds
 
 ```bash
-docker run -w /root -v $(pwd):/root rust:1 bash build_with_docker.sh
+docker run -w /root -v $(pwd):/root ubuntu:bionic bash build_with_docker.sh
 ```
 
 ## Development
