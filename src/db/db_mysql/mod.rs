@@ -902,12 +902,12 @@ impl DbConnection for MysqlConnection {
                     // reuse checkuuid
                     match &item.timestamp {
                         Some(timestamp) => {
-                            insert_station_check_query.push("(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP())");
+                            insert_station_check_query.push("(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP())");
                             insert_station_check_params.push(checkuuid.into());
                             insert_station_check_params.push(timestamp.into());
                         }
                         None => {
-                            insert_station_check_query.push("(?,UTC_TIMESTAMP(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP())");
+                            insert_station_check_query.push("(?,UTC_TIMESTAMP(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?ter,UTC_TIMESTAMP())");
                             insert_station_check_params.push(checkuuid.into());
                         }
                     }
@@ -916,11 +916,11 @@ impl DbConnection for MysqlConnection {
                     // generate new checkuuid
                     match &item.timestamp {
                         Some(timestamp) => {
-                            insert_station_check_query.push("(UUID(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP())");
+                            insert_station_check_query.push("(UUID(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP())");
                             insert_station_check_params.push(timestamp.into());
                         }
                         None => {
-                            insert_station_check_query.push("(UUID(),UTC_TIMESTAMP(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP())");
+                            insert_station_check_query.push("(UUID(),UTC_TIMESTAMP(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP())");
                         }
                     }
                     
@@ -948,6 +948,7 @@ impl DbConnection for MysqlConnection {
             insert_station_check_params.push(item.homepage.clone().into());
             insert_station_check_params.push(item.favicon.clone().into());
             insert_station_check_params.push(item.loadbalancer.clone().into());
+            insert_station_check_params.push(item.do_not_index.clone().into());
         }
 
         trace!("Ignored checks(no stations) for insert: {}", ignored_checks_no_station);
@@ -956,7 +957,7 @@ impl DbConnection for MysqlConnection {
         if insert_station_check_query.len() > 0 {
             let insert_station_check_params_str = insert_station_check_query.join(",");
             let query_insert_station_check_history = format!("INSERT INTO StationCheckHistory(CheckUuid,CheckTime,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,UrlCache,
-                MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime) VALUES{}", insert_station_check_params_str);
+                MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,DoNotIndex,InsertTime) VALUES{}", insert_station_check_params_str);
             transaction.exec_drop(query_insert_station_check_history, insert_station_check_params)?;
         }
 
@@ -1012,6 +1013,10 @@ impl DbConnection for MysqlConnection {
                     let mut query = vec![];
                     let do_not_index = item.do_not_index.unwrap_or(false);
                     if !do_not_index {
+                        debug!("override station: uuid='{}'", item.station_uuid);
+
+                        params.push((String::from("urlcache"), item.url.clone().into(),));
+
                         if let Some(name) = &item.name {
                             params.push((String::from("name"),name.into(),));
                             query.push("Name=:name");
