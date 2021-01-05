@@ -1934,7 +1934,7 @@ dependencies = [
 
 [[package]]
 name = "radiobrowser-api-rust"
-version = "0.7.4"
+version = "0.7.5"
 dependencies = [
  "av-stream-info-rust",
  "celes",
