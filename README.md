@@ -277,6 +277,9 @@ Generate deb and tar.gz distribution with the help of docker. This has the follo
 docker run -w /root -v $(pwd):/root ubuntu:bionic bash build_with_docker.sh
 ```
 
+### Kubernetes helm chart
+There is a helm chart at https://gitlab.com/radiobrowser/helm-charts
+
 ## Development
 
 ### Run a test environment in multiple shells
