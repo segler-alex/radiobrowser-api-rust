@@ -8,7 +8,7 @@ version = "0.7.5"
 edition = "2018"
 
 [dependencies]
-av-stream-info-rust = "0.8.0"
+av-stream-info-rust = "0.8.1"
 celes = "1.0.6"
 chrono = { version = "0.4.19", features = ["serde"] }
 clap = "2.33.3"
