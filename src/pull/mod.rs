@@ -247,6 +247,11 @@ fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: 
     connection_new.update_stations_clickcount()?;
 
     {
+        // this section is bad, because it
+        // makes the incremental import before meaningless :(
+        // but we need it to keep votes in sync
+        // we could make votes more like clicks, then we could also
+        // make votes incremental
         let list_stations = pull_stations(client, server, api_version)?;
         connection_new.sync_votes(list_stations)?;
     }

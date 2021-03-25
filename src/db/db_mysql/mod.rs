@@ -907,7 +907,7 @@ impl DbConnection for MysqlConnection {
                             insert_station_check_params.push(timestamp.into());
                         }
                         None => {
-                            insert_station_check_query.push("(?,UTC_TIMESTAMP(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?ter,UTC_TIMESTAMP())");
+                            insert_station_check_query.push("(?,UTC_TIMESTAMP(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP())");
                             insert_station_check_params.push(checkuuid.into());
                         }
                     }
