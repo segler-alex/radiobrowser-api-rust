@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 * DB: database name is now allowed to be different from "radio"
 
+### Changed
+* Dependency upgrade: prometheus 0.12.0
+* Dependency upgrade: redis 0.20.0
+* Dependency upgrade: reqwest 0.11.2
+
 ## [0.7.5] 2021-01-05
 ### Changed
 * Use do-not-index header of streams to delete them from the database
