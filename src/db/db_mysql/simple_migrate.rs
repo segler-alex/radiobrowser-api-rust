@@ -82,7 +82,7 @@ impl<'a> Migrations<'a> {
         match result {
             Err(err) => {
                 if !ignore_errors {
-                    panic!(err.to_string());
+                    panic!("{}", err.to_string());
                 }
             }
             _ => {}
@@ -101,7 +101,7 @@ impl<'a> Migrations<'a> {
         match result {
             Err(err) => {
                 if !ignore_errors {
-                    panic!(err.to_string());
+                    panic!("{}", err.to_string());
                 }
             }
             _ => {}
