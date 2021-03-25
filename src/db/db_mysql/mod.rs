@@ -297,11 +297,11 @@ impl DbConnection for MysqlConnection {
     }
 
     fn get_station_count_broken(&self) -> Result<u64, Box<dyn Error>> {
-        self.get_single_column_number("SELECT COUNT(*) AS Items FROM radio.Station WHERE LastCheckOK=0 OR LastCheckOK IS NULL")
+        self.get_single_column_number("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOK=0 OR LastCheckOK IS NULL")
     }
 
     fn get_station_count_working(&self) -> Result<u64, Box<dyn Error>> {
-        self.get_single_column_number("SELECT COUNT(*) AS Items FROM radio.Station WHERE LastCheckOK=1")
+        self.get_single_column_number("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOK=1")
     }
 
     fn get_tag_count(&self) -> Result<u64, Box<dyn Error>> {
