@@ -8,7 +8,7 @@ EXPOSE 8080
 RUN groupadd -r radiobrowser && \
  useradd --no-log-init -r -g radiobrowser radiobrowser && \
  apt-get update && \
- apt-get install -y libssl1.1 && \
+ apt-get install -y libssl1.1 ca-certificates && \
  rm -rf /var/lib/apt/lists/* && \
  mkdir -p /usr/lib/radiobrowser/static/ && \
  mkdir -p /var/log/radiobrowser/ && \

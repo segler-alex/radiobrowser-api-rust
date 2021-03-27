@@ -37,6 +37,7 @@ pub struct StationCheck {
     pub homepage: Option<String>,
     pub favicon: Option<String>,
     pub loadbalancer: Option<String>,
+    pub do_not_index: Option<u8>,
 }
 
 impl StationCheck {
@@ -60,6 +61,7 @@ impl StationCheck {
         homepage: Option<String>,
         favicon: Option<String>,
         loadbalancer: Option<String>,
+        do_not_index: Option<u8>,
     ) -> Self {
         StationCheck {
             stationuuid,
@@ -81,6 +83,7 @@ impl StationCheck {
             homepage,
             favicon,
             loadbalancer,
+            do_not_index,
         }
     }
 
@@ -162,6 +165,7 @@ impl TryFrom<StationCheckV0> for StationCheck {
             homepage: None,
             favicon: None,
             loadbalancer: None,
+            do_not_index: None,
         })
     }
 }
@@ -188,6 +192,7 @@ impl From<StationCheckItem> for StationCheck {
             item.homepage,
             item.favicon,
             item.loadbalancer,
+            item.do_not_index.map(|x| if x {1} else {0}),
         )
     }
 }

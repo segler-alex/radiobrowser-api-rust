@@ -13,12 +13,12 @@ impl MemcachedCache {
         MemcachedCache { cache_url, ttl }
     }
     fn get_internal(&self, key: &str) -> Result<Option<String>, Box<dyn Error>> {
-        let mut client = memcache::Client::connect(self.cache_url.clone())?;
+        let client = memcache::Client::connect(self.cache_url.clone())?;
         let result = client.get(key)?;
         Ok(result)
     }
     fn set_internal(&mut self, key: &str, value: &str, expire: u16) -> Result<(), Box<dyn Error>> {
-        let mut client = memcache::Client::connect(self.cache_url.clone())?;
+        let client = memcache::Client::connect(self.cache_url.clone())?;
         client.set(key, value, expire.into())?;
         Ok(())
     }
