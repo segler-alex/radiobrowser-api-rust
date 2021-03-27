@@ -1,2 +1,0 @@
-# Reload systemd
-systemctl daemon-reload

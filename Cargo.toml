@@ -52,7 +52,6 @@ assets = [
     ["target/release/radiobrowser-api-rust", "usr/bin/radiobrowser", "755"],
     ["static/*", "usr/share/radiobrowser/", "644"],
     ["init.sql", "usr/share/radiobrowser/init.sql", "644"],
-    ["init/*", "etc/systemd/system/", "644"],
     ["etc/config-example.toml", "etc/radiobrowser/config-example.toml", "644"],
     ["etc/config-example.toml", "etc/radiobrowser/config.toml", "644"],
     ["etc/logrotate", "etc/logrotate.d/radiobrowser", "644"],
@@ -61,3 +60,4 @@ conf-files = [
     "etc/radiobrowser/config.toml",
 ]
 maintainer-scripts = "debian/"
+systemd-units = { unit-name = "radiobrowser", enable = false }

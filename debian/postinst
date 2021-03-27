@@ -10,5 +10,4 @@ chown radiobrowser:radiobrowser /var/log/radiobrowser
 mkdir -p /var/lib/radiobrowser
 chown radiobrowser:radiobrowser /var/lib/radiobrowser
 
-# Reload systemd
-systemctl daemon-reload
+#DEBHELPER#
