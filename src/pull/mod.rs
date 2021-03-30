@@ -118,6 +118,28 @@ fn pull_checks(client: &Client, server: &str, api_version: u32, lastid: Option<S
     }
 }
 
+/// Pull all known changes for a single station from remote
+fn pull_stations_history(client: &Client, server: &str, api_version: u32, stationuuid: &str) -> Result<Vec<StationHistoryCurrent>, Box<dyn std::error::Error>>{
+    trace!("Pull station history from '{}' for station '{}' (API: {}) ..", server, stationuuid, api_version);
+    let path = format!("{}/json/stations/changed/{}", server, stationuuid);
+    trace!("{}", path);
+    let result = add_default_request_headers(client.get(&path)).send()?;
+    match api_version {
+        0 => {
+            let list: Vec<StationHistoryV0> = result.json()?;
+            let list_current: Vec<StationHistoryCurrent> = list.iter().map(|x| x.into()).collect();
+            Ok(list_current)
+        },
+        1 => {
+            let list: Vec<StationHistoryCurrent> = result.json()?;
+            Ok(list)
+        },
+        _ => {
+            Err(Box::new(pull_error::PullError::UnknownApiVersion(api_version)))
+        }
+    }
+}
+
 fn pull_clicks(client: &Client, server: &str, api_version: u32, lastid: Option<String>) -> Result<Vec<StationClick>, Box<dyn std::error::Error>> {
     trace!("Pull clicks from '{}' (API: {}) ..", server, api_version);
     let path = match lastid {
@@ -167,6 +189,7 @@ fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: 
     let mut station_change_count = 0;
     let mut station_check_count = 0;
     let mut station_click_count = 0;
+    let mut station_missing_count = 0;
 
     let api_version = get_remote_version(client, server)?;
     {
@@ -192,23 +215,71 @@ fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: 
 
     {
         let lastcheckid = connection_new.get_pull_server_lastcheckid(server)?;
-        let list_checks = pull_checks(client, server, api_version, lastcheckid)?;
+        let mut list_checks = pull_checks(client, server, api_version, lastcheckid)?;
         let len = list_checks.len();
 
         trace!("Incremental checks sync ({})..", len);
-        let mut list_checks_converted = vec![];
-        for check in list_checks {
-            let checkuuid = check.checkuuid.clone();
-            let value: StationCheckItemNew = check.into();
-            list_checks_converted.push(value);
-            station_check_count = station_check_count + 1;
+        let list_checks_converted: Vec<StationCheckItemNew> = list_checks.drain(..).map(|item| item.into()).collect();
+        station_check_count = station_check_count + list_checks_converted.len();
 
-            if station_check_count % insert_chunksize == 0 || station_check_count == len {
-                trace!("Insert {} checks..", list_checks_converted.len());
-                let ignored_uuids = connection_new.insert_checks(&list_checks_converted)?;
-                connection_new.update_station_with_check_data(&list_checks_converted.drain(..).filter(|item| match &item.checkuuid { Some(checkuuid) => !ignored_uuids.contains(checkuuid), None => true }).collect(), false)?;
-                connection_new.set_pull_server_lastcheckid(server, &checkuuid)?;
-                list_checks_converted.clear();
+        for chunk in list_checks_converted.chunks(insert_chunksize) {
+            trace!("Insert {} checks..", chunk.len());
+            let (_ignored_uuids_check_existing, checks_ignored_station_missing, inserted) = connection_new.insert_checks(chunk.to_vec())?;
+            trace!("Inserted checks ({})..", inserted.len());
+
+            let last = chunk.last();
+            connection_new.update_station_with_check_data(&inserted, false)?;
+            if let Some(last) = last {
+                let checkuuid = &last.checkuuid;
+                if let Some(checkuuid) = checkuuid {
+                    connection_new.set_pull_server_lastcheckid(server, &checkuuid)?;
+                }
+            }
+
+            // try to fetch stations from remote if they are not in local database
+            if checks_ignored_station_missing.len() > 0 {
+                warn!("Pulling stations for {} checks missing from local database", checks_ignored_station_missing.len());
+                station_missing_count += checks_ignored_station_missing.len();
+                let mut station_uuids_to_pull: Vec<&String> = checks_ignored_station_missing
+                    .iter()
+                    .filter(|check| {
+                        if !check.check_ok {
+                            trace!("Filtered check for broken station {}", check.station_uuid);
+                        }
+                        check.check_ok
+                    })
+                    .map(|check| &check.station_uuid)
+                    .collect();
+                station_uuids_to_pull.sort();
+                let uuids_before_dedup = station_uuids_to_pull.len();
+                station_uuids_to_pull.dedup();
+                let uuids_after_dedup = station_uuids_to_pull.len();
+                trace!("Dedup pulled station list removed {} stations", uuids_before_dedup - uuids_after_dedup);
+                trace!("Pulling {} stations missing from local database", station_uuids_to_pull.len());
+                let changes: Vec<StationChangeItemNew> = station_uuids_to_pull
+                    .drain(..)
+                    .map(|station_uuid| {
+                        let result = pull_stations_history(client, server, api_version, station_uuid);
+                        match result {
+                            Ok(r) => Ok(r),
+                            Err(e) => {
+                                error!("Error on pulling history for station '{}': {}", station_uuid, e);
+                                Err(e)
+                            }
+                        }
+                    })
+                    .filter(|items| items.is_ok())
+                    .flat_map(|items| items.unwrap())
+                    .map(|change| change.into())
+                    .collect();
+                
+                trace!("Inserting missing stations ({})..", changes.len());
+                if changes.len() > 0 {
+                    connection_new.insert_station_by_change(&changes)?;
+                }
+                trace!("Insert checks ({})..", checks_ignored_station_missing.len());
+                let (_ignored_uuids_check_existing, _ignored_uuids_station_missing, inserted) = connection_new.insert_checks(checks_ignored_station_missing)?;
+                trace!("Inserted checks ({})..", inserted.len());
             }
         }
     }
@@ -256,7 +327,7 @@ fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: 
         connection_new.sync_votes(list_stations)?;
     }
 
-    debug!("Pull from '{}' OK (Added station changes: {}, Added station checks: {}, Added station clicks: {})", server, station_change_count, station_check_count, station_click_count);
+    debug!("Pull from '{}' OK (Added station changes: {}, Added station checks: {}, Added station clicks: {}, Added missing stations: {})", server, station_change_count, station_check_count, station_click_count, station_missing_count);
     Ok(())
 }
 

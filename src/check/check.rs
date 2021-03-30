@@ -97,8 +97,8 @@ fn update_station(
 
     // do real insert
     let list_new = vec!(new_item);
-    conn.insert_checks(&list_new)?;
-    conn.update_station_with_check_data(&list_new, true)?;
+    let (_x,_y,inserted) = conn.insert_checks(list_new)?;
+    conn.update_station_with_check_data(&inserted, true)?;
     Ok(())
 }
 

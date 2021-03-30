@@ -666,6 +666,32 @@ impl DbConnection for MysqlConnection {
         self.get_list_from_query_result(results)
     }
 
+    /// Select all historic changes for stations with the given uuids
+    /// ordered by creation date
+    fn get_changes_for_stations(&self, mut station_uuids: Vec<String>) -> Result<Vec<StationHistoryItem>, Box<dyn Error>> {
+        if station_uuids.len() > 0{
+            let stationuuids_query: Vec<&str> = (0..station_uuids.len()).map(|_item| "?").collect();
+            let stationuuids_str = stationuuids_query.join(",");
+
+            let stationuuids_params: Vec<Value> = station_uuids.drain(..).map(|item| item.into()).collect();
+            
+            let query: String = format!("SELECT StationChangeID,ChangeUuid,
+                    StationUuid,Name,
+                    Url,Homepage,
+                    Favicon,Tags,
+                    Subcountry,
+                    CountryCode,
+                    Language,Votes,
+                    Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated
+                    from StationHistory WHERE StationUuid IN ({stationuuids_str}) ORDER BY Creation ASC", stationuuids_str = stationuuids_str);
+            let mut conn = self.pool.get_conn()?;
+            let results = conn.exec_iter(query, stationuuids_params)?;
+            self.get_list_from_query_result(results)
+        } else {
+            Ok(vec![])
+        }
+    }
+
     fn add_station_opt(&self, name: Option<String>, url: Option<String>, homepage: Option<String>, favicon: Option<String>,
         countrycode: Option<String>, state: Option<String>, language: Option<String>, tags: Option<String>) -> Result<String, Box<dyn Error>> {
         let mut transaction = self.pool.start_transaction(TxOpts::default())?;
@@ -838,12 +864,12 @@ impl DbConnection for MysqlConnection {
         Ok(list_ids)
     }
 
-    fn insert_checks(&self, list: &Vec<StationCheckItemNew>) -> Result<HashSet<String>, Box<dyn std::error::Error>> {
+    fn insert_checks(&self, list: Vec<StationCheckItemNew>) -> Result<(Vec<StationCheckItemNew>,Vec<StationCheckItemNew>,Vec<StationCheckItemNew>), Box<dyn std::error::Error>> {
         trace!("insert_checks()");
         let mut transaction = self.pool.start_transaction(TxOpts::default())?;
         
         // search for checkuuids in history table, if already added (maybe from other source)
-        let mut existing_checks: HashSet<String> = HashSet::new();
+        let mut existing_checks_uuids: HashSet<String> = HashSet::new();
         {
             let search_params: Vec<Value> = list.iter().filter_map(|item| item.checkuuid.clone()).map(|item2| item2.into()).collect();
             let search_query: Vec<&str> = (0..search_params.len()).map(|_item| "?").collect();
@@ -854,12 +880,12 @@ impl DbConnection for MysqlConnection {
 
                 for row in result {
                     let (checkuuid, ) = mysql::from_row_opt(row?)?;
-                    existing_checks.replace(checkuuid);
+                    existing_checks_uuids.replace(checkuuid);
                 }
             }
         }
 
-        trace!("Ignored checks(already existing) for insert: {}", existing_checks.len());
+        trace!("Ignored checks(already existing) for insert: {}", existing_checks_uuids.len());
 
         // search for stations by stationuuid
         let mut existing_stations: HashSet<String> = HashSet::new();
@@ -885,18 +911,22 @@ impl DbConnection for MysqlConnection {
         let mut delete_station_check_query = vec![];
         let mut insert_station_check_params: Vec<Value> = vec![];
         let mut insert_station_check_query = vec![];
-        let mut ignored_checks_no_station = 0;
+        let mut inserted: Vec<StationCheckItemNew> = vec![];
+        let mut ignored_checks_no_station: Vec<StationCheckItemNew> = vec![];
+        let mut existing_checks: Vec<StationCheckItemNew> = vec![];
         for item in list {
             // ignore checks, where there is no station in the database
             if !existing_stations.contains(&item.station_uuid) {
-                ignored_checks_no_station += 1;
+                //ignored_checks_no_station.replace(item.station_uuid.clone());
+                ignored_checks_no_station.push(item);
                 continue;
             }
             // check has checkuuid ?
             match &item.checkuuid {
                 Some(checkuuid) => {
                     // ignore checks that are already in the database
-                    if existing_checks.contains(checkuuid) {
+                    if existing_checks_uuids.contains(checkuuid) {
+                        existing_checks.push(item);
                         continue;
                     }
                     // reuse checkuuid
@@ -949,9 +979,11 @@ impl DbConnection for MysqlConnection {
             insert_station_check_params.push(item.favicon.clone().into());
             insert_station_check_params.push(item.loadbalancer.clone().into());
             insert_station_check_params.push(item.do_not_index.clone().into());
+
+            inserted.push(item);
         }
 
-        trace!("Ignored checks(no stations) for insert: {}", ignored_checks_no_station);
+        trace!("Ignored checks(no stations) for insert: {}", ignored_checks_no_station.len());
 
         // insert into history table
         if insert_station_check_query.len() > 0 {
@@ -963,7 +995,7 @@ impl DbConnection for MysqlConnection {
 
         transaction.commit()?;
 
-        Ok(existing_checks)
+        Ok((existing_checks,ignored_checks_no_station,inserted))
     }
 
     /// Select all checks that are currently in the database of a station with the given uuid
