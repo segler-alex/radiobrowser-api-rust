@@ -29,10 +29,10 @@ fn add_default_request_headers(req: RequestBuilder) -> RequestBuilder {
     req.header(USER_AGENT, format!("radiobrowser-api-rust/{}",pkg_version))
 }
 
-fn pull_worker(client: &Client, connection_string: String, mirrors: &Vec<String>, chunk_size_changes: usize) -> Result<(),Box<dyn Error>> {
+fn pull_worker(client: &Client, connection_string: String, mirrors: &Vec<String>, chunk_size_changes: usize, chunk_size_checks: usize) -> Result<(),Box<dyn Error>> {
     let pool = connect(connection_string)?;
     for server in mirrors.iter() {
-        let result = pull_server(client, &pool, &server, chunk_size_changes);
+        let result = pull_server(client, &pool, &server, chunk_size_changes, chunk_size_checks);
         match result {
             Ok(_) => {
             },
@@ -44,12 +44,12 @@ fn pull_worker(client: &Client, connection_string: String, mirrors: &Vec<String>
     Ok(())
 }
 
-pub fn start(connection_string: String, mirrors: Vec<String>, pull_interval: u64, chunk_size_changes: usize) {
+pub fn start(connection_string: String, mirrors: Vec<String>, pull_interval: u64, chunk_size_changes: usize, chunk_size_checks: usize) {
     if mirrors.len() > 0 {
         thread::spawn(move || {
             let client = Client::new();
             loop {
-                let result = pull_worker(&client, connection_string.clone(), &mirrors, chunk_size_changes);
+                let result = pull_worker(&client, connection_string.clone(), &mirrors, chunk_size_changes, chunk_size_checks);
                 match result {
                     Ok(_) => {
                     },
@@ -70,11 +70,11 @@ fn get_remote_version(client: &Client, server: &str) -> Result<u32,Box<dyn std::
     Ok(status.supported_version)
 }
 
-fn pull_history(client: &Client, server: &str, api_version: u32, lastid: Option<String>) -> Result<Vec<StationHistoryCurrent>, Box<dyn std::error::Error>> {
+fn pull_history(client: &Client, server: &str, api_version: u32, lastid: Option<String>, chunk_size_changes: usize) -> Result<Vec<StationHistoryCurrent>, Box<dyn std::error::Error>> {
     trace!("Pull history from '{}' (API: {}) ..", server, api_version);
     let path = match lastid {
-        Some(id) => format!("{}/json/stations/changed?lastchangeuuid={}",server, id),
-        None => format!("{}/json/stations/changed",server),
+        Some(id) => format!("{}/json/stations/changed?lastchangeuuid={}&limit={}",server, id, chunk_size_changes),
+        None => format!("{}/json/stations/changed?limit={}",server,chunk_size_changes),
     };
     trace!("{}", path);
     let result = add_default_request_headers(client.get(&path)).send()?;
@@ -94,11 +94,11 @@ fn pull_history(client: &Client, server: &str, api_version: u32, lastid: Option<
     }
 }
 
-fn pull_checks(client: &Client, server: &str, api_version: u32, lastid: Option<String>, chunk_size_changes: usize) -> Result<Vec<StationCheck>, Box<dyn std::error::Error>> {
+fn pull_checks(client: &Client, server: &str, api_version: u32, lastid: Option<String>, chunk_size_checks: usize) -> Result<Vec<StationCheck>, Box<dyn std::error::Error>> {
     trace!("Pull checks from '{}' (API: {}) ..", server, api_version);
     let path = match lastid {
-        Some(id) => format!("{}/json/checks?lastcheckuuid={}&limit={}",server, id, chunk_size_changes),
-        None => format!("{}/json/checks?limit={}",server,chunk_size_changes),
+        Some(id) => format!("{}/json/checks?lastcheckuuid={}&limit={}",server, id, chunk_size_checks),
+        None => format!("{}/json/checks?limit={}",server,chunk_size_checks),
     };
     trace!("{}", path);
     let result = add_default_request_headers(client.get(&path)).send()?;
@@ -184,7 +184,7 @@ fn pull_stations(client: &Client, server: &str, api_version: u32) -> Result<Vec<
     }
 }
 
-fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: &str, chunk_size_changes: usize) -> Result<(),Box<dyn std::error::Error>> {
+fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: &str, chunk_size_changes: usize, chunk_size_checks: usize) -> Result<(),Box<dyn std::error::Error>> {
     let insert_chunksize = 2000;
     let mut station_change_count = 0;
     let mut station_check_count = 0;
@@ -192,9 +192,9 @@ fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: 
     let mut station_missing_count = 0;
 
     let api_version = get_remote_version(client, server)?;
-    {
+    loop {
         let lastid = connection_new.get_pull_server_lastid(server)?;
-        let mut list_changes = pull_history(client, server, api_version, lastid)?;
+        let mut list_changes = pull_history(client, server, api_version, lastid, chunk_size_changes)?;
         let len = list_changes.len();
 
         trace!("Incremental station change sync ({})..", len);
@@ -209,11 +209,15 @@ fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: 
                 connection_new.set_pull_server_lastid(server, &last.changeuuid)?;
             }
         }
+
+        if len < chunk_size_changes {
+            break;
+        }
     }
 
     loop {
         let lastcheckid = connection_new.get_pull_server_lastcheckid(server)?;
-        let mut list_checks = pull_checks(client, server, api_version, lastcheckid, chunk_size_changes)?;
+        let mut list_checks = pull_checks(client, server, api_version, lastcheckid, chunk_size_checks)?;
         let len = list_checks.len();
 
         trace!("Incremental checks sync ({})..", len);
@@ -280,7 +284,7 @@ fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: 
                 trace!("Inserted checks ({})..", inserted.len());
             }
         }
-        if len < chunk_size_changes {
+        if len < chunk_size_checks {
             break;
         }
     }

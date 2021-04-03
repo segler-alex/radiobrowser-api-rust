@@ -1180,7 +1180,7 @@ impl DbConnection for MysqlConnection {
         Ok(())
     }
 
-    fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32, include_history: bool) -> Result<Vec<StationCheckItem>, Box<dyn Error>> {
+    fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32, include_history: bool, limit: u32) -> Result<Vec<StationCheckItem>, Box<dyn Error>> {
         let table_name = if include_history { "StationCheckHistory" } else { "StationCheck" };
         let where_seconds = if seconds > 0 {
             format!(
@@ -1205,10 +1205,10 @@ impl DbConnection for MysqlConnection {
         let query = match stationuuid {
             Some(stationuuid) => {
                 query_params.push((String::from("stationuuid"), stationuuid.into(),));
-                format!("SELECT {columns} FROM {table_name} WHERE StationUuid=:stationuuid {where_checkuuid} {where_seconds} ORDER BY CheckID", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name)
+                format!("SELECT {columns} FROM {table_name} WHERE StationUuid=:stationuuid {where_checkuuid} {where_seconds} ORDER BY CheckID LIMIT {limit}", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name, limit = limit)
             }
             None => {
-                format!("SELECT {columns} FROM {table_name} WHERE 1=:one {where_checkuuid} {where_seconds} ORDER BY CheckID", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name)
+                format!("SELECT {columns} FROM {table_name} WHERE 1=:one {where_checkuuid} {where_seconds} ORDER BY CheckID LIMIT {limit}", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name, limit = limit)
             }
         };
 

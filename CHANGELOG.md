@@ -6,8 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-* API: station/changed does not have limit parameter
+* API: limit parameter for format/station/changed
+* API: limit parameter for format/checks 
 * PULL: parameter chunk-size-changes
+* PULL: parameter chunk-size-checks
+
 ### Fixed
 * DB: database name is now allowed to be different from "radio"
 * CHECK: bitrate detection of stream works now on multiple bitrate headers
