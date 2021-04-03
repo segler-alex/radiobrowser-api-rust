@@ -65,6 +65,7 @@ pub struct Config {
     pub cache_type: CacheType,
     pub cache_url: String,
     pub cache_ttl: Duration,
+    pub chunk_size_changes: usize,
 }
 
 fn get_option_string(
@@ -467,6 +468,14 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name("chunk-size-changes")
+                .long("chunk-size-changes")
+                .value_name("CHUNK_SIZE_CHANGES")
+                .help("")
+                .env("CHUNK_SIZE_CHANGES")
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("delete")
                 .short("x")
                 .long("delete")
@@ -550,6 +559,8 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
     let checks_timeout = get_option_duration(&matches, &config, "checks-timeout", String::from("30days"))?;
     let clicks_timeout = get_option_duration(&matches, &config, "clicks-timeout", String::from("30days"))?;
 
+    let chunk_size_changes = get_option_number(&matches, &config, "chunk-size-changes", 999999)? as usize;
+
     let cache_type_str: String = get_option_string(&matches, &config, "cache-type", String::from("none"))?;
     let cache_url: String = get_option_string(&matches, &config, "cache-url", String::from(""))?;
     let cache_ttl = get_option_duration(&matches, &config, "cache-ttl", String::from("60secs"))?;
@@ -608,5 +619,6 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         cache_type,
         cache_url,
         cache_ttl,
+        chunk_size_changes,
     })
 }

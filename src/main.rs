@@ -87,6 +87,7 @@ fn mainloop() -> Result<(), Box<dyn Error>> {
                             config.connection_string.clone(),
                             config.servers_pull,
                             config.mirror_pull_interval.as_secs(),
+                            config.chunk_size_changes,
                         );
                         cleanup::start(
                             config.connection_string.clone(),
