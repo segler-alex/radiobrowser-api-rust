@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * DB: database name is now allowed to be different from "radio"
 * CHECK: bitrate detection of stream works now on multiple bitrate headers
 * PULL: try to import stations that are not existing locally for pulled checks
+* PULL: votes syncing (#111)
 
 ### Changed
 * Dependency upgrade: prometheus 0.12.0

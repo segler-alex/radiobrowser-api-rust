@@ -1546,7 +1546,7 @@ impl DbConnection for MysqlConnection {
             if let Some(entry) = entry {
                 let (stationuuid, votes) = entry;
                 if votes != station.votes {
-                    rows_to_update.push((stationuuid, votes));
+                    rows_to_update.push((stationuuid, station.votes));
                 }
             }
         }
