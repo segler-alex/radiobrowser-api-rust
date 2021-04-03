@@ -90,9 +90,9 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
 name = "av-stream-info-rust"
-version = "0.8.1"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bba6ea00e23bc1450be745be8f804493ea01c71f0239088b44d14c85af3197a2"
+checksum = "e8a10a3e5df77058398a11b7c83597434fb442a1d3603e24a912dcfbb9033b12"
 dependencies = [
  "colored 2.0.0",
  "env_logger",

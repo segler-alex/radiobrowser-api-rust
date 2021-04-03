@@ -90,6 +90,8 @@ retries = 5
 mirror-pull-interval = "5mins"
 ## How many changes should be pulled in a chunk while pulling
 chunk-size-changes = 10000
+## How many checks should be pulled in a chunk while pulling
+chunk-size-checks = 10000
 ## Mirror from server
 [pullservers]
 #[pullservers.alpha]

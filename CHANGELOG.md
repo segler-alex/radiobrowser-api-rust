@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Dependency upgrade: prometheus 0.12.0
 * Dependency upgrade: redis 0.20.0
 * Dependency upgrade: reqwest 0.11.2
-* Dependency upgrade: av-stream-info-rust 0.8.1
+* Dependency upgrade: av-stream-info-rust 0.8.2
 
 ## [0.7.5] 2021-01-05
 ### Changed
