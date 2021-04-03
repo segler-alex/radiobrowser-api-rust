@@ -185,7 +185,7 @@ fn pull_stations(client: &Client, server: &str, api_version: u32) -> Result<Vec<
 }
 
 fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: &str) -> Result<(),Box<dyn std::error::Error>> {
-    let insert_chunksize = 1000;
+    let insert_chunksize = 2000;
     let mut station_change_count = 0;
     let mut station_check_count = 0;
     let mut station_click_count = 0;
@@ -194,21 +194,19 @@ fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: 
     let api_version = get_remote_version(client, server)?;
     {
         let lastid = connection_new.get_pull_server_lastid(server)?;
-        let list_changes = pull_history(client, server, api_version, lastid)?;
+        let mut list_changes = pull_history(client, server, api_version, lastid)?;
         let len = list_changes.len();
 
         trace!("Incremental station change sync ({})..", len);
-        let mut list_stations: Vec<StationChangeItemNew> = vec![];
-        for station in list_changes {
-            let changeuuid = station.changeuuid.clone();
-            station_change_count = station_change_count + 1;
-            list_stations.push(station.into());
+        let list_stations: Vec<StationChangeItemNew> = list_changes.drain(..).map(|item| item.into()).collect();
+        for chunk in list_stations.chunks(insert_chunksize) {
+            station_change_count = station_change_count + chunk.len();
+            let last = chunk.last();
 
-            if station_change_count % insert_chunksize == 0 || station_change_count == len {
-                trace!("Insert {} station changes..", list_stations.len());
-                connection_new.insert_station_by_change(&list_stations)?;
-                connection_new.set_pull_server_lastid(server, &changeuuid)?;
-                list_stations.clear();
+            if let Some(last) = last {
+                trace!("Insert {} station changes..", chunk.len());
+                connection_new.insert_station_by_change(chunk)?;
+                connection_new.set_pull_server_lastid(server, &last.changeuuid)?;
             }
         }
     }

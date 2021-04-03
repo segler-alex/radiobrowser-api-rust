@@ -1,4 +1,4 @@
-#[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
+#[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
 pub struct StationChangeItemNew {
     pub name: String,
     pub url: String,

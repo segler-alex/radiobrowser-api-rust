@@ -1601,13 +1601,19 @@
             <td>lastchangeuuid</td>
             <td></td>
             <td>valid uuid</td>
-            <td>If defined, only show changes that happened after the one with this UUID.</td>
+            <td>If defined, only show changes that happened after the one with this UUID. Is ignored if uuids is set.</td>
+          </tr>
+          <tr>
+            <td>limit</td>
+            <td>999999</td>
+            <td>0,1,2,....</td>
+            <td>number of returned datarows (changes) starting with offset</td>
           </tr>
         </tbody>
       </table>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
-        <li><a href="{{ API_SERVER }}/xml/stations/changed?lastchangeuuid=123" target="_blank">{{ API_SERVER }}/xml/stations/changed?lastchangeuuid=123</a></li>
+        <li><a href="{{ API_SERVER }}/xml/stations/changed?lastchangeuuid=123&limit=10" target="_blank">{{ API_SERVER }}/xml/stations/changed?lastchangeuuid=123&limit=10</a></li>
         <li><a href="{{ API_SERVER }}/json/stations/changed/123" target="_blank">{{ API_SERVER }}/json/stations/changed/123</a></li>
       </ul>
     </div>

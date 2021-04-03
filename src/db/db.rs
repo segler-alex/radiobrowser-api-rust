@@ -35,7 +35,7 @@ pub trait DbConnection {
         language_exact: bool,tag: Option<String>,tag_exact: bool,tag_list: Vec<String>,
         codec: Option<String>,
         bitrate_min: u32,bitrate_max: u32,order: &str,reverse: bool,hidebroken: bool,offset: u32,limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
-    fn get_changes(&self, stationuuid: Option<String>, changeuuid: Option<String>) -> Result<Vec<StationHistoryItem>, Box<dyn Error>>;
+    fn get_changes(&self, stationuuid: Option<String>, changeuuid: Option<String>, limit: u32) -> Result<Vec<StationHistoryItem>, Box<dyn Error>>;
     fn get_changes_for_stations(&self, station_uuids: Vec<String>) -> Result<Vec<StationHistoryItem>, Box<dyn Error>>;
     
     fn add_station_opt(&self, name: Option<String>, url: Option<String>, homepage: Option<String>, favicon: Option<String>,
@@ -56,7 +56,7 @@ pub trait DbConnection {
     fn get_pull_server_lastclickid(&self, server: &str) -> Result<Option<String>, Box<dyn Error>>;
     fn set_pull_server_lastclickid(&self, server: &str, lastclickuuid: &str) -> Result<(),Box<dyn std::error::Error>>;
 
-    fn insert_station_by_change(&self, list_station_changes: &Vec<StationChangeItemNew>) -> Result<Vec<String>,Box<dyn std::error::Error>>;
+    fn insert_station_by_change(&self, list_station_changes: &[StationChangeItemNew]) -> Result<Vec<String>,Box<dyn std::error::Error>>;
 
     fn get_extra(&self, table_name: &str, column_name: &str, search: Option<String>, order: String, reverse: bool, hidebroken: bool) -> Result<Vec<ExtraInfo>, Box<dyn Error>>;
     fn get_1_n(&self, column: &str, search: Option<String>, order: String, reverse: bool, hidebroken: bool) -> Result<Vec<ExtraInfo>, Box<dyn Error>>;

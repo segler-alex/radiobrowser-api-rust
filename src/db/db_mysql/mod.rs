@@ -144,7 +144,8 @@ impl MysqlConnection {
         Ok(list_result)
     }
 
-    fn insert_station_by_change_internal(transaction: &mut mysql::Transaction<'_>, stationchanges: &Vec<StationChangeItemNew>) -> Result<Vec<String>,Box<dyn std::error::Error>> {
+    fn insert_station_by_change_internal(transaction: &mut mysql::Transaction<'_>, stationchanges: &[StationChangeItemNew])
+         -> Result<Vec<String>,Box<dyn std::error::Error>> {
         // filter out changes that already exist in the database
         let changeuuids: Vec<String> = stationchanges.iter().map(|item|item.changeuuid.clone()).collect();
         let changeexists = MysqlConnection::stationchange_exists(transaction, &changeuuids)?;
@@ -633,7 +634,7 @@ impl DbConnection for MysqlConnection {
         self.get_list_from_query_result(results)
     }
 
-    fn get_changes(&self, stationuuid: Option<String>, changeuuid: Option<String>) -> Result<Vec<StationHistoryItem>, Box<dyn Error>> {
+    fn get_changes(&self, stationuuid: Option<String>, changeuuid: Option<String>, limit: u32) -> Result<Vec<StationHistoryItem>, Box<dyn Error>> {
         let changeuuid_str = if changeuuid.is_some() {
             " AND StationChangeID >= IFNULL((SELECT StationChangeID FROM StationHistory WHERE ChangeUuid=:changeuuid),0)
               AND StationChangeID <= (SELECT MAX(StationChangeID) FROM StationHistory WHERE Creation <= UTC_TIMESTAMP() - INTERVAL 60 SECOND)
@@ -656,7 +657,7 @@ impl DbConnection for MysqlConnection {
                 CountryCode,
                 Language,Votes,
                 Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated
-                from StationHistory WHERE 1=:mynumber {changeuuid_str} {stationuuid} ORDER BY StationChangeID ASC", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str);
+                from StationHistory WHERE 1=:mynumber {changeuuid_str} {stationuuid} ORDER BY StationChangeID ASC LIMIT {limit}", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str, limit = limit);
         let mut conn = self.pool.get_conn()?;
         let results = conn.exec_iter(query, params! {
             "mynumber" => 1,
@@ -854,7 +855,7 @@ impl DbConnection for MysqlConnection {
         Ok(())
     }
 
-    fn insert_station_by_change(&self, list_station_changes: &Vec<StationChangeItemNew>) -> Result<Vec<String>,Box<dyn std::error::Error>> {
+    fn insert_station_by_change(&self, list_station_changes: &[StationChangeItemNew]) -> Result<Vec<String>,Box<dyn std::error::Error>> {
         let mut transaction = self.pool.start_transaction(TxOpts::default())?;
 
         let list_ids = MysqlConnection::insert_station_by_change_internal(&mut transaction, list_station_changes)?;
