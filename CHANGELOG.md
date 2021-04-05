@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 * API: check url and homepage on insert if correct
 * CHECK: always ignore text/html urls
+* CLEAN: clean urls in db
 
 ## [0.7.6] 2021-04-03
 ### Added

@@ -30,6 +30,11 @@ fn do_cleanup(
         conn_new_style.delete_removed_from_history()?;
     }
 
+    conn_new_style.clean_urls("Station", "StationUuid", "Url", false)?;
+    conn_new_style.clean_urls("Station", "StationUuid", "Homepage", true)?;
+    conn_new_style.clean_urls("Station", "StationUuid", "UrlCache", true)?;
+    conn_new_style.clean_urls("StationHistory", "StationUuid", "Url", false)?;
+    conn_new_style.clean_urls("StationHistory", "StationUuid", "Homepage", true)?;
     conn_new_style.update_stations_clickcount()?;
     conn_new_style.remove_unused_ip_infos_from_stationclicks(click_valid_timeout)?;
     conn_new_style.remove_illegal_icon_links()?;

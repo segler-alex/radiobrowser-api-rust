@@ -2,6 +2,7 @@ mod migrations;
 mod simple_migrate;
 mod conversions;
 
+use mysql::from_row;
 use url::Url;
 use mysql::Params;
 use std::collections::HashSet;
@@ -231,6 +232,49 @@ impl DbConnection for MysqlConnection {
         transaction.commit()?;
         trace!("calc_country_field() 4");
 
+        Ok(())
+    }
+
+    fn clean_urls(&self, table_name: &str, column_key: &str, column_url: &str, allow_empty: bool) -> Result<(), Box<dyn Error>> {
+        trace!("cleanurls({},{},{}) started..", table_name, column_key, column_url);
+        let mut conn = self.pool.get_conn()?;
+        let result_sets: Vec<(String,String)> = conn.query_iter(format!("SELECT {column_key},{column_url} FROM {table_name}", column_key = column_key, column_url = column_url, table_name = table_name))?
+            .filter_map(|row| ok_output(row.map(from_row::<(String, String)>),"Unable to decode row"))
+            .filter_map(|r| {
+                match fix_url(&r.1, allow_empty) {
+                    Ok(url) => {
+                        if !r.1.eq(&url){
+                            // parse ok and url changed
+                            // -> change row in DB
+                            Some((r.0, url))
+                        }else{
+                            // parse ok and url did not chang
+                            // -> do nothing
+                            None
+                        }
+                    },
+                    Err(e) => {
+                        if allow_empty {
+                            // parse failed and empty is allowed
+                            // -> reset broken value to empty
+                            warn!("url parse failed of '{}': {}", r.1, e);
+                            Some((r.0, "".to_string()))
+                        }else{
+                            // parse failed and empty is not allowed
+                            // -> make it an error
+                            // -> TODO: should remove line from DB
+                            error!("url parse failed of '{}': {}", r.1, e);
+                            None
+                        }
+                    }
+                }
+            })
+            .collect();
+        trace!("cleanurls({},{},{}) todo {}", table_name, column_key, column_url, result_sets.len());
+        conn.exec_batch(format!("UPDATE {table_name} SET {column_url}=:url WHERE {column_key}=:uuid", table_name = table_name, column_url = column_url, column_key = column_key),
+            result_sets.iter().map(|(uuid,url)|params!{uuid,url}))?;
+        
+        trace!("cleanurls({},{},{}) finished", table_name, column_key, column_url);
         Ok(())
     }
 
@@ -1616,4 +1660,11 @@ fn fix_url(u: &str, allow_empty: bool) -> Result<String, Box<dyn std::error::Err
     }
     let url = url.to_string();
     Ok(url)
+}
+
+fn ok_output<U,V>(t: Result<U, V>, msg: &str) -> Option<U> where V: std::error::Error {
+    match t {
+        Ok(u) => Some(u),
+        Err(v) => {error!("{}: {}", msg, v); None}
+    }
 }
