@@ -2,6 +2,7 @@ mod migrations;
 mod simple_migrate;
 mod conversions;
 
+use url::Url;
 use mysql::Params;
 use std::collections::HashSet;
 use crate::db::db_error::DbError;
@@ -704,8 +705,9 @@ impl DbConnection for MysqlConnection {
                         VALUES(:name, :url, :homepage, :favicon, :country, :countrycode, :state, :language, :tags, :changeuuid, :stationuuid, '', UTC_TIMESTAMP())");
 
         let name = name.ok_or(DbError::AddStationError(String::from("name is empty")))?;
-        let url = url.ok_or(DbError::AddStationError(String::from("url is empty")))?;
-        
+        let url = url.map(|x|fix_url(&x, false)).transpose()?;
+        let homepage = homepage.map(|x|fix_url(&x, true)).transpose()?;
+
         if countrycode.len() != 2 {
             return Err(Box::new(DbError::AddStationError(String::from("countrycode does not have exactly 2 chars"))));
         }
@@ -1596,4 +1598,22 @@ fn filter_order_1_n(order: &str) -> Result<&str, Box<dyn Error>> {
         "stationcount" => Ok("stationcount"),
         _ => Err(Box::new(DbError::IllegalOrderError(String::from(order)))),
     }
+}
+
+fn fix_url(u: &str, allow_empty: bool) -> Result<String, Box<dyn std::error::Error>> {
+    let url_str = u.trim();
+    if url_str.is_empty() {
+        if allow_empty {
+            return Ok(url_str.to_string());
+        }else{
+            return Err(Box::new(DbError::AddStationError(String::from("empty url not allowed"))));
+        }
+    }
+    let url = Url::parse(url_str)?;
+    let scheme = url.scheme().to_lowercase();
+    if !scheme.eq("http") && !scheme.eq("https") {
+        return Err(Box::new(DbError::AddStationError(String::from("unknown url scheme"))));
+    }
+    let url = url.to_string();
+    Ok(url)
 }
