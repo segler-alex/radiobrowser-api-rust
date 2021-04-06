@@ -38,6 +38,12 @@ pub struct StationCheck {
     pub favicon: Option<String>,
     pub loadbalancer: Option<String>,
     pub do_not_index: Option<u8>,
+    
+    pub countrysubdivisioncode: Option<String>,
+    pub server_software: Option<String>,
+    pub sampling: Option<u32>,
+    pub timing_ms: Option<u128>,
+    pub languagecodes: Option<String>,
 }
 
 impl StationCheck {
@@ -62,6 +68,12 @@ impl StationCheck {
         favicon: Option<String>,
         loadbalancer: Option<String>,
         do_not_index: Option<u8>,
+        
+        countrysubdivisioncode: Option<String>,
+        server_software: Option<String>,
+        sampling: Option<u32>,
+        timing_ms: u128,
+        languagecodes: Option<String>,
     ) -> Self {
         StationCheck {
             stationuuid,
@@ -84,6 +96,12 @@ impl StationCheck {
             favicon,
             loadbalancer,
             do_not_index,
+
+            countrysubdivisioncode,
+            server_software,
+            sampling,
+            timing_ms: Some(timing_ms),
+            languagecodes,
         }
     }
 
@@ -123,6 +141,12 @@ impl StationCheck {
             xml.attr_esc("loadbalancer", &entry.loadbalancer.unwrap_or_default())?;
             xml.attr_esc("favicon", &entry.favicon.unwrap_or_default())?;
             xml.attr_esc("countrycode", &entry.countrycode.unwrap_or_default())?;
+
+            xml.attr_esc("countrysubdivisioncode", &entry.countrysubdivisioncode.unwrap_or_default())?;
+            xml.attr_esc("server_software", &entry.server_software.unwrap_or_default())?;
+            xml.attr_esc("sampling", &entry.sampling.unwrap_or(0).to_string())?;
+            xml.attr_esc("timing_ms", &entry.timing_ms.unwrap_or(0).to_string())?;
+            xml.attr_esc("languagecodes", &entry.languagecodes.unwrap_or_default())?;
             xml.end_elem()?;
         }
         xml.end_elem()?;
@@ -166,6 +190,12 @@ impl TryFrom<StationCheckV0> for StationCheck {
             favicon: None,
             loadbalancer: None,
             do_not_index: None,
+
+            countrysubdivisioncode: None,
+            server_software: None,
+            sampling: None,
+            timing_ms: None,
+            languagecodes: None,
         })
     }
 }
@@ -193,6 +223,12 @@ impl From<StationCheckItem> for StationCheck {
             item.favicon,
             item.loadbalancer,
             item.do_not_index.map(|x| if x {1} else {0}),
+
+            item.countrysubdivisioncode,
+            item.server_software,
+            item.sampling,
+            item.timing_ms,
+            item.languagecodes,
         )
     }
 }

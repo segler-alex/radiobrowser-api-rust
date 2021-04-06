@@ -105,11 +105,9 @@ fn mainloop() -> Result<(), Box<dyn Error>> {
                             config.source,
                             config.concurrency,
                             config.check_stations,
-                            config.useragent,
                             config.tcp_timeout.as_secs(),
                             config.max_depth,
                             config.retries,
-                            config.favicon,
                             config.enable_check,
                             config.pause.as_secs(),
                         );

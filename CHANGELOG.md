@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 * DB: save more information from checks (ServerSoftware, Sampling, LanguageCodes, TimingMs, CountrySubdivisionCode)
+* API: add more information for checks
 
 ## [0.7.7] 2021-04-05
 ### Added

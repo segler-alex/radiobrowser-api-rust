@@ -59,7 +59,8 @@ impl MysqlConnection {
     UrlCache,
     MetainfoOverridesDatabase,Public,Name,
     Description,Tags,CountryCode,
-    Homepage,Favicon,Loadbalancer";
+    Homepage,Favicon,Loadbalancer,
+    CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs";
 
     const COLUMNS_CLICK: &'static str =
         "ClickID, StationUuid, ClickUuid, IP,

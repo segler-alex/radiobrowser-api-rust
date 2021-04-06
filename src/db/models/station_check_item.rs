@@ -22,4 +22,10 @@ pub struct StationCheckItem {
     pub favicon: Option<String>,
     pub loadbalancer: Option<String>,
     pub do_not_index: Option<bool>,
+
+    pub countrysubdivisioncode: Option<String>,
+    pub server_software: Option<String>,
+    pub sampling: Option<u32>,
+    pub timing_ms: u128,
+    pub languagecodes: Option<String>,
 }

@@ -28,6 +28,12 @@ impl From<Row> for StationCheckItem {
             favicon:        row.take_opt("Favicon").transpose().unwrap_or(None),
             loadbalancer:   row.take_opt("Loadbalancer").transpose().unwrap_or(None),
             do_not_index:   row.take_opt("DoNotIndex").transpose().unwrap_or(None),
+
+            countrysubdivisioncode: row.take_opt("CountrySubdivisionCode").transpose().unwrap_or(None),
+            server_software: row.take_opt("ServerSoftware").transpose().unwrap_or(None),
+            sampling:        row.take_opt("Sampling").transpose().unwrap_or(None),
+            timing_ms:       row.take_opt("TimingMs").unwrap_or(Ok(0)).unwrap_or(0),
+            languagecodes:   row.take_opt("LanguageCodes").transpose().unwrap_or(None),
         }
     }
 }

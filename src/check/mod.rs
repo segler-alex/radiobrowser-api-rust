@@ -9,11 +9,9 @@ pub fn start(
     source: String,
     concurrency: usize,
     check_stations: u32,
-    useragent: String,
     tcp_timeout: u64,
     max_depth: u8,
     retries: u8,
-    favicon: bool,
     enable_check: bool,
     pause_seconds: u64,
 ) {
@@ -25,11 +23,9 @@ pub fn start(
                 &source,
                 concurrency,
                 check_stations,
-                &useragent,
                 tcp_timeout,
                 max_depth,
                 retries,
-                favicon,
             );
             match result {
                 Ok(_)=>{},

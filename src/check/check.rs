@@ -6,11 +6,9 @@ use crate::db::models::StationCheckItemNew;
 use rayon::prelude::*;
 
 use av_stream_info_rust;
-use crate::check::favicon;
 
 use std;
 
-use crate::db::DbConnection;
 use crate::db::connect;
 
 use colored::*;
@@ -24,7 +22,6 @@ pub struct StationOldNew {
 fn check_for_change(
     old: &models::StationItem,
     new: &StationCheckItemNew,
-    new_favicon: &str,
     timing_ms: u128,
 ) -> (bool, String) {
     let mut retval = false;
@@ -62,11 +59,12 @@ fn check_for_change(
     /*if old.urlcache != new.url{
         debug!("  url      :{}->{}",old.urlcache,new.url);
         retval = true;
-    }*/
+    }
     if old.favicon != new_favicon {
         result.push_str(&format!(" favicon: {} -> {}", old.favicon, new_favicon));
         retval = true;
     }
+    */
     result.push_str(&format!(" ({}ms)",timing_ms));
     if old.lastcheckok != new.check_ok {
         if new.check_ok {
@@ -77,28 +75,6 @@ fn check_for_change(
     } else {
         return (retval, result.yellow().to_string());
     }
-}
-
-fn update_station(
-    conn: &Box<dyn DbConnection>,
-    old: &models::StationItem,
-    new_item: StationCheckItemNew,
-    new_favicon: &str,
-    timing_ms: u128,
-) -> Result<(), Box<dyn std::error::Error>> {
-    // output debug
-    let (changed, change_str) = check_for_change(&old, &new_item, new_favicon, timing_ms);
-    if changed {
-        debug!("{}", change_str.red());
-    } else {
-        debug!("{}", change_str.dimmed());
-    }
-
-    // do real insert
-    let list_new = vec!(new_item);
-    let (_x,_y,inserted) = conn.insert_checks(list_new)?;
-    conn.update_station_with_check_data(&inserted, true)?;
-    Ok(())
 }
 
 fn dbcheck_internal(
@@ -200,33 +176,34 @@ pub fn dbcheck(
     source: &str,
     concurrency: usize,
     stations_count: u32,
-    useragent: &str,
     timeout: u64,
     max_depth: u8,
     retries: u8,
-    favicon_checks: bool,
 ) -> Result<usize, Box<dyn std::error::Error>> {
     let mut conn = connect(connection_str)?;
     let stations = conn.get_stations_to_check(24, stations_count)?;
-    let useragent = String::from(useragent);
     let checked_count = stations.len();
 
     let pool = rayon::ThreadPoolBuilder::new().num_threads(concurrency).build()?;
-    let results: Vec<_> = pool.install(||{
+    let mut results: Vec<_> = pool.install(||{
         stations.into_par_iter().map(|station| 
             dbcheck_internal(station, source, timeout, max_depth, retries)
         ).collect()
     });
-    for result in results {
-        let station = result.station;
-        let check = result.check;
-        let timing_ms = check.timing_ms;
-        if favicon_checks {
-            let new_favicon = favicon::check(&station.homepage, &station.favicon, &useragent, timeout as u32)?;
-            update_station(&mut conn, &station, check, &new_favicon, timing_ms)?;
+    for result in results.iter() {
+        let timing_ms = result.check.timing_ms;
+        let (changed, change_str) = check_for_change(&result.station, &result.check, timing_ms);
+        if changed {
+            debug!("{}", change_str.red());
         } else {
-            update_station(&mut conn, &station, check, &station.favicon, timing_ms)?;
+            debug!("{}", change_str.dimmed());
         }
     }
+
+    // do real insert
+    let checks: Vec<_> = results.drain(..).map(|x|x.check).collect();
+    let (_x,_y,inserted) = conn.insert_checks(checks)?;
+    conn.update_station_with_check_data(&inserted, true)?;
+
     Ok(checked_count)
 }

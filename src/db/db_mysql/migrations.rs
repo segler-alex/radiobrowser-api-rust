@@ -418,5 +418,9 @@ r#"ALTER TABLE StationCheckHistory DROP COLUMN LanguageCodes;"#);
 r#"ALTER TABLE StationCheckHistory ADD COLUMN TimingMs INT UNSIGNED NULL;"#,
 r#"ALTER TABLE StationCheckHistory DROP COLUMN TimingMs;"#);
 
+    migrations.add_migration("20210406_233500_Recreate_View_StationCheck",
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex,CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#,
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#);
+
     Ok(migrations)
 }
