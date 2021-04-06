@@ -25,6 +25,7 @@ mysql = "20.1.0"
 native-tls = "0.2.7"
 percent-encoding = "2.1.0"
 prometheus = { version = "0.12.0" }
+rayon = "1.5.0"
 redis = { version = "0.20.0" }
 reqwest = { version = "0.11.2", features = ["blocking", "json"] }
 rouille = "3.0.0"

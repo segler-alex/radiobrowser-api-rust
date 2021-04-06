@@ -402,5 +402,21 @@ r#"ALTER TABLE StationCheckHistory DROP COLUMN DoNotIndex;"#);
 r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#,
 r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#);
 
+    migrations.add_migration("20210406_230000_Add_StationCheckHistory_ServerSoftware",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN ServerSoftware TEXT NULL;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN ServerSoftware;"#);
+
+    migrations.add_migration("20210406_230001_Add_StationCheckHistory_Sampling",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN Sampling INT UNSIGNED NULL;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN Sampling;"#);
+
+    migrations.add_migration("20210406_230002_Add_StationCheckHistory_LanguageCodes",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN LanguageCodes TEXT NULL;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN LanguageCodes;"#);
+
+    migrations.add_migration("20210406_230003_Add_StationCheckHistory_TimingMs",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN TimingMs INT UNSIGNED NULL;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN TimingMs;"#);
+
     Ok(migrations)
 }

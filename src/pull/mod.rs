@@ -343,6 +343,7 @@ impl From<StationCheck> for StationCheckItemNew {
             station_uuid: item.stationuuid,
             check_ok: item.ok == 1,
             bitrate: item.bitrate,
+            sampling: None,
             codec: item.codec,
             hls: item.hls == 1,
             source: item.source,
@@ -355,10 +356,14 @@ impl From<StationCheck> for StationCheckItemNew {
             description: item.description,
             tags: item.tags,
             countrycode: item.countrycode,
+            countrysubdivisioncode: None,
+            languagecodes: vec![],
             homepage: item.homepage,
             favicon: item.favicon,
             loadbalancer: item.loadbalancer,
             do_not_index: item.do_not_index.map(|x| x == 1),
+            timing_ms: 0,
+            server_software: None,
         }
     }
 }
