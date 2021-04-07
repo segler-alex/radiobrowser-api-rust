@@ -1882,7 +1882,6 @@ dependencies = [
  "toml",
  "url 2.2.1",
  "uuid",
- "website-icon-extract",
  "xml_writer",
 ]
 
@@ -3136,17 +3135,6 @@ checksum = "a905d57e488fec8861446d3393670fb50d27a262344013181c2cdf9fff5481be"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "website-icon-extract"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee16efa8f37a7f98e3bf67526ccec7f27ce8100e106780c4cc067a73f24e86b5"
-dependencies = [
- "native-tls",
- "quick-xml",
- "url 2.2.1",
 ]
 
 [[package]]

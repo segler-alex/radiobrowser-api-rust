@@ -24,7 +24,7 @@ extern crate hostname;
 extern crate native_tls;
 extern crate reqwest;
 extern crate threadpool;
-extern crate website_icon_extract;
+//extern crate website_icon_extract;
 use core::fmt::Display;
 use core::fmt::Formatter;
 use std::error::Error;

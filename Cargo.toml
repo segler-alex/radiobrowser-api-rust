@@ -37,7 +37,6 @@ threadpool = "1.8.1"
 toml = "0.5.8"
 url = "2.2.1"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
-website-icon-extract = "0.4.2"
 xml_writer = "0.4.0"
 
 [package.metadata.deb]
