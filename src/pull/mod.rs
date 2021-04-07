@@ -343,7 +343,7 @@ impl From<StationCheck> for StationCheckItemNew {
             station_uuid: item.stationuuid,
             check_ok: item.ok == 1,
             bitrate: item.bitrate,
-            sampling: None,
+            sampling: item.sampling,
             codec: item.codec,
             hls: item.hls == 1,
             source: item.source,
@@ -356,14 +356,14 @@ impl From<StationCheck> for StationCheckItemNew {
             description: item.description,
             tags: item.tags,
             countrycode: item.countrycode,
-            countrysubdivisioncode: None,
-            languagecodes: vec![],
+            countrysubdivisioncode: item.countrysubdivisioncode,
+            languagecodes: item.languagecodes,
             homepage: item.homepage,
             favicon: item.favicon,
             loadbalancer: item.loadbalancer,
             do_not_index: item.do_not_index.map(|x| x == 1),
-            timing_ms: 0,
-            server_software: None,
+            timing_ms: item.timing_ms.unwrap_or(0),
+            server_software: item.server_software,
         }
     }
 }

@@ -18,7 +18,7 @@ pub struct StationCheckItemNew {
     pub tags: Option<String>,
     pub countrycode: Option<String>,
     pub countrysubdivisioncode: Option<String>,
-    pub languagecodes: Vec<String>,
+    pub languagecodes: Option<String>,
     pub homepage: Option<String>,
     pub favicon: Option<String>,
     pub loadbalancer: Option<String>,

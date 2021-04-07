@@ -1030,7 +1030,7 @@ impl DbConnection for MysqlConnection {
             
             insert_station_check_params.push(item.server_software.clone().into());
             insert_station_check_params.push(item.sampling.clone().into());
-            insert_station_check_params.push(item.languagecodes.join(",").into());
+            insert_station_check_params.push(item.languagecodes.clone().into());
             insert_station_check_params.push(item.timing_ms.clone().into());
             insert_station_check_params.push(item.countrysubdivisioncode.clone().into());
 
