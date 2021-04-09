@@ -89,51 +89,45 @@ fn dbcheck_internal(
     let mut items = av_stream_info_rust::check(&station.url, timeout as u32, max_depth, retries);
     let timing_ms = now.elapsed().as_millis();
     for item in items.drain(..) {
-        match item {
-            Ok(item) => {
-                let override_metadata = item.OverrideIndexMetaData.unwrap_or(false);
-                let do_not_index = item.DoNotIndex.unwrap_or(false);
-                if do_not_index && override_metadata {
-                    // ignore non public streams
-                    debug!("Ignore private stream: {} - {}", station.stationuuid, item.Url);
-                }else{
-                    let mut codec = item.CodecAudio.clone();
-                    if let Some(ref video) = item.CodecVideo {
-                        codec.push_str(",");
-                        codec.push_str(&video);
-                    }
-                    let check = StationCheckItemNew {
-                        checkuuid: None,
-                        station_uuid: station.stationuuid.clone(),
-                        source: source.clone(),
-                        codec: codec,
-                        bitrate: item.Bitrate.unwrap_or(0),
-                        sampling: item.Sampling,
-                        hls: item.Hls,
-                        check_ok: true,
-                        url: item.Url.clone(),
-                        timestamp: None,
-
-                        metainfo_overrides_database: override_metadata,
-                        public: item.Public,
-                        name: item.Name,
-                        description: item.Description,
-                        tags: item.Genre,
-                        countrycode: item.CountryCode,
-                        countrysubdivisioncode: item.CountrySubdivisonCode,
-                        languagecodes: Some(item.LanguageCodes.join(",")),
-                        homepage: item.Homepage,
-                        favicon: item.LogoUrl,
-                        loadbalancer: item.MainStreamUrl,
-                        do_not_index: item.DoNotIndex,
-                        timing_ms,
-                        server_software: item.Server,
-                    };
-                    return StationOldNew {
-                        station,
-                        check,
-                    };
+        let url = item.url().to_string();
+        match item.info {
+            Ok(info) => {
+                let mut codec = info.CodecAudio.clone();
+                if let Some(ref video) = info.CodecVideo {
+                    codec.push_str(",");
+                    codec.push_str(&video);
                 }
+                let check = StationCheckItemNew {
+                    checkuuid: None,
+                    station_uuid: station.stationuuid.clone(),
+                    source: source.clone(),
+                    codec: codec,
+                    bitrate: info.Bitrate.unwrap_or(0),
+                    sampling: info.Sampling,
+                    hls: info.Hls,
+                    check_ok: true,
+                    url,
+                    timestamp: None,
+
+                    metainfo_overrides_database: info.OverrideIndexMetaData.unwrap_or(false),
+                    public: info.Public,
+                    name: info.Name,
+                    description: info.Description,
+                    tags: info.Genre,
+                    countrycode: info.CountryCode,
+                    countrysubdivisioncode: info.CountrySubdivisonCode,
+                    languagecodes: Some(info.LanguageCodes.join(",")),
+                    homepage: info.Homepage,
+                    favicon: info.LogoUrl,
+                    loadbalancer: info.MainStreamUrl,
+                    do_not_index: info.DoNotIndex,
+                    timing_ms,
+                    server_software: info.Server,
+                };
+                return StationOldNew {
+                    station,
+                    check,
+                };
             }
             Err(_) => {}
         }
