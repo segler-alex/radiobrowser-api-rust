@@ -34,6 +34,7 @@ impl From<Row> for StationCheckItem {
             sampling:        row.take_opt("Sampling").transpose().unwrap_or(None),
             timing_ms:       row.take_opt("TimingMs").unwrap_or(Ok(0)).unwrap_or(0),
             languagecodes:   row.take_opt("LanguageCodes").transpose().unwrap_or(None),
+            ssl_error:       row.take_opt("SslError").unwrap_or(Ok(0)).unwrap_or(0) == 1,
         }
     }
 }

@@ -28,4 +28,5 @@ pub struct StationCheckItem {
     pub sampling: Option<u32>,
     pub timing_ms: u128,
     pub languagecodes: Option<String>,
+    pub ssl_error: bool,
 }

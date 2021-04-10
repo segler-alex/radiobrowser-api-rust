@@ -422,5 +422,13 @@ r#"ALTER TABLE StationCheckHistory DROP COLUMN TimingMs;"#);
 r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex,CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#,
 r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#);
 
+    migrations.add_migration("20210409_190003_Add_StationCheckHistory_SslError",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN SslError BOOLEAN NOT NULL DEFAULT FALSE;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN SslError;"#);
+
+    migrations.add_migration("20210409_190010_Recreate_View_StationCheck",
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex,CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs,SslError FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#,
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex,CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#);
+
     Ok(migrations)
 }

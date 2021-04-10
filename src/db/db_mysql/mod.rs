@@ -60,7 +60,7 @@ impl MysqlConnection {
     MetainfoOverridesDatabase,Public,Name,
     Description,Tags,CountryCode,
     Homepage,Favicon,Loadbalancer,
-    CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs";
+    CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs,SslError";
 
     const COLUMNS_CLICK: &'static str =
         "ClickID, StationUuid, ClickUuid, IP,

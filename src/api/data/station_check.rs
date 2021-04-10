@@ -44,6 +44,7 @@ pub struct StationCheck {
     pub sampling: Option<u32>,
     pub timing_ms: Option<u128>,
     pub languagecodes: Option<String>,
+    pub ssl_error: u8,
 }
 
 impl StationCheck {
@@ -74,6 +75,7 @@ impl StationCheck {
         sampling: Option<u32>,
         timing_ms: u128,
         languagecodes: Option<String>,
+        ssl_error: u8,
     ) -> Self {
         StationCheck {
             stationuuid,
@@ -102,6 +104,7 @@ impl StationCheck {
             sampling,
             timing_ms: Some(timing_ms),
             languagecodes,
+            ssl_error,
         }
     }
 
@@ -147,6 +150,7 @@ impl StationCheck {
             xml.attr_esc("sampling", &entry.sampling.unwrap_or(0).to_string())?;
             xml.attr_esc("timing_ms", &entry.timing_ms.unwrap_or(0).to_string())?;
             xml.attr_esc("languagecodes", &entry.languagecodes.unwrap_or_default())?;
+            xml.attr_esc("ssl_error", &entry.ssl_error.to_string())?;
             xml.end_elem()?;
         }
         xml.end_elem()?;
@@ -196,6 +200,7 @@ impl TryFrom<StationCheckV0> for StationCheck {
             sampling: None,
             timing_ms: None,
             languagecodes: None,
+            ssl_error: 0,
         })
     }
 }
@@ -229,6 +234,7 @@ impl From<StationCheckItem> for StationCheck {
             item.sampling,
             item.timing_ms,
             item.languagecodes,
+            if item.ssl_error { 1 } else { 0 },
         )
     }
 }

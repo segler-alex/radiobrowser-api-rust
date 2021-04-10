@@ -7,8 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 * API: fields server_location and server_country_code to /json/config and /xml/config
-
+* CHECK: added attribute ssl_error to /json/checks endpoint
 ### Changed
+* CHECK: do not ignore streams with broken ssl, just mark them
 * Dependency upgrade: av-stream-info-rust 0.9.0
 
 ### Fixed

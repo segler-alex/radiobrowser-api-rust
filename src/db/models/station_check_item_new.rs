@@ -25,4 +25,5 @@ pub struct StationCheckItemNew {
     pub do_not_index: Option<bool>,
     pub timing_ms: u128,
     pub server_software: Option<String>,
+    pub ssl_error: bool,
 }

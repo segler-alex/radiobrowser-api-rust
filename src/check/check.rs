@@ -123,6 +123,7 @@ fn dbcheck_internal(
                     do_not_index: info.DoNotIndex,
                     timing_ms,
                     server_software: info.Server,
+                    ssl_error: info.SslError,
                 };
                 return StationOldNew {
                     station,
@@ -158,6 +159,7 @@ fn dbcheck_internal(
         do_not_index: None,
         timing_ms,
         server_software: None,
+        ssl_error: false,
     };
     return StationOldNew {
         station,
