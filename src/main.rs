@@ -1,28 +1,12 @@
 #[macro_use]
 extern crate clap;
-extern crate handlebars;
-extern crate url;
 #[macro_use]
 extern crate mysql;
-extern crate toml;
 #[macro_use]
 extern crate log;
-
-extern crate humantime;
-extern crate uuid;
-
-extern crate memcache;
-extern crate redis;
 #[macro_use]
 extern crate prometheus;
 
-extern crate av_stream_info_rust;
-extern crate colored;
-extern crate hostname;
-extern crate native_tls;
-extern crate reqwest;
-extern crate threadpool;
-//extern crate website_icon_extract;
 use core::fmt::Display;
 use core::fmt::Formatter;
 use std::error::Error;

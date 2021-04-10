@@ -12,7 +12,7 @@ use std;
 use std::collections::HashMap;
 
 use celes::Country;
-use crate::uuid::Uuid;
+use uuid::Uuid;
 use crate::db::models::State;
 use crate::db::models::ExtraInfo;
 use crate::db::models::StationItem;
