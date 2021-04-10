@@ -16,6 +16,8 @@ pub struct ApiConfig {
     pub mirror_pull_interval_seconds: u64,
     pub update_caches_interval_seconds: u64,
     pub server_name: String,
+    pub server_location: String,
+    pub server_country_code: String,
     pub check_retries: u8,
     pub check_batchsize: u32,
     pub check_pause_seconds: u64,
@@ -75,6 +77,8 @@ impl ApiConfig {
             &config.update_caches_interval_seconds.to_string(),
         )?;
         xml.elem_text("server_name", &config.server_name)?;
+        xml.elem_text("server_location", &config.server_location)?;
+        xml.elem_text("server_country_code", &config.server_country_code)?;
 
         xml.elem_text("check_retries", &config.check_retries.to_string())?;
         xml.elem_text("check_batchsize", &config.check_batchsize.to_string())?;
@@ -123,6 +127,8 @@ impl From<Config> for ApiConfig {
             api_threads: item.threads,
             cache_type: item.cache_type.into(),
             cache_ttl: item.cache_ttl.as_secs(),
+            server_location: item.server_location,
+            server_country_code: item.server_country_code,
         }
     }
 }

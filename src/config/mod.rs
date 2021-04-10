@@ -57,6 +57,8 @@ pub struct Config {
     pub server_url: String,
     pub servers_pull: Vec<String>,
     pub source: String,
+    pub server_location: String,
+    pub server_country_code: String,
     pub static_files_dir: String,
     pub tcp_timeout: Duration,
     pub threads: usize,
@@ -346,6 +348,20 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name("server-location")
+                .long("server-location")
+                .help("freeform location server string")
+                .env("SERVERLOCATION")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("server-country-code")
+                .long("server-country-code")
+                .help("2 letter country code for server location")
+                .env("SERVERCOUNTRYCODE")
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("useragent")
                 .long("useragent")
                 .value_name("USERAGENT")
@@ -561,6 +577,8 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
     let max_depth: u8 = get_option_number(&matches, &config, "max-depth", 5)? as u8;
     let retries: u8 = get_option_number(&matches, &config, "retries", 5)? as u8;
     let source: String = get_option_string(&matches, &config, "source", hostname_str)?;
+    let server_location: String = get_option_string(&matches, &config, "server-location", String::from(""))?;
+    let server_country_code: String = get_option_string(&matches, &config, "server-country-code", String::from(""))?;
     let useragent = get_option_string(&matches, &config, "useragent", String::from("stream-check/0.1"))?;
     let click_valid_timeout = get_option_duration(&matches, &config, "click-valid-timeout", String::from("1day"))?;
     let broken_stations_never_working_timeout = get_option_duration(&matches, &config, "broken-stations-never-working-timeout", String::from("3days"))?;
@@ -621,6 +639,8 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         server_url,
         servers_pull,
         source,
+        server_location,
+        server_country_code,
         static_files_dir,
         tcp_timeout,
         threads,

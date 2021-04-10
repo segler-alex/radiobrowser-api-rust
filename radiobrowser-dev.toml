@@ -81,6 +81,10 @@ max-depth = 5
 retries = 5
 ## Hostname for the check-entries in the database, defaults to the local hostname
 #source = "myhostname"
+# Freeform location string for this server
+server-location = "Datacenter 2 in coolstreet"
+# 2 letter countrycode to locate this server
+server-country-code = "DE"
 ## User agent for the stream check
 #useragent = "useragent/1.0"
 
