@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Serialize,Deserialize};
 use std::error::Error;
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]

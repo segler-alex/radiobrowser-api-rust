@@ -1,6 +1,7 @@
 use crate::db::models::StationHistoryItem;
 use celes::Country;
 use std::error::Error;
+use serde::{Serialize,Deserialize};
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct StationHistoryV0 {

@@ -1,3 +1,5 @@
+use serde::{Serialize,Deserialize};
+
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct StationHistoryItem {
     pub id: i32,

@@ -1,3 +1,5 @@
+use serde::{Serialize,Deserialize};
+
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
 pub struct StationChangeItemNew {
     pub name: String,

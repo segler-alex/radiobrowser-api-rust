@@ -2,6 +2,7 @@ use crate::api::api_response::ApiResponse;
 use crate::db::models::StationClickItem;
 use std::convert::TryFrom;
 use std::error::Error;
+use serde::{Serialize,Deserialize};
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct StationClickV0 {

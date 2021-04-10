@@ -2,6 +2,7 @@ use crate::api::api_response::ApiResponse;
 use crate::api::data::StationHistoryCurrent;
 use crate::db::models::StationItem;
 use std::error::Error;
+use serde::{Serialize,Deserialize};
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct StationCachedInfo {

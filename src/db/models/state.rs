@@ -1,4 +1,5 @@
 use std::error::Error;
+use serde::{Serialize,Deserialize};
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct State {
