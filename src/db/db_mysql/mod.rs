@@ -1620,11 +1620,14 @@ impl DbConnection for MysqlConnection {
     -> Result<(),Box<dyn std::error::Error>> {
         let mut conn = self.pool.get_conn()?;
         conn.exec_batch(
-            r"INSERT INTO StationCheckStep (StationUuid,CheckUuid,UrlType,Error,StepUuid,InsertTime)
-              VALUES (:stationuuid, :checkuuid, :urltype, :error, UUID(), UTC_TIMESTAMP())",
+            r"INSERT INTO StationCheckStep (StationUuid,CheckUuid,Url,UrlType,Error,StepUuid,ParentStepUuid,InsertTime)
+              VALUES (:stationuuid, :checkuuid, :url, :urltype, :error, :stepuuid, :parentstepuuid, UTC_TIMESTAMP())",
             station_check_steps.iter().map(|p| params! {
                 "stationuuid" => &p.stationuuid,
                 "checkuuid" => &p.checkuuid,
+                "stepuuid" => &p.stepuuid,
+                "parentstepuuid" => &p.parent_stepuuid,
+                "url" => &p.url,
                 "urltype" => &p.urltype,
                 "error" => &p.error,
             })
@@ -1635,11 +1638,11 @@ impl DbConnection for MysqlConnection {
     fn select_station_check_steps(&self)
     -> Result<Vec<StationCheckStepItem>,Box<dyn std::error::Error>> {
         let mut conn = self.pool.get_conn()?;
-        let list = conn.query_map("SELECT Id,StationUuid,CheckUuid,UrlType,Error,StepUuid,ParentStepUuid,InsertTime FROM StationCheckStep",
-            |(id,stationuuid,checkuuid,urltype,error,stepuuid,parent_stepuuid,inserttime)| {
+        let list = conn.query_map("SELECT Id,StationUuid,CheckUuid,Url,UrlType,Error,StepUuid,ParentStepUuid,InsertTime FROM StationCheckStep",
+            |(id,stationuuid,checkuuid,url,urltype,error,stepuuid,parent_stepuuid,inserttime)| {
                 let inserttime = chrono::DateTime::<chrono::Utc>::from_utc(inserttime, chrono::Utc);
             StationCheckStepItem{
-                id,stepuuid,parent_stepuuid,checkuuid,stationuuid,urltype,error,inserttime
+                id,stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,inserttime
             }
         })?;
         Ok(list)
@@ -1656,12 +1659,12 @@ impl DbConnection for MysqlConnection {
                 select_query.push("?");
             }
 
-            let query = format!("SELECT Id,StationUuid,CheckUuid,UrlType,Error,StepUuid,ParentStepUuid,InsertTime FROM StationCheckStep WHERE StationUuid IN ({})", select_query.join(","));
+            let query = format!("SELECT Id,StationUuid,CheckUuid,Url,UrlType,Error,StepUuid,ParentStepUuid,InsertTime FROM StationCheckStep WHERE StationUuid IN ({})", select_query.join(","));
             let list = conn.query_map(query,
-                |(id,stationuuid,checkuuid,urltype,error,stepuuid,parent_stepuuid,inserttime)| {
+                |(id,stationuuid,checkuuid,url,urltype,error,stepuuid,parent_stepuuid,inserttime)| {
                 let inserttime = chrono::DateTime::<chrono::Utc>::from_utc(inserttime, chrono::Utc);
                 StationCheckStepItem{
-                    id,stepuuid,parent_stepuuid,checkuuid,stationuuid,urltype,error,inserttime
+                    id,stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,inserttime
                 }
             })?;
             Ok(list)

@@ -437,6 +437,7 @@ r#"CREATE TABLE `StationCheckStep` (
 `ParentStepUuid` char(36) DEFAULT NULL,
 `CheckUuid` char(36) NOT NULL,
 `StationUuid` char(36) NOT NULL,
+`Url` text NOT NULL,
 `UrlType` text DEFAULT NULL,
 `Error` text DEFAULT NULL,
 `InsertTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,

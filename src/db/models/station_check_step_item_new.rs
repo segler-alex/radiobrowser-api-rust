@@ -6,6 +6,7 @@ pub struct StationCheckStepItemNew {
     pub parent_stepuuid: Option<String>,
     pub checkuuid: String,
     pub stationuuid: String,
+    pub url: String,
     pub urltype: Option<String>,
     pub error: Option<String>,
 }

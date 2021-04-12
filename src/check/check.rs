@@ -94,7 +94,7 @@ fn flatten_check_result(
                         stationuuid.clone(),
                         source.to_string(),
                         timing_ms,
-                        url,
+                        url.to_string(),
                         info,
                     ));
                     let new_item = StationCheckStepItemNew {
@@ -102,6 +102,7 @@ fn flatten_check_result(
                         parent_stepuuid: parent,
                         checkuuid,
                         stationuuid,
+                        url,
                         urltype: Some("STREAM".to_string()),
                         error: None,
                     };
@@ -114,6 +115,7 @@ fn flatten_check_result(
                         parent_stepuuid: parent,
                         checkuuid: checkuuid.clone(),
                         stationuuid: stationuuid.clone(),
+                        url,
                         urltype: Some("REDIRECT".to_string()),
                         error: None,
                     };
@@ -138,6 +140,7 @@ fn flatten_check_result(
                         parent_stepuuid: parent,
                         checkuuid: checkuuid.clone(),
                         stationuuid: checkuuid.clone(),
+                        url,
                         urltype: Some("PLAYLIST".to_string()),
                         error: None,
                     };
@@ -165,6 +168,7 @@ fn flatten_check_result(
                 parent_stepuuid: parent,
                 checkuuid,
                 stationuuid,
+                url,
                 urltype: None,
                 error: Some(err.to_string()),
             };
