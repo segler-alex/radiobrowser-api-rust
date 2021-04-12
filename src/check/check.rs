@@ -196,14 +196,22 @@ fn dbcheck_internal(
     );
 
     match check {
-        Some(check) => StationOldNew { station, check, steps },
+        Some(check) => StationOldNew {
+            station,
+            check,
+            steps,
+        },
         None => {
             let check = StationCheckItemNew::broken(
                 station.stationuuid.clone(),
                 source.to_string(),
                 timing_ms,
             );
-            StationOldNew { station, check, steps }
+            StationOldNew {
+                station,
+                check,
+                steps,
+            }
         }
     }
 }
@@ -224,7 +232,7 @@ pub fn dbcheck(
     let pool = rayon::ThreadPoolBuilder::new()
         .num_threads(concurrency)
         .build()?;
-    let mut results: Vec<_> = pool.install(|| {
+    let results: Vec<_> = pool.install(|| {
         stations
             .into_par_iter()
             .map(|station| dbcheck_internal(station, source, timeout, max_depth, retries))
@@ -241,7 +249,13 @@ pub fn dbcheck(
     }
 
     // do real insert
-    let checks: Vec<_> = results.drain(..).map(|x| x.check).collect();
+    let mut checks = vec![];
+    let mut steps = vec![];
+    for result in results {
+        checks.push(result.check);
+        steps.extend(result.steps);
+    }
+    conn.insert_station_check_steps(&steps)?;
     let (_x, _y, inserted) = conn.insert_checks(checks)?;
     conn.update_station_with_check_data(&inserted, true)?;
 

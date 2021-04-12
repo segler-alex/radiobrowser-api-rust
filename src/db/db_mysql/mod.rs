@@ -1620,7 +1620,7 @@ impl DbConnection for MysqlConnection {
     -> Result<(),Box<dyn std::error::Error>> {
         let mut conn = self.pool.get_conn()?;
         conn.exec_batch(
-            r"INSERT INTO payment (StationUuid,CheckUuid,UrlType,Error,StepUuid,InsertTime)
+            r"INSERT INTO StationCheckStep (StationUuid,CheckUuid,UrlType,Error,StepUuid,InsertTime)
               VALUES (:stationuuid, :checkuuid, :urltype, :error, UUID(), UTC_TIMESTAMP())",
             station_check_steps.iter().map(|p| params! {
                 "stationuuid" => &p.stationuuid,
