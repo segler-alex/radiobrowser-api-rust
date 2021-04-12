@@ -90,9 +90,9 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
 name = "av-stream-info-rust"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b194522cc07518698f174f6921736d582ef2c29dd0a9ffa0fceff0154210a5f0"
+checksum = "009fa2b8d42b9ab6de9f292e38c45d6437c784e011416fb48642a2b3d7c203bd"
 dependencies = [
  "env_logger",
  "hls_m3u8",
@@ -101,7 +101,6 @@ dependencies = [
  "playlist-decoder",
  "reqwest",
  "serde",
- "serde_derive",
  "serde_json",
  "tree_magic",
  "url 2.2.1",

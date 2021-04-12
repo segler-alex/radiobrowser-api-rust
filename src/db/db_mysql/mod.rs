@@ -22,6 +22,8 @@ use crate::db::models::StationChangeItemNew;
 use crate::db::models::StationClickItem;
 use crate::db::models::StationClickItemNew;
 use crate::db::models::StationHistoryItem;
+use crate::db::models::StationCheckStepItem;
+use crate::db::models::StationCheckStepItemNew;
 use crate::api::data::Station;
 use std::error::Error;
 use crate::db::DbConnection;
@@ -1611,6 +1613,68 @@ impl DbConnection for MysqlConnection {
         trace!("sync_votes() 4");
         transaction.commit()?;
         trace!("sync_votes() 5");
+        Ok(())
+    }
+
+    fn insert_station_check_steps(&mut self, station_check_steps: &[StationCheckStepItemNew])
+    -> Result<(),Box<dyn std::error::Error>> {
+        let mut conn = self.pool.get_conn()?;
+        conn.exec_batch(
+            r"INSERT INTO payment (StationUuid,CheckUuid,UrlType,Error,StepUuid,InsertTime)
+              VALUES (:stationuuid, :checkuuid, :urltype, :error, UUID(), UTC_TIMESTAMP())",
+            station_check_steps.iter().map(|p| params! {
+                "stationuuid" => &p.stationuuid,
+                "checkuuid" => &p.checkuuid,
+                "urltype" => &p.urltype,
+                "error" => &p.error,
+            })
+        )?;
+        Ok(())
+    }
+
+    fn select_station_check_steps(&self)
+    -> Result<Vec<StationCheckStepItem>,Box<dyn std::error::Error>> {
+        let mut conn = self.pool.get_conn()?;
+        let list = conn.query_map("SELECT Id,StationUuid,CheckUuid,UrlType,Error,StepUuid,ParentStepUuid,InsertTime FROM StationCheckStep",
+            |(id,stationuuid,checkuuid,urltype,error,stepuuid,parent_stepuuid,inserttime)| {
+                let inserttime = chrono::DateTime::<chrono::Utc>::from_utc(inserttime, chrono::Utc);
+            StationCheckStepItem{
+                id,stepuuid,parent_stepuuid,checkuuid,stationuuid,urltype,error,inserttime
+            }
+        })?;
+        Ok(list)
+    }
+
+    fn select_station_check_steps_by_stations(&self, stationuuids: &[String])
+    -> Result<Vec<StationCheckStepItem>,Box<dyn std::error::Error>> {
+        let mut conn = self.pool.get_conn()?;
+        if stationuuids.len() > 0{
+            let mut select_params: Vec<Value> = vec![];
+            let mut select_query = vec![];
+            for stationuuid in stationuuids {
+                select_params.push(stationuuid.into());
+                select_query.push("?");
+            }
+
+            let query = format!("SELECT Id,StationUuid,CheckUuid,UrlType,Error,StepUuid,ParentStepUuid,InsertTime FROM StationCheckStep WHERE StationUuid IN ({})", select_query.join(","));
+            let list = conn.query_map(query,
+                |(id,stationuuid,checkuuid,urltype,error,stepuuid,parent_stepuuid,inserttime)| {
+                let inserttime = chrono::DateTime::<chrono::Utc>::from_utc(inserttime, chrono::Utc);
+                StationCheckStepItem{
+                    id,stepuuid,parent_stepuuid,checkuuid,stationuuid,urltype,error,inserttime
+                }
+            })?;
+            Ok(list)
+        } else {
+            Ok(vec![])
+        }
+    }
+
+    fn delete_old_station_check_steps(&mut self, seconds: u32)
+    -> Result<(),Box<dyn std::error::Error>> {
+        let delete_never_working_query = "DELETE FROM StationCheckStep WHERE InsertTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
+        let mut conn = self.pool.get_conn()?;
+        conn.exec_drop(delete_never_working_query, params!(seconds))?;
         Ok(())
     }
 }
