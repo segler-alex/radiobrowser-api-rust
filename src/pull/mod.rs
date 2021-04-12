@@ -396,7 +396,6 @@ impl From<StationClick> for StationClickItemNew {
             stationuuid: item.stationuuid,
             clicktimestamp: item.clicktimestamp,
             ip: String::from(""),
-            stationid: 0,
         }
     }
 }
