@@ -1660,7 +1660,7 @@ impl DbConnection for MysqlConnection {
             }
 
             let query = format!("SELECT Id,StationUuid,CheckUuid,Url,UrlType,Error,StepUuid,ParentStepUuid,InsertTime FROM StationCheckStep WHERE StationUuid IN ({})", select_query.join(","));
-            let list = conn.query_map(query,
+            let list = conn.exec_map(query, select_params,
                 |(id,stationuuid,checkuuid,url,urltype,error,stepuuid,parent_stepuuid,inserttime)| {
                 let inserttime = chrono::DateTime::<chrono::Utc>::from_utc(inserttime, chrono::Utc);
                 StationCheckStepItem{
