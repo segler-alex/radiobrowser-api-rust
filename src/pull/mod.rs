@@ -364,7 +364,7 @@ impl From<StationCheck> for StationCheckItemNew {
             do_not_index: item.do_not_index.map(|x| x == 1),
             timing_ms: item.timing_ms.unwrap_or(0),
             server_software: item.server_software,
-            ssl_error: item.ssl_error == 1,
+            ssl_error: item.ssl_error.unwrap_or(0) == 1,
         }
     }
 }
