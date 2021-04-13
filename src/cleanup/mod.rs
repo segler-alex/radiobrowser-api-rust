@@ -39,7 +39,6 @@ fn do_cleanup(
     conn_new_style.remove_unused_ip_infos_from_stationclicks(click_valid_timeout)?;
     conn_new_style.remove_illegal_icon_links()?;
     conn_new_style.calc_country_field()?;
-    conn_new_style.delete_old_station_check_steps(24 * 60 * 60)?;
 
     info!("STATS: {} Checks/Hour, {} Checks/Day, {} Working stations, {} Broken stations, {} to do, deletable {} + {}", checks_hour, checks_day, stations_working, stations_broken, stations_todo, stations_deletable_never_worked, stations_deletable_were_working);
     Ok(())
