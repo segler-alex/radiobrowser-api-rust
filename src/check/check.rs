@@ -92,6 +92,7 @@ fn flatten_check_result(
                 UrlType::Stream(info) => {
                     found_working = Some(StationCheckItemNew::working(
                         stationuuid.clone(),
+                        checkuuid.to_string(),
                         source.to_string(),
                         timing_ms,
                         url.to_string(),
@@ -259,8 +260,9 @@ pub fn dbcheck(
         checks.push(result.check);
         steps.extend(result.steps);
     }
-    conn.insert_station_check_steps(&steps)?;
+
     let (_x, _y, inserted) = conn.insert_checks(checks)?;
+    conn.insert_station_check_steps(&steps)?;
     conn.update_station_with_check_data(&inserted, true)?;
 
     Ok(checked_count)

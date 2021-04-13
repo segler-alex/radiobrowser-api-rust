@@ -61,6 +61,7 @@ impl StationCheckItemNew {
 
     pub fn working(
         station_uuid: String,
+        check_uuid: String,
         source: String,
         timing_ms: u128,
         url: String,
@@ -72,7 +73,7 @@ impl StationCheckItemNew {
             codec.push_str(&video);
         }
         StationCheckItemNew {
-            checkuuid: None,
+            checkuuid: Some(check_uuid),
             station_uuid,
             source,
             codec: codec,

@@ -14,7 +14,7 @@ pub struct StationCheckStep {
     pub url: String,
     pub urltype: Option<String>,
     pub error: Option<String>,
-    pub inserttime: DateTime<Utc>,
+    pub creation_iso8601: DateTime<Utc>,
 }
 
 impl StationCheckStep {
@@ -35,7 +35,7 @@ impl StationCheckStep {
         let mut xml = xml_writer::XmlWriter::new(Vec::new());
         xml.begin_elem("result")?;
         for entry in entries {
-            xml.begin_elem("check")?;
+            xml.begin_elem("checkstep")?;
             xml.attr_esc("stepuuid", &entry.stepuuid)?;
             if let Some(parent_stepuuid) = entry.parent_stepuuid {
                 xml.attr_esc("parent_stepuuid", &parent_stepuuid)?;
@@ -49,6 +49,7 @@ impl StationCheckStep {
             if let Some(error) = entry.error {
                 xml.attr_esc("error", &error)?;
             }
+            xml.attr_esc("creation_iso8601", &entry.creation_iso8601.to_string())?;
             xml.end_elem()?;
         }
         xml.end_elem()?;
@@ -79,7 +80,7 @@ impl From<StationCheckStepItem> for StationCheckStep {
             url: item.url,
             urltype: item.urltype,
             error: item.error,
-            inserttime: item.inserttime,
+            creation_iso8601: item.inserttime,
         }
     }
 }
