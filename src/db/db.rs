@@ -1,3 +1,5 @@
+use crate::db::models::StationCheckStepItem;
+use crate::db::models::StationCheckStepItemNew;
 use crate::api::data::Station;
 use crate::db::models::StationClickItemNew;
 use crate::db::models::State;
@@ -90,6 +92,11 @@ pub trait DbConnection {
     fn vote_for_station(&self, ip: &str, station: Option<StationItem>) -> Result<String, Box<dyn Error>>;
     fn increase_clicks(&self, ip: &str, station: &StationItem, seconds: u64) -> Result<bool,Box<dyn Error>>;
     fn sync_votes(&self, list: Vec<Station>) -> Result<(), Box<dyn Error>>;
+
+    fn insert_station_check_steps(&mut self, station_check_steps: &[StationCheckStepItemNew]) -> Result<(),Box<dyn std::error::Error>>;
+    fn select_station_check_steps(&self) -> Result<Vec<StationCheckStepItem>,Box<dyn std::error::Error>>;
+    fn select_station_check_steps_by_stations(&self, stationuuids: &[String]) -> Result<Vec<StationCheckStepItem>,Box<dyn std::error::Error>>;
+    fn delete_old_station_check_steps(&mut self, seconds: u32) -> Result<(),Box<dyn std::error::Error>>;
 }
 
 pub fn connect(connection_string: String) -> Result<Box<dyn DbConnection>, Box<dyn std::error::Error>> {

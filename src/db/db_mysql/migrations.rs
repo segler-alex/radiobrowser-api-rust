@@ -430,5 +430,24 @@ r#"ALTER TABLE StationCheckHistory DROP COLUMN SslError;"#);
 r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex,CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs,SslError FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#,
 r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex,CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#);
 
+    migrations.add_migration("20210412_231000_CreateStationCheckStep",
+r#"CREATE TABLE `StationCheckStep` (
+`Id` int(11) NOT NULL AUTO_INCREMENT,
+`StepUuid` char(36) NOT NULL,
+`ParentStepUuid` char(36) DEFAULT NULL,
+`CheckUuid` char(36) NOT NULL,
+`StationUuid` char(36) NOT NULL,
+`Url` text NOT NULL,
+`UrlType` text DEFAULT NULL,
+`Error` text DEFAULT NULL,
+`InsertTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+PRIMARY KEY (`Id`),
+UNIQUE KEY `StepUuid` (`StepUuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"#,"DROP TABLE StationCheckStep");
+
+    migrations.add_migration("20210413_211000_Add_FK_StationCheckStep_StationCheckHistory",
+r#"ALTER TABLE StationCheckStep ADD CONSTRAINT FK_StationCheckStep_StationCheckHistory FOREIGN KEY(CheckUuid) REFERENCES StationCheckHistory(CheckUuid) ON DELETE CASCADE;"#,
+r#"ALTER TABLE StationCheckStep DROP CONSTRAINT FK_StationCheckStep_StationCheckHistory;"#);
+
     Ok(migrations)
 }

@@ -29,6 +29,7 @@
             <li><a class="dropdown-item" href="#List_of_all_radio_stations">List of all radio stations</a></li>
             <li><a class="dropdown-item" href="#List_of_station_check_results">List of station check results</a></li>
             <li><a class="dropdown-item" href="#List_of_station_clicks">List of station clicks</a></li>
+            <li><a class="dropdown-item" href="#List_of_station_check_steps">List of station check steps</a></li>
             <li>
               <div role="separator" class="dropdown-divider"></div>
             </li>
@@ -68,6 +69,7 @@
           <a class="nav-link navbar-light dropdown-toggle" href="" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="true">Structs</a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="#Struct_station">Struct station</a></li>
+            <li><a class="dropdown-item" href="#Struct_station_check_step">Struct station check step</a></li>
           </ul>
         </li>
       </ul>
@@ -310,6 +312,116 @@
   #RADIOBROWSERUUID:9614b318-0601-11e8-ae97-52543be04c81
   #EXTINF:-1,Zwischen-Welten
   http://radio.zwischen-welten.info:8000/listen/
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Struct_station_check_step">
+      <div class="container">
+        <h1 class="display-4">Struct StationCheckStep</h1>
+        <p>
+          This struct is used in a tree structure to represent all codepaths that were necessary to check an address of a single stream. Steps can cause multiple other steps
+          for example playlists.
+        </p>
+        <div class="syntax">
+          <div class="h5">Fields:</div>
+          <table class="table mt-2 table-striped">
+            <thead class="thead-dark">
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col" width="300">Possible value/Datatype</th>
+                <th scope="col">Description</th>
+                <th scope="col">Nullable</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr>
+                <td>stepuuid</td>
+                <td><a href="https://en.wikipedia.org/wiki/Universally_unique_identifier">UUID</a></td>
+                <td>An unique id for this StationCheckStep</td>
+                <td>NO</td>
+              </tr>
+              <tr>
+                <td>parent_stepuuid</td>
+                <td><a href="https://en.wikipedia.org/wiki/Universally_unique_identifier">UUID</a></td>
+                <td>An unique id for referencing another StationCheckStep. Is set if this step has a parent.</td>
+                <td>YES</td>
+              </tr>
+              <tr>
+                <td>checkuuid</td>
+                <td><a href="https://en.wikipedia.org/wiki/Universally_unique_identifier">UUID</a></td>
+                <td>An unique id for referencing a StationCheck</td>
+                <td>NO</td>
+              </tr>
+              <tr>
+                <td>stationuuid</td>
+                <td><a href="https://en.wikipedia.org/wiki/Universally_unique_identifier">UUID</a></td>
+                <td>An unique id for referencing a Station</td>
+                <td>NO</td>
+              </tr>
+              <tr>
+                <td>url</td>
+                <td>string, URL (HTTP/HTTPS)</td>
+                <td>The url that this step of the checking process handled</td>
+                <td>NO</td>
+              </tr>
+              <tr>
+                <td>urltype</td>
+                <td>string</td>
+                <td>Does represent which kind of url it is. One of the following: STREAM, REDIRECT, PLAYLIST.</td>
+                <td>YES</td>
+              </tr>
+              <tr>
+                <td>error</td>
+                <td>string</td>
+                <td>URL to the homepage of the stream, so you can direct the user to a page with more information about the stream.</td>
+                <td>YES</td>
+              </tr>
+              <tr>
+                <td>creation_iso8601</td>
+                <td><a href="https://en.wikipedia.org/wiki/ISO_8601">ISO-8601</a> datetime string</td>
+                <td>Date and time of step creation</td>
+                <td>NO</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="h5">Example JSON:</div>
+          <div class="well well-sm bg-light border border-secondary rounded">
+            <pre class="mt-4">
+  {
+    "stepuuid": "01234567-89ab-cdef-0123-456789abcdef",
+    "parent_stepuuid": "01234567-89ab-cdef-0123-456789abcdef",
+    "checkuuid": "01234567-89ab-cdef-0123-456789abcdef",
+    "stationuuid": "01234567-89ab-cdef-0123-456789abcdef",
+    "url": "http://stream.example.com:8000/streamname",
+    "urltype": "STREAM",
+    "error": "BadError",
+    "creation_iso8601": "2021-04-13T20:11:19Z"
+  }
+                </pre>
+          </div>
+          <div class="h5 mt-3">Example XML:</div>
+          <div class="well well-sm bg-light border border-secondary rounded">
+            <pre class="mt-4">
+  &lt;checkstep
+    stepuuid=&quot;01234567-89ab-cdef-0123-456789abcdef&quot;
+    parent_stepuuid=&quot;01234567-89ab-cdef-0123-456789abcdef&quot;
+    checkuuid=&quot;01234567-89ab-cdef-0123-456789abcdef&quot;
+    stationuuid=&quot;01234567-89ab-cdef-0123-456789abcdef&quot;
+    url=&quot;http://stream.example.com:8000/streamname&quot;
+    urltype=&quot;STREAM&quot;
+    error=&quot;BadError&quot;
+    creation_iso8601=&quot;2021-04-13T20:11:19Z&quot;/&gt;
+            </pre>
+          </div>
+          <div class="h5 mt-3">Example CSV:</div>
+          <div class="well well-sm bg-light border border-secondary rounded">
+            <pre class="mt-4">
+stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso8601
+01234567-89ab-cdef-0123-456789abcdef,01234567-89ab-cdef-0123-456789abcdef,01234567-89ab-cdef-0123-456789abcdef,01234567-89ab-cdef-0123-456789abcdef,http://stream.example.com:8000/streamname,STREAM,BadError,2021-04-13T20:11:19Z
             </pre>
           </div>
         </div>
@@ -1229,6 +1341,65 @@
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/json/clicks" target="_blank">{{ API_SERVER }}/json/clicks</a></li>
         <li><a href="{{ API_SERVER }}/xml/clicks?seconds=3600" target="_blank">{{ API_SERVER }}/xml/clicks?seconds=3600</a></li>
+      </ul>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_station_check_steps">
+      <h1 class="display-4">List of station check steps</h1>
+      <p class="lead">
+        A list of steps that needed to be done to finish a station check.
+      </p>
+      <p class="lead">
+        Supported output formats: JSON, XML, CSV
+      </p>
+      <hr class="my-4">
+      <div class="h5">Syntax:</div>
+      <div class="syntax">
+        <ul class="list-unstyled ml-4">
+          <li>{{ API_SERVER }}/xml/checksteps</li>
+          <li>{{ API_SERVER }}/json/checksteps</li>
+        </ul>
+      </div>
+      <div class="h5">Parameter:</div>
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Example</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>uuids</td>
+            <td>01234567-89ab-cdef-0123-456789abcdef,01234567-89ab-cdef-0123-456789abcdef</td>
+            <td>MANDATORY, comma-separated list of UUIDs of stations, may be array in JSON</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="h5">Result JSON:</div>
+      Array of <a href="#Struct_station_check_step">Struct check step</a>
+
+      <div class="h5 mt-2">Result XML:</div>
+      Details at <a href="#Struct_station_check_step">Struct check step</a>
+      <div class="well well-sm bg-light border border-secondary rounded">
+        <pre class="mt-4 result">
+&lt;result&gt;
+  &lt;checkstep stepuuid=".." ... &gt;
+  &lt;checkstep stepuuid=".." ... &gt;
+  ..
+&lt;/result&gt;
+              </pre>
+      </div>
+
+      <div class="h5 mt-2">Result CSV:</div>
+      Details at <a href="#Struct_station_check_step">Struct check step</a>
+
+      <div class="h5 mt-2">Example:</div>
+      <ul class="list-unstyled ml-4">
+        <li><a href="{{ API_SERVER }}/json/checksteps" target="_blank">{{ API_SERVER }}/json/checksteps</a></li>
+        <li><a href="{{ API_SERVER }}/xml/checksteps?uuids=01234567-89ab-cdef-0123-456789abcdef" target="_blank">{{ API_SERVER }}/xml/checksteps?uuids=01234567-89ab-cdef-0123-456789abcdef</a></li>
       </ul>
     </div>
 

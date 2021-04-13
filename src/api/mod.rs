@@ -30,6 +30,7 @@ use crate::api::data::StationCachedInfo;
 use crate::api::data::StationHistoryCurrent;
 use crate::api::data::Station;
 use crate::api::data::StationCheck;
+use crate::api::data::StationCheckStep;
 use crate::api::data::StationAddResult;
 use crate::api::data::Status;
 use crate::api::data::StationClick;
@@ -621,6 +622,7 @@ fn do_api_calls<A>(all_params: AllParameters,
             "stats" => Ok((true,encode_status(get_status(connection_new)?, format, &config.static_files_dir))),
             "checks" => Ok((true,StationCheck::get_response(connection_new.get_checks(None, all_params.param_last_checkuuid, all_params.param_seconds, false, all_params.param_limit)?.drain(..).map(|x|x.into()).collect(),format)?)),
             "clicks" => Ok((true,StationClick::get_response(connection_new.get_clicks(None, all_params.param_last_clickuuid, all_params.param_seconds)?.drain(..).map(|x|x.into()).collect(),format)?)),
+            "checksteps" => Ok((true,StationCheckStep::get_response(connection_new.select_station_check_steps_by_stations(&all_params.param_uuids)?.drain(..).map(|x|x.into()).collect(), format)?)),
             "add" => Ok((false,StationAddResult::from(connection_new.add_station_opt(all_params.param_name, all_params.param_url, all_params.param_homepage, all_params.param_favicon, all_params.param_countrycode, all_params.param_state, all_params.param_language, all_params.param_tags)).get_response(format)?)),
             "config" => Ok((true,ApiConfig::get_response(config.into(),format)?)),
             _ => Ok((true,ApiResponse::NotFound)),
