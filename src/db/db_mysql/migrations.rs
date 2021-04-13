@@ -445,5 +445,9 @@ PRIMARY KEY (`Id`),
 UNIQUE KEY `StepUuid` (`StepUuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"#,"DROP TABLE StationCheckStep");
 
+    migrations.add_migration("20210413_211000_Add_FK_StationCheckStep_StationCheckHistory",
+r#"ALTER TABLE StationCheckStep ADD CONSTRAINT FK_StationCheckStep_StationCheckHistory FOREIGN KEY(CheckUuid) REFERENCES StationCheckHistory(CheckUuid) ON DELETE CASCADE;"#,
+r#"ALTER TABLE StationCheckStep DROP CONSTRAINT FK_StationCheckStep_StationCheckHistory;"#);
+
     Ok(migrations)
 }
