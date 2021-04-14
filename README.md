@@ -294,3 +294,132 @@ cargo run -- -f radiobrowser-dev.toml
 docker exec -it dbserver bash
 mysql -D radio -u radiouser -ppassword
 ```
+
+## Environment vars / parameters
+A print of the help page of the main executable. You can see parameters here. Many of them may also be set by environment variable (env: ..).
+```
+$ radiobrowser-api-rust --help
+radiobrowser-api-rust 0.7.9
+segler_alex@web.de
+HTTP Rest API for radiobrowser
+
+USAGE:
+    radiobrowser-api-rust [FLAGS] [OPTIONS]
+
+FLAGS:
+        --help       Prints help information
+    -v, --verbose    increases the log level. can be specified mutliple times 0..3
+    -V, --version    Prints version information
+
+OPTIONS:
+    -a, --allow-database-downgrade <ALLOW_DATABASE_DOWNGRADE>
+            allows downgrade of database if tables were created with newer software version
+
+        --broken_stations_never_working_timeout <BROKEN_STATIONS_NEVER_WORKING_TIMEOUT>
+            Broken streams are removed after this timespan, if they have never worked. [env:
+            BROKEN_STATIONS_NEVER_WORKING_TIMEOUT=]
+        --broken_stations_timeout <BROKEN_STATIONS_TIMEOUT>
+            Broken streams are removed after this timespan. [env: BROKEN_STATIONS_TIMEOUT=]
+
+        --cache-ttl <DURATION>
+            time to life for cache items [env: CACHETTL=]
+
+        --cache-type <CACHETYPE>
+            one of none,builtin,redis,memcached [env: CACHETYPE=]
+
+        --cache-url <URL>
+            url to access cache server [env: CACHEURL=]
+
+        --checks_timeout <CHECKS_TIMEOUT>
+            Checks are removed after this timespan. [env: CHECKS_TIMEOUT=]
+
+        --chunk-size-changes <CHUNK_SIZE_CHANGES>
+            chunk size for downloading changes [env: CHUNK_SIZE_CHANGES=]
+
+        --chunk-size-checks <CHUNK_SIZE_CHECKS>
+            chunk size for downloading checks [env: CHUNK_SIZE_CHECKS=]
+
+        --click_valid_timeout <CLICK_VALID_TIMEOUT>
+            Possible clicks from the same IP. IPs are removed after this timespan. [env: CLICK_VALID_TIMEOUT=]
+
+        --clicks_timeout <CLICKS_TIMEOUT>
+            Clicks are removed after this timespan. [env: CLICKS_TIMEOUT=]
+
+    -c, --concurrency <CONCURRENCY>
+            streams checked in parallel [env: CONCURRENCY=]
+
+    -f, --config-file <CONFIG-FILE>
+            Path to config file [env: CONFIG_FILE=]  [default: /etc/radiobrowser.toml]
+
+    -d, --database <DATABASE_URL>
+            Database connection url [env: DATABASE_URL=]
+
+    -x, --delete <DELETE>
+            delete broken stations according to rules [env: DELETE=]
+
+        --enable-check <ENABLE_CHECK>
+            enable station checks [env: ENABLE_CHECK=]
+
+        --favicon <FAVICON>
+            check favicons and try to repair them [env: FAVICON=]
+
+    -i, --ignore-migration-errors <IGNORE_MIGRATION_ERRORS>                                ignore errors in migrations
+    -h, --host <HOST>
+            listening host ip [env: HOST=]
+
+    -p, --port <PORT>                                                                      listening port [env: PORT=]
+    -l, --log-dir <LOG-DIR>
+            Path to log dir [env: LOG_DIR=]
+
+    -j, --log-json <LOG_JSON>                                                              Log in JSON format
+        --max_depth <MAX_DEPTH>
+            max recursive link check depth [env: MAX_DEPTH=]
+
+    -m, --mirror <MIRROR>...
+            address of other radiobrowser server to pull updates from
+
+    -q, --mirror-pull-interval <MIRROR_PULL_INTERVAL>
+            pull from mirrors at an interval [env: MIRROR_PULL_INTERVAL=]
+
+        --pause <PAUSE>
+            database check pauses [env: PAUSE=]
+
+    -e, --prometheus-exporter <PROMETHEUS_EXPORTER>
+            export statistics through a prometheus compatible exporter
+
+        --prometheus-exporter-prefix <PROMETHEUS_EXPORTER_PREFIX>
+            prefix for all exported values on /metrics
+
+    -r, --retries <RETRIES>
+            Max number of retries for station checks [env: RETRIES=]
+
+        --server-country-code <server-country-code>
+            2 letter country code for server location [env: SERVERCOUNTRYCODE=]
+
+        --server-location <server-location>
+            freeform location server string [env: SERVERLOCATION=]
+
+    -s, --server-url <SERVER_URL>
+            full server url that should be used in docs [env: SERVER_URL=]
+
+        --source <SOURCE>
+            Source string for database check entries [env: SOURCE=]
+
+    -g, --static-files-dir <STATIC_FILES_DIR>
+            directory that contains the static files [env: STATIC_FILES_DIR=]
+
+    -n, --stations <STATIONS>
+            batch size for station checks [env: STATIONS=]
+
+        --tcp_timeout <TCP_TIMEOUT>
+            tcp connect/read timeout [env: TCP_TIMEOUT=]
+
+    -t, --threads <THREADS>
+            concurrent threads used by socket [env: THREADS=]
+
+    -u, --update-caches-interval <UPDATE_CACHES_INTERVAL>
+            update caches at an interval [env: UPDATE_CACHES_INTERVAL=]
+
+        --useragent <USERAGENT>
+            user agent value for http requests [env: USERAGENT=]
+```
