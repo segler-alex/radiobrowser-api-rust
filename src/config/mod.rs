@@ -204,7 +204,7 @@ fn get_hosts_from_config(config: &toml::Value) -> Result<Vec<String>, Box<dyn Er
 pub fn load_config() -> Result<Config, Box<dyn Error>> {
     let hostname_str: String = hostname::get().map(|os_string| os_string.to_string_lossy().into_owned()).unwrap_or("".to_string());
 
-    let matches = App::new("stream-check")
+    let matches = App::new("radiobrowser-api-rust")
         .version(crate_version!())
         .author("segler_alex@web.de")
         .about("HTTP Rest API for radiobrowser")
