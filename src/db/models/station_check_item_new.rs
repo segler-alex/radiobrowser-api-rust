@@ -26,6 +26,8 @@ pub struct StationCheckItemNew {
     pub timing_ms: u128,
     pub server_software: Option<String>,
     pub ssl_error: bool,
+    pub geo_lat: Option<f64>,
+    pub geo_long: Option<f64>,
 }
 
 impl StationCheckItemNew {
@@ -56,6 +58,8 @@ impl StationCheckItemNew {
             timing_ms,
             server_software: None,
             ssl_error: false,
+            geo_lat: None,
+            geo_long: None,
         }
     }
 
@@ -72,6 +76,7 @@ impl StationCheckItemNew {
             codec.push_str(",");
             codec.push_str(&video);
         }
+        let latlong = info.GeoLatLong.clone().transpose().unwrap_or(None);
         StationCheckItemNew {
             checkuuid: Some(check_uuid),
             station_uuid,
@@ -99,6 +104,8 @@ impl StationCheckItemNew {
             timing_ms,
             server_software: info.Server,
             ssl_error: info.SslError,
+            geo_lat: latlong.clone().map(|y|y.lat),
+            geo_long: latlong.map(|y|y.long),
         }
     }
 }

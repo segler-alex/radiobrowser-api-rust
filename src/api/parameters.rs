@@ -185,4 +185,17 @@ impl RequestParameters {
         }
         default
     }
+
+    pub fn get_double(&self, name: &str, default: Option<f64>) -> Option<f64> {
+        let v = self.values.get(name);
+        if let Some(v) = v {
+            let parsed = v.parse::<f64>();
+            if let Ok(parsed) = parsed {
+                return Some(parsed);
+            }else{
+                error!("could not parse '{}'", v);
+            }
+        }
+        default
+    }
 }

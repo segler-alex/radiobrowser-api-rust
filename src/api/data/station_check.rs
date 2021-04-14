@@ -17,7 +17,7 @@ pub struct StationCheckV0 {
     pub timestamp: String,
 }
 
-#[derive(PartialEq, Eq, Serialize, Deserialize)]
+#[derive(PartialEq, Serialize, Deserialize)]
 pub struct StationCheck {
     pub stationuuid: String,
     pub checkuuid: String,
@@ -46,6 +46,8 @@ pub struct StationCheck {
     pub timing_ms: Option<u128>,
     pub languagecodes: Option<String>,
     pub ssl_error: Option<u8>,
+    pub geo_lat: Option<f64>,
+    pub geo_long: Option<f64>,
 }
 
 impl StationCheck {
@@ -77,6 +79,8 @@ impl StationCheck {
         timing_ms: u128,
         languagecodes: Option<String>,
         ssl_error: u8,
+        geo_lat: Option<f64>,
+        geo_long: Option<f64>,
     ) -> Self {
         StationCheck {
             stationuuid,
@@ -106,6 +110,8 @@ impl StationCheck {
             timing_ms: Some(timing_ms),
             languagecodes,
             ssl_error: Some(ssl_error),
+            geo_lat,
+            geo_long,
         }
     }
 
@@ -152,6 +158,12 @@ impl StationCheck {
             xml.attr_esc("timing_ms", &entry.timing_ms.unwrap_or(0).to_string())?;
             xml.attr_esc("languagecodes", &entry.languagecodes.unwrap_or_default())?;
             xml.attr_esc("ssl_error", &entry.ssl_error.unwrap_or(0).to_string())?;
+            if let Some(geo_lat) = &entry.geo_lat {
+                xml.attr_esc("geo_lat", &geo_lat.to_string())?;
+            }
+            if let Some(geo_long) = &entry.geo_long {
+                xml.attr_esc("geo_long", &geo_long.to_string())?;
+            }
             xml.end_elem()?;
         }
         xml.end_elem()?;
@@ -202,6 +214,8 @@ impl TryFrom<StationCheckV0> for StationCheck {
             timing_ms: None,
             languagecodes: None,
             ssl_error: None,
+            geo_lat: None,
+            geo_long: None,
         })
     }
 }
@@ -236,6 +250,8 @@ impl From<StationCheckItem> for StationCheck {
             item.timing_ms,
             item.languagecodes,
             if item.ssl_error { 1 } else { 0 },
+            item.geo_lat,
+            item.geo_long,
         )
     }
 }

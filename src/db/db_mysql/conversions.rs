@@ -35,6 +35,8 @@ impl From<Row> for StationCheckItem {
             timing_ms:       row.take_opt("TimingMs").unwrap_or(Ok(0)).unwrap_or(0),
             languagecodes:   row.take_opt("LanguageCodes").transpose().unwrap_or(None),
             ssl_error:       row.take_opt("SslError").unwrap_or(Ok(0)).unwrap_or(0) == 1,
+            geo_lat:         row.take_opt("GeoLat").transpose().unwrap_or(None),
+            geo_long:        row.take_opt("GeoLong").transpose().unwrap_or(None),
         }
     }
 }
@@ -58,6 +60,7 @@ impl From<Row> for StationItem {
             countrycode:        row.take_opt("CountryCode").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             state:              row.take_opt("Subcountry").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             language:           row.take_opt("Language").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            languagecodes:      row.take_opt("LanguageCodes").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             votes:              row.take_opt("Votes").unwrap_or(Ok(0)).unwrap_or(0),
             lastchangetime:     row.take_opt("CreationFormated").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             homepage:           row.take_opt("Homepage").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
@@ -67,6 +70,8 @@ impl From<Row> for StationItem {
             clicktimestamp:     row.take_opt("ClickTimestampFormated").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             clickcount:         row.take_opt("clickcount").unwrap_or(Ok(0)).unwrap_or(0),
             clicktrend:         row.take_opt("ClickTrend").unwrap_or(Ok(0)).unwrap_or(0),
+            geo_lat:            row.take_opt("GeoLat").transpose().unwrap_or(None),
+            geo_long:           row.take_opt("GeoLong").transpose().unwrap_or(None),
         }
     }
 }
@@ -84,9 +89,12 @@ impl From<Row> for StationHistoryItem {
             countrycode:        row.take_opt("CountryCode").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             state:              row.take_opt("Subcountry").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             language:           row.take_opt("Language").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            languagecodes:      row.take_opt("LanguageCodes").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             votes:              row.take_opt("Votes").unwrap_or(Ok(0)).unwrap_or(0),
             lastchangetime:     row.take_opt("CreationFormated").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             homepage:           row.take_opt("Homepage").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            geo_lat:            row.take_opt("GeoLat").transpose().unwrap_or(None),
+            geo_long:           row.take_opt("GeoLong").transpose().unwrap_or(None),
         }
     }
 }

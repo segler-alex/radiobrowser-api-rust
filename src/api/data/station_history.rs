@@ -20,7 +20,7 @@ pub struct StationHistoryV0 {
     lastchangetime: String,
 }
 
-#[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
+#[derive(PartialEq, Serialize, Deserialize, Debug)]
 pub struct StationHistoryCurrent {
     pub changeuuid: String,
     pub stationuuid: String,
@@ -33,8 +33,11 @@ pub struct StationHistoryCurrent {
     pub countrycode: String,
     pub state: String,
     pub language: String,
+    pub languagecodes: String,
     pub votes: i32,
     pub lastchangetime: String,
+    pub geo_lat: Option<f64>,
+    pub geo_long: Option<f64>,
 }
 
 impl From<StationHistoryV0> for StationHistoryCurrent {
@@ -51,8 +54,11 @@ impl From<StationHistoryV0> for StationHistoryCurrent {
             countrycode: item.countrycode,
             state: item.state,
             language: item.language,
+            languagecodes: String::from(""),
             votes: item.votes.parse().unwrap(),
             lastchangetime: item.lastchangetime,
+            geo_lat: None,
+            geo_long: None,
         }
     }
 }
@@ -71,8 +77,11 @@ impl From<&StationHistoryV0> for StationHistoryCurrent {
             countrycode: item.countrycode.clone(),
             state: item.state.clone(),
             language: item.language.clone(),
+            languagecodes: String::from(""),
             votes: item.votes.parse().unwrap(),
             lastchangetime: item.lastchangetime.clone(),
+            geo_lat: None,
+            geo_long: None,
         }
     }
 }
@@ -110,6 +119,12 @@ impl StationHistoryCurrent {
             xml.attr_esc("votes", &station_votes_str)?;
             let station_lastchangetime_str = format!("{}", entry.lastchangetime);
             xml.attr_esc("lastchangetime", &station_lastchangetime_str)?;
+            if let Some(geo_lat) = &entry.geo_lat {
+                xml.attr_esc("geo_lat", &geo_lat.to_string())?;
+            }
+            if let Some(geo_long) = &entry.geo_long {
+                xml.attr_esc("geo_long", &geo_long.to_string())?;
+            }
             xml.end_elem()?;
         }
         xml.end_elem()?;
@@ -133,8 +148,11 @@ impl From<StationHistoryItem> for StationHistoryCurrent {
             countrycode: item.countrycode,
             state: item.state,
             language: item.language,
+            languagecodes: item.languagecodes,
             votes: item.votes,
             lastchangetime: item.lastchangetime,
+            geo_lat: item.geo_lat,
+            geo_long: item.geo_long,
         }
     }
 }

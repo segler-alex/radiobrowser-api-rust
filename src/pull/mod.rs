@@ -365,6 +365,8 @@ impl From<StationCheck> for StationCheckItemNew {
             timing_ms: item.timing_ms.unwrap_or(0),
             server_software: item.server_software,
             ssl_error: item.ssl_error.unwrap_or(0) == 1,
+            geo_lat: item.geo_lat,
+            geo_long: item.geo_long,
         }
     }
 }
@@ -380,11 +382,14 @@ impl From<StationHistoryCurrent> for StationChangeItemNew {
             state: item.state,
             countrycode: item.countrycode,
             language: item.language,
+            languagecodes: item.languagecodes,
             tags: item.tags,
             votes: item.votes,
         
             changeuuid: item.changeuuid,
             stationuuid: item.stationuuid,
+            geo_lat: item.geo_lat,
+            geo_long: item.geo_long,
         }
     }
 }

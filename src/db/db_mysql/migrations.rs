@@ -449,5 +449,45 @@ UNIQUE KEY `StepUuid` (`StepUuid`)
 r#"ALTER TABLE StationCheckStep ADD CONSTRAINT FK_StationCheckStep_StationCheckHistory FOREIGN KEY(CheckUuid) REFERENCES StationCheckHistory(CheckUuid) ON DELETE CASCADE;"#,
 r#"ALTER TABLE StationCheckStep DROP CONSTRAINT FK_StationCheckStep_StationCheckHistory;"#);
 
+    migrations.add_migration("20210414_190003_Add_Station_GeoLat",
+r#"ALTER TABLE Station ADD COLUMN GeoLat DOUBLE NULL;"#,
+r#"ALTER TABLE Station DROP COLUMN GeoLat;"#);
+
+    migrations.add_migration("20210414_190004_Add_Station_GeoLong",
+r#"ALTER TABLE Station ADD COLUMN GeoLong DOUBLE NULL;"#,
+r#"ALTER TABLE Station DROP COLUMN GeoLong;"#);
+
+    migrations.add_migration("20210414_190005_Add_Station_GeoLat",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN GeoLat DOUBLE NULL;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN GeoLat;"#);
+
+    migrations.add_migration("20210414_190006_Add_Station_GeoLong",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN GeoLong DOUBLE NULL;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN GeoLong;"#);
+
+    migrations.add_migration("20210414_190007_Add_StationHistory_GeoLat",
+r#"ALTER TABLE StationHistory ADD COLUMN GeoLat DOUBLE NULL;"#,
+r#"ALTER TABLE StationHistory DROP COLUMN GeoLat;"#);
+
+    migrations.add_migration("20210414_190008_Add_StationHistory_GeoLong",
+r#"ALTER TABLE StationHistory ADD COLUMN GeoLong DOUBLE NULL;"#,
+r#"ALTER TABLE StationHistory DROP COLUMN GeoLong;"#);
+
+    migrations.add_migration("20210414_190009_Add_Station_SslError",
+r#"ALTER TABLE Station ADD COLUMN SslError BOOLEAN NOT NULL DEFAULT FALSE;"#,
+r#"ALTER TABLE Station DROP COLUMN SslError;"#);
+
+    migrations.add_migration("20210414_190010_Recreate_View_StationCheck",
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT * FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#,
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex,CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs,SslError FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#);
+
+    migrations.add_migration("20210414_210007_Add_Station_LanguageCodes",
+r#"ALTER TABLE Station ADD COLUMN LanguageCodes TEXT NULL;"#,
+r#"ALTER TABLE Station DROP COLUMN LanguageCodes;"#);
+
+    migrations.add_migration("20210414_210008_Add_StationHistory_LanguageCodes",
+r#"ALTER TABLE StationHistory ADD COLUMN LanguageCodes TEXT NULL;"#,
+r#"ALTER TABLE StationHistory DROP COLUMN LanguageCodes;"#);
+
     Ok(migrations)
 }

@@ -13,6 +13,7 @@ pub struct StationItem {
     pub countrycode: String,
     pub state: String,
     pub language: String,
+    pub languagecodes: String,
     pub votes: i32,
     pub lastchangetime: String,
     pub codec: String,
@@ -25,4 +26,6 @@ pub struct StationItem {
     pub clicktimestamp: String,
     pub clickcount: u32,
     pub clicktrend: i32,
+    pub geo_lat: Option<f64>,
+    pub geo_long: Option<f64>,
 }

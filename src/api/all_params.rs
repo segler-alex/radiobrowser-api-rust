@@ -37,6 +37,8 @@ pub struct AllParameters {
     pub param_state_exact: bool,
     #[serde(rename = "lg")]
     pub param_language: Option<String>,
+    #[serde(rename = "lc")]
+    pub param_language_codes: Option<String>,
     #[serde(rename = "lx")]
     pub param_language_exact: bool,
     #[serde(rename = "tg")]
@@ -65,6 +67,10 @@ pub struct AllParameters {
     pub param_seconds: u32,
     #[serde(rename = "up")]
     pub param_url: Option<String>,
+    #[serde(rename = "ga")]
+    pub param_geo_lat: Option<f64>,
+    #[serde(rename = "go")]
+    pub param_geo_long: Option<f64>,
 }
 
 impl AllParameters {

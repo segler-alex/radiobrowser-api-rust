@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * API: fields server_location and server_country_code to /json/config and /xml/config
 * CHECK: added attribute ssl_error to /json/checks endpoint
 * API: /json/checksteps, /xml/checksteps, /csv/checksteps
+* API: languagecodes, geo_lat, geo_long
+* CHECK: extract languagecodes, geo_lat, geo_long
 
 ### Changed
 * CHECK: do not ignore streams with broken ssl, just mark them

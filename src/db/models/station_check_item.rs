@@ -29,4 +29,6 @@ pub struct StationCheckItem {
     pub timing_ms: u128,
     pub languagecodes: Option<String>,
     pub ssl_error: bool,
+    pub geo_lat: Option<f64>,
+    pub geo_long: Option<f64>,
 }

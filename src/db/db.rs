@@ -41,7 +41,7 @@ pub trait DbConnection {
     fn get_changes_for_stations(&self, station_uuids: Vec<String>) -> Result<Vec<StationHistoryItem>, Box<dyn Error>>;
     
     fn add_station_opt(&self, name: Option<String>, url: Option<String>, homepage: Option<String>, favicon: Option<String>,
-        countrycode: Option<String>, state: Option<String>, language: Option<String>, tags: Option<String>) -> Result<String, Box<dyn Error>>;
+        countrycode: Option<String>, state: Option<String>, language: Option<String>, languagecodes: Option<String>, tags: Option<String>, geo_lat: Option<f64>, geo_long: Option<f64>) -> Result<String, Box<dyn Error>>;
 
     fn get_stations_broken(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
     fn get_stations_improvable(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;

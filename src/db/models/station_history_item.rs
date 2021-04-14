@@ -1,6 +1,6 @@
 use serde::{Serialize,Deserialize};
 
-#[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
+#[derive(PartialEq, Serialize, Deserialize, Debug)]
 pub struct StationHistoryItem {
     pub id: i32,
     pub changeuuid: String,
@@ -13,6 +13,9 @@ pub struct StationHistoryItem {
     pub countrycode: String,
     pub state: String,
     pub language: String,
+    pub languagecodes: String,
     pub votes: i32,
     pub lastchangetime: String,
+    pub geo_lat: Option<f64>,
+    pub geo_long: Option<f64>,
 }

@@ -52,7 +52,8 @@ impl MysqlConnection {
     Date_Format(LastLocalCheckTime,'%Y-%m-%d %H:%i:%s') AS LastLocalCheckTimeFormated,
     ClickTimestamp,
     Date_Format(ClickTimestamp,'%Y-%m-%d %H:%i:%s') AS ClickTimestampFormated,
-    clickcount,ClickTrend";
+    clickcount,ClickTrend,
+    LanguageCodes,SslError,GeoLat,GeoLong";
 
     const COLUMNS_CHECK: &'static str =
         "CheckID, StationUuid, CheckUuid, Source, Codec, Bitrate, Hls, CheckOK,
@@ -62,7 +63,8 @@ impl MysqlConnection {
     MetainfoOverridesDatabase,Public,Name,
     Description,Tags,CountryCode,
     Homepage,Favicon,Loadbalancer,
-    CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs,SslError";
+    CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs,SslError,
+    GeoLat,GeoLong";
 
     const COLUMNS_CLICK: &'static str =
         "ClickID, StationUuid, ClickUuid, IP,
@@ -125,8 +127,8 @@ impl MysqlConnection {
                 insert_params.push(stationuuid.into());
                 insert_query.push("?");
             }
-            let query = format!("INSERT INTO StationHistory(Name,Url,Homepage,Favicon,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid)
-                                                     SELECT Name,Url,Homepage,Favicon,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid FROM Station WHERE StationUuid IN ({})", insert_query.join(","));
+            let query = format!("INSERT INTO StationHistory(Name,Url,Homepage,Favicon,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid,GeoLat,GeoLong)
+                                                     SELECT Name,Url,Homepage,Favicon,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid,GeoLat,GeoLong FROM Station WHERE StationUuid IN ({})", insert_query.join(","));
             transaction.exec_drop(query, insert_params)?;
         }
         Ok(())
@@ -169,7 +171,7 @@ impl MysqlConnection {
             let mut insert_query = vec![];
             let mut insert_params: Vec<Value> = vec![];
             for change in list {
-                insert_query.push("(?,?,?,?,?,?,?,?,?,?,?,'',UTC_TIMESTAMP())");
+                insert_query.push("(?,?,?,?,?,?,?,?,?,?,?,?,?,'',UTC_TIMESTAMP())");
                 insert_params.push(change.name.clone().into());
                 insert_params.push(change.url.clone().into());
                 insert_params.push(change.homepage.clone().into());
@@ -181,9 +183,11 @@ impl MysqlConnection {
                 insert_params.push(fix_multi_field(&change.tags).into());
                 insert_params.push(change.changeuuid.clone().into());
                 insert_params.push(change.stationuuid.clone().into());
+                insert_params.push(change.geo_lat.clone().into());
+                insert_params.push(change.geo_long.clone().into());
                 list_ids.push(change.stationuuid.clone());
             }
-            let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache, Creation) 
+            let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,Tags,ChangeUuid,StationUuid,GeoLat,GeoLong, UrlCache, Creation) 
                                     VALUES{}", insert_query.join(","));
             transaction.exec_drop(query, insert_params)?;
         }
@@ -704,6 +708,8 @@ impl DbConnection for MysqlConnection {
                 Subcountry,
                 CountryCode,
                 Language,Votes,
+                LanguageCodes,
+                GeoLat,GeoLong,
                 Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated
                 from StationHistory WHERE 1=:mynumber {changeuuid_str} {stationuuid} ORDER BY StationChangeID ASC LIMIT {limit}", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str, limit = limit);
         let mut conn = self.pool.get_conn()?;
@@ -731,6 +737,8 @@ impl DbConnection for MysqlConnection {
                     Subcountry,
                     CountryCode,
                     Language,Votes,
+                    LanguageCodes,
+                    GeoLat,GeoLong,
                     Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated
                     from StationHistory WHERE StationUuid IN ({stationuuids_str}) ORDER BY Creation ASC", stationuuids_str = stationuuids_str);
             let mut conn = self.pool.get_conn()?;
@@ -742,14 +750,14 @@ impl DbConnection for MysqlConnection {
     }
 
     fn add_station_opt(&self, name: Option<String>, url: Option<String>, homepage: Option<String>, favicon: Option<String>,
-        countrycode: Option<String>, state: Option<String>, language: Option<String>, tags: Option<String>) -> Result<String, Box<dyn Error>> {
+        countrycode: Option<String>, state: Option<String>, language: Option<String>, languagecodes: Option<String>, tags: Option<String>, geo_lat: Option<f64>, geo_long: Option<f64>) -> Result<String, Box<dyn Error>> {
         let mut transaction = self.pool.start_transaction(TxOpts::default())?;
 
         let countrycode: String = countrycode.unwrap_or_default().to_uppercase();
         let country: String = Country::from_alpha2(&countrycode).map(|c| c.long_name).unwrap_or(String::from(""));
 
-        let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,Tags,ChangeUuid,StationUuid, UrlCache,Creation) 
-                        VALUES(:name, :url, :homepage, :favicon, :country, :countrycode, :state, :language, :tags, :changeuuid, :stationuuid, '', UTC_TIMESTAMP())");
+        let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,LanguageCodes,Tags,ChangeUuid,StationUuid,GeoLat,GeoLong,UrlCache,Creation) 
+                        VALUES(:name, :url, :homepage, :favicon, :country, :countrycode, :state, :language, :languagecodes, :tags, :changeuuid, :stationuuid, :geo_lat, :geo_long, '', UTC_TIMESTAMP())");
 
         let name = name.ok_or(DbError::AddStationError(String::from("name is empty")))?;
         let url = url.map(|x|fix_url(&x, false)).transpose()?;
@@ -774,9 +782,12 @@ impl DbConnection for MysqlConnection {
             "countrycode" => countrycode,
             "state" => state.unwrap_or_default(),
             "language" => fix_multi_field(&language.unwrap_or_default()),
+            "languagecodes" => fix_multi_field(&languagecodes.unwrap_or_default()),
             "tags" => fix_multi_field(&tags.unwrap_or_default()),
             "changeuuid" => changeuuid,
             "stationuuid" => stationuuid.clone(),
+            "geo_lat" => geo_lat,
+            "geo_long" => geo_long,
         };
 
         transaction.exec_drop(query, params)?;
@@ -1095,6 +1106,7 @@ impl DbConnection for MysqlConnection {
                     (String::from("hls"), Value::from(item.hls)),
                     (String::from("stationuuid"), Value::from(&item.station_uuid)),
                     (String::from("vote"), Value::from(vote)),
+                    (String::from("ssl_error"), Value::from(item.ssl_error)),
                 };
 
                 if item.metainfo_overrides_database {
@@ -1129,6 +1141,15 @@ impl DbConnection for MysqlConnection {
                             params.push((String::from("favicon"),favicon.into(),));
                             query.push("Favicon=:favicon");
                         }
+                        if let Some(geo_lat) = &item.geo_lat {
+                            params.push((String::from("geo_lat"),geo_lat.into(),));
+                            query.push("GeoLat=:geo_lat");
+                        }
+                        if let Some(geo_long) = &item.geo_long {
+                            params.push((String::from("geo_long"),geo_long.into(),));
+                            query.push("GeoLong=:geo_long");
+                        }
+                        query.push("SslError=:ssl_error");
                         query.push("LastCheckOk=:vote");
                         if local {
                             query.push("LastLocalCheckTime=UTC_TIMESTAMP()");
@@ -1146,7 +1167,7 @@ impl DbConnection for MysqlConnection {
                     if item.check_ok {
                         params.push((String::from("urlcache"), item.url.clone().into(),));
 
-                        let query_update_ok = format!("UPDATE Station SET {lastlocalchecktime}LastCheckOkTime=UTC_TIMESTAMP(),LastCheckTime=UTC_TIMESTAMP(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache,LastCheckOk=:vote WHERE StationUuid=:stationuuid",
+                        let query_update_ok = format!("UPDATE Station SET {lastlocalchecktime}LastCheckOkTime=UTC_TIMESTAMP(),LastCheckTime=UTC_TIMESTAMP(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache,LastCheckOk=:vote,SslError=:ssl_error WHERE StationUuid=:stationuuid",
                             lastlocalchecktime = if local {"LastLocalCheckTime=UTC_TIMESTAMP(),"} else {""},
                         );
                         transaction.exec_drop(query_update_ok, params)?;

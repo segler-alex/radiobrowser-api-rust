@@ -466,6 +466,7 @@ fn handle_cached_connection<A>(
         param_state: ppp.get_string("state"),
         param_state_exact: ppp.get_bool("stateExact", false),
         param_language: ppp.get_string("language"),
+        param_language_codes: ppp.get_string("languagecodes"),
         param_language_exact: ppp.get_bool("languageExact", false),
         param_tag: ppp.get_string("tag"),
         param_tag_exact: ppp.get_bool("tagExact", false),
@@ -482,6 +483,8 @@ fn handle_cached_connection<A>(
     
         param_seconds: ppp.get_number("seconds", 0),
         param_url: ppp.get_string("url"),
+        param_geo_lat: ppp.get_double("geo_lat", None),
+        param_geo_long: ppp.get_double("geo_long", None),
     };
 
     let key = allparams.to_string()?;
@@ -623,7 +626,7 @@ fn do_api_calls<A>(all_params: AllParameters,
             "checks" => Ok((true,StationCheck::get_response(connection_new.get_checks(None, all_params.param_last_checkuuid, all_params.param_seconds, false, all_params.param_limit)?.drain(..).map(|x|x.into()).collect(),format)?)),
             "clicks" => Ok((true,StationClick::get_response(connection_new.get_clicks(None, all_params.param_last_clickuuid, all_params.param_seconds)?.drain(..).map(|x|x.into()).collect(),format)?)),
             "checksteps" => Ok((true,StationCheckStep::get_response(connection_new.select_station_check_steps_by_stations(&all_params.param_uuids)?.drain(..).map(|x|x.into()).collect(), format)?)),
-            "add" => Ok((false,StationAddResult::from(connection_new.add_station_opt(all_params.param_name, all_params.param_url, all_params.param_homepage, all_params.param_favicon, all_params.param_countrycode, all_params.param_state, all_params.param_language, all_params.param_tags)).get_response(format)?)),
+            "add" => Ok((false,StationAddResult::from(connection_new.add_station_opt(all_params.param_name, all_params.param_url, all_params.param_homepage, all_params.param_favicon, all_params.param_countrycode, all_params.param_state, all_params.param_language, all_params.param_language_codes, all_params.param_tags, all_params.param_geo_lat, all_params.param_geo_long)).get_response(format)?)),
             "config" => Ok((true,ApiConfig::get_response(config.into(),format)?)),
             _ => Ok((true,ApiResponse::NotFound)),
         }

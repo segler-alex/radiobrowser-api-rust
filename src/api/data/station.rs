@@ -57,7 +57,7 @@ pub struct StationV0 {
     pub clicktrend: String,
 }
 
-#[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
+#[derive(PartialEq, Serialize, Deserialize, Debug)]
 pub struct Station {
     pub changeuuid: String,
     pub stationuuid: String,
@@ -71,6 +71,7 @@ pub struct Station {
     pub countrycode: String,
     pub state: String,
     pub language: String,
+    pub languagecodes: String,
     pub votes: i32,
     pub lastchangetime: String,
     pub codec: String,
@@ -83,6 +84,8 @@ pub struct Station {
     pub clicktimestamp: String,
     pub clickcount: u32,
     pub clicktrend: i32,
+    pub geo_lat: Option<f64>,
+    pub geo_long: Option<f64>,
 }
 
 impl Station {
@@ -147,6 +150,12 @@ impl Station {
             xml.attr_esc("clickcount", &station_clickcount)?;
             let station_clicktrend = format!("{}", entry.clicktrend);
             xml.attr_esc("clicktrend", &station_clicktrend)?;
+            if let Some(geo_lat) = &entry.geo_lat {
+                xml.attr_esc("geo_lat", &geo_lat.to_string())?;
+            }
+            if let Some(geo_long) = &entry.geo_long {
+                xml.attr_esc("geo_long", &geo_long.to_string())?;
+            }
             xml.end_elem()?;
         }
         xml.end_elem()?;
@@ -368,6 +377,7 @@ impl From<&StationHistoryCurrent> for Station {
             countrycode: item.countrycode.clone(),
             state: item.state.clone(),
             language: item.language.clone(),
+            languagecodes: item.languagecodes.clone(),
             votes: item.votes,
             lastchangetime: item.lastchangetime.clone(),
             bitrate: 0,
@@ -381,6 +391,8 @@ impl From<&StationHistoryCurrent> for Station {
             lastchecktime: String::from(""),
             lastlocalchecktime: String::from(""),
             url_resolved: String::from(""),
+            geo_lat: item.geo_lat,
+            geo_long: item.geo_long,
         }
     }
 }
@@ -399,6 +411,7 @@ impl From<StationItem> for Station {
             countrycode: item.countrycode,
             state: item.state,
             language: item.language,
+            languagecodes: item.languagecodes,
             votes: item.votes,
             lastchangetime: item.lastchangetime,
             bitrate: item.bitrate,
@@ -412,6 +425,8 @@ impl From<StationItem> for Station {
             lastchecktime: item.lastchecktime,
             lastlocalchecktime: item.lastlocalchecktime,
             url_resolved: item.url_resolved,
+            geo_lat: item.geo_lat,
+            geo_long: item.geo_long,
         }
     }
 }
@@ -430,6 +445,7 @@ impl From<StationV0> for Station {
             countrycode: item.countrycode,
             state: item.state,
             language: item.language,
+            languagecodes: String::from(""),
             votes: item.votes.parse().unwrap_or(0),
             lastchangetime: item.lastchangetime,
             bitrate: item.bitrate.parse().unwrap_or(0),
@@ -443,6 +459,8 @@ impl From<StationV0> for Station {
             lastchecktime: item.lastchecktime,
             lastlocalchecktime: String::from(""),
             url_resolved: String::from(""),
+            geo_lat: None,
+            geo_long: None,
         }
     }
 }
