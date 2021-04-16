@@ -75,7 +75,7 @@ pub struct Station {
     pub countrycode: String,
     pub state: String,
     pub language: String,
-    pub languagecodes: String,
+    pub languagecodes: Option<String>,
     pub votes: i32,
     pub lastchangetime: String,
     pub lastchangetime_iso8601: Option<DateTime<Utc>>,
@@ -93,7 +93,7 @@ pub struct Station {
     pub clicktimestamp_iso8601: Option<DateTime<Utc>>,
     pub clickcount: u32,
     pub clicktrend: i32,
-    pub ssl_error: u8,
+    pub ssl_error: Option<u8>,
     pub geo_lat: Option<f64>,
     pub geo_long: Option<f64>,
 }
@@ -138,7 +138,9 @@ impl Station {
             xml.attr_esc("countrycode", &entry.countrycode)?;
             xml.attr_esc("state", &entry.state)?;
             xml.attr_esc("language", &entry.language)?;
-            xml.attr_esc("languagecodes", &entry.languagecodes)?;
+            if let Some(languagecodes) = entry.languagecodes {
+                xml.attr_esc("languagecodes", &languagecodes)?;
+            }
             let station_votes_str = format!("{}", entry.votes);
             xml.attr_esc("votes", &station_votes_str)?;
             xml.attr_esc("lastchangetime", &entry.lastchangetime)?;
@@ -172,8 +174,10 @@ impl Station {
             xml.attr_esc("clickcount", &station_clickcount)?;
             let station_clicktrend = format!("{}", entry.clicktrend);
             xml.attr_esc("clicktrend", &station_clicktrend)?;
-            let station_ssl_error = format!("{}", entry.ssl_error);
-            xml.attr_esc("ssl_error", &station_ssl_error)?;
+            if let Some(ssl_error) = entry.ssl_error {
+                let station_ssl_error = format!("{}", ssl_error);
+                xml.attr_esc("ssl_error", &station_ssl_error)?;
+            }
             if let Some(geo_lat) = &entry.geo_lat {
                 xml.attr_esc("geo_lat", &geo_lat.to_string())?;
             }
@@ -424,7 +428,7 @@ impl From<&StationHistoryCurrent> for Station {
             lastlocalchecktime: String::from(""),
             lastlocalchecktime_iso8601: None,
             url_resolved: String::from(""),
-            ssl_error: 0,
+            ssl_error: None,
             geo_lat: item.geo_lat,
             geo_long: item.geo_long,
         }
@@ -445,7 +449,7 @@ impl From<StationItem> for Station {
             countrycode: item.countrycode,
             state: item.state,
             language: item.language,
-            languagecodes: item.languagecodes,
+            languagecodes: Some(item.languagecodes),
             votes: item.votes,
             lastchangetime: item.lastchangetime,
             lastchangetime_iso8601: item.lastchangetime_iso8601,
@@ -464,7 +468,7 @@ impl From<StationItem> for Station {
             lastlocalchecktime: item.lastlocalchecktime,
             lastlocalchecktime_iso8601: item.lastlocalchecktime_iso8601,
             url_resolved: item.url_resolved,
-            ssl_error: if item.ssl_error { 1 } else { 0 },
+            ssl_error: Some(if item.ssl_error { 1 } else { 0 }),
             geo_lat: item.geo_lat,
             geo_long: item.geo_long,
         }
@@ -498,7 +502,7 @@ impl From<StationV0> for Station {
             countrycode: item.countrycode,
             state: item.state,
             language: item.language,
-            languagecodes: String::from(""),
+            languagecodes: None,
             votes: item.votes.parse().unwrap_or(0),
             lastchangetime: item.lastchangetime,
             lastchangetime_iso8601: lastchangetime_iso8601,
@@ -517,7 +521,7 @@ impl From<StationV0> for Station {
             lastlocalchecktime: String::from(""),
             lastlocalchecktime_iso8601: None,
             url_resolved: String::from(""),
-            ssl_error: 0,
+            ssl_error: None,
             geo_lat: None,
             geo_long: None,
         }

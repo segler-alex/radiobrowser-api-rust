@@ -382,7 +382,7 @@ impl From<StationHistoryCurrent> for StationChangeItemNew {
             state: item.state,
             countrycode: item.countrycode,
             language: item.language,
-            languagecodes: item.languagecodes,
+            languagecodes: item.languagecodes.unwrap_or_default(),
             tags: item.tags,
             votes: item.votes,
         
