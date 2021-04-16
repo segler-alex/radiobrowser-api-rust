@@ -31,9 +31,9 @@ pub struct StationCheckItemNew {
 }
 
 impl StationCheckItemNew {
-    pub fn broken(station_uuid: String, source: String, timing_ms: u128) -> Self {
+    pub fn broken(station_uuid: String, check_uuid: String, source: String, timing_ms: u128) -> Self {
         StationCheckItemNew {
-            checkuuid: None,
+            checkuuid: Some(check_uuid),
             station_uuid,
             source,
             codec: "".to_string(),

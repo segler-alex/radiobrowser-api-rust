@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.11] 2021-04-16
+### Fixed
+* CHECK: insert of station checks did not always use pregenerated uuids
+
 ## [0.7.10] 2021-04-16
 ### Added
 * API: fields server_location and server_country_code to /json/config and /xml/config

@@ -193,7 +193,7 @@ fn dbcheck_internal(
     let timing_ms = now.elapsed().as_millis();
     let (steps, check) = flatten_check_result(
         station.stationuuid.clone(),
-        checkuuid,
+        checkuuid.clone(),
         checks,
         None,
         source,
@@ -209,6 +209,7 @@ fn dbcheck_internal(
         None => {
             let check = StationCheckItemNew::broken(
                 station.stationuuid.clone(),
+                checkuuid,
                 source.to_string(),
                 timing_ms,
             );
