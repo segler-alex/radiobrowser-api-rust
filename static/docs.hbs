@@ -4,7 +4,8 @@
 <head>
   <meta charset="utf-8" />
   <title>Radio Browser API</title>
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css"
+    integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
   <link href='https://fonts.googleapis.com/css?family=VT323|Cutive+Mono|Nova+Mono' rel='stylesheet' type='text/css'>
   <link rel="stylesheet" href="main.css">
 </head>
@@ -17,7 +18,8 @@
           <a class="nav-link" href="#General">General</a>
         </li>
         <li class="nav-item dropdown">
-          <a class="nav-link navbar-light dropdown-toggle" href="" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Lists</a>
+          <a class="nav-link navbar-light dropdown-toggle" href="" data-toggle="dropdown" role="button"
+            aria-haspopup="true" aria-expanded="false">Lists</a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="#List_of_countries">List of countries</a></li>
             <li><a class="dropdown-item" href="#List_of_countrycodes">List of countrycodes</a></li>
@@ -46,19 +48,22 @@
           </ul>
         </li>
         <li class="nav-item dropdown">
-          <a class="nav-link navbar-light dropdown-toggle" href="#" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="true">Stations</a>
+          <a class="nav-link navbar-light dropdown-toggle" href="#" data-toggle="dropdown" role="button"
+            aria-haspopup="true" aria-expanded="true">Stations</a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="#Stations_by_clicks">Stations by clicks</a></li>
             <li><a class="dropdown-item" href="#Stations_by_votes">Stations by votes</a></li>
             <li><a class="dropdown-item" href="#Stations_by_recent_click">Stations by recent click</a></li>
             <li><a class="dropdown-item" href="#Stations_by_recently_changed">Stations by recently changed</a></li>
             <li><a class="dropdown-item" href="#Old_versions_of_stations">Old versions of stations</a></li>
-            <li><a class="dropdown-item" href="#Stations_that_need_improvements">Stations that need improvements</a></li>
+            <li><a class="dropdown-item" href="#Stations_that_need_improvements">Stations that need improvements</a>
+            </li>
             <li><a class="dropdown-item" href="#Broken_stations">Broken stations</a></li>
           </ul>
         </li>
         <li class="nav-item dropdown">
-          <a class="nav-link navbar-light dropdown-toggle" href="" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="true">Modify</a>
+          <a class="nav-link navbar-light dropdown-toggle" href="" data-toggle="dropdown" role="button"
+            aria-haspopup="true" aria-expanded="true">Modify</a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="#Count_station_click">Count station click</a></li>
             <li><a class="dropdown-item" href="#Vote_for_station">Vote for station</a></li>
@@ -66,9 +71,11 @@
           </ul>
         </li>
         <li class="nav-item dropdown">
-          <a class="nav-link navbar-light dropdown-toggle" href="" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="true">Structs</a>
+          <a class="nav-link navbar-light dropdown-toggle" href="" data-toggle="dropdown" role="button"
+            aria-haspopup="true" aria-expanded="true">Structs</a>
           <ul class="dropdown-menu">
             <li><a class="dropdown-item" href="#Struct_station">Struct station</a></li>
+            <li><a class="dropdown-item" href="#Struct_station_check">Struct station check</a></li>
             <li><a class="dropdown-item" href="#Struct_station_check_step">Struct station check step</a></li>
           </ul>
         </li>
@@ -80,23 +87,37 @@
         <h1 class="card-title">Community Radio Station Index</h1>
         <h2 class="card-subtitle mb-2 text-muted">General</h2>
         <p>Server version: {{ SERVER_VERSION }}</p>
-        <p class="card-text ">This webservice can be used freely but without guarantee to work. I have been keeping it online since December, 2015, but downtimes are possible and I am not always home to fix it :) Please do not hesitate to send me ideas to improve the service at
+        <p class="card-text ">This webservice can be used freely but without guarantee to work. I have been keeping it
+          online since December, 2015, but downtimes are possible and I am not always home to fix it :) Please do not
+          hesitate to send me ideas to improve the service at
           <a href="mailto:segler_alex@web.de">segler_alex AT web DOT de</a>.
-          <br/>Please send a <span class="text-danger">descriptive User-Agent</span> in your HTTP requests, which makes it easier for me to get in touch with developers to help with the usage of the API. Something like <span class="text-info">"appname/appversion"</span>,
-          for example<span class="text-info"> "Cool Radio App/1.2"</span>. This also helps me to know which apps are using this service, so I can keep the list of apps up to date and tell people in which ways they can use this service.<br/>
-          If you know an app that is using this service but not listed on <a class="badge badge-info" href="http://www.radio-browser.info">www.radio-browser.info</a>, please drop me a note.<br/>Thank you! At the moment this service checks radio stations
-          by connecting to them at least every day and marks them accordingly. (LastCheckOK=0/1)<br/> If you can't find what you are looking for here, please create a feature request on Github or if you are a programmer, fork it and make a pull request.
-          Thanks for your help! Recent changes can be found in the Changelog.</p>
+          <br />Please send a <span class="text-danger">descriptive User-Agent</span> in your HTTP requests, which makes
+          it easier for me to get in touch with developers to help with the usage of the API. Something like <span
+            class="text-info">"appname/appversion"</span>,
+          for example<span class="text-info"> "Cool Radio App/1.2"</span>. This also helps me to know which apps are
+          using this service, so I can keep the list of apps up to date and tell people in which ways they can use this
+          service.<br />
+          If you know an app that is using this service but not listed on <a class="badge badge-info"
+            href="http://www.radio-browser.info">www.radio-browser.info</a>, please drop me a note.<br />Thank you! At
+          the moment this service checks radio stations
+          by connecting to them at least every day and marks them accordingly. (LastCheckOK=0/1)<br /> If you can't find
+          what you are looking for here, please create a feature request on Github or if you are a programmer, fork it
+          and make a pull request.
+          Thanks for your help! Recent changes can be found in the Changelog.
+        </p>
         <hr class="my-4">
         <section class="row">
           <div class="mx-auto">
-            <a href="https://github.com/segler-alex/radiobrowser-api-rust" target="_blank" class="btn btn-primary mr-3">Fork on Github</a>
+            <a href="https://github.com/segler-alex/radiobrowser-api-rust" target="_blank"
+              class="btn btn-primary mr-3">Fork on Github</a>
             <!--<a href="changelog.html" target="_blank" class="btn btn-info ml-3 mr-3">Changelog</a>-->
           </div>
         </section>
       </div>
     </div>
-    <div class="h5"><span class="text-danger">Please note that all the parameters listed below can be added by using an HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request, and they can also be sent with encoding "application/json" used by Angular.js, for example.</span></div>
+    <div class="h5"><span class="text-danger">Please note that all the parameters listed below can be added by using an
+        HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request, and they can also be sent
+        with encoding "application/json" used by Angular.js, for example.</span></div>
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Struct_station">
       <div class="container">
@@ -136,14 +157,18 @@
                 <td>url_resolved</td>
                 <td>string, URL (HTTP/HTTPS)</td>
                 <td>
-                  An automatically "resolved" stream URL. Things resolved are playlists (M3U/PLS/ASX...), HTTP redirects (Code 301/302).
-                  This link is especially usefull if you use this API from a platform that is not able to do a resolve on its own (e.g. JavaScript in browser) or you just don't want to invest the time in decoding playlists yourself.
+                  An automatically "resolved" stream URL. Things resolved are playlists (M3U/PLS/ASX...), HTTP redirects
+                  (Code 301/302).
+                  This link is especially usefull if you use this API from a platform that is not able to do a resolve
+                  on its own (e.g. JavaScript in browser) or you just don't want to invest the time in decoding
+                  playlists yourself.
                 </td>
               </tr>
               <tr>
                 <td>homepage</td>
                 <td>string, URL (HTTP/HTTPS)</td>
-                <td>URL to the homepage of the stream, so you can direct the user to a page with more information about the stream.</td>
+                <td>URL to the homepage of the stream, so you can direct the user to a page with more information about
+                  the stream.</td>
               </tr>
               <tr>
                 <td>favicon</td>
@@ -158,12 +183,14 @@
               <tr>
                 <td>country</td>
                 <td>string</td>
-                <td>DEPRECATED: use countrycode instead, full name of the country. Currently it is autogenerated from the countrycode.</td>
+                <td>DEPRECATED: use countrycode instead, full name of the country. Currently it is autogenerated from
+                  the countrycode.</td>
               </tr>
               <tr>
                 <td>countrycode</td>
                 <td>2 letters, uppercase</td>
-                <td>Official countrycodes as in <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">ISO 3166-1 alpha-2</a></td>
+                <td>Official countrycodes as in <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">ISO 3166-1
+                    alpha-2</a></td>
               </tr>
               <tr>
                 <td>state</td>
@@ -176,13 +203,25 @@
                 <td>Languages that are spoken in this stream.</td>
               </tr>
               <tr>
+                <td>languagecodes</td>
+                <td>string, multivalue, split by comma</td>
+                <td>Languages that are spoken in this stream by code <a
+                    href="https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes">ISO 639-2/B</a></td>
+              </tr>
+              <tr>
                 <td>votes</td>
                 <td>number, integer</td>
-                <td>Number of votes for this station. This number is by server and only ever increases. It will never be reset to 0.</td>
+                <td>Number of votes for this station. This number is by server and only ever increases. It will never be
+                  reset to 0.</td>
               </tr>
               <tr>
                 <td>lastchangetime</td>
                 <td>datetime, YYYY-MM-DD HH:mm:ss</td>
+                <td>Last time when the stream information was changed in the database</td>
+              </tr>
+              <tr>
+                <td>lastchangetime_iso8601</td>
+                <td>datetime, <a href="https://en.wikipedia.org/wiki/ISO_8601">ISO 8601</a></td>
                 <td>Last time when the stream information was changed in the database</td>
               </tr>
               <tr>
@@ -203,11 +242,18 @@
               <tr>
                 <td>lastcheckok</td>
                 <td>0 or 1</td>
-                <td>The current online/offline state of this stream. This is a value calculated from multiple measure points in the internet. The test servers are located in different countries. It is a majority vote.</td>
+                <td>The current online/offline state of this stream. This is a value calculated from multiple measure
+                  points in the internet. The test servers are located in different countries. It is a majority vote.
+                </td>
               </tr>
               <tr>
                 <td>lastchecktime</td>
                 <td>datetime, YYYY-MM-DD HH:mm:ss</td>
+                <td>The last time when any radio-browser server checked the online state of this stream</td>
+              </tr>
+              <tr>
+                <td>lastchecktime_iso8601</td>
+                <td>datetime, <a href="https://en.wikipedia.org/wiki/ISO_8601">ISO 8601</a></td>
                 <td>The last time when any radio-browser server checked the online state of this stream</td>
               </tr>
               <tr>
@@ -216,13 +262,28 @@
                 <td>The last time when the stream was checked for the online status with a positive result</td>
               </tr>
               <tr>
+                <td>lastcheckoktime_iso8601</td>
+                <td>datetime, <a href="https://en.wikipedia.org/wiki/ISO_8601">ISO 8601</a></td>
+                <td>The last time when the stream was checked for the online status with a positive result</td>
+              </tr>
+              <tr>
                 <td>lastlocalchecktime</td>
                 <td>datetime, YYYY-MM-DD HH:mm:ss</td>
                 <td>The last time when this server checked the online state and the metadata of this stream</td>
               </tr>
               <tr>
+                <td>lastlocalchecktime_iso8601</td>
+                <td>datetime, <a href="https://en.wikipedia.org/wiki/ISO_8601">ISO 8601</a></td>
+                <td>The last time when this server checked the online state and the metadata of this stream</td>
+              </tr>
+              <tr>
                 <td>clicktimestamp</td>
                 <td>datetime, YYYY-MM-DD HH:mm:ss</td>
+                <td>The time of the last click recorded for this stream</td>
+              </tr>
+              <tr>
+                <td>clicktimestamp_iso8601</td>
+                <td>datetime, <a href="https://en.wikipedia.org/wiki/ISO_8601">ISO 8601</a></td>
                 <td>The time of the last click recorded for this stream</td>
               </tr>
               <tr>
@@ -233,7 +294,23 @@
               <tr>
                 <td>clicktrend</td>
                 <td>number, integer</td>
-                <td>The difference of the clickcounts within the last 2 days. Posivite values mean an increase, negative a decrease of clicks.</td>
+                <td>The difference of the clickcounts within the last 2 days. Posivite values mean an increase, negative
+                  a decrease of clicks.</td>
+              </tr>
+              <tr>
+                <td>ssl_error</td>
+                <td>number, integer</td>
+                <td>0 means no error, 1 means that there was an ssl error while connecting to the stream url.</td>
+              </tr>
+              <tr>
+                <td>geo_lat</td>
+                <td>number, double</td>
+                <td>Latitude on earth where the stream is located.</td>
+              </tr>
+              <tr>
+                <td>geo_long</td>
+                <td>number, double</td>
+                <td>Longitude on earth where the stream is located.</td>
               </tr>
             </tbody>
           </table>
@@ -241,30 +318,39 @@
           <div class="well well-sm bg-light border border-secondary rounded">
             <pre class="mt-4">
   {
-    "changeuuid":"960e57c8-0601-11e8-ae97-52543be04c81",
-    "stationuuid":"960e57c5-0601-11e8-ae97-52543be04c81",
-    "name":"SRF 1",
-    "url":"http://stream.srg-ssr.ch/m/drs1/mp3_128",
-    "url_resolved":"http://stream.srg-ssr.ch/m/drs1/mp3_128",
-    "homepage":"http://ww.srf.ch/radio-srf-1",
-    "favicon":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Radio_SRF_1.svg/205px-Radio_SRF_1.svg.png",
-    "tags":"srg ssr,public radio",
+    "changeuuid":"01234567-89ab-cdef-0123-456789abcdef",
+    "stationuuid":"01234567-89ab-cdef-0123-456789abcdef",
+    "name":"Best Radio",
+    "url":"http://www.example.com/test.pls",
+    "url_resolved":"http://stream.example.com/mp3_128",
+    "homepage":"https://www.example.com",
+    "favicon":"https://www.example.com/icon.png",
+    "tags":"jazz,pop,rock,indie",
     "country":"Switzerland",
     "countrycode":"CH",
     "state":"",
-    "language":"german",
+    "language":"german,english",
+    "languagecodes":"ger,eng"
     "votes":0,
     "lastchangetime":"2019-12-12 18:37:02",
+    "lastchangetime_iso8601":"2019-12-12T18:37:02Z",
     "codec":"MP3",
     "bitrate":128,
     "hls":0,
     "lastcheckok":1,
     "lastchecktime":"2020-01-09 18:16:35",
+    "lastchecktime_iso8601":"2020-01-09T18:16:35Z",
     "lastcheckoktime":"2020-01-09 18:16:35",
+    "lastcheckoktime_iso8601":"2020-01-09T18:16:35Z",
     "lastlocalchecktime":"2020-01-08 23:18:38",
+    "lastlocalchecktime_iso8601":"2020-01-08T23:18:38Z",
     "clicktimestamp":"",
+    "clicktimestamp_iso8601":null,
     "clickcount":0,
-    "clicktrend":0
+    "clicktrend":0,
+    "ssl_error": 0,
+    "geo_lat": 1.1,
+    "geo_long": -2.2
   }
                 </pre>
           </div>
@@ -272,46 +358,324 @@
           <div class="well well-sm bg-light border border-secondary rounded">
             <pre class="mt-4">
   &lt;station
-    changeuuid=&quot;960e57c8-0601-11e8-ae97-52543be04c81&quot;
-    stationuuid=&quot;960e57c5-0601-11e8-ae97-52543be04c81&quot;
-    name=&quot;SRF 1&quot;
-    url=&quot;http://stream.srg-ssr.ch/m/drs1/mp3_128&quot;
-    url_resolved=&quot;http://stream.srg-ssr.ch/m/drs1/mp3_128&quot;
-    homepage=&quot;http://ww.srf.ch/radio-srf-1&quot;
-    favicon=&quot;https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Radio_SRF_1.svg/205px-Radio_SRF_1.svg.png&quot;
-    tags=&quot;srg ssr,public radio&quot;
+    changeuuid=&quot;01234567-89ab-cdef-0123-456789abcdef&quot;
+    stationuuid=&quot;01234567-89ab-cdef-0123-456789abcdef&quot;
+    name=&quot;Best radio&quot;
+    url=&quot;http://www.example.com/test.pls&quot;
+    url_resolved=&quot;http://stream.example.com/mp3_128&quot;
+    homepage=&quot;https://www.example.com&quot;
+    favicon=&quot;https://www.example.com/icon.png&quot;
+    tags=&quot;jazz,pop,rock,indie&quot;
     country=&quot;Switzerland&quot;
     countrycode=&quot;CH&quot;
     state=&quot;&quot;
-    language=&quot;german&quot;
+    language=&quot;german,english&quot;
+    languagecodes=&quot;ger,eng&quot;
     votes=&quot;0&quot;
     lastchangetime=&quot;2019-12-12 18:37:02&quot;
+    lastchangetime_iso8601=&quot;2019-12-12T18:37:02Z&quot;
     codec=&quot;MP3&quot;
     bitrate=&quot;128&quot;
     hls=&quot;0&quot;
     lastcheckok=&quot;1&quot;
     lastchecktime=&quot;2020-01-09 18:16:35&quot;
+    lastchecktime_iso8601=&quot;2020-01-09T18:16:35Z&quot;
     lastcheckoktime=&quot;2020-01-09 18:16:35&quot;
+    lastcheckoktime_iso8601=&quot;2020-01-09T18:16:35Z&quot;
     lastlocalchecktime=&quot;2020-01-08 23:18:38&quot;
+    lastlocalchecktime_iso8601=&quot;2020-01-08T23:18:38Z&quot;
     clicktimestamp=&quot;&quot;
     clickcount=&quot;0&quot;
-    clicktrend=&quot;0&quot;/&gt;
+    clicktrend=&quot;0&quot;
+    ssl_error=&quot;0&quot;
+    geo_lat=&quot;1.1&quot;
+    geo_long=&quot;-2.2&quot;/&gt;
+
             </pre>
           </div>
 
           <div class="h5 mt-3">Example M3U playlist with extension field:</div>
-          The M3U files created by this server are extended with an additional field, that can be used to identify entries of the file with this server.
-          The field is added as a special comment, so it will not interfere with normal operations of players, that use this playlist.
+          The M3U files created by this server are extended with an additional field, that can be used to identify
+          entries of the file with this server.
+          The field is added as a special comment, so it will not interfere with normal operations of players, that use
+          this playlist.
           <div class="well well-sm bg-light border border-secondary rounded">
             <pre class="mt-4">
   #EXTM3U
-  #RADIOBROWSERUUID:9637967a-0601-11e8-ae97-52543be04c81
-  #EXTINF:-1,Technikum GOLD
-  http://technikumhitclassics.macjingle.at:8204/;stream/1
+  #RADIOBROWSERUUID:01234567-89ab-cdef-0123-456789abcdef
+  #EXTINF:-1,Best Radio
+  http://stream.example.com/mp3_128
 
-  #RADIOBROWSERUUID:9614b318-0601-11e8-ae97-52543be04c81
-  #EXTINF:-1,Zwischen-Welten
-  http://radio.zwischen-welten.info:8000/listen/
+  #RADIOBROWSERUUID:01234567-89ab-cdef-0123-456789abcdef
+  #EXTINF:-1,Other Radio
+  http://stream.example2.com/mp3_256
+            </pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Struct_station_check">
+      <div class="container">
+        <h1 class="display-4">Struct StationCheck</h1>
+        <p>
+          This struct is used in a represent an online check of a stream. Most of the information got extracted by
+          checking the <a href="https://www.stream-meta.info/">http headers of the stream</a>.
+        </p>
+        <div class="syntax">
+          <div class="h5">Fields:</div>
+          <table class="table mt-2 table-striped">
+            <thead class="thead-dark">
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col" width="300">Possible value/Datatype</th>
+                <th scope="col">Description</th>
+                <th scope="col">Nullable</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr>
+                <td>checkuuid</td>
+                <td><a href="https://en.wikipedia.org/wiki/Universally_unique_identifier">UUID</a></td>
+                <td>An unique id for this StationCheck</td>
+                <td>NO</td>
+              </tr>
+              <tr>
+                <td>stationuuid</td>
+                <td><a href="https://en.wikipedia.org/wiki/Universally_unique_identifier">UUID</a></td>
+                <td>An unique id for referencing a Station</td>
+                <td>NO</td>
+              </tr>
+              <tr>
+                <td>source</td>
+                <td>string</td>
+                <td>DNS Name of the server that did the stream check.</td>
+                <td>NO</td>
+              </tr>
+              <tr>
+                <td>codec</td>
+                <td>string</td>
+                <td>High level name of the used codec of the stream. May have the format AUDIO or AUDIO/VIDEO.</td>
+                <td>NO</td>
+              </tr>
+              <tr>
+                <td>bitrate</td>
+                <td>number, integer</td>
+                <td>Bitrate 1000 bits per second (kBit/s) of the stream. (Audio + Video)</td>
+                <td>NO</td>
+              </tr>
+              <tr>
+                <td>hls</td>
+                <td>number, integer</td>
+                <td>1 means this is an <a href="https://en.wikipedia.org/wiki/HTTP_Live_Streaming">HLS stream</a>,
+                  otherwise 0.</td>
+                <td>NO</td>
+              </tr>
+              <tr>
+                <td>ok</td>
+                <td>number, integer</td>
+                <td>1 means this stream is reachable, otherwise 0.</td>
+                <td>NO</td>
+              </tr>
+              <tr>
+                <td>timestamp_iso8601</td>
+                <td><a href="https://en.wikipedia.org/wiki/ISO_8601">ISO-8601</a> datetime string</td>
+                <td>Date and time of step creation</td>
+                <td>NO</td>
+              </tr>
+              <tr>
+                <td>timestamp</td>
+                <td>datetime, YYYY-MM-DD HH:mm:ss</td>
+                <td>Date and time of step creation</td>
+                <td>NO</td>
+              </tr>
+              <tr>
+                <td>urlcache</td>
+                <td>string, URL (HTTP/HTTPS)</td>
+                <td>Direct stream url that has been resolved from the main stream url. HTTP redirects and playlists have
+                  been decoded. If hls==1 then this is still a HLS-playlist.</td>
+                <td>NO</td>
+              </tr>
+              <tr>
+                <td>metainfo_overrides_database</td>
+                <td>number, integer</td>
+                <td>1 means this stream has provided extended information and it should be used to override the local
+                  database, otherwise 0.</td>
+                <td>NO</td>
+              </tr>
+              <tr>
+                <td>public</td>
+                <td>number, integer</td>
+                <td>1 that this stream appears in the public shoutcast/icecast directory, otherwise 0.</td>
+                <td>YES</td>
+              </tr>
+              <tr>
+                <td>name</td>
+                <td>string</td>
+                <td>The name extracted from the stream header.</td>
+                <td>YES</td>
+              </tr>
+              <tr>
+                <td>description</td>
+                <td>string</td>
+                <td>The description extracted from the stream header.</td>
+                <td>YES</td>
+              </tr>
+              <tr>
+                <td>tags</td>
+                <td>string</td>
+                <td>Komma separated list of tags. (genres of this stream)</td>
+                <td>YES</td>
+              </tr>
+              <tr>
+                <td>countrycode</td>
+                <td>string</td>
+                <td>Official countrycodes as in <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">ISO 3166-1
+                    alpha-2</a></td>
+                <td>YES</td>
+              </tr>
+              <tr>
+                <td>countrysubdivisioncode</td>
+                <td>string</td>
+                <td>Official country subdivision codes as in <a href="https://en.wikipedia.org/wiki/ISO_3166-2">ISO
+                    3166-2</a></td>
+                <td>YES</td>
+              </tr>
+              <tr>
+                <td>homepage</td>
+                <td>string</td>
+                <td>The homepage extracted from the stream header.</td>
+                <td>YES</td>
+              </tr>
+              <tr>
+                <td>favicon</td>
+                <td>string</td>
+                <td>The favicon extracted from the stream header.</td>
+                <td>YES</td>
+              </tr>
+              <tr>
+                <td>loadbalancer</td>
+                <td>string</td>
+                <td>The loadbalancer extracted from the stream header.</td>
+                <td>YES</td>
+              </tr>
+              <tr>
+                <td>server_software</td>
+                <td>string</td>
+                <td>The name of the server software used.</td>
+                <td>YES</td>
+              </tr>
+              <tr>
+                <td>sampling</td>
+                <td>number, unsigned integer</td>
+                <td>Audio sampling frequency in Hz</td>
+                <td>YES</td>
+              </tr>
+              <tr>
+                <td>timing_ms</td>
+                <td>number, unsigned integer</td>
+                <td>Timespan in miliseconds this check needed to be finished.</td>
+                <td>NO</td>
+              </tr>
+              <tr>
+                <td>languagecodes</td>
+                <td>string</td>
+                <td>The description extracted from the stream header.</td>
+                <td>YES</td>
+              </tr>
+              <tr>
+                <td>ssl_error</td>
+                <td>number, unsigned integer</td>
+                <td>1 means that a ssl error occured while connecting to the stream, 0 otherwise.</td>
+                <td>NO</td>
+              </tr>
+              <tr>
+                <td>geo_lat</td>
+                <td>number, double</td>
+                <td>Latitude on earth where the stream is located.</td>
+                <td>YES</td>
+              </tr>
+              <tr>
+                <td>geo_long</td>
+                <td>number, double</td>
+                <td>Longitude on earth where the stream is located.</td>
+                <td>YES</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="h5">Example JSON:</div>
+          <div class="well well-sm bg-light border border-secondary rounded">
+            <pre class="mt-4">
+  {
+    "stationuuid":"960e57c5-0601-11e8-ae97-52543be04c81",
+    "checkuuid":"18be4561-309a-11ea-b37a-0242ac120002",
+    "source":"fr1.api.radio-browser.info",
+    "codec":"MP3",
+    "bitrate":128,
+    "hls":0,
+    "ok":1,
+    "timestamp":"2020-01-06 15:34:58",
+    "timestamp_iso8601":"2020-01-06T15:34:58Z",
+    "urlcache":"http://stream.example.com/mp3_128",
+    "metainfo_overrides_database":0,
+    "public":null,
+    "name":null,
+    "description":null,
+    "tags":null,
+    "countrycode":null,
+    "countrysubdivisioncode": null,
+    "homepage":null,
+    "favicon":null,
+    "loadbalancer":null,
+    "server_software": "Icecast 2.4.0",
+    "sampling": 44100,
+    "timing_ms": 495,
+    "languagecodes": null,
+    "ssl_error": 0,
+    "geo_lat": 1.1,
+    "geo_long": -2.2
+  }
+                </pre>
+          </div>
+          <div class="h5 mt-3">Example XML:</div>
+          <div class="well well-sm bg-light border border-secondary rounded">
+            <pre class="mt-4">
+  &lt;check
+    stationuuid=&quot;01234567-89ab-cdef-0123-456789abcdef&quot;
+    checkuuid=&quot;01234567-89ab-cdef-0123-456789abcdef&quot;
+    source=&quot;fr1.api.radio-browser.info&quot;
+    codec=&quot;MP3&quot;
+    bitrate=&quot;128&quot;
+    hls=&quot;0&quot;
+    ok=&quot;1&quot;
+    urlcache=&quot;http://stream.example.com/mp3_128&quot;
+    timestamp=&quot;2020-01-06 15:34:58&quot;
+    metainfo_overrides_database=&quot;0&quot;
+    public=&quot;0&quot;
+    name=&quot;&quot;
+    description=&quot;&quot;
+    tags=&quot;&quot;
+    homepage=&quot;&quot;
+    loadbalancer=&quot;&quot;
+    favicon=&quot;&quot;
+    countrycode=&quot;&quot;
+    countrysubdivisioncode=&quot;&quot;
+    server_software="Icecast 2.4.2"
+    sampling=&quot;44100&quot;
+    timing_ms=&quot;495&quot;
+    languagecodes=&quot;&quot;
+    ssl_error=&quot;0&quot;
+    geo_lat=&quot;1.1&quot;
+    geo_long=&quot;-2.2&quot;/&gt;
+            </pre>
+          </div>
+          <div class="h5 mt-3">Example CSV:</div>
+          <div class="well well-sm bg-light border border-secondary rounded">
+            <pre class="mt-4">
+stationuuid,checkuuid,source,codec,bitrate,hls,ok,timestamp_iso8601,timestamp,urlcache,metainfo_overrides_database,public,name,description,tags,countrycode,homepage,favicon,loadbalancer,do_not_index,countrysubdivisioncode,server_software,sampling,timing_ms,languagecodes,ssl_error,geo_lat,geo_long
+01234567-89ab-cdef-0123-456789abcdef,01234567-89ab-cdef-0123-456789abcdef,fr1.api.radio-browser.info,MP3,192,0,1,2021-04-16T08:07:45Z,2021-04-16 08:07:45,http://stream.example.com/mp3_128,0,,,,,,,,,,,Icecast 2.4.2,,495,,0,,
             </pre>
           </div>
         </div>
@@ -322,7 +686,8 @@
       <div class="container">
         <h1 class="display-4">Struct StationCheckStep</h1>
         <p>
-          This struct is used in a tree structure to represent all codepaths that were necessary to check an address of a single stream. Steps can cause multiple other steps
+          This struct is used in a tree structure to represent all codepaths that were necessary to check an address of
+          a single stream. Steps can cause multiple other steps
           for example playlists.
         </p>
         <div class="syntax">
@@ -377,7 +742,8 @@
               <tr>
                 <td>error</td>
                 <td>string</td>
-                <td>URL to the homepage of the stream, so you can direct the user to a page with more information about the stream.</td>
+                <td>URL to the homepage of the stream, so you can direct the user to a page with more information about
+                  the stream.</td>
                 <td>YES</td>
               </tr>
               <tr>
@@ -431,7 +797,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_countries">
       <div class="container">
         <h1 class="display-4">List of countries</h1>
-        <p class="lead">A JSON-encoded list of all countries in the database. If a filter is given, it will only return the ones containing the filter as substring, supported output formats: JSON, XML, CSV</p>
+        <p class="lead">A JSON-encoded list of all countries in the database. If a filter is given, it will only return
+          the ones containing the filter as substring, supported output formats: JSON, XML, CSV</p>
         <hr class="my-4">
         <div class="h5">Syntax:</div>
         <div class="syntax">
@@ -509,7 +876,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_countrycodes">
       <div class="container">
         <h1 class="display-4">List of country codes</h1>
-        <p class="lead">A JSON-encoded list of all countries in the database. If a filter is given, it will only return the ones containing the filter as substring, supported output formats: JSON, XML, CSV</p>
+        <p class="lead">A JSON-encoded list of all countries in the database. If a filter is given, it will only return
+          the ones containing the filter as substring, supported output formats: JSON, XML, CSV</p>
         <hr class="my-4">
         <div class="h5">Syntax:</div>
         <div class="syntax">
@@ -579,7 +947,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
           <div class="h5 mt-3">Example:</div>
           <ul class="list-unstyled ml-4">
             <li><a href="{{ API_SERVER }}/json/countrycodes" target="_blank">{{ API_SERVER }}/json/countrycodes</a></li>
-            <li><a href="{{ API_SERVER }}/xml/countrycodes/at" target="_blank">{{ API_SERVER }}/xml/countrycodes/at</a></li>
+            <li><a href="{{ API_SERVER }}/xml/countrycodes/at" target="_blank">{{ API_SERVER }}/xml/countrycodes/at</a>
+            </li>
           </ul>
         </div>
       </div>
@@ -587,7 +956,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_codecs">
       <div class="container">
         <h1 class="display-4">List of codecs</h1>
-        <p class="lead">A JSON-encoded list of all codecs in the database. If a filter is given, it will only return the ones containing the filter as substring, supported output formats: JSON, XML, CSV</p>
+        <p class="lead">A JSON-encoded list of all codecs in the database. If a filter is given, it will only return the
+          ones containing the filter as substring, supported output formats: JSON, XML, CSV</p>
         <hr class="my-4">
         <div class="h5">Syntax:</div>
         <div class="syntax">
@@ -667,7 +1037,9 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_states">
       <div class="container">
         <h1 class="display-4">List of states</h1>
-        <p class="lead">A JSON-encoded list of all states in the database. Countries are divided into states. If a filter is given, it will only return the ones containing the filter as substring. If a country is given, it will only display states in
+        <p class="lead">A JSON-encoded list of all states in the database. Countries are divided into states. If a
+          filter is given, it will only return the ones containing the filter as substring. If a country is given, it
+          will only display states in
           this country, supported output formats: JSON, XML, CSV</p>
         <hr class="my-4">
         <div class="h5">Syntax:</div>
@@ -751,14 +1123,16 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
         <ul class="list-unstyled ml-4">
           <li><a href="{{ API_SERVER }}/json/states" target="_blank">{{ API_SERVER }}/json/states</a></li>
           <li><a href="{{ API_SERVER }}/xml/states/ber" target="_blank">{{ API_SERVER }}/xml/states/ber</a></li>
-          <li><a href="{{ API_SERVER }}/json/states/Germany/ber" target="_blank">{{ API_SERVER }}/json/states/Germany/ber</a></li>
+          <li><a href="{{ API_SERVER }}/json/states/Germany/ber" target="_blank">{{ API_SERVER
+              }}/json/states/Germany/ber</a></li>
         </ul>
       </div>
     </div>
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_languages">
       <h1 class="display-4">List of languages</h1>
-      <p class="lead">A JSON-encoded list of all languages in the database. If a filter is given, it will only return the ones containing the filter as substring, supported output formats: JSON, XML, CSV</p>
+      <p class="lead">A JSON-encoded list of all languages in the database. If a filter is given, it will only return
+        the ones containing the filter as substring, supported output formats: JSON, XML, CSV</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -836,12 +1210,13 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_tags">
       <h1 class="display-4">List of tags</h1>
-      <p class="lead">A JSON-encoded list of all tags in the database. If a filter is given, it will only return the ones containing the filter as substring, supported output formats: JSON, XML, CSV</p>
+      <p class="lead">A JSON-encoded list of all tags in the database. If a filter is given, it will only return the
+        ones containing the filter as substring, supported output formats: JSON, XML, CSV</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax"> {{ API_SERVER }}/xml/tags
         <br /> {{ API_SERVER }}/xml/tags/&lt;filter&gt;
-        <br/>{{ API_SERVER }}/json/tags
+        <br />{{ API_SERVER }}/json/tags
         <br /> {{ API_SERVER }}/json/tags/&lt;filter&gt;
         <br />
       </div>
@@ -913,25 +1288,42 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_radio_stations">
       <h1 class="display-4">List of radio stations</h1>
-      <p class="lead">A list of radio stations that match the search. The variants with "exact" will only search for perfect matches, and others will search for the station whose attribute contains the search term.<br/> Please use <a href="#Count_station_click">Count station click</a> API call to let the click be counted, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of radio stations that match the search. The variants with "exact" will only search for
+        perfect matches, and others will search for the station whose attribute contains the search term.<br /> Please
+        use <a href="#Count_station_click">Count station click</a> API call to let the click be counted, supported
+        output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
         <ul class="list-unstyled ml-4">
-          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/byuuid/<span class="searchTerm">{searchterm}</span></li>
-          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/byname/<span class="searchTerm">{searchterm}</span></li>
-          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bynameexact/<span class="searchTerm">{searchterm}</span></li>
-          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bycodec/<span class="searchTerm">{searchterm}</span></li>
-          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bycodecexact/<span class="searchTerm">{searchterm}</span></li>
-          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bycountry/<span class="searchTerm">{searchterm}</span></li>
-          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bycountryexact/<span class="searchTerm">{searchterm}</span></li>
-          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bycountrycodeexact/<span class="searchTerm">{searchterm}</span></li>
-          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bystate/<span class="searchTerm">{searchterm}</span></li>
-          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bystateexact/<span class="searchTerm">{searchterm}</span></li>
-          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bylanguage/<span class="searchTerm">{searchterm}</span></li>
-          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bylanguageexact/<span class="searchTerm">{searchterm}</span></li>
-          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bytag/<span class="searchTerm">{searchterm}</span></li>
-          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bytagexact/<span class="searchTerm">{searchterm}</span></li>
+          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/byuuid/<span
+              class="searchTerm">{searchterm}</span></li>
+          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/byname/<span
+              class="searchTerm">{searchterm}</span></li>
+          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bynameexact/<span
+              class="searchTerm">{searchterm}</span></li>
+          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bycodec/<span
+              class="searchTerm">{searchterm}</span></li>
+          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bycodecexact/<span
+              class="searchTerm">{searchterm}</span></li>
+          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bycountry/<span
+              class="searchTerm">{searchterm}</span></li>
+          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bycountryexact/<span
+              class="searchTerm">{searchterm}</span></li>
+          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bycountrycodeexact/<span
+              class="searchTerm">{searchterm}</span></li>
+          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bystate/<span
+              class="searchTerm">{searchterm}</span></li>
+          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bystateexact/<span
+              class="searchTerm">{searchterm}</span></li>
+          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bylanguage/<span
+              class="searchTerm">{searchterm}</span></li>
+          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bylanguageexact/<span
+              class="searchTerm">{searchterm}</span></li>
+          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bytag/<span
+              class="searchTerm">{searchterm}</span></li>
+          <li>{{ API_SERVER }}/<span class="format">{format}</span>/stations/bytagexact/<span
+              class="searchTerm">{searchterm}</span></li>
         </ul>
       </div>
       <div class="h5">Parameter:</div>
@@ -949,7 +1341,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
             <td>order</td>
             <td>name</td>
             <td>
-              name, url, homepage, favicon, tags, country, state, language, votes, codec, bitrate, lastcheckok, lastchecktime, clicktimestamp, clickcount, clicktrend, random
+              name, url, homepage, favicon, tags, country, state, language, votes, codec, bitrate, lastcheckok,
+              lastchecktime, clicktimestamp, clickcount, clicktrend, random
             </td>
             <td>name of the attribute the result list will be sorted by</td>
           </tr>
@@ -963,7 +1356,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
             <td>offset</td>
             <td>0</td>
             <td>0,1,2,3,4,..</td>
-            <td>starting value of the result list from the database. For example, if you want to do paging on the server side.</td>
+            <td>starting value of the result list from the database. For example, if you want to do paging on the server
+              side.</td>
           </tr>
           <tr>
             <td>limit</td>
@@ -1011,18 +1405,25 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
       </div>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
-        <li><a href="{{ API_SERVER }}/json/stations/byname/jazz" target="_blank">{{ API_SERVER }}/json/stations/byname/jazz</a></li>
-        <li><a href="{{ API_SERVER }}/xml/stations/bycountry/austria" target="_blank">{{ API_SERVER }}/xml/stations/bycountry/austria</a></li>
-        <li><a href="{{ API_SERVER }}/xml/stations/bycountryexact/austria" target="_blank">{{ API_SERVER }}/xml/stations/bycountryexact/austria</a></li>
-        <li><a href="{{ API_SERVER }}/xml/stations/bycountrycodeexact/at" target="_blank">{{ API_SERVER }}/xml/stations/bycountrycodeexact/at</a></li>
-        <li><a href="{{ API_SERVER }}/m3u/stations/bytagexact/320kbps" target="_blank">{{ API_SERVER }}/m3u/stations/bytagexact/320kbps</a></li>
-        <li><a href="{{ API_SERVER }}/pls/stations/bytagexact/320kbps" target="_blank">{{ API_SERVER }}/pls/stations/bytagexact/320kbps</a></li>
+        <li><a href="{{ API_SERVER }}/json/stations/byname/jazz" target="_blank">{{ API_SERVER
+            }}/json/stations/byname/jazz</a></li>
+        <li><a href="{{ API_SERVER }}/xml/stations/bycountry/austria" target="_blank">{{ API_SERVER
+            }}/xml/stations/bycountry/austria</a></li>
+        <li><a href="{{ API_SERVER }}/xml/stations/bycountryexact/austria" target="_blank">{{ API_SERVER
+            }}/xml/stations/bycountryexact/austria</a></li>
+        <li><a href="{{ API_SERVER }}/xml/stations/bycountrycodeexact/at" target="_blank">{{ API_SERVER
+            }}/xml/stations/bycountrycodeexact/at</a></li>
+        <li><a href="{{ API_SERVER }}/m3u/stations/bytagexact/320kbps" target="_blank">{{ API_SERVER
+            }}/m3u/stations/bytagexact/320kbps</a></li>
+        <li><a href="{{ API_SERVER }}/pls/stations/bytagexact/320kbps" target="_blank">{{ API_SERVER
+            }}/pls/stations/bytagexact/320kbps</a></li>
       </ul>
     </div>
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_all_radio_stations">
       <h1 class="display-4">List of all radio stations</h1>
-      <p class="lead">A list of all radio stations. Please use <a href="#Count_station_click">Count station click</a> API call to let the click be counted, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of all radio stations. Please use <a href="#Count_station_click">Count station click</a>
+        API call to let the click be counted, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -1046,7 +1447,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
             <td>order</td>
             <td>name</td>
             <td>
-              name, url, homepage, favicon, tags, country, state, language, votes, codec, bitrate, lastcheckok, lastchecktime, clicktimestamp, clickcount, clicktrend, random
+              name, url, homepage, favicon, tags, country, state, language, votes, codec, bitrate, lastcheckok,
+              lastchecktime, clicktimestamp, clickcount, clicktrend, random
             </td>
             <td>name of the attribute the result list will be sorted by</td>
           </tr>
@@ -1060,7 +1462,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
             <td>offset</td>
             <td>0</td>
             <td>0,1,2,3,4,..</td>
-            <td>starting value of the result list from the database. For example, if you want to do paging on the server side.</td>
+            <td>starting value of the result list from the database. For example, if you want to do paging on the server
+              side.</td>
           </tr>
           <tr>
             <td>limit</td>
@@ -1084,7 +1487,9 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_station_check_results">
       <h1 class="display-4">List of station check results</h1>
-      <p class="lead">A list of station check results. If a station UUID is provided, the whole history will be returned. If a station ID is not provided, a list of all last checks of all stations will be sent (without older check results), supported output formats: JSON, XML, CSV</p>
+      <p class="lead">A list of station check results. If a station UUID is provided, the whole history will be
+        returned. If a station ID is not provided, a list of all last checks of all stations will be sent (without older
+        check results), supported output formats: JSON, XML, CSV</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -1132,124 +1537,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
           </tr>
         </tbody>
       </table>
-      <div class="h5">Result JSON:</div>
-      <div class="well well-sm bg-light border border-secondary rounded">
-        <pre class="mt-4">
-          [
-          {
-            "stationuuid":"960e57c5-0601-11e8-ae97-52543be04c81",
-            "checkuuid":"18be4561-309a-11ea-b37a-0242ac120002",
-            "source":"www.radio-browser.info",
-            "codec":"MP3",
-            "bitrate":128,
-            "hls":0,
-            "ok":1,
-            "timestamp":"2020-01-06 15:34:58",
-            "urlcache":"http://stream.srg-ssr.ch/m/drs1/mp3_128",
-            "metainfo_overrides_database":0,
-            "public":null,
-            "name":null,
-            "description":null,
-            "tags":null,
-            "countrycode":null,
-            "countrysubdivisioncode": null,
-            "homepage":null,
-            "favicon":null,
-            "loadbalancer":null,
-            "server_software": "Icecast 2.4.0",
-            "sampling": 44100,
-            "timing_ms": 495,
-            "languagecodes": null,
-            "ssl_error": 0
-          },
-          {
-            "stationuuid":"960e57c5-0601-11e8-ae97-52543be04c81",
-            "checkuuid":"5ac949c3-309a-11ea-b37a-0242ac120002",
-            "source":"de1.api.radio-browser.info",
-            "codec":"MP3",
-            "bitrate":128,
-            "hls":0,
-            "ok":1,
-            "timestamp":"2020-01-06 15:36:49",
-            "urlcache":"http://stream.srg-ssr.ch/m/drs1/mp3_128",
-            "metainfo_overrides_database":0,
-            "public":0,
-            "name":"SRF 1",
-            "description":"Radio SRF 1 - Das Schweizer Radio - 0848 80 80 80 - srf1.ch",
-            "tags":"Information",
-            "countrycode": "AT",
-            "countrysubdivisioncode": "AT-1",
-            "homepage":"http://srf1.ch",
-            "favicon":null,
-            "loadbalancer":null,
-            "server_software": "Icecast 2.4.0",
-            "sampling": null,
-            "timing_ms": 495,
-            "languagecodes": "eng,ger",
-            "ssl_error": 0
-          }
-          ..
-          ]
-          </pre>
-      </div>
-
-      <div class="h5 mt-2">Result XML:</div>
-      <div class="well well-sm bg-light border border-secondary rounded">
-        <pre class="mt-4">
-          &lt;check
-            stationuuid=&quot;960e57c5-0601-11e8-ae97-52543be04c81&quot;
-            checkuuid=&quot;18be4561-309a-11ea-b37a-0242ac120002&quot;
-            source=&quot;www.radio-browser.info&quot;
-            codec=&quot;MP3&quot;
-            bitrate=&quot;128&quot;
-            hls=&quot;0&quot;
-            ok=&quot;1&quot;
-            urlcache=&quot;http://stream.srg-ssr.ch/m/drs1/mp3_128&quot;
-            timestamp=&quot;2020-01-06 15:34:58&quot;
-            metainfo_overrides_database=&quot;0&quot;
-            public=&quot;0&quot;
-            name=&quot;&quot;
-            description=&quot;&quot;
-            tags=&quot;&quot;
-            homepage=&quot;&quot;
-            loadbalancer=&quot;&quot;
-            favicon=&quot;&quot;
-            countrycode=&quot;&quot;
-            countrysubdivisioncode=&quot;&quot;
-            server_software="Icecast 2.4.2"
-            sampling=&quot;44100&quot;
-            timing_ms=&quot;333&quot;
-            languagecodes=&quot;&quot;
-            ssl_error=0
-          /&gt;
-          &lt;check
-            stationuuid=&quot;960e57c5-0601-11e8-ae97-52543be04c81&quot;
-            checkuuid=&quot;5ac949c3-309a-11ea-b37a-0242ac120002&quot;
-            source=&quot;de1.api.radio-browser.info&quot;
-            codec=&quot;MP3&quot;
-            bitrate=&quot;128&quot;
-            hls=&quot;0&quot;
-            ok=&quot;1&quot;
-            urlcache=&quot;http://stream.srg-ssr.ch/m/drs1/mp3_128&quot;
-            timestamp=&quot;2020-01-06 15:36:49&quot;
-            metainfo_overrides_database=&quot;0&quot;
-            public=&quot;0&quot;
-            name=&quot;SRF 1&quot;
-            description=&quot;Radio SRF 1 - Das Schweizer Radio - 0848 80 80 80 - srf1.ch&quot;
-            tags=&quot;Information&quot;
-            homepage=&quot;http://srf1.ch&quot;
-            loadbalancer=&quot;&quot;
-            favicon=&quot;&quot;
-            countrycode=&quot;AT&quot;
-            countrysubdivisioncode=&quot;AT-1&quot;
-            server_software="Icecast 2.4.2"
-            sampling=&quot;44100&quot;
-            timing_ms=&quot;333&quot;
-            languagecodes=&quot;eng,ger&quot;
-            ssl_error=0
-          /&gt;
-        </pre>
-      </div>
+      <div class="h5">Result:</div>
+      Details at <a href="#Struct_station_check">Struct station check</a>
 
       <div class="h5 mt-2">Example:</div>
       <ul class="list-unstyled ml-4">
@@ -1260,7 +1549,9 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="List_of_station_clicks">
       <h1 class="display-4">List of station clicks</h1>
-      <p class="lead">A list of station clicks. If a station UUID is provided, only clicks of the station will be returned. If a station UUID is not provided, a list of all clicks of all stations will be sent (chunksize 10000), supported output formats: JSON, XML, CSV</p>
+      <p class="lead">A list of station clicks. If a station UUID is provided, only clicks of the station will be
+        returned. If a station UUID is not provided, a list of all clicks of all stations will be sent (chunksize
+        10000), supported output formats: JSON, XML, CSV</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -1292,7 +1583,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
             <td>lastclickuuid</td>
             <td></td>
             <td>UUID</td>
-            <td>If set, only list clicks after the click with the given uuid. Use this to continue chunked retrieval to get the next 10000 clicks.</td>
+            <td>If set, only list clicks after the click with the given uuid. Use this to continue chunked retrieval to
+              get the next 10000 clicks.</td>
           </tr>
           <tr>
             <td>seconds</td>
@@ -1340,7 +1632,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
       <div class="h5 mt-2">Example:</div>
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/json/clicks" target="_blank">{{ API_SERVER }}/json/clicks</a></li>
-        <li><a href="{{ API_SERVER }}/xml/clicks?seconds=3600" target="_blank">{{ API_SERVER }}/xml/clicks?seconds=3600</a></li>
+        <li><a href="{{ API_SERVER }}/xml/clicks?seconds=3600" target="_blank">{{ API_SERVER
+            }}/xml/clicks?seconds=3600</a></li>
       </ul>
     </div>
 
@@ -1399,17 +1692,18 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
       <div class="h5 mt-2">Example:</div>
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/json/checksteps" target="_blank">{{ API_SERVER }}/json/checksteps</a></li>
-        <li><a href="{{ API_SERVER }}/xml/checksteps?uuids=01234567-89ab-cdef-0123-456789abcdef" target="_blank">{{ API_SERVER }}/xml/checksteps?uuids=01234567-89ab-cdef-0123-456789abcdef</a></li>
+        <li><a href="{{ API_SERVER }}/xml/checksteps?uuids=01234567-89ab-cdef-0123-456789abcdef" target="_blank">{{
+            API_SERVER }}/xml/checksteps?uuids=01234567-89ab-cdef-0123-456789abcdef</a></li>
       </ul>
     </div>
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Count_station_click">
       <h1 class="display-4">Station click counter</h1>
       <p class="lead">
-         Increase the click count of a station by one. This should be called everytime when a user starts playing a
-         stream to mark the stream more popular than others.
-         Every call to this endpoint from the same IP address and for the same station only gets counted once per day.
-         The call will return detailed information about the stream, supported output formats: JSON, XML ,PLS ,M3U</p>
+        Increase the click count of a station by one. This should be called everytime when a user starts playing a
+        stream to mark the stream more popular than others.
+        Every call to this endpoint from the same IP address and for the same station only gets counted once per day.
+        The call will return detailed information about the stream, supported output formats: JSON, XML ,PLS ,M3U</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -1453,8 +1747,10 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Advanced_station_search">
       <h1 class="display-4">Advanced station search</h1>
-      <p class="lead">A list of radio stations that match the search. It will search for the station whose attribute contains the search term. Please use <a href="#Count_station_click">Count station click</a> API call to let the click be counted,
-      supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of radio stations that match the search. It will search for the station whose attribute
+        contains the search term. Please use <a href="#Count_station_click">Count station click</a> API call to let the
+        click be counted,
+        supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -1502,7 +1798,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
             <td>countrycode</td>
             <td></td>
             <td>STRING</td>
-            <td>OPTIONAL, 2-digit countrycode of the station (see <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2" target='_blank'>ISO 3166-1 alpha-2</a>).</td>
+            <td>OPTIONAL, 2-digit countrycode of the station (see <a
+                href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2" target='_blank'>ISO 3166-1 alpha-2</a>).</td>
           </tr>
           <tr>
             <td>state</td>
@@ -1544,7 +1841,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
             <td>tagList</td>
             <td></td>
             <td>STRING, STRING, ...</td>
-            <td>OPTIONAL. , a comma-separated list of tag. It can also be an array of string in JSON HTTP POST parameters. All tags in list have to match.</td>
+            <td>OPTIONAL. , a comma-separated list of tag. It can also be an array of string in JSON HTTP POST
+              parameters. All tags in list have to match.</td>
           </tr>
           <tr>
             <td>codec</td>
@@ -1568,7 +1866,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
             <td>order</td>
             <td>name</td>
             <td>
-              name, url, homepage, favicon, tags, country, state, language, votes, codec, bitrate, lastcheckok, lastchecktime, clicktimestamp, clickcount, clicktrend, random
+              name, url, homepage, favicon, tags, country, state, language, votes, codec, bitrate, lastcheckok,
+              lastchecktime, clicktimestamp, clickcount, clicktrend, random
             </td>
             <td>OPTIONAL, name of the attribute the result list will be sorted by</td>
           </tr>
@@ -1582,7 +1881,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
             <td>offset</td>
             <td>0</td>
             <td>POSITIVE INTEGER</td>
-            <td>OPTIONAL, starting value of the result list from the database. For example, if you want to do paging on the server side.</td>
+            <td>OPTIONAL, starting value of the result list from the database. For example, if you want to do paging on
+              the server side.</td>
           </tr>
           <tr>
             <td>limit</td>
@@ -1598,14 +1898,16 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
       </p>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
-        <li><a href="{{ API_SERVER }}/json/stations/search" target="_blank">{{ API_SERVER }}/json/stations/search</a></li>
+        <li><a href="{{ API_SERVER }}/json/stations/search" target="_blank">{{ API_SERVER }}/json/stations/search</a>
+        </li>
       </ul>
     </div>
 
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Search_radio_stations_by_uuid">
       <h1 class="display-4">Search radio stations by UUID</h1>
-      <p class="lead">A list of radio stations that have an exact UUID match, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of radio stations that have an exact UUID match, supported output formats: JSON, XML, CSV,
+        M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">{{ API_SERVER }}/xml/stations/byuuid
@@ -1623,7 +1925,9 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
         <tbody>
           <tr>
             <td>uuids</td>
-            <td>110e57c5-0601-11e8-ae97-52543be04c81,220e57c5-0601-11e8-ae97-52543be04c81,330e57c5-0601-11e8-ae97-52543be04c81</td>
+            <td>
+              110e57c5-0601-11e8-ae97-52543be04c81,220e57c5-0601-11e8-ae97-52543be04c81,330e57c5-0601-11e8-ae97-52543be04c81
+            </td>
             <td>MANDATORY, comma-separated list of UUIDs </td>
           </tr>
         </tbody>
@@ -1634,14 +1938,16 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
       </p>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
-        <li><a href="{{ API_SERVER }}/json/stations/byuuid" target="_blank">{{ API_SERVER }}/json/stations/byuuid</a></li>
+        <li><a href="{{ API_SERVER }}/json/stations/byuuid" target="_blank">{{ API_SERVER }}/json/stations/byuuid</a>
+        </li>
       </ul>
     </div>
 
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Search_radio_stations_by_url">
       <h1 class="display-4">Search radio stations by URL</h1>
-      <p class="lead">A list of radio stations that have an exact URL match, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of radio stations that have an exact URL match, supported output formats: JSON, XML, CSV,
+        M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">{{ API_SERVER }}/xml/stations/byurl
@@ -1678,7 +1984,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Stations_by_clicks">
       <h1 class="display-4">Stations by clicks</h1>
-      <p class="lead">A list of the stations that are clicked the most. You can add a parameter with the number of wanted stations, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of the stations that are clicked the most. You can add a parameter with the number of
+        wanted stations, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -1695,14 +2002,17 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
       </p>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
-        <li><a href="{{ API_SERVER }}/xml/stations/topclick" target="_blank">{{ API_SERVER }}/xml/stations/topclick</a></li>
-        <li><a href="{{ API_SERVER }}/json/stations/topclick/5" target="_blank">{{ API_SERVER }}/json/stations/topclick/5</a></li>
+        <li><a href="{{ API_SERVER }}/xml/stations/topclick" target="_blank">{{ API_SERVER }}/xml/stations/topclick</a>
+        </li>
+        <li><a href="{{ API_SERVER }}/json/stations/topclick/5" target="_blank">{{ API_SERVER
+            }}/json/stations/topclick/5</a></li>
       </ul>
     </div>
 
     <div class="jumbotron mt-2 shadow p-3 mb-5">
       <h1 class="display-4" id="Stations_by_votes">Stations by votes</h1>
-      <p class="lead">A list of the highest-voted stations. You can add a parameter with the number of wanted stations, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of the highest-voted stations. You can add a parameter with the number of wanted stations,
+        supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -1719,15 +2029,19 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
       </p>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
-        <li><a href="{{ API_SERVER }}/xml/stations/topvote" target="_blank">{{ API_SERVER }}/xml/stations/topvote</a></li>
-        <li><a href="{{ API_SERVER }}/json/stations/topvote/5" target="_blank">{{ API_SERVER }}/json/stations/topvote/5</a></li>
-        <li><a href="{{ API_SERVER }}/m3u/stations/topvote/5" target="_blank">{{ API_SERVER }}/m3u/stations/topvote/5</a></li>
+        <li><a href="{{ API_SERVER }}/xml/stations/topvote" target="_blank">{{ API_SERVER }}/xml/stations/topvote</a>
+        </li>
+        <li><a href="{{ API_SERVER }}/json/stations/topvote/5" target="_blank">{{ API_SERVER
+            }}/json/stations/topvote/5</a></li>
+        <li><a href="{{ API_SERVER }}/m3u/stations/topvote/5" target="_blank">{{ API_SERVER
+            }}/m3u/stations/topvote/5</a></li>
       </ul>
     </div>
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Stations_by_recent_click">
       <h1 class="display-4">Stations by recent click</h1>
-      <p class="lead">A list of stations that were clicked recently, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of stations that were clicked recently, supported output formats: JSON, XML, CSV, M3U, PLS,
+        XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -1744,14 +2058,17 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
       </p>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
-        <li><a href="{{ API_SERVER }}/xml/stations/lastclick" target="_blank">{{ API_SERVER }}/xml/stations/lastclick</a></li>
-        <li><a href="{{ API_SERVER }}/json/stations/lastclick/5" target="_blank">{{ API_SERVER }}/json/stations/lastclick/5</a></li>
+        <li><a href="{{ API_SERVER }}/xml/stations/lastclick" target="_blank">{{ API_SERVER
+            }}/xml/stations/lastclick</a></li>
+        <li><a href="{{ API_SERVER }}/json/stations/lastclick/5" target="_blank">{{ API_SERVER
+            }}/json/stations/lastclick/5</a></li>
       </ul>
     </div>
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Stations_by_recently_changed">
       <h1 class="display-4">Stations by recently changed/added</h1>
-      <p class="lead">A list of stations that were added or changed recently, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of stations that were added or changed recently, supported output formats: JSON, XML, CSV,
+        M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -1768,14 +2085,17 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
       </p>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
-        <li><a href="{{ API_SERVER }}/xml/stations/lastchange" target="_blank">{{ API_SERVER }}/xml/stations/lastchange</a></li>
-        <li><a href="{{ API_SERVER }}/json/stations/lastchange/5" target="_blank">{{ API_SERVER }}/json/stations/lastchange/5</a></li>
+        <li><a href="{{ API_SERVER }}/xml/stations/lastchange" target="_blank">{{ API_SERVER
+            }}/xml/stations/lastchange</a></li>
+        <li><a href="{{ API_SERVER }}/json/stations/lastchange/5" target="_blank">{{ API_SERVER
+            }}/json/stations/lastchange/5</a></li>
       </ul>
     </div>
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Old_versions_of_stations">
       <h1 class="display-4">Old versions of stations</h1>
-      <p class="lead">A list of old versions of stations from the last 30 days, and you can also retrieve the history of a single station by its ID. They are not visible through any other API calls.
+      <p class="lead">A list of old versions of stations from the last 30 days, and you can also retrieve the history of
+        a single station by its ID. They are not visible through any other API calls.
         Station ID can be an ID or a station UUID, supported output formats: JSON, XML, CSV</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
@@ -1802,7 +2122,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
             <td>lastchangeuuid</td>
             <td></td>
             <td>valid uuid</td>
-            <td>If defined, only show changes that happened after the one with this UUID. Is ignored if uuids is set.</td>
+            <td>If defined, only show changes that happened after the one with this UUID. Is ignored if uuids is set.
+            </td>
           </tr>
           <tr>
             <td>limit</td>
@@ -1814,14 +2135,17 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
       </table>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
-        <li><a href="{{ API_SERVER }}/xml/stations/changed?lastchangeuuid=123&limit=10" target="_blank">{{ API_SERVER }}/xml/stations/changed?lastchangeuuid=123&limit=10</a></li>
-        <li><a href="{{ API_SERVER }}/json/stations/changed/123" target="_blank">{{ API_SERVER }}/json/stations/changed/123</a></li>
+        <li><a href="{{ API_SERVER }}/xml/stations/changed?lastchangeuuid=123&limit=10" target="_blank">{{ API_SERVER
+            }}/xml/stations/changed?lastchangeuuid=123&limit=10</a></li>
+        <li><a href="{{ API_SERVER }}/json/stations/changed/123" target="_blank">{{ API_SERVER
+            }}/json/stations/changed/123</a></li>
       </ul>
     </div>
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Stations_that_need_improvements">
       <h1 class="display-4">Stations that need improvements</h1>
-      <p class="lead">A list of the stations that need improvements, which means they do not have e.g. tags, country, state information, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of the stations that need improvements, which means they do not have e.g. tags, country,
+        state information, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -1838,14 +2162,17 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
       </p>
       <div class="h5">Example:</div>
       <ul class="list-unstyled ml-4">
-        <li><a href="{{ API_SERVER }}/xml/stations/improvable" target="_blank">{{ API_SERVER }}/xml/stations/improvable</a></li>
-        <li><a href="{{ API_SERVER }}/json/stations/improvable/5" target="_blank">{{ API_SERVER }}/json/stations/improvable/5</a></li>
+        <li><a href="{{ API_SERVER }}/xml/stations/improvable" target="_blank">{{ API_SERVER
+            }}/xml/stations/improvable</a></li>
+        <li><a href="{{ API_SERVER }}/json/stations/improvable/5" target="_blank">{{ API_SERVER
+            }}/json/stations/improvable/5</a></li>
       </ul>
     </div>
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Broken_stations">
       <h1 class="display-4">Broken stations</h1>
-      <p class="lead">A list of the stations that did not pass the connection test, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL</p>
+      <p class="lead">A list of the stations that did not pass the connection test, supported output formats: JSON, XML,
+        CSV, M3U, PLS, XSPF, TTL</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -1863,13 +2190,16 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
       <div class="h5 mt-2">Example:</div>
       <ul class="list-unstyled ml-4">
         <li><a href="{{ API_SERVER }}/xml/stations/broken" target="_blank">{{ API_SERVER }}/xml/stations/broken</a></li>
-        <li><a href="{{ API_SERVER }}/json/stations/broken/5" target="_blank">{{ API_SERVER }}/json/stations/broken/5</a></li>
+        <li><a href="{{ API_SERVER }}/json/stations/broken/5" target="_blank">{{ API_SERVER
+            }}/json/stations/broken/5</a></li>
       </ul>
     </div>
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Vote_for_station">
       <h1 class="display-4">Vote for station</h1>
-      <p class="lead">Increase the vote count for the station by one. Can only be done by the same IP address for one station every 10 minutes. If it works, the changed station will be returned as result, supported output formats: JSON, XML</p>
+      <p class="lead">Increase the vote count for the station by one. Can only be done by the same IP address for one
+        station every 10 minutes. If it works, the changed station will be returned as result, supported output formats:
+        JSON, XML</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
       <div class="syntax">
@@ -2042,7 +2372,9 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
 
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Server_mirrors">
       <h1 class="display-4">Server mirrors</h1>
-      <p class="lead ">A list of server mirrors. A DNS look-up of all.api.radio-browser.info is performed followed by a reverse one for every result getting from the first request. This should be done on the client. ONLY USE THIS if your client is not able to do DNS look-ups, 
+      <p class="lead ">A list of server mirrors. A DNS look-up of all.api.radio-browser.info is performed followed by a
+        reverse one for every result getting from the first request. This should be done on the client. ONLY USE THIS if
+        your client is not able to do DNS look-ups,
         supported output formats: JSON</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
@@ -2087,9 +2419,9 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
       </ul>
     </div>
 
-        <div class="jumbotron mt-2 shadow p-3 mb-5" id="Server_config">
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Server_config">
       <h1 class="display-4">Server config</h1>
-      <p class="lead ">The current active server config, 
+      <p class="lead ">The current active server config,
         supported output formats: JSON, XML</p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
@@ -2168,10 +2500,11 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
       </ul>
     </div>
 
-        <div class="jumbotron mt-2 shadow p-3 mb-5" id="Server_prometheus">
+    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Server_prometheus">
       <h1 class="display-4">Prometheus monitoring</h1>
       <p class="lead ">
-        Exporter for <a href="https://prometheus.io/">prometheus</a>. It renders internal data about the server in a specific format that is readable by the time series database prometheus.
+        Exporter for <a href="https://prometheus.io/">prometheus</a>. It renders internal data about the server in a
+        specific format that is readable by the time series database prometheus.
       </p>
       <hr class="my-4">
       <div class="h5">Syntax:</div>
@@ -2216,9 +2549,15 @@ radio_browser_stations_deletable_were_working 0
     </div>
   </div>
 
-  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
+    integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"
+    integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T"
+    crossorigin="anonymous"></script>
 
 </body>
 

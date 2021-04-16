@@ -1,3 +1,7 @@
+use chrono::NaiveDateTime;
+use chrono::Utc;
+use chrono::DateTime;
+use chrono::SecondsFormat;
 use crate::api::api_response::ApiResponse;
 use crate::db::models::StationCheckItem;
 use std::convert::TryFrom;
@@ -26,6 +30,7 @@ pub struct StationCheck {
     pub bitrate: u32,
     pub hls: u8,
     pub ok: u8,
+    pub timestamp_iso8601: Option<DateTime<Utc>>,
     pub timestamp: String,
     pub urlcache: String,
 
@@ -59,6 +64,7 @@ impl StationCheck {
         bitrate: u32,
         hls: u8,
         ok: u8,
+        timestamp_iso8601: Option<DateTime<Utc>>,
         timestamp: String,
         urlcache: String,
 
@@ -90,6 +96,7 @@ impl StationCheck {
             bitrate,
             hls,
             ok,
+            timestamp_iso8601,
             timestamp,
             urlcache,
 
@@ -140,6 +147,9 @@ impl StationCheck {
             xml.attr_esc("hls", &entry.hls.to_string())?;
             xml.attr_esc("ok", &entry.ok.to_string())?;
             xml.attr_esc("urlcache", &entry.urlcache)?;
+            if let Some(timestamp_iso8601) = entry.timestamp_iso8601 {
+                xml.attr_esc("timestamp_iso8601", &timestamp_iso8601.to_rfc3339_opts(SecondsFormat::Secs, true))?;
+            }
             xml.attr_esc("timestamp", &entry.timestamp)?;
 
             xml.attr_esc("metainfo_overrides_database", &entry.metainfo_overrides_database.unwrap_or(0).to_string())?;
@@ -186,6 +196,10 @@ impl TryFrom<StationCheckV0> for StationCheck {
     type Error = Box<dyn std::error::Error>;
 
     fn try_from(item: StationCheckV0) -> Result<Self, Self::Error> {
+        let timestamp_iso8601 = NaiveDateTime::parse_from_str(&item.timestamp, "%Y-%m-%d %H:%M:%S")
+            .ok()
+            .map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc));
+
         Ok(StationCheck {
             stationuuid: item.stationuuid,
             checkuuid: item.checkuuid,
@@ -194,6 +208,7 @@ impl TryFrom<StationCheckV0> for StationCheck {
             bitrate: item.bitrate.parse()?,
             hls: item.hls.parse()?,
             ok: item.ok.parse()?,
+            timestamp_iso8601,
             timestamp: item.timestamp,
             urlcache: item.urlcache,
             
@@ -230,6 +245,7 @@ impl From<StationCheckItem> for StationCheck {
             item.bitrate,
             if item.hls { 1 } else { 0 },
             if item.check_ok { 1 } else { 0 },
+            item.check_time_iso8601,
             item.check_time,
             item.url,
 

@@ -1,7 +1,10 @@
+use chrono::NaiveDateTime;
 use crate::db::models::StationHistoryItem;
 use celes::Country;
 use std::error::Error;
 use serde::{Serialize,Deserialize};
+use chrono::DateTime;
+use chrono::Utc;
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct StationHistoryV0 {
@@ -36,12 +39,17 @@ pub struct StationHistoryCurrent {
     pub languagecodes: String,
     pub votes: i32,
     pub lastchangetime: String,
+    pub lastchangetime_iso8601: Option<DateTime<Utc>>,
     pub geo_lat: Option<f64>,
     pub geo_long: Option<f64>,
 }
 
 impl From<StationHistoryV0> for StationHistoryCurrent {
     fn from(item: StationHistoryV0) -> Self {
+        let lastchangetime_iso8601 = NaiveDateTime::parse_from_str(&item.lastchangetime, "%Y-%m-%d %H:%M:%S")
+            .ok()
+            .map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc));
+
         StationHistoryCurrent {
             changeuuid: item.changeuuid,
             stationuuid: item.stationuuid,
@@ -57,6 +65,7 @@ impl From<StationHistoryV0> for StationHistoryCurrent {
             languagecodes: String::from(""),
             votes: item.votes.parse().unwrap(),
             lastchangetime: item.lastchangetime,
+            lastchangetime_iso8601,
             geo_lat: None,
             geo_long: None,
         }
@@ -65,6 +74,10 @@ impl From<StationHistoryV0> for StationHistoryCurrent {
 
 impl From<&StationHistoryV0> for StationHistoryCurrent {
     fn from(item: &StationHistoryV0) -> Self {
+        let lastchangetime_iso8601 = NaiveDateTime::parse_from_str(&item.lastchangetime, "%Y-%m-%d %H:%M:%S")
+            .ok()
+            .map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc));
+
         StationHistoryCurrent {
             changeuuid: item.changeuuid.clone(),
             stationuuid: item.stationuuid.clone(),
@@ -80,6 +93,7 @@ impl From<&StationHistoryV0> for StationHistoryCurrent {
             languagecodes: String::from(""),
             votes: item.votes.parse().unwrap(),
             lastchangetime: item.lastchangetime.clone(),
+            lastchangetime_iso8601,
             geo_lat: None,
             geo_long: None,
         }
@@ -151,6 +165,7 @@ impl From<StationHistoryItem> for StationHistoryCurrent {
             languagecodes: item.languagecodes,
             votes: item.votes,
             lastchangetime: item.lastchangetime,
+            lastchangetime_iso8601: item.lastchangetime_iso8601,
             geo_lat: item.geo_lat,
             geo_long: item.geo_long,
         }

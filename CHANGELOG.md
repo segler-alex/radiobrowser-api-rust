@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * API: /json/checksteps, /xml/checksteps, /csv/checksteps
 * API: languagecodes, geo_lat, geo_long
 * CHECK: extract languagecodes, geo_lat, geo_long
+* API: iso 8601 datetime fields
 
 ### Changed
 * CHECK: do not ignore streams with broken ssl, just mark them

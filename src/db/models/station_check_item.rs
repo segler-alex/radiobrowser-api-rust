@@ -1,6 +1,10 @@
+use chrono::DateTime;
+use chrono::Utc;
+
 #[derive(Clone, Debug)]
 pub struct StationCheckItem {
     pub check_id: i32,
+    pub check_time_iso8601: Option<DateTime<Utc>>,
     pub check_time: String,
     pub check_uuid: String,
 

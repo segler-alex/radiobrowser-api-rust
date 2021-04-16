@@ -2,6 +2,10 @@ use crate::api::api_response::ApiResponse;
 use crate::api::data::StationHistoryCurrent;
 use crate::db::models::StationItem;
 use std::error::Error;
+use chrono::NaiveDateTime;
+use chrono::DateTime;
+use chrono::Utc;
+use chrono::SecondsFormat;
 use serde::{Serialize,Deserialize};
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
@@ -74,16 +78,22 @@ pub struct Station {
     pub languagecodes: String,
     pub votes: i32,
     pub lastchangetime: String,
+    pub lastchangetime_iso8601: Option<DateTime<Utc>>,
     pub codec: String,
     pub bitrate: u32,
     pub hls: i8,
     pub lastcheckok: i8,
     pub lastchecktime: String,
+    pub lastchecktime_iso8601: Option<DateTime<Utc>>,
     pub lastcheckoktime: String,
+    pub lastcheckoktime_iso8601: Option<DateTime<Utc>>,
     pub lastlocalchecktime: String,
+    pub lastlocalchecktime_iso8601: Option<DateTime<Utc>>,
     pub clicktimestamp: String,
+    pub clicktimestamp_iso8601: Option<DateTime<Utc>>,
     pub clickcount: u32,
     pub clicktrend: i32,
+    pub ssl_error: u8,
     pub geo_lat: Option<f64>,
     pub geo_long: Option<f64>,
 }
@@ -128,10 +138,13 @@ impl Station {
             xml.attr_esc("countrycode", &entry.countrycode)?;
             xml.attr_esc("state", &entry.state)?;
             xml.attr_esc("language", &entry.language)?;
+            xml.attr_esc("languagecodes", &entry.languagecodes)?;
             let station_votes_str = format!("{}", entry.votes);
             xml.attr_esc("votes", &station_votes_str)?;
-            let station_lastchangetime_str = format!("{}", entry.lastchangetime);
-            xml.attr_esc("lastchangetime", &station_lastchangetime_str)?;
+            xml.attr_esc("lastchangetime", &entry.lastchangetime)?;
+            if let Some(lastchangetime_iso8601) = &entry.lastchangetime_iso8601 {
+                xml.attr_esc("lastchangetime_iso8601", &lastchangetime_iso8601.to_rfc3339_opts(SecondsFormat::Secs, true))?;
+            }
             xml.attr_esc("codec", &entry.codec)?;
             let station_bitrate = format!("{}", entry.bitrate);
             xml.attr_esc("bitrate", &station_bitrate)?;
@@ -139,17 +152,28 @@ impl Station {
             xml.attr_esc("hls", &station_hls)?;
             let station_lastcheckok = format!("{}", entry.lastcheckok);
             xml.attr_esc("lastcheckok", &station_lastcheckok)?;
-            let station_lastchecktime_str = format!("{}", entry.lastchecktime);
-            xml.attr_esc("lastchecktime", &station_lastchecktime_str)?;
-            let station_lastcheckoktime_str = format!("{}", entry.lastcheckoktime);
-            xml.attr_esc("lastcheckoktime", &station_lastcheckoktime_str)?;
+            xml.attr_esc("lastchecktime", &entry.lastchecktime)?;
+            if let Some(lastchecktime_iso8601) = &entry.lastchecktime_iso8601 {
+                xml.attr_esc("lastchecktime_iso8601", &lastchecktime_iso8601.to_rfc3339_opts(SecondsFormat::Secs, true))?;
+            }
+            xml.attr_esc("lastcheckoktime", &entry.lastcheckoktime)?;
+            if let Some(lastcheckoktime_iso8601) = &entry.lastcheckoktime_iso8601 {
+                xml.attr_esc("lastcheckoktime_iso8601", &lastcheckoktime_iso8601.to_rfc3339_opts(SecondsFormat::Secs, true))?;
+            }
             xml.attr_esc("lastlocalchecktime", &entry.lastlocalchecktime)?;
-            let station_clicktimestamp_str = format!("{}", entry.clicktimestamp);
-            xml.attr_esc("clicktimestamp", &station_clicktimestamp_str)?;
+            if let Some(lastlocalchecktime_iso8601) = &entry.lastlocalchecktime_iso8601 {
+                xml.attr_esc("lastlocalchecktime_iso8601", &lastlocalchecktime_iso8601.to_rfc3339_opts(SecondsFormat::Secs, true))?;
+            }
+            xml.attr_esc("clicktimestamp", &entry.clicktimestamp)?;
+            if let Some(clicktimestamp_iso8601) = &entry.clicktimestamp_iso8601 {
+                xml.attr_esc("clicktimestamp_iso8601", &clicktimestamp_iso8601.to_rfc3339_opts(SecondsFormat::Secs, true))?;
+            }
             let station_clickcount = format!("{}", entry.clickcount);
             xml.attr_esc("clickcount", &station_clickcount)?;
             let station_clicktrend = format!("{}", entry.clicktrend);
             xml.attr_esc("clicktrend", &station_clicktrend)?;
+            let station_ssl_error = format!("{}", entry.ssl_error);
+            xml.attr_esc("ssl_error", &station_ssl_error)?;
             if let Some(geo_lat) = &entry.geo_lat {
                 xml.attr_esc("geo_lat", &geo_lat.to_string())?;
             }
@@ -365,6 +389,10 @@ impl Station {
 
 impl From<&StationHistoryCurrent> for Station {
     fn from(item: &StationHistoryCurrent) -> Self {
+        let lastchangetime_iso8601 = NaiveDateTime::parse_from_str(&item.lastchangetime, "%Y-%m-%d %H:%M:%S")
+            .ok()
+            .map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc));
+        
         Station {
             changeuuid: item.changeuuid.clone(),
             stationuuid: item.stationuuid.clone(),
@@ -380,17 +408,23 @@ impl From<&StationHistoryCurrent> for Station {
             languagecodes: item.languagecodes.clone(),
             votes: item.votes,
             lastchangetime: item.lastchangetime.clone(),
+            lastchangetime_iso8601: lastchangetime_iso8601,
             bitrate: 0,
             clickcount: 0,
             clicktimestamp: String::from(""),
+            clicktimestamp_iso8601: None,
             clicktrend: 0,
             codec: String::from(""),
             hls: 0,
             lastcheckok: 0,
             lastcheckoktime: String::from(""),
+            lastcheckoktime_iso8601: None,
             lastchecktime: String::from(""),
+            lastchecktime_iso8601: None,
             lastlocalchecktime: String::from(""),
+            lastlocalchecktime_iso8601: None,
             url_resolved: String::from(""),
+            ssl_error: 0,
             geo_lat: item.geo_lat,
             geo_long: item.geo_long,
         }
@@ -414,17 +448,23 @@ impl From<StationItem> for Station {
             languagecodes: item.languagecodes,
             votes: item.votes,
             lastchangetime: item.lastchangetime,
+            lastchangetime_iso8601: item.lastchangetime_iso8601,
             bitrate: item.bitrate,
             clickcount: item.clickcount,
             clicktimestamp: item.clicktimestamp,
+            clicktimestamp_iso8601: item.clicktimestamp_iso8601,
             clicktrend: item.clicktrend,
             codec: item.codec,
             hls: if item.hls { 1 } else { 0 },
             lastcheckok: if item.lastcheckok { 1 } else { 0 },
             lastcheckoktime: item.lastcheckoktime,
+            lastcheckoktime_iso8601: item.lastcheckoktime_iso8601,
             lastchecktime: item.lastchecktime,
+            lastchecktime_iso8601: item.lastchecktime_iso8601,
             lastlocalchecktime: item.lastlocalchecktime,
+            lastlocalchecktime_iso8601: item.lastlocalchecktime_iso8601,
             url_resolved: item.url_resolved,
+            ssl_error: if item.ssl_error { 1 } else { 0 },
             geo_lat: item.geo_lat,
             geo_long: item.geo_long,
         }
@@ -433,6 +473,19 @@ impl From<StationItem> for Station {
 
 impl From<StationV0> for Station {
     fn from(item: StationV0) -> Self {
+        let lastchangetime_iso8601 = NaiveDateTime::parse_from_str(&item.lastchangetime, "%Y-%m-%d %H:%M:%S")
+            .ok()
+            .map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc));
+        let clicktimestamp_iso8601 = NaiveDateTime::parse_from_str(&item.clicktimestamp, "%Y-%m-%d %H:%M:%S")
+            .ok()
+            .map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc));
+        let lastcheckoktime_iso8601 = NaiveDateTime::parse_from_str(&item.lastcheckoktime, "%Y-%m-%d %H:%M:%S")
+            .ok()
+            .map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc));
+        let lastchecktime_iso8601 = NaiveDateTime::parse_from_str(&item.lastchecktime, "%Y-%m-%d %H:%M:%S")
+            .ok()
+            .map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc));
+
         Station {
             changeuuid: item.changeuuid,
             stationuuid: item.stationuuid,
@@ -448,17 +501,23 @@ impl From<StationV0> for Station {
             languagecodes: String::from(""),
             votes: item.votes.parse().unwrap_or(0),
             lastchangetime: item.lastchangetime,
+            lastchangetime_iso8601: lastchangetime_iso8601,
             bitrate: item.bitrate.parse().unwrap_or(0),
             clickcount: item.clickcount.parse().unwrap_or(0),
             clicktimestamp: item.clicktimestamp,
+            clicktimestamp_iso8601: clicktimestamp_iso8601,
             clicktrend: item.clicktrend.parse().unwrap_or(0),
             codec: item.codec,
             hls: item.hls.parse().unwrap_or(0),
             lastcheckok: item.lastcheckok.parse().unwrap_or(0),
             lastcheckoktime: item.lastcheckoktime,
+            lastcheckoktime_iso8601: lastcheckoktime_iso8601,
             lastchecktime: item.lastchecktime,
+            lastchecktime_iso8601: lastchecktime_iso8601,
             lastlocalchecktime: String::from(""),
+            lastlocalchecktime_iso8601: None,
             url_resolved: String::from(""),
+            ssl_error: 0,
             geo_lat: None,
             geo_long: None,
         }

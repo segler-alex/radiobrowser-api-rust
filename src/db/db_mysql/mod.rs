@@ -43,12 +43,14 @@ impl MysqlConnection {
     const COLUMNS: &'static str =
         "StationID,ChangeUuid,StationUuid,Name,Url,Homepage,Favicon,UrlCache,
     Tags,Country,CountryCode,Subcountry,Language,Votes,
+    Creation,
     Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated,
     Codec,Bitrate,Hls,LastCheckOK,
     LastCheckTime,
     Date_Format(LastCheckTime,'%Y-%m-%d %H:%i:%s') AS LastCheckTimeFormated,
     LastCheckOkTime,
     Date_Format(LastCheckOkTime,'%Y-%m-%d %H:%i:%s') AS LastCheckOkTimeFormated,
+    LastLocalCheckTime,
     Date_Format(LastLocalCheckTime,'%Y-%m-%d %H:%i:%s') AS LastLocalCheckTimeFormated,
     ClickTimestamp,
     Date_Format(ClickTimestamp,'%Y-%m-%d %H:%i:%s') AS ClickTimestampFormated,
@@ -68,6 +70,7 @@ impl MysqlConnection {
 
     const COLUMNS_CLICK: &'static str =
         "ClickID, StationUuid, ClickUuid, IP,
+    ClickTimestamp,
     Date_Format(ClickTimestamp,'%Y-%m-%d %H:%i:%s') AS ClickTimestampFormated";
 
     pub fn new(connection_str: &str) -> Result<Self, Box<dyn Error>> {
@@ -710,6 +713,7 @@ impl DbConnection for MysqlConnection {
                 Language,Votes,
                 LanguageCodes,
                 GeoLat,GeoLong,
+                Creation,
                 Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated
                 from StationHistory WHERE 1=:mynumber {changeuuid_str} {stationuuid} ORDER BY StationChangeID ASC LIMIT {limit}", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str, limit = limit);
         let mut conn = self.pool.get_conn()?;
@@ -739,6 +743,7 @@ impl DbConnection for MysqlConnection {
                     Language,Votes,
                     LanguageCodes,
                     GeoLat,GeoLong,
+                    Creation,
                     Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated
                     from StationHistory WHERE StationUuid IN ({stationuuids_str}) ORDER BY Creation ASC", stationuuids_str = stationuuids_str);
             let mut conn = self.pool.get_conn()?;

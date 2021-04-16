@@ -1,3 +1,5 @@
+use chrono::Utc;
+use chrono::DateTime;
 use serde::{Serialize,Deserialize};
 
 #[derive(PartialEq, Serialize, Deserialize, Debug)]
@@ -16,6 +18,7 @@ pub struct StationHistoryItem {
     pub languagecodes: String,
     pub votes: i32,
     pub lastchangetime: String,
+    pub lastchangetime_iso8601: Option<DateTime<Utc>>,
     pub geo_lat: Option<f64>,
     pub geo_long: Option<f64>,
 }

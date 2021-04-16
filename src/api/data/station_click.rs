@@ -1,3 +1,6 @@
+use chrono::NaiveDateTime;
+use chrono::DateTime;
+use chrono::Utc;
 use crate::api::api_response::ApiResponse;
 use crate::db::models::StationClickItem;
 use std::convert::TryFrom;
@@ -15,6 +18,7 @@ pub struct StationClickV0 {
 pub struct StationClick {
     pub stationuuid: String,
     pub clickuuid: String,
+    pub clicktimestamp_iso8601: Option<DateTime<Utc>>,
     pub clicktimestamp: String,
 }
 
@@ -22,11 +26,13 @@ impl StationClick {
     pub fn new(
         stationuuid: String,
         clickuuid: String,
+        clicktimestamp_iso8601: Option<DateTime<Utc>>,
         clicktimestamp: String,
     ) -> Self {
         StationClick {
             stationuuid,
             clickuuid,
+            clicktimestamp_iso8601,
             clicktimestamp,
         }
     }
@@ -73,9 +79,14 @@ impl TryFrom<StationClickV0> for StationClick {
     type Error = Box<dyn std::error::Error>;
 
     fn try_from(item: StationClickV0) -> Result<Self, Self::Error> {
+        let clicktimestamp_iso8601 = NaiveDateTime::parse_from_str(&item.clicktimestamp, "%Y-%m-%d %H:%M:%S")
+            .ok()
+            .map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc));
+
         Ok(StationClick {
             stationuuid: item.stationuuid,
             clickuuid: item.clickuuid,
+            clicktimestamp_iso8601,
             clicktimestamp: item.clicktimestamp,
         })
     }
@@ -86,6 +97,7 @@ impl From<StationClickItem> for StationClick {
         StationClick::new(
             item.stationuuid,
             item.clickuuid,
+            item.clicktimestamp_iso8601,
             item.clicktimestamp,
         )
     }
