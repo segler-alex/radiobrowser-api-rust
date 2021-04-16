@@ -1,6 +1,7 @@
 use chrono::NaiveDateTime;
 use chrono::DateTime;
 use chrono::Utc;
+use chrono::SecondsFormat;
 use crate::api::api_response::ApiResponse;
 use crate::db::models::StationClickItem;
 use std::convert::TryFrom;
@@ -56,6 +57,9 @@ impl StationClick {
             xml.begin_elem("click")?;
             xml.attr_esc("stationuuid", &entry.stationuuid)?;
             xml.attr_esc("clickuuid", &entry.clickuuid)?;
+            if let Some(clicktimestamp_iso8601) = entry.clicktimestamp_iso8601 {
+                xml.attr_esc("clicktimestamp_iso8601", &clicktimestamp_iso8601.to_rfc3339_opts(SecondsFormat::Secs, true))?;
+            }
             xml.attr_esc("clicktimestamp", &entry.clicktimestamp)?;
             xml.end_elem()?;
         }

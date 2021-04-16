@@ -481,13 +481,13 @@
               <tr>
                 <td>timestamp_iso8601</td>
                 <td><a href="https://en.wikipedia.org/wiki/ISO_8601">ISO-8601</a> datetime string</td>
-                <td>Date and time of step creation</td>
+                <td>Date and time of check creation</td>
                 <td>NO</td>
               </tr>
               <tr>
                 <td>timestamp</td>
                 <td>datetime, YYYY-MM-DD HH:mm:ss</td>
-                <td>Date and time of step creation</td>
+                <td>Date and time of check creation</td>
                 <td>NO</td>
               </tr>
               <tr>
@@ -1601,11 +1601,13 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
           {
             "stationuuid":"963134e8-0601-11e8-ae97-52543be04c81",
             "clickuuid":"ce9ad7bd-34bf-11ea-ac52-52543be04c81",
+            "clicktimestamp_iso8601":"2020-01-11T23:14:58Z",
             "clicktimestamp":"2020-01-11 23:14:58"
           },
           {
             "stationuuid":"2a70c205-4850-11e8-b1b0-52543be04c81",
             "clickuuid":"cf49f517-34bf-11ea-ac52-52543be04c81",
+            "clicktimestamp_iso8601":"2020-01-11T23:15:00Z"
             "clicktimestamp":"2020-01-11 23:15:00"
           },
           ..
@@ -1619,11 +1621,13 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
           &lt;click
             stationuuid=&quot;961fa288-0601-11e8-ae97-52543be04c81&quot;
             clickuuid=&quot;87a69149-34c1-11ea-ac52-52543be04c81&quot;
+            clicktimestamp_iso8601=&quot;2020-01-11T23:27:18Z&quot;
             clicktimestamp=&quot;2020-01-11 23:27:18&quot;
           /&gt;
           &lt;click
             stationuuid=&quot;7a25bf68-1dbe-11ea-a955-52543be04c81&quot;
             clickuuid=&quot;a25e5fb6-34c1-11ea-ac52-52543be04c81&quot;
+            clicktimestamp_iso8601=&quot;2020-01-11T23:28:03Z&quot;
             clicktimestamp=&quot;2020-01-11 23:28:03&quot;
           /&gt;
         </pre>
