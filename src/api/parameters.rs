@@ -122,6 +122,12 @@ impl RequestParameters {
                             if let Some(value) = value.as_u64() {
                                 map.insert(key, String::from(value.to_string()));
                             }
+                            else if let Some(value) = value.as_i64() {
+                                map.insert(key, String::from(value.to_string()));
+                            }
+                            else if let Some(value) = value.as_f64() {
+                                map.insert(key, String::from(value.to_string()));
+                            }
                             else if let Some(value) = value.as_str() {
                                 map.insert(key, String::from(value));
                             }
