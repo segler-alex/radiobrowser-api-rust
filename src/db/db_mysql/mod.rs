@@ -426,53 +426,78 @@ impl DbConnection for MysqlConnection {
         self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOK=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND", params!(seconds))
     }
 
-    fn get_stations_broken(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+    fn get_stations_broken(&self, offset: u32, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
         self.get_stations_query(format!(
-            "SELECT {columns} from Station WHERE LastCheckOK=FALSE ORDER BY rand() LIMIT {limit}",
+            "SELECT {columns} from Station WHERE LastCheckOK=FALSE ORDER BY rand() LIMIT {offset},{limit}",
             columns = MysqlConnection::COLUMNS,
+            offset = offset,
             limit = limit
         ))
     }
 
-    fn get_stations_improvable(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
-        self.get_stations_query(format!(r#"SELECT {columns} from Station WHERE LastCheckOK=TRUE AND (Tags="" OR Country="") ORDER BY RAND() LIMIT {limit}"#,columns = MysqlConnection::COLUMNS, limit = limit))
-    }
-
-    fn get_stations_topvote(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+    fn get_stations_topvote(&self, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
         let query: String;
+        let hidebroken_string = if hidebroken {
+            " WHERE LastCheckOK=TRUE"
+        } else {
+            ""
+        };
         query = format!(
-            "SELECT {columns} from Station ORDER BY Votes DESC LIMIT {limit}",
+            "SELECT {columns} from Station {where} ORDER BY Votes DESC LIMIT {offset},{limit}",
             columns = MysqlConnection::COLUMNS,
+            where = hidebroken_string,
+            offset = offset,
             limit = limit
         );
         self.get_stations_query(query)
     }
 
-    fn get_stations_topclick(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+    fn get_stations_topclick(&self, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
         let query: String;
+        let hidebroken_string = if hidebroken {
+            " WHERE LastCheckOK=TRUE"
+        } else {
+            ""
+        };
         query = format!(
-            "SELECT {columns} from Station ORDER BY clickcount DESC LIMIT {limit}",
+            "SELECT {columns} from Station {where} ORDER BY clickcount DESC LIMIT {offset},{limit}",
             columns = MysqlConnection::COLUMNS,
+            where = hidebroken_string,
+            offset = offset,
             limit = limit
         );
         self.get_stations_query(query)
     }
 
-    fn get_stations_lastclick(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+    fn get_stations_lastclick(&self, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
         let query: String;
+        let hidebroken_string = if hidebroken {
+            " WHERE LastCheckOK=TRUE"
+        } else {
+            ""
+        };
         query = format!(
-            "SELECT {columns} from Station ORDER BY ClickTimestamp DESC LIMIT {limit}",
+            "SELECT {columns} from Station {where} ORDER BY ClickTimestamp DESC LIMIT {offset},{limit}",
             columns = MysqlConnection::COLUMNS,
+            where = hidebroken_string,
+            offset = offset,
             limit = limit
         );
         self.get_stations_query(query)
     }
 
-    fn get_stations_lastchange(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+    fn get_stations_lastchange(&self, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
         let query: String;
+        let hidebroken_string = if hidebroken {
+            " WHERE LastCheckOK=TRUE"
+        } else {
+            ""
+        };
         query = format!(
-            "SELECT {columns} from Station ORDER BY Creation DESC LIMIT {limit}",
+            "SELECT {columns} from Station {where} ORDER BY Creation DESC LIMIT {offset},{limit}",
             columns = MysqlConnection::COLUMNS,
+            where = hidebroken_string,
+            offset = offset,
             limit = limit
         );
         self.get_stations_query(query)
@@ -592,6 +617,7 @@ impl DbConnection for MysqlConnection {
         codec: Option<String>,
         bitrate_min: u32,
         bitrate_max: u32,
+        has_geo_info: Option<bool>,
         order: &str,
         reverse: bool,
         hidebroken: bool,
@@ -610,6 +636,16 @@ impl DbConnection for MysqlConnection {
             columns = MysqlConnection::COLUMNS
         );
         query.push_str(" Bitrate >= :bitrate_min AND Bitrate <= :bitrate_max");
+        match has_geo_info {
+            Some(has_geo_info) => {
+                if has_geo_info {
+                    query.push_str(" AND GeoLat IS NOT NULL AND GeoLong IS NOT NULL");
+                }else{
+                    query.push_str(" AND (GeoLat IS NULL OR GeoLong IS NULL)");
+                }
+            },
+            None => {}
+        }
         if name.is_some() {
             if name_exact {
                 query.push_str(" AND Name=:name");

@@ -56,8 +56,6 @@
             <li><a class="dropdown-item" href="#Stations_by_recent_click">Stations by recent click</a></li>
             <li><a class="dropdown-item" href="#Stations_by_recently_changed">Stations by recently changed</a></li>
             <li><a class="dropdown-item" href="#Old_versions_of_stations">Old versions of stations</a></li>
-            <li><a class="dropdown-item" href="#Stations_that_need_improvements">Stations that need improvements</a>
-            </li>
             <li><a class="dropdown-item" href="#Broken_stations">Broken stations</a></li>
           </ul>
         </li>
@@ -1471,6 +1469,12 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
             <td>0,1,2,....</td>
             <td>number of returned datarows (stations) starting with offset</td>
           </tr>
+          <tr>
+            <td>hidebroken</td>
+            <td>false</td>
+            <td>true, false</td>
+            <td>do list/not list broken stations</td>
+          </tr>
         </tbody>
       </table>
       <div class="h5">Result:</div>
@@ -1867,6 +1871,12 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
             <td>OPTIONAL, maximum of kbps for bitrate field of stations in result</td>
           </tr>
           <tr>
+            <td>has_geo_info</td>
+            <td>both</td>
+            <td>not set, true, false</td>
+            <td>OPTIONAL, not set=display all, true=show only stations with geo_info, false=show only stations without geo_info</td>
+          </tr>
+          <tr>
             <td>order</td>
             <td>name</td>
             <td>
@@ -2000,6 +2010,38 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
           <li>{{ API_SERVER }}/json/stations/topclick/rowcount</li>
         </ul>
       </div>
+      <div class="h5 mt-2">Parameter:</div>
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Default value</th>
+            <th scope="row">Possible value</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>offset</td>
+            <td>0</td>
+            <td>0,1,2,3,4,..</td>
+            <td>starting value of the result list from the database. For example, if you want to do paging on the server
+              side.</td>
+          </tr>
+          <tr>
+            <td>limit</td>
+            <td>100000</td>
+            <td>0,1,2,....</td>
+            <td>number of returned datarows (stations) starting with offset</td>
+          </tr>
+          <tr>
+            <td>hidebroken</td>
+            <td>false</td>
+            <td>true, false</td>
+            <td>do list/not list broken stations</td>
+          </tr>
+        </tbody>
+      </table>
       <div class="h5">Result:</div>
       <p>
         Array of <a href="#Struct_station">Struct station</a>
@@ -2027,6 +2069,38 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
           <li>{{ API_SERVER }}/json/stations/topvote/rowcount</li>
         </ul>
       </div>
+      <div class="h5 mt-2">Parameter:</div>
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Default value</th>
+            <th scope="row">Possible value</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>offset</td>
+            <td>0</td>
+            <td>0,1,2,3,4,..</td>
+            <td>starting value of the result list from the database. For example, if you want to do paging on the server
+              side.</td>
+          </tr>
+          <tr>
+            <td>limit</td>
+            <td>100000</td>
+            <td>0,1,2,....</td>
+            <td>number of returned datarows (stations) starting with offset</td>
+          </tr>
+          <tr>
+            <td>hidebroken</td>
+            <td>false</td>
+            <td>true, false</td>
+            <td>do list/not list broken stations</td>
+          </tr>
+        </tbody>
+      </table>
       <div class="h5">Result:</div>
       <p>
         Array of <a href="#Struct_station">Struct station</a>
@@ -2056,6 +2130,38 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
           <li>{{ API_SERVER }}/json/stations/lastclick/rowcount</li>
         </ul>
       </div>
+      <div class="h5 mt-2">Parameter:</div>
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Default value</th>
+            <th scope="row">Possible value</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>offset</td>
+            <td>0</td>
+            <td>0,1,2,3,4,..</td>
+            <td>starting value of the result list from the database. For example, if you want to do paging on the server
+              side.</td>
+          </tr>
+          <tr>
+            <td>limit</td>
+            <td>100000</td>
+            <td>0,1,2,....</td>
+            <td>number of returned datarows (stations) starting with offset</td>
+          </tr>
+          <tr>
+            <td>hidebroken</td>
+            <td>false</td>
+            <td>true, false</td>
+            <td>do list/not list broken stations</td>
+          </tr>
+        </tbody>
+      </table>
       <div class="h5">Result:</div>
       <p>
         Array of <a href="#Struct_station">Struct station</a>
@@ -2083,6 +2189,38 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
           <li>{{ API_SERVER }}/json/stations/lastchange/rowcount</li>
         </ul>
       </div>
+      <div class="h5 mt-2">Parameter:</div>
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Default value</th>
+            <th scope="row">Possible value</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>offset</td>
+            <td>0</td>
+            <td>0,1,2,3,4,..</td>
+            <td>starting value of the result list from the database. For example, if you want to do paging on the server
+              side.</td>
+          </tr>
+          <tr>
+            <td>limit</td>
+            <td>100000</td>
+            <td>0,1,2,....</td>
+            <td>number of returned datarows (stations) starting with offset</td>
+          </tr>
+          <tr>
+            <td>hidebroken</td>
+            <td>false</td>
+            <td>true, false</td>
+            <td>do list/not list broken stations</td>
+          </tr>
+        </tbody>
+      </table>
       <div class="h5">Result:</div>
       <p>
         Array of <a href="#Struct_station">Struct station</a>
@@ -2146,33 +2284,6 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
       </ul>
     </div>
 
-    <div class="jumbotron mt-2 shadow p-3 mb-5" id="Stations_that_need_improvements">
-      <h1 class="display-4">Stations that need improvements</h1>
-      <p class="lead">A list of the stations that need improvements, which means they do not have e.g. tags, country,
-        state information, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL</p>
-      <hr class="my-4">
-      <div class="h5">Syntax:</div>
-      <div class="syntax">
-        <ul class="list-unstyled ml-4">
-          <li>{{ API_SERVER }}/xml/stations/improvable</li>
-          <li>{{ API_SERVER }}/xml/stations/improvable/rowcount</li>
-          <li>{{ API_SERVER }}/json/stations/improvable</li>
-          <li>{{ API_SERVER }}/json/stations/improvable/rowcount</li>
-        </ul>
-      </div>
-      <div class="h5">Result:</div>
-      <p>
-        Array of <a href="#Struct_station">Struct station</a>
-      </p>
-      <div class="h5">Example:</div>
-      <ul class="list-unstyled ml-4">
-        <li><a href="{{ API_SERVER }}/xml/stations/improvable" target="_blank">{{ API_SERVER
-            }}/xml/stations/improvable</a></li>
-        <li><a href="{{ API_SERVER }}/json/stations/improvable/5" target="_blank">{{ API_SERVER
-            }}/json/stations/improvable/5</a></li>
-      </ul>
-    </div>
-
     <div class="jumbotron mt-2 shadow p-3 mb-5" id="Broken_stations">
       <h1 class="display-4">Broken stations</h1>
       <p class="lead">A list of the stations that did not pass the connection test, supported output formats: JSON, XML,
@@ -2187,13 +2298,39 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
           <li>{{ API_SERVER }}/json/stations/broken/rowcount</li>
         </ul>
       </div>
+      <div class="h5 mt-2">Parameter:</div>
+      <table class="table mt-2 table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th scope="row">Name</th>
+            <th scope="row">Default value</th>
+            <th scope="row">Possible value</th>
+            <th scope="row">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>offset</td>
+            <td>0</td>
+            <td>0,1,2,3,4,..</td>
+            <td>starting value of the result list from the database. For example, if you want to do paging on the server
+              side.</td>
+          </tr>
+          <tr>
+            <td>limit</td>
+            <td>100000</td>
+            <td>0,1,2,....</td>
+            <td>number of returned datarows (stations) starting with offset</td>
+          </tr>
+        </tbody>
+      </table>
       <div class="h5">Result:</div>
       <p>
         Array of <a href="#Struct_station">Struct station</a>
       </p>
       <div class="h5 mt-2">Example:</div>
       <ul class="list-unstyled ml-4">
-        <li><a href="{{ API_SERVER }}/xml/stations/broken" target="_blank">{{ API_SERVER }}/xml/stations/broken</a></li>
+        <li><a href="{{ API_SERVER }}/xml/stations/broken?limit=5" target="_blank">{{ API_SERVER }}/xml/stations/broken?limit=5</a></li>
         <li><a href="{{ API_SERVER }}/json/stations/broken/5" target="_blank">{{ API_SERVER
             }}/json/stations/broken/5</a></li>
       </ul>

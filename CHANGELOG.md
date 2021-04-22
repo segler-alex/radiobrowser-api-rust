@@ -5,8 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+* API: multiple station endpoints do not support limit,offset and hidebroken parameters
+
 ### Fixed
 * API: accept numbers in json post
+
+### Removed
+* API: /stations/improvable
 
 ## [0.7.11] 2021-04-16
 ### Fixed

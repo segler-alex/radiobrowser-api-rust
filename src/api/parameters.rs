@@ -1,3 +1,4 @@
+use std::str::ParseBoolError;
 use crate::api::rouille::Request;
 use std::collections::HashMap;
 use std::io::Read;
@@ -177,6 +178,11 @@ impl RequestParameters {
             }
         }
         default
+    }
+
+    pub fn get_bool_opt(&self, name: &str) -> Result<Option<bool>, ParseBoolError> {
+        let v = self.values.get(name);
+        v.map(|v| v.parse::<bool>()).transpose()
     }
 
     pub fn get_number(&self, name: &str, default: u32) -> u32 {

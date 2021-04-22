@@ -59,6 +59,8 @@ pub struct AllParameters {
     pub param_reverse: bool,
     #[serde(rename = "hb")]
     pub param_hidebroken: bool,
+    #[serde(rename = "hg")]
+    pub param_has_geo_info: Option<bool>,
     #[serde(rename = "of")]
     pub param_offset: u32,
     #[serde(rename = "li")]
