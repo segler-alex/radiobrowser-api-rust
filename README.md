@@ -94,7 +94,7 @@ docker stack deploy -c docker-compose-traefik.yml rb
 # download distribution
 mkdir -p radiobrowser
 cd radiobrowser
-wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.7.11/radiobrowser-dist.tar.gz
+wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.7.12/radiobrowser-dist.tar.gz
 tar -zxf radiobrowser-dist.tar.gz
 
 # config database
@@ -115,7 +115,7 @@ sudo systemctl start radiobrowser
 * create database and database user
 
 ```bash
-wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.7.11/radiobrowser-api-rust_0.7.11_amd64.deb
+wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.7.12/radiobrowser-api-rust_0.7.12_amd64.deb
 sudo apt install default-mysql-server
 sudo dpkg -i radiobrowser-api-rust_0.7.1_amd64.deb
 cat /usr/share/radiobrowser/init.sql | mysql
@@ -177,7 +177,7 @@ docker run \
     -p 3306:3306 \
     mariadb --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
 # start radiobrowser container
-docker pull segleralex/radiobrowser-api-rust:0.7.11
+docker pull segleralex/radiobrowser-api-rust:0.7.12
 docker run \
     --name radiobrowserapi \
     --detach \
@@ -186,7 +186,7 @@ docker run \
     -e DATABASE_URL=mysql://radiouser:password@dbserver/radio \
     -e HOST=0.0.0.0 \
     -p 8080:8080 \
-    segleralex/radiobrowser-api-rust:0.7.11 radiobrowser-api-rust -vvv
+    segleralex/radiobrowser-api-rust:0.7.12 radiobrowser-api-rust -vvv
 # show logs
 docker logs -f radiobrowserapi
 # access api with the following link
@@ -250,7 +250,7 @@ cd radiobrowser-api-rust
 # checkout stable
 git checkout stable
 # deploy, change email adress, for ssl with certbot
-ansible-playbook -e "email=test@example.com" -e "version=0.7.11" -e "ansible_python_interpreter=auto" -i "test.example.com,test2.example.com" ansible/playbook.yml
+ansible-playbook -e "email=test@example.com" -e "version=0.7.12" -e "ansible_python_interpreter=auto" -i "test.example.com,test2.example.com" ansible/playbook.yml
 ```
 
 ## Building
@@ -299,7 +299,7 @@ mysql -D radio -u radiouser -ppassword
 A print of the help page of the main executable. You can see parameters here. Many of them may also be set by environment variable (env: ..).
 ```
 $ radiobrowser-api-rust --help
-radiobrowser-api-rust 0.7.11
+radiobrowser-api-rust 0.7.12
 segler_alex@web.de
 HTTP Rest API for radiobrowser
 
