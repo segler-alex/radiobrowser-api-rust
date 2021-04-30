@@ -615,12 +615,12 @@ fn do_api_calls<A>(all_params: AllParameters,
         let filter : Option<String> = None;
 
         match command {
-            "languages" => Ok((true,encode_extra(connection_new.get_extra("LanguageCache", "LanguageName", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "language")?)),
-            "countries" => Ok((true,encode_extra(connection_new.get_1_n("Country", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "country")?)),
-            "countrycodes" => Ok((true,encode_extra(connection_new.get_1_n("CountryCode", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "countrycode")?)),
-            "states" => Ok((true,encode_states(connection_new.get_states(None, filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format)?)),
-            "codecs" => Ok((true,encode_extra(connection_new.get_1_n("Codec", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "codec")?)),
-            "tags" => Ok((true,encode_extra(connection_new.get_extra("TagCache", "TagName", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "tag")?)),
+            "languages" => Ok((true,encode_extra(connection_new.get_extra("LanguageCache", "LanguageName", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "language")?)),
+            "countries" => Ok((true,encode_extra(connection_new.get_1_n("Country", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "country")?)),
+            "countrycodes" => Ok((true,encode_extra(connection_new.get_1_n("CountryCode", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "countrycode")?)),
+            "states" => Ok((true,encode_states(connection_new.get_states(None, filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format)?)),
+            "codecs" => Ok((true,encode_extra(connection_new.get_1_n("Codec", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "codec")?)),
+            "tags" => Ok((true,encode_extra(connection_new.get_extra("TagCache", "TagName", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "tag")?)),
             "stations" => Ok((true,Station::get_response(connection_new.get_stations_by_all(&all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?.drain(..).map(|x|x.into()).collect(), format)?)),
             "servers" => Ok((true,dns_resolve(format)?)),
             "stats" => Ok((true,encode_status(get_status(connection_new)?, format, &config.static_files_dir))),
@@ -638,12 +638,12 @@ fn do_api_calls<A>(all_params: AllParameters,
 
         // None => connection_new.get_1_n("Country", filter, param_order, param_reverse, param_hidebroken)?, format, "country")?,
         match command {
-            "languages" => Ok((true,encode_extra(connection_new.get_extra("LanguageCache", "LanguageName", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "language")?)),
-            "countries" => Ok((true,encode_extra(connection_new.get_1_n("Country", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "country")?)),
-            "countrycodes" => Ok((true,encode_extra(connection_new.get_1_n("CountryCode", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "countrycode")?)),
-            "codecs" => Ok((true,encode_extra(connection_new.get_1_n("Codec", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "codec")?)),
-            "tags" => Ok((true,encode_extra(connection_new.get_extra("TagCache", "TagName", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "tag")?)),
-            "states" => Ok((true,encode_states(connection_new.get_states(None, Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format)?)),
+            "languages" => Ok((true,encode_extra(connection_new.get_extra("LanguageCache", "LanguageName", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "language")?)),
+            "countries" => Ok((true,encode_extra(connection_new.get_1_n("Country", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "country")?)),
+            "countrycodes" => Ok((true,encode_extra(connection_new.get_1_n("CountryCode", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "countrycode")?)),
+            "codecs" => Ok((true,encode_extra(connection_new.get_1_n("Codec", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "codec")?)),
+            "tags" => Ok((true,encode_extra(connection_new.get_extra("TagCache", "TagName", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "tag")?)),
+            "states" => Ok((true,encode_states(connection_new.get_states(None, Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format)?)),
             "vote" => Ok((false,encode_message(connection_new.vote_for_station(&remote_ip, get_only_first_item(connection_new.get_station_by_uuid(parameter)?)), format)?)),
             "url" => Ok((false,encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(parameter)?), &remote_ip, format, config.click_valid_timeout.as_secs(),registry)?)),
             "stations" => {
@@ -683,7 +683,7 @@ fn do_api_calls<A>(all_params: AllParameters,
             }
         }else{
             match command {
-                "states" => Ok((true,encode_states(connection_new.get_states(Some(String::from(parameter)), Some(String::from(search)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format)?)),
+                "states" => Ok((true,encode_states(connection_new.get_states(Some(String::from(parameter)), Some(String::from(search)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format)?)),
                 
                 "stations" => {
                     match parameter {

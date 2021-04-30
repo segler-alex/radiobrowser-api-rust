@@ -1381,6 +1381,8 @@ impl DbConnection for MysqlConnection {
         order: String,
         reverse: bool,
         hidebroken: bool,
+        offset: u32,
+        limit: u32,
     ) -> Result<Vec<ExtraInfo>, Box<dyn Error>> {
         let order = filter_order_1_n(&order)?;
         let mut params: Vec<Value> = Vec::with_capacity(1);
@@ -1399,7 +1401,11 @@ impl DbConnection for MysqlConnection {
             None => "".to_string(),
         };
         let mut conn = self.pool.get_conn()?;
-        let result = conn.exec_iter(format!("SELECT {column_name} AS name, {hidebroken} FROM {table_name} WHERE {column_name} <> '' {search} HAVING stationcount > 0 ORDER BY {order} {reverse}",search = search_string, order = order, reverse = reverse_string, hidebroken = hidebroken_string, table_name = table_name, column_name = column_name), params)?;
+        let result = conn.exec_iter(format!("SELECT {column_name} AS name, {hidebroken} FROM {table_name} WHERE {column_name} <> '' {search} HAVING stationcount > 0 ORDER BY {order} {reverse} LIMIT {offset},{limit}",
+            search = search_string, order = order,
+            reverse = reverse_string, hidebroken = hidebroken_string,
+            table_name = table_name, column_name = column_name,
+            offset = offset, limit = limit), params)?;
         for row in result {
             let mut mut_row = row?;
             items.push(ExtraInfo::new(
@@ -1417,6 +1423,8 @@ impl DbConnection for MysqlConnection {
         order: String,
         reverse: bool,
         hidebroken: bool,
+        offset: u32,
+        limit: u32,
     ) -> Result<Vec<ExtraInfo>, Box<dyn Error>> {
         let order = filter_order_1_n(&order)?;
         let query: String;
@@ -1429,11 +1437,20 @@ impl DbConnection for MysqlConnection {
         let mut conn = self.pool.get_conn()?;
         let result = match search {
             Some(value) => {
-                query = format!("SELECT {column} AS name,COUNT(*) AS stationcount FROM Station WHERE UPPER({column}) LIKE UPPER(CONCAT('%',?,'%')) AND {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
+                query = format!("SELECT {column} AS name,COUNT(*) AS stationcount FROM Station WHERE UPPER({column}) LIKE UPPER(CONCAT('%',?,'%')) AND {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse} LIMIT {offset},{limit}",
+                    column = column, order = order, reverse = reverse_string,
+                    hidebroken = hidebroken_string,
+                    offset = offset,
+                    limit = limit,
+                );
                 conn.exec_iter(query, (value,))
             }
             None => {
-                query = format!("SELECT {column} AS name,COUNT(*) AS stationcount FROM Station WHERE {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse}", column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string);
+                query = format!("SELECT {column} AS name,COUNT(*) AS stationcount FROM Station WHERE {column}<>'' {hidebroken} GROUP BY {column} ORDER BY {order} {reverse} LIMIT {offset},{limit}",
+                    column = column, order = order, reverse = reverse_string, hidebroken = hidebroken_string,
+                    offset = offset,
+                    limit = limit,
+                );
                 conn.exec_iter(query, ())
             }
         }?;
@@ -1454,6 +1471,8 @@ impl DbConnection for MysqlConnection {
         order: String,
         reverse: bool,
         hidebroken: bool,
+        offset: u32,
+        limit: u32,
     ) -> Result<Vec<State>, Box<dyn Error>> {
         let mut params: Vec<Value> = Vec::with_capacity(1);
         let reverse_string = if reverse { "DESC" } else { "ASC" };
@@ -1478,7 +1497,8 @@ impl DbConnection for MysqlConnection {
         };
 
         let mut conn = self.pool.get_conn()?;
-        let result = conn.exec_iter(format!(r"SELECT Subcountry AS name,Country,COUNT(*) AS stationcount FROM Station WHERE Subcountry <> '' {country} {search} {hidebroken} GROUP BY Subcountry, Country ORDER BY {order} {reverse}",hidebroken = hidebroken_string, order = order, country = country_string, reverse = reverse_string, search = search_string), params)?;
+        let result = conn.exec_iter(format!(r"SELECT Subcountry AS name,Country,COUNT(*) AS stationcount FROM Station WHERE Subcountry <> '' {country} {search} {hidebroken} GROUP BY Subcountry, Country ORDER BY {order} {reverse} LIMIT {offset},{limit}",
+        hidebroken = hidebroken_string, order = order, country = country_string, reverse = reverse_string, search = search_string, limit = limit, offset = offset), params)?;
         let mut states: Vec<State> = vec![];
 
         for row in result {

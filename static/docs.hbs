@@ -835,6 +835,20 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
                 <td>true, false</td>
                 <td>do not count broken stations</td>
               </tr>
+              <tr>
+                <td>offset</td>
+                <td>0</td>
+                <td>0,1,2,3,4,..</td>
+                <td>starting value of the result list from the database. For example, if you want to do paging on the
+                  server
+                  side.</td>
+              </tr>
+              <tr>
+                <td>limit</td>
+                <td>100000</td>
+                <td>0,1,2,....</td>
+                <td>number of returned datarows (stations) starting with offset</td>
+              </tr>
             </tbody>
           </table>
           <div class="h5">Result JSON:</div>
@@ -913,6 +927,20 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
                 <td>false</td>
                 <td>true, false</td>
                 <td>do not count broken stations</td>
+              </tr>
+              <tr>
+                <td>offset</td>
+                <td>0</td>
+                <td>0,1,2,3,4,..</td>
+                <td>starting value of the result list from the database. For example, if you want to do paging on the
+                  server
+                  side.</td>
+              </tr>
+              <tr>
+                <td>limit</td>
+                <td>100000</td>
+                <td>0,1,2,....</td>
+                <td>number of returned datarows (stations) starting with offset</td>
               </tr>
             </tbody>
           </table>
@@ -994,6 +1022,20 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
               <td>false</td>
               <td>true, false</td>
               <td>do not count broken stations</td>
+            </tr>
+            <tr>
+              <td>offset</td>
+              <td>0</td>
+              <td>0,1,2,3,4,..</td>
+              <td>starting value of the result list from the database. For example, if you want to do paging on the
+                server
+                side.</td>
+            </tr>
+            <tr>
+              <td>limit</td>
+              <td>100000</td>
+              <td>0,1,2,....</td>
+              <td>number of returned datarows (stations) starting with offset</td>
             </tr>
           </tbody>
         </table>
@@ -1086,6 +1128,20 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
               <td>STRING</td>
               <td>OPTIONAL, filter states by country name</td>
             </tr>
+            <tr>
+              <td>offset</td>
+              <td>0</td>
+              <td>0,1,2,3,4,..</td>
+              <td>starting value of the result list from the database. For example, if you want to do paging on the
+                server
+                side.</td>
+            </tr>
+            <tr>
+              <td>limit</td>
+              <td>100000</td>
+              <td>0,1,2,....</td>
+              <td>number of returned datarows (stations) starting with offset</td>
+            </tr>
           </tbody>
         </table>
         <div class="h5">Result JSON:</div>
@@ -1170,6 +1226,19 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
             <td>true, false</td>
             <td>do not count broken stations</td>
           </tr>
+          <tr>
+            <td>offset</td>
+            <td>0</td>
+            <td>0,1,2,3,4,..</td>
+            <td>starting value of the result list from the database. For example, if you want to do paging on the server
+              side.</td>
+          </tr>
+          <tr>
+            <td>limit</td>
+            <td>100000</td>
+            <td>0,1,2,....</td>
+            <td>number of returned datarows (stations) starting with offset</td>
+          </tr>
         </tbody>
       </table>
       <div class="h5">Result JSON:</div>
@@ -1246,6 +1315,19 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
             <td>false</td>
             <td>true, false</td>
             <td>do not count broken stations</td>
+          </tr>
+          <tr>
+            <td>offset</td>
+            <td>0</td>
+            <td>0,1,2,3,4,..</td>
+            <td>starting value of the result list from the database. For example, if you want to do paging on the server
+              side.</td>
+          </tr>
+          <tr>
+            <td>limit</td>
+            <td>100000</td>
+            <td>0,1,2,....</td>
+            <td>number of returned datarows (stations) starting with offset</td>
           </tr>
         </tbody>
       </table>
@@ -1874,7 +1956,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
             <td>has_geo_info</td>
             <td>both</td>
             <td>not set, true, false</td>
-            <td>OPTIONAL, not set=display all, true=show only stations with geo_info, false=show only stations without geo_info</td>
+            <td>OPTIONAL, not set=display all, true=show only stations with geo_info, false=show only stations without
+              geo_info</td>
           </tr>
           <tr>
             <td>order</td>
@@ -2336,7 +2419,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
       </p>
       <div class="h5 mt-2">Example:</div>
       <ul class="list-unstyled ml-4">
-        <li><a href="{{ API_SERVER }}/xml/stations/broken?limit=5" target="_blank">{{ API_SERVER }}/xml/stations/broken?limit=5</a></li>
+        <li><a href="{{ API_SERVER }}/xml/stations/broken?limit=5" target="_blank">{{ API_SERVER
+            }}/xml/stations/broken?limit=5</a></li>
         <li><a href="{{ API_SERVER }}/json/stations/broken/5" target="_blank">{{ API_SERVER
             }}/json/stations/broken/5</a></li>
       </ul>
