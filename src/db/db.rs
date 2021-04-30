@@ -72,6 +72,8 @@ pub trait DbConnection {
 
     fn delete_never_working(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn delete_were_working(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
+    fn get_duplicated_stations(&self, column_key: &str, max_duplicates: usize) -> Result<Vec<String>, Box<dyn Error>>;
+    fn delete_stations(&self, stationuuids: &[String]) -> Result<(), Box<dyn Error>>;
     fn delete_old_checks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn delete_old_clicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn delete_removed_from_history(&mut self) -> Result<(), Box<dyn Error>>;

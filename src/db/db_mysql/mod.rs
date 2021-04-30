@@ -288,6 +288,35 @@ impl DbConnection for MysqlConnection {
         Ok(())
     }
 
+    fn get_duplicated_stations(&self, column_key: &str, max_duplicates: usize) -> Result<Vec<String>, Box<dyn Error>> {
+        trace!("get_duplicated_stations({},{}) started..", column_key, max_duplicates);
+        let mut list = vec![];
+        if max_duplicates > 0 {
+            let mut conn = self.pool.get_conn()?;
+            let urls: Vec<String> = conn.exec_map(format!("SELECT {column_key},COUNT({column_key}) as cc FROM Station GROUP BY {column_key} HAVING cc>:max_duplicates", column_key = column_key),
+                params!(max_duplicates),
+                |(url, _count):(String, u32)| url
+            )?;
+            for url in urls.iter(){
+                let uuids: Vec<String> = conn.exec_map(
+                    format!("SELECT StationUuid FROM Station WHERE {column_key}=:url ORDER BY clickcount DESC, Votes DESC, Creation LIMIT :max_duplicates,1000", column_key = column_key),
+                    params!(max_duplicates,url),
+                    |uuid| {
+                        uuid
+                    })?;
+                list.extend(uuids);
+            }
+        }
+        Ok(list)
+    }
+
+    fn delete_stations(&self, stationuuids: &[String]) -> Result<(), Box<dyn Error>> {
+        let mut conn = self.pool.get_conn()?;
+        conn.exec_batch("DELETE FROM Station WHERE StationUuid=:uuid", 
+        stationuuids.iter().map(|uuid|params!{uuid}))?;
+        Ok(())
+    }
+
     fn delete_old_checks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
         let delete_old_checks_history_query = "DELETE FROM StationCheckHistory WHERE CheckTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut conn = self.pool.get_conn()?;

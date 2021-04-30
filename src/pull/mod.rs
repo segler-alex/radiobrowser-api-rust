@@ -29,7 +29,7 @@ fn add_default_request_headers(req: RequestBuilder) -> RequestBuilder {
     req.header(USER_AGENT, format!("radiobrowser-api-rust/{}",pkg_version))
 }
 
-fn pull_worker(client: &Client, connection_string: String, mirrors: &Vec<String>, chunk_size_changes: usize, chunk_size_checks: usize) -> Result<(),Box<dyn Error>> {
+fn pull_worker(client: &Client, connection_string: String, mirrors: &Vec<String>, chunk_size_changes: usize, chunk_size_checks: usize, max_duplicates: usize) -> Result<(),Box<dyn Error>> {
     let pool = connect(connection_string)?;
     for server in mirrors.iter() {
         let result = pull_server(client, &pool, &server, chunk_size_changes, chunk_size_checks);
@@ -41,15 +41,28 @@ fn pull_worker(client: &Client, connection_string: String, mirrors: &Vec<String>
             }
         }
     }
+
+    if max_duplicates > 0 {
+        {
+            let station_uuids_to_delete = pool.get_duplicated_stations("Url", max_duplicates)?;
+            debug!("Deletable stations 'Url': {}", station_uuids_to_delete.len());
+            pool.delete_stations(&station_uuids_to_delete[..])?;
+        }
+        {
+            let station_uuids_to_delete = pool.get_duplicated_stations("UrlCache", max_duplicates)?;
+            debug!("Deletable stations 'UrlCache': {}", station_uuids_to_delete.len());
+            pool.delete_stations(&station_uuids_to_delete[..])?;
+        }
+    }
     Ok(())
 }
 
-pub fn start(connection_string: String, mirrors: Vec<String>, pull_interval: u64, chunk_size_changes: usize, chunk_size_checks: usize) {
+pub fn start(connection_string: String, mirrors: Vec<String>, pull_interval: u64, chunk_size_changes: usize, chunk_size_checks: usize, max_duplicates: usize) {
     if mirrors.len() > 0 {
         thread::spawn(move || {
             let client = Client::new();
             loop {
-                let result = pull_worker(&client, connection_string.clone(), &mirrors, chunk_size_changes, chunk_size_checks);
+                let result = pull_worker(&client, connection_string.clone(), &mirrors, chunk_size_changes, chunk_size_checks, max_duplicates);
                 match result {
                     Ok(_) => {
                     },

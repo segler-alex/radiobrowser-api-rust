@@ -69,6 +69,7 @@ pub struct Config {
     pub cache_ttl: Duration,
     pub chunk_size_changes: usize,
     pub chunk_size_checks: usize,
+    pub max_duplicates: usize,
 }
 
 fn get_option_string(
@@ -510,6 +511,14 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name("max-duplicates")
+                .long("max-duplicates")
+                .value_name("MAX_DUPLICATES")
+                .help("Maximum stations that have the same url")
+                .env("MAX_DUPLICATES")
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("enable-check")
                 .long("enable-check")
                 .value_name("ENABLE_CHECK")
@@ -601,6 +610,7 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         _ => Err(ConfigError::TypeError("cache-type".into(), "possible values are none,builtin,redis,memcached".into())),
     }?;
 
+    let max_duplicates = get_option_number(&matches, &config, "max-duplicates", 0)? as usize;
     let mut servers_pull = vec![];
     let mirrors = matches.values_of("mirror");
     if let Some(mirrors) = mirrors {
@@ -651,5 +661,6 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         cache_ttl,
         chunk_size_changes,
         chunk_size_checks,
+        max_duplicates,
     })
 }

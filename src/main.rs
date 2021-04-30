@@ -71,6 +71,7 @@ fn mainloop() -> Result<(), Box<dyn Error>> {
                             config.mirror_pull_interval.as_secs(),
                             config.chunk_size_changes,
                             config.chunk_size_checks,
+                            config.max_duplicates,
                         );
                         cleanup::start(
                             config.connection_string.clone(),

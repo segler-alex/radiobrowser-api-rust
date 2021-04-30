@@ -6,7 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-* API: limit and offset parameters to countries, countrycodes, languages, tags, states endpoints
+* API: limit and offset parameters to countries, countrycodes, languages, tags, states, codecs endpoints
+* PULL: automatically remove duplicates from database
+
 ## [0.7.12] 2021-04-22
 ### Added
 * API: multiple station endpoints do not support limit,offset and hidebroken parameters
