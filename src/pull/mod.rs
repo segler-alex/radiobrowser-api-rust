@@ -1,5 +1,7 @@
 mod pull_error;
+mod uuid_with_time;
 
+use crate::pull::uuid_with_time::UuidWithTime;
 use std::error::Error;
 use std::thread;
 use crate::time;
@@ -29,10 +31,11 @@ fn add_default_request_headers(req: RequestBuilder) -> RequestBuilder {
     req.header(USER_AGENT, format!("radiobrowser-api-rust/{}",pkg_version))
 }
 
-fn pull_worker(client: &Client, connection_string: String, mirrors: &Vec<String>, chunk_size_changes: usize, chunk_size_checks: usize, max_duplicates: usize) -> Result<(),Box<dyn Error>> {
+fn pull_worker(client: &Client, connection_string: String, mirrors: &Vec<String>, chunk_size_changes: usize, chunk_size_checks: usize, max_duplicates: usize, list_deleted: &mut Vec<UuidWithTime>) -> Result<(),Box<dyn Error>> {
     let pool = connect(connection_string)?;
+    let list_deleted_uuids = list_deleted.iter().map(|item| item.uuid.to_string()).collect();
     for server in mirrors.iter() {
-        let result = pull_server(client, &pool, &server, chunk_size_changes, chunk_size_checks);
+        let result = pull_server(client, &pool, &server, chunk_size_changes, chunk_size_checks, &list_deleted_uuids);
         match result {
             Ok(_) => {
             },
@@ -46,11 +49,17 @@ fn pull_worker(client: &Client, connection_string: String, mirrors: &Vec<String>
         {
             let station_uuids_to_delete = pool.get_duplicated_stations("Url", max_duplicates)?;
             debug!("Deletable stations 'Url': {}", station_uuids_to_delete.len());
+            for uuid in station_uuids_to_delete.iter() {
+                list_deleted.push(UuidWithTime::new(uuid));
+            }
             pool.delete_stations(&station_uuids_to_delete[..])?;
         }
         {
             let station_uuids_to_delete = pool.get_duplicated_stations("UrlCache", max_duplicates)?;
             debug!("Deletable stations 'UrlCache': {}", station_uuids_to_delete.len());
+            for uuid in station_uuids_to_delete.iter() {
+                list_deleted.push(UuidWithTime::new(uuid));
+            }
             pool.delete_stations(&station_uuids_to_delete[..])?;
         }
     }
@@ -60,9 +69,10 @@ fn pull_worker(client: &Client, connection_string: String, mirrors: &Vec<String>
 pub fn start(connection_string: String, mirrors: Vec<String>, pull_interval: u64, chunk_size_changes: usize, chunk_size_checks: usize, max_duplicates: usize) {
     if mirrors.len() > 0 {
         thread::spawn(move || {
+            let mut list_deleted: Vec<UuidWithTime> = vec![];
             let client = Client::new();
             loop {
-                let result = pull_worker(&client, connection_string.clone(), &mirrors, chunk_size_changes, chunk_size_checks, max_duplicates);
+                let result = pull_worker(&client, connection_string.clone(), &mirrors, chunk_size_changes, chunk_size_checks, max_duplicates, &mut list_deleted);
                 match result {
                     Ok(_) => {
                     },
@@ -71,6 +81,9 @@ pub fn start(connection_string: String, mirrors: Vec<String>, pull_interval: u64
                     }
                 }
                 thread::sleep(time::Duration::from_secs(pull_interval));
+                // remove items from deleted list after 1 day
+                list_deleted.retain(|item| item.instant.elapsed().as_secs() < 3600 * 24);
+                debug!("List of deleted station uuids (duplicates): len={}", list_deleted.len());
             }
         });
     }
@@ -197,7 +210,7 @@ fn pull_stations(client: &Client, server: &str, api_version: u32) -> Result<Vec<
     }
 }
 
-fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: &str, chunk_size_changes: usize, chunk_size_checks: usize) -> Result<(),Box<dyn std::error::Error>> {
+fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: &str, chunk_size_changes: usize, chunk_size_checks: usize, ignore_station_uuids: &Vec<String>) -> Result<(),Box<dyn std::error::Error>> {
     let insert_chunksize = 2000;
     let mut station_change_count = 0;
     let mut station_check_count = 0;
@@ -211,7 +224,7 @@ fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: 
         let len = list_changes.len();
 
         trace!("Incremental station change sync ({})..", len);
-        let list_stations: Vec<StationChangeItemNew> = list_changes.drain(..).map(|item| item.into()).collect();
+        let list_stations: Vec<StationChangeItemNew> = list_changes.drain(..).filter(|item| !ignore_station_uuids.contains(&item.stationuuid)).map(|item| item.into()).collect();
         for chunk in list_stations.chunks(insert_chunksize) {
             station_change_count = station_change_count + chunk.len();
             let last = chunk.last();
@@ -262,6 +275,14 @@ fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: 
                             trace!("Filtered check for broken station {}", check.station_uuid);
                         }
                         check.check_ok
+                    })
+                    .filter(|check| {
+                        if !ignore_station_uuids.contains(&check.station_uuid) {
+                            true
+                        }else{
+                            debug!("Ignored pulling station uuid (duplicate) {}", check.station_uuid);
+                            false
+                        }
                     })
                     .map(|check| &check.station_uuid)
                     .collect();
