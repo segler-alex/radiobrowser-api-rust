@@ -293,7 +293,7 @@ impl DbConnection for MysqlConnection {
         let mut list = vec![];
         if max_duplicates > 0 {
             let mut conn = self.pool.get_conn()?;
-            let urls: Vec<String> = conn.exec_map(format!("SELECT {column_key},COUNT({column_key}) as cc FROM Station GROUP BY {column_key} HAVING cc>:max_duplicates", column_key = column_key),
+            let urls: Vec<String> = conn.exec_map(format!("SELECT {column_key},COUNT({column_key}) as cc FROM Station WHERE {column_key} IS NOT NULL GROUP BY {column_key} HAVING cc>:max_duplicates", column_key = column_key),
                 params!(max_duplicates),
                 |(url, _count):(String, u32)| url
             )?;
