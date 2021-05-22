@@ -92,7 +92,7 @@ impl RequestParameters {
                             let res = field.data.read_to_string(&mut buf);
                             if let Ok(_) = res {
                                 trace!("multipart/form-data '{}' => '{}'", field.headers.name, buf);
-                                let key = String::from(field.headers.name.as_str());
+                                let key = String::from(&(*field.headers.name));
                                 let val = buf;
                                 if !map.contains_key(&key){
                                     map.insert(key, String::from(val));

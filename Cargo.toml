@@ -16,7 +16,7 @@ colored = "2.0.0"
 csv = "1.1.6"
 dns-lookup = "1.0.6"
 fern = { version = "0.6.0", features = ["colored"] }
-handlebars = "3.5.4"
+handlebars = "3.5.5"
 hostname = "0.3.1"
 humantime = "2.1.0"
 log = "0.4.14"
@@ -25,16 +25,16 @@ mysql = "20.1.0"
 native-tls = "0.2.7"
 percent-encoding = "2.1.0"
 prometheus = { version = "0.12.0" }
-rayon = "1.5.0"
-redis = { version = "0.20.0" }
+rayon = "1.5.1"
+redis = { version = "0.20.1" }
 reqwest = { version = "0.11.3", features = ["blocking", "json"] }
-rouille = "3.0.0"
-serde = { version = "1.0.125", features = ["derive"] }
+rouille = "3.1.1"
+serde = { version = "1.0.126", features = ["derive"] }
 serde_json = "1.0.64"
-serde_with = "1.8.1"
+serde_with = "1.9.1"
 threadpool = "1.8.1"
 toml = "0.5.8"
-url = "2.2.1"
+url = "2.2.2"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
 xml_writer = "0.4.0"
 
