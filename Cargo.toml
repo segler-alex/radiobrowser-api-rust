@@ -4,11 +4,11 @@ description = "Radio-Browser Server with REST API"
 license = "agpl-3.0"
 name = "radiobrowser-api-rust"
 readme = "README.md"
-version = "0.7.13"
+version = "0.7.14"
 edition = "2018"
 
 [dependencies]
-av-stream-info-rust = "0.10.0"
+av-stream-info-rust = "0.10.1"
 celes = "1.0.6"
 chrono = { version = "0.4.19", features = ["serde"] }
 clap = "2.33.3"

@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.7.14] 2021-05-31
+### Fixed
+* CHECK: new av-stream-info version does fix handling of depth limit for playlists
+
 ## [0.7.13] 2021-05-02
 ### Added
 * API: limit and offset parameters to countries, countrycodes, languages, tags, states, codecs endpoints
