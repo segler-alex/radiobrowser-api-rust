@@ -188,6 +188,7 @@ fn dbcheck_internal(
 ) -> StationOldNew {
     let checkuuid = Uuid::new_v4().to_hyphenated().to_string();
     let now = Instant::now();
+    trace!("Check started: {} - {}", station.stationuuid, station.name);
     let checks =
         av_stream_info_rust::check_tree(&station.url, timeout as u32, max_depth, retries, true);
     let timing_ms = now.elapsed().as_millis();
