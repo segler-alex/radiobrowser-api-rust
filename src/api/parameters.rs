@@ -116,40 +116,47 @@ impl RequestParameters {
             let mut buf = Vec::new();
             match data.read_to_end(&mut buf) {
                 Ok(_) => {
-                    let v: HashMap<String, serde_json::Value> = serde_json::from_slice(&buf).unwrap();
-                    for (key, value) in v {
-                        trace!("application/json {} => {}", key, value);
-                        if !map.contains_key(&key){
-                            if let Some(value) = value.as_u64() {
-                                map.insert(key, String::from(value.to_string()));
-                            }
-                            else if let Some(value) = value.as_i64() {
-                                map.insert(key, String::from(value.to_string()));
-                            }
-                            else if let Some(value) = value.as_f64() {
-                                map.insert(key, String::from(value.to_string()));
-                            }
-                            else if let Some(value) = value.as_str() {
-                                map.insert(key, String::from(value));
-                            }
-                            else if let Some(value) = value.as_bool() {
-                                map.insert(key, String::from(value.to_string()));
-                            }
-                            else if let Some(value) = value.as_array() {
-                                let list: Vec<String> = value.into_iter().map(|item| {
-                                    if item.is_string(){
-                                        item.as_str().unwrap().trim().to_string()
-                                    }else{
-                                        String::from("")
+                    let v: Result<HashMap<String, serde_json::Value>, serde_json::error::Error> = serde_json::from_slice(&buf);
+                    match v {
+                        Err(_) =>{
+                            error!("unable to decode json");
+                        },
+                        Ok(v) => {
+                            for (key, value) in v {
+                                trace!("application/json {} => {}", key, value);
+                                if !map.contains_key(&key){
+                                    if let Some(value) = value.as_u64() {
+                                        map.insert(key, String::from(value.to_string()));
                                     }
-                                }).filter(|item| {
-                                    item != ""
-                                }).collect();
-                                let value = list.join(",");
-                                map.insert(key, value);
-                            }
-                            else{
-                                error!("unsupported value type in json");
+                                    else if let Some(value) = value.as_i64() {
+                                        map.insert(key, String::from(value.to_string()));
+                                    }
+                                    else if let Some(value) = value.as_f64() {
+                                        map.insert(key, String::from(value.to_string()));
+                                    }
+                                    else if let Some(value) = value.as_str() {
+                                        map.insert(key, String::from(value));
+                                    }
+                                    else if let Some(value) = value.as_bool() {
+                                        map.insert(key, String::from(value.to_string()));
+                                    }
+                                    else if let Some(value) = value.as_array() {
+                                        let list: Vec<String> = value.into_iter().map(|item| {
+                                            if item.is_string(){
+                                                item.as_str().unwrap().trim().to_string()
+                                            }else{
+                                                String::from("")
+                                            }
+                                        }).filter(|item| {
+                                            item != ""
+                                        }).collect();
+                                        let value = list.join(",");
+                                        map.insert(key, value);
+                                    }
+                                    else{
+                                        error!("unsupported value type in json");
+                                    }
+                                }
                             }
                         }
                     }

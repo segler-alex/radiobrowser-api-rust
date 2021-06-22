@@ -219,7 +219,7 @@ impl DbConnection for MysqlConnection {
         let query_select = "SELECT DISTINCT(CountryCode) FROM Station";
         let result: Vec<String> = transaction.query(query_select)?;
         let list: Vec<Params> = result.iter()
-            .map(|cc| { (String::from(cc), Country::from_alpha2(cc).map(|d| d.long_name).unwrap_or(String::from("")) ) })
+            .map(|cc| { (String::from(cc), Country::from_alpha2(cc).map(|d| d.long_name).unwrap_or("") ) })
             .map(|co| params!{"countrycode" => co.0, "country" => co.1})
             .collect();
         
@@ -824,7 +824,7 @@ impl DbConnection for MysqlConnection {
         let mut transaction = self.pool.start_transaction(TxOpts::default())?;
 
         let countrycode: String = countrycode.unwrap_or_default().to_uppercase();
-        let country: String = Country::from_alpha2(&countrycode).map(|c| c.long_name).unwrap_or(String::from(""));
+        let country: String = String::from(Country::from_alpha2(&countrycode).map(|c| c.long_name).unwrap_or(""));
 
         let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,LanguageCodes,Tags,ChangeUuid,StationUuid,GeoLat,GeoLong,UrlCache,Creation) 
                         VALUES(:name, :url, :homepage, :favicon, :country, :countrycode, :state, :language, :languagecodes, :tags, :changeuuid, :stationuuid, :geo_lat, :geo_long, '', UTC_TIMESTAMP())");

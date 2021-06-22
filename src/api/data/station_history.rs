@@ -158,7 +158,7 @@ impl From<StationHistoryItem> for StationHistoryCurrent {
             homepage: item.homepage,
             favicon: item.favicon,
             tags: item.tags,
-            country: Country::from_alpha2(&item.countrycode).map(|c| c.long_name).unwrap_or(String::from("")),
+            country: String::from(Country::from_alpha2(&item.countrycode).map(|c| c.long_name).unwrap_or("")),
             countrycode: item.countrycode,
             state: item.state,
             language: item.language,
