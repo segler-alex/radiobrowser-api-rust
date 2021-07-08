@@ -79,6 +79,7 @@ impl From<Row> for StationItem {
             ssl_error:                   row.take_opt("SslError").unwrap_or(Ok(0)).unwrap_or(0)==1,
             geo_lat:                     row.take_opt("GeoLat").transpose().unwrap_or(None),
             geo_long:                    row.take_opt("GeoLong").transpose().unwrap_or(None),
+            has_extended_info:           row.take_opt("ExtendedInfo").transpose().unwrap_or(None),
         }
     }
 }

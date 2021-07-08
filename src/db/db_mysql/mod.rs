@@ -56,7 +56,7 @@ impl MysqlConnection {
     ClickTimestamp,
     Date_Format(ClickTimestamp,'%Y-%m-%d %H:%i:%s') AS ClickTimestampFormated,
     clickcount,ClickTrend,
-    LanguageCodes,SslError,GeoLat,GeoLong";
+    LanguageCodes,SslError,GeoLat,GeoLong,ExtendedInfo";
 
     const COLUMNS_CHECK: &'static str =
         "CheckID, StationUuid, CheckUuid, Source, Codec, Bitrate, Hls, CheckOK,
@@ -649,6 +649,7 @@ impl DbConnection for MysqlConnection {
         bitrate_min: u32,
         bitrate_max: u32,
         has_geo_info: Option<bool>,
+        has_extended_info: Option<bool>,
         order: &str,
         reverse: bool,
         hidebroken: bool,
@@ -673,6 +674,16 @@ impl DbConnection for MysqlConnection {
                     query.push_str(" AND GeoLat IS NOT NULL AND GeoLong IS NOT NULL");
                 }else{
                     query.push_str(" AND (GeoLat IS NULL OR GeoLong IS NULL)");
+                }
+            },
+            None => {}
+        }
+        match has_extended_info {
+            Some(has_extended_info) => {
+                if has_extended_info {
+                    query.push_str(" AND ExtendedInfo=1");
+                }else{
+                    query.push_str(" AND ExtendedInfo=0");
                 }
             },
             None => {}
@@ -1228,7 +1239,7 @@ impl DbConnection for MysqlConnection {
                         }
 
                         if item.check_ok {
-                            let query_update_ok = format!("UPDATE Station SET LastCheckOkTime=UTC_TIMESTAMP(),LastCheckTime=UTC_TIMESTAMP(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache,{} WHERE StationUuid=:stationuuid", query.join(","));
+                            let query_update_ok = format!("UPDATE Station SET ExtendedInfo=TRUE,LastCheckOkTime=UTC_TIMESTAMP(),LastCheckTime=UTC_TIMESTAMP(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache,{} WHERE StationUuid=:stationuuid", query.join(","));
                             transaction.exec_drop(query_update_ok, params)?;
                         }
                     }else{
@@ -1239,7 +1250,7 @@ impl DbConnection for MysqlConnection {
                     if item.check_ok {
                         params.push((String::from("urlcache"), item.url.clone().into(),));
 
-                        let query_update_ok = format!("UPDATE Station SET {lastlocalchecktime}LastCheckOkTime=UTC_TIMESTAMP(),LastCheckTime=UTC_TIMESTAMP(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache,LastCheckOk=:vote,SslError=:ssl_error WHERE StationUuid=:stationuuid",
+                        let query_update_ok = format!("UPDATE Station SET ExtendedInfo=FALSE,{lastlocalchecktime}LastCheckOkTime=UTC_TIMESTAMP(),LastCheckTime=UTC_TIMESTAMP(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache,LastCheckOk=:vote,SslError=:ssl_error WHERE StationUuid=:stationuuid",
                             lastlocalchecktime = if local {"LastLocalCheckTime=UTC_TIMESTAMP(),"} else {""},
                         );
                         transaction.exec_drop(query_update_ok, params)?;

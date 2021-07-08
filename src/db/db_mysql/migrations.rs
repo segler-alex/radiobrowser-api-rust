@@ -489,5 +489,9 @@ r#"ALTER TABLE Station DROP COLUMN LanguageCodes;"#);
 r#"ALTER TABLE StationHistory ADD COLUMN LanguageCodes TEXT NULL;"#,
 r#"ALTER TABLE StationHistory DROP COLUMN LanguageCodes;"#);
 
+    migrations.add_migration("20210708_211807_Add_Station_ExtendedInfo",
+r#"ALTER TABLE Station ADD COLUMN ExtendedInfo BOOLEAN NOT NULL DEFAULT FALSE;"#,
+r#"ALTER TABLE Station DROP COLUMN ExtendedInfo;"#);
+
     Ok(migrations)
 }

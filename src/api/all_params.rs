@@ -61,6 +61,8 @@ pub struct AllParameters {
     pub param_hidebroken: bool,
     #[serde(rename = "hg")]
     pub param_has_geo_info: Option<bool>,
+    #[serde(rename = "hx")]
+    pub param_has_extended_info: Option<bool>,
     #[serde(rename = "of")]
     pub param_offset: u32,
     #[serde(rename = "li")]

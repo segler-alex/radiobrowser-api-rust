@@ -96,6 +96,7 @@ pub struct Station {
     pub ssl_error: Option<u8>,
     pub geo_lat: Option<f64>,
     pub geo_long: Option<f64>,
+    pub has_extended_info: Option<bool>,
 }
 
 impl Station {
@@ -183,6 +184,9 @@ impl Station {
             }
             if let Some(geo_long) = &entry.geo_long {
                 xml.attr_esc("geo_long", &geo_long.to_string())?;
+            }
+            if let Some(has_extended_info) = &entry.has_extended_info {
+                xml.attr_esc("has_extended_info", &has_extended_info.to_string())?;
             }
             xml.end_elem()?;
         }
@@ -431,6 +435,7 @@ impl From<&StationHistoryCurrent> for Station {
             ssl_error: None,
             geo_lat: item.geo_lat,
             geo_long: item.geo_long,
+            has_extended_info: None,
         }
     }
 }
@@ -471,6 +476,7 @@ impl From<StationItem> for Station {
             ssl_error: Some(if item.ssl_error { 1 } else { 0 }),
             geo_lat: item.geo_lat,
             geo_long: item.geo_long,
+            has_extended_info: item.has_extended_info,
         }
     }
 }
@@ -524,6 +530,7 @@ impl From<StationV0> for Station {
             ssl_error: None,
             geo_lat: None,
             geo_long: None,
+            has_extended_info: None,
         }
     }
 }

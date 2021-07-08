@@ -310,6 +310,11 @@
                 <td>number, double</td>
                 <td>Longitude on earth where the stream is located.</td>
               </tr>
+              <tr>
+                <td>has_extended_info</td>
+                <td>bool, optional</td>
+                <td>Is true, if the stream owner does provide extended information as HTTP headers which override the information in the database.</td>
+              </tr>
             </tbody>
           </table>
           <div class="h5">Example JSON:</div>
@@ -348,7 +353,8 @@
     "clicktrend":0,
     "ssl_error": 0,
     "geo_lat": 1.1,
-    "geo_long": -2.2
+    "geo_long": -2.2,
+    "has_extended_info": false
   }
                 </pre>
           </div>
@@ -387,7 +393,8 @@
     clicktrend=&quot;0&quot;
     ssl_error=&quot;0&quot;
     geo_lat=&quot;1.1&quot;
-    geo_long=&quot;-2.2&quot;/&gt;
+    geo_long=&quot;-2.2&quot;
+    has_extended_info=&quot;false&quot;/&gt;
 
             </pre>
           </div>
@@ -1958,6 +1965,12 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
             <td>not set, true, false</td>
             <td>OPTIONAL, not set=display all, true=show only stations with geo_info, false=show only stations without
               geo_info</td>
+          </tr>
+          <tr>
+            <td>has_extended_info</td>
+            <td>both</td>
+            <td>not set, true, false</td>
+            <td>OPTIONAL, not set=display all, true=show only stations which do provide extended information, false=show only stations without extended information</td>
           </tr>
           <tr>
             <td>order</td>

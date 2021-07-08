@@ -37,4 +37,5 @@ pub struct StationItem {
     pub ssl_error: bool,
     pub geo_lat: Option<f64>,
     pub geo_long: Option<f64>,
+    pub has_extended_info: Option<bool>,
 }
