@@ -2,6 +2,7 @@ mod migrations;
 mod simple_migrate;
 mod conversions;
 
+use mysql::Opts;
 use mysql::from_row;
 use url::Url;
 use mysql::Params;
@@ -74,7 +75,8 @@ impl MysqlConnection {
     Date_Format(ClickTimestamp,'%Y-%m-%d %H:%i:%s') AS ClickTimestampFormated";
 
     pub fn new(connection_str: &str) -> Result<Self, Box<dyn Error>> {
-        let pool = mysql::Pool::new(connection_str)?;
+        let opts = Opts::from_url(connection_str)?;
+        let pool = mysql::Pool::new(opts)?;
         Ok(
             MysqlConnection{
                 pool,
