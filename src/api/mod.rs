@@ -480,6 +480,7 @@ fn handle_cached_connection<A>(
         param_hidebroken: ppp.get_bool("hidebroken", false),
         param_has_geo_info: ppp.get_bool_opt("has_geo_info")?,
         param_has_extended_info: ppp.get_bool_opt("has_extended_info")?,
+        param_is_https: ppp.get_bool_opt("is_https")?,
         
         param_offset: ppp.get_number("offset", 0),
         param_limit: ppp.get_number("limit", 999999),
@@ -661,7 +662,7 @@ fn do_api_calls<A>(all_params: AllParameters,
                     "byuuid" => Ok((true,Station::get_response(connection_new.get_stations_by_uuid(all_params.param_uuids)?.drain(..).map(|x| x.into()).collect(), format)?)),
                     "search" => Ok((true,Station::get_response(connection_new.get_stations_advanced(all_params.param_name, all_params.param_name_exact, all_params.param_country,
                         all_params.param_country_exact, all_params.param_countrycode, all_params.param_state, all_params.param_state_exact, all_params.param_language, all_params.param_language_exact, all_params.param_tag,
-                        all_params.param_tag_exact, all_params.param_tag_list, all_params.param_codec, all_params.param_bitrate_min, all_params.param_bitrate_max, all_params.param_has_geo_info, all_params.param_has_extended_info, &all_params.param_order,all_params.param_reverse,
+                        all_params.param_tag_exact, all_params.param_tag_list, all_params.param_codec, all_params.param_bitrate_min, all_params.param_bitrate_max, all_params.param_has_geo_info, all_params.param_has_extended_info, all_params.param_is_https, &all_params.param_order,all_params.param_reverse,
                         all_params.param_hidebroken,all_params.param_offset,all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
                     _ => Ok((true,ApiResponse::NotFound)),
                 }

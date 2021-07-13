@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 * API: search by extended info marker
+* API: search by is_https
 
 ## [0.7.14] 2021-05-31
 ### Fixed

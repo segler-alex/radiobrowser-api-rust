@@ -650,6 +650,7 @@ impl DbConnection for MysqlConnection {
         bitrate_max: u32,
         has_geo_info: Option<bool>,
         has_extended_info: Option<bool>,
+        is_https: Option<bool>,
         order: &str,
         reverse: bool,
         hidebroken: bool,
@@ -684,6 +685,16 @@ impl DbConnection for MysqlConnection {
                     query.push_str(" AND ExtendedInfo=1");
                 }else{
                     query.push_str(" AND ExtendedInfo=0");
+                }
+            },
+            None => {}
+        }
+        match is_https {
+            Some(is_https) => {
+                if is_https {
+                    query.push_str(" AND UrlCache LIKE 'https://%'");
+                }else{
+                    query.push_str(" AND UrlCache LIKE 'http://%'");
                 }
             },
             None => {}
