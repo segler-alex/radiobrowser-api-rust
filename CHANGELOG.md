@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * API: search by extended info marker
 * API: search by is_https
 
+### Updated
+* dependencies
+
 ## [0.7.14] 2021-05-31
 ### Fixed
 * CHECK: new av-stream-info version does fix handling of depth limit for playlists
