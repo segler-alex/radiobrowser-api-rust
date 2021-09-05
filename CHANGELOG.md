@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 * API: search by extended info marker
 * API: search by is_https
+* API: exposed iso_3166_2 in station lists
 
 ### Fixed
 * DB: countrysubdivisioncode is now able to hold full 6 chars

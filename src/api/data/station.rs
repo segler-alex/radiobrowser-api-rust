@@ -138,6 +138,9 @@ impl Station {
             xml.attr_esc("tags", &entry.tags)?;
             xml.attr_esc("country", &entry.country)?;
             xml.attr_esc("countrycode", &entry.countrycode)?;
+            if let Some(iso_3166_2) = entry.iso_3166_2 {
+                xml.attr_esc("iso_3166_2", &iso_3166_2)?;
+            }
             xml.attr_esc("state", &entry.state)?;
             xml.attr_esc("language", &entry.language)?;
             if let Some(languagecodes) = entry.languagecodes {
@@ -287,6 +290,9 @@ impl Station {
     schema:CountryCode [
         schema:name "{countrycode}" ;
     ] ;
+    schema:ISO3166_2 [
+        schema:name "{iso_3166_2}" ;
+    ] ;
     schema:State [
         schema:name "{state}" ;
     ] ;
@@ -359,6 +365,7 @@ impl Station {
             lastcheckok = self.lastcheckok,
             clickcount = self.clickcount,
             clicktrend = self.clicktrend,
+            iso_3166_2 = self.iso_3166_2.clone().unwrap_or_default(),
             newline = "\r\n\r\n"
         )
     }
