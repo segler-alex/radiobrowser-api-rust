@@ -56,7 +56,7 @@ impl MysqlConnection {
     ClickTimestamp,
     Date_Format(ClickTimestamp,'%Y-%m-%d %H:%i:%s') AS ClickTimestampFormated,
     clickcount,ClickTrend,
-    LanguageCodes,SslError,GeoLat,GeoLong,ExtendedInfo";
+    LanguageCodes,SslError,GeoLat,GeoLong,ExtendedInfo,CountrySubdivisionCode";
 
     const COLUMNS_CHECK: &'static str =
         "CheckID, StationUuid, CheckUuid, Source, Codec, Bitrate, Hls, CheckOK,
@@ -1226,6 +1226,10 @@ impl DbConnection for MysqlConnection {
                         if let Some(countrycode) = &item.countrycode {
                             params.push((String::from("countrycode"),countrycode.into(),));
                             query.push("CountryCode=UPPER(:countrycode)");
+                        }
+                        if let Some(countrysubdivisioncode) = &item.countrysubdivisioncode {
+                            params.push((String::from("countrysubdivisioncode"),countrysubdivisioncode.into(),));
+                            query.push("CountrySubdivisionCode=UPPER(:countrysubdivisioncode)");
                         }
                         if let Some(tags) = &item.tags {
                             params.push((String::from("tags"),fix_multi_field(tags).into(),));

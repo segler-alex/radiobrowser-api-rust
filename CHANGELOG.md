@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * API: search by extended info marker
 * API: search by is_https
 
+### Fixed
+* DB: countrysubdivisioncode is now able to hold full 6 chars
+
 ### Updated
 * dependencies
 

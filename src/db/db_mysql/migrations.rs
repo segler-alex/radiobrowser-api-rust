@@ -493,5 +493,17 @@ r#"ALTER TABLE StationHistory DROP COLUMN LanguageCodes;"#);
 r#"ALTER TABLE Station ADD COLUMN ExtendedInfo BOOLEAN NOT NULL DEFAULT FALSE;"#,
 r#"ALTER TABLE Station DROP COLUMN ExtendedInfo;"#);
 
+    migrations.add_migration("20210905_214000_Change_Station_CountrySubdivisionCode",
+r#"ALTER TABLE Station MODIFY COLUMN CountrySubdivisionCode VARCHAR(6) NULL;"#,
+r#"ALTER TABLE Station MODIFY COLUMN CountrySubdivisionCode VARCHAR(3) NULL;"#);
+
+    migrations.add_migration("20210905_214001_Change_StationCheckHistory_CountrySubdivisionCode",
+r#"ALTER TABLE StationCheckHistory MODIFY COLUMN CountrySubdivisionCode VARCHAR(6) NULL;"#,
+r#"ALTER TABLE StationCheckHistory MODIFY COLUMN CountrySubdivisionCode VARCHAR(3) NULL;"#);
+
+    migrations.add_migration("20210905_215000_Recreate_View_StationCheck",
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT * FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#,
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex,CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs,SslError FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#);
+
     Ok(migrations)
 }

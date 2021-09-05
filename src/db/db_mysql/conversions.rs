@@ -59,6 +59,7 @@ impl From<Row> for StationItem {
             tags:                        row.take_opt("Tags").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             country:                     row.take_opt("Country").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             countrycode:                 row.take_opt("CountryCode").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
+            iso_3166_2:                  row.take_opt("CountrySubdivisionCode").transpose().unwrap_or(None),
             state:                       row.take_opt("Subcountry").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             language:                    row.take_opt("Language").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             languagecodes:               row.take_opt("LanguageCodes").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),

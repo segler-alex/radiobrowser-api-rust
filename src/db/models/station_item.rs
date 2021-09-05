@@ -14,6 +14,7 @@ pub struct StationItem {
     pub tags: String,
     pub country: String,
     pub countrycode: String,
+    pub iso_3166_2: Option<String>,
     pub state: String,
     pub language: String,
     pub languagecodes: String,
