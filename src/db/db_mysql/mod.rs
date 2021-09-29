@@ -1087,12 +1087,12 @@ impl DbConnection for MysqlConnection {
                     // reuse checkuuid
                     match &item.timestamp {
                         Some(timestamp) => {
-                            insert_station_check_query.push("(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(),?,?,?,?,?)");
+                            insert_station_check_query.push("(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(),?,?,?,?,?,?,?)");
                             insert_station_check_params.push(checkuuid.into());
                             insert_station_check_params.push(timestamp.into());
                         }
                         None => {
-                            insert_station_check_query.push("(?,UTC_TIMESTAMP(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(),?,?,?,?,?)");
+                            insert_station_check_query.push("(?,UTC_TIMESTAMP(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(),?,?,?,?,?,?,?)");
                             insert_station_check_params.push(checkuuid.into());
                         }
                     }
@@ -1101,11 +1101,11 @@ impl DbConnection for MysqlConnection {
                     // generate new checkuuid
                     match &item.timestamp {
                         Some(timestamp) => {
-                            insert_station_check_query.push("(UUID(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(),?,?,?,?,?)");
+                            insert_station_check_query.push("(UUID(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(),?,?,?,?,?,?,?)");
                             insert_station_check_params.push(timestamp.into());
                         }
                         None => {
-                            insert_station_check_query.push("(UUID(),UTC_TIMESTAMP(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(),?,?,?,?,?)");
+                            insert_station_check_query.push("(UUID(),UTC_TIMESTAMP(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(),?,?,?,?,?,?,?)");
                         }
                     }
                     
@@ -1141,6 +1141,9 @@ impl DbConnection for MysqlConnection {
             insert_station_check_params.push(item.timing_ms.clone().into());
             insert_station_check_params.push(item.countrysubdivisioncode.clone().into());
 
+            insert_station_check_params.push(item.geo_lat.clone().into());
+            insert_station_check_params.push(item.geo_long.clone().into());
+
             inserted.push(item);
         }
 
@@ -1150,7 +1153,7 @@ impl DbConnection for MysqlConnection {
         if insert_station_check_query.len() > 0 {
             let insert_station_check_params_str = insert_station_check_query.join(",");
             let query_insert_station_check_history = format!("INSERT INTO StationCheckHistory(CheckUuid,CheckTime,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,UrlCache,
-                MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,DoNotIndex,InsertTime,ServerSoftware,Sampling,LanguageCodes,TimingMs,CountrySubdivisionCode) VALUES{}", insert_station_check_params_str);
+                MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,DoNotIndex,InsertTime,ServerSoftware,Sampling,LanguageCodes,TimingMs,CountrySubdivisionCode,GeoLat,GeoLong) VALUES{}", insert_station_check_params_str);
             transaction.exec_drop(query_insert_station_check_history, insert_station_check_params)?;
         }
 
