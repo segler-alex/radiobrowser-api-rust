@@ -1847,6 +1847,7 @@ fn filter_order(order: &str) -> &str {
         "clicktimestamp" => "ClickTimestamp",
         "clickcount" => "clickcount",
         "clicktrend" => "ClickTrend",
+        "changetimestamp" => "Creation",
         "random" => "RAND()",
         _ => "Name",
     }
