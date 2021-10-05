@@ -47,40 +47,26 @@ impl Display for MainError {
 impl Error for MainError {}
 
 fn jobs(config: config::Config) {
-    let mut once_refresh = false;
-    let mut once_pull = false;
-    let mut once_cleanup = false;
-    let mut once_check = false;
+    let mut once_pull = true;
+    let mut once_cleanup = true;
+    let mut once_check = true;
+    let mut once_refresh = true;
 
-    let mut last_time_refresh = Instant::now();
     let mut last_time_pull = Instant::now();
     let mut last_time_cleanup = Instant::now();
     let mut last_time_check = Instant::now();
+    let mut last_time_refresh = Instant::now();
 
     let mut list_deleted: Vec<UuidWithTime> = vec![];
     let client = Client::new();
 
     thread::spawn(move || loop {
-        if config.update_caches_interval.as_secs() > 0
-            && (!once_refresh
-                || last_time_refresh.elapsed().as_secs() >= config.update_caches_interval.as_secs())
-        {
-            once_refresh = true;
-            last_time_refresh = Instant::now();
-            let result = refresh::refresh_all_caches(config.connection_string.clone());
-            match result {
-                Ok(_) => {}
-                Err(err) => {
-                    error!("Refresh worker error: {}", err);
-                }
-            }
-        }
-
         if config.servers_pull.len() > 0
-            && (!once_pull
+            && (once_pull
                 || last_time_pull.elapsed().as_secs() >= config.mirror_pull_interval.as_secs())
         {
-            once_pull = true;
+            once_pull = false;
+            once_refresh = true;
             last_time_pull = Instant::now();
             let result = pull::pull_worker(
                 &client,
@@ -105,8 +91,9 @@ fn jobs(config: config::Config) {
             );
         }
 
-        if !once_cleanup || last_time_cleanup.elapsed().as_secs() >= 3600 {
-            once_cleanup = true;
+        if once_cleanup || last_time_cleanup.elapsed().as_secs() >= 3600 {
+            once_cleanup = false;
+            once_refresh = true;
             last_time_cleanup = Instant::now();
             let result = cleanup::do_cleanup(
                 config.delete,
@@ -123,14 +110,15 @@ fn jobs(config: config::Config) {
         }
 
         if config.enable_check
-            && (!once_check || last_time_check.elapsed().as_secs() >= config.pause.as_secs())
+            && (once_check || last_time_check.elapsed().as_secs() >= config.pause.as_secs())
         {
             trace!(
                 "Check started.. (concurrency: {}, chunksize: {})",
                 config.concurrency,
                 config.check_stations
             );
-            once_check = true;
+            once_check = false;
+            once_refresh = true;
             last_time_check = Instant::now();
             let result = check::dbcheck(
                 config.connection_string.clone(),
@@ -145,6 +133,21 @@ fn jobs(config: config::Config) {
                 Ok(_) => {}
                 Err(err) => {
                     error!("Check worker error: {}", err);
+                }
+            }
+        }
+
+        if config.update_caches_interval.as_secs() > 0
+            && (once_refresh
+                || last_time_refresh.elapsed().as_secs() >= config.update_caches_interval.as_secs())
+        {
+            once_refresh = false;
+            last_time_refresh = Instant::now();
+            let result = refresh::refresh_all_caches(config.connection_string.clone());
+            match result {
+                Ok(_) => {}
+                Err(err) => {
+                    error!("Refresh worker error: {}", err);
                 }
             }
         }
