@@ -1,6 +1,5 @@
 use std;
 use std::collections::HashMap;
-use crate::thread;
 use crate::db::connect;
 use crate::db::DbConnection;
 
@@ -68,29 +67,11 @@ pub fn refresh_cache_items(
     })
 }
 
-fn refresh_worker(connection_string: String) -> Result<(), Box<dyn std::error::Error>> {
+pub fn refresh_all_caches(connection_string: String) -> Result<(), Box<dyn std::error::Error>> {
     let pool = connect(connection_string)?;
     trace!("REFRESH START");
     let tags = refresh_cache_items(&pool, "TagCache", "TagName", "Tags")?;
     let languages = refresh_cache_items(&pool, "LanguageCache", "LanguageName", "Language")?;
     debug!("Refresh(Tags={}->{} changed={}, Languages={}->{} changed={})", tags.old_items, tags.new_items, tags.changed_items, languages.old_items, languages.new_items, languages.changed_items);
     Ok(())
-}
-
-pub fn start(connection_string: String, update_caches_interval: u64) {
-    if update_caches_interval > 0 {
-        thread::spawn(move || {
-            loop {
-                let result = refresh_worker(connection_string.clone());
-                match result {
-                    Ok(_)=>{
-                    },
-                    Err(err)=>{
-                        error!("Refresh worker error: {}", err);
-                    }
-                }
-                thread::sleep(::std::time::Duration::new(update_caches_interval, 0));
-            }
-        });
-    }
 }

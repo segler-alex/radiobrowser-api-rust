@@ -1,10 +1,8 @@
 mod pull_error;
 mod uuid_with_time;
 
-use crate::pull::uuid_with_time::UuidWithTime;
+pub use crate::pull::uuid_with_time::UuidWithTime;
 use std::error::Error;
-use std::thread;
-use crate::time;
 use std::convert::TryFrom;
 
 use reqwest::blocking::Client;
@@ -31,7 +29,7 @@ fn add_default_request_headers(req: RequestBuilder) -> RequestBuilder {
     req.header(USER_AGENT, format!("radiobrowser-api-rust/{}",pkg_version))
 }
 
-fn pull_worker(client: &Client, connection_string: String, mirrors: &Vec<String>, chunk_size_changes: usize, chunk_size_checks: usize, max_duplicates: usize, list_deleted: &mut Vec<UuidWithTime>) -> Result<(),Box<dyn Error>> {
+pub fn pull_worker(client: &Client, connection_string: String, mirrors: &Vec<String>, chunk_size_changes: usize, chunk_size_checks: usize, max_duplicates: usize, list_deleted: &mut Vec<UuidWithTime>) -> Result<(),Box<dyn Error>> {
     let pool = connect(connection_string)?;
     let list_deleted_uuids = list_deleted.iter().map(|item| item.uuid.to_string()).collect();
     for server in mirrors.iter() {
@@ -64,29 +62,6 @@ fn pull_worker(client: &Client, connection_string: String, mirrors: &Vec<String>
         }
     }
     Ok(())
-}
-
-pub fn start(connection_string: String, mirrors: Vec<String>, pull_interval: u64, chunk_size_changes: usize, chunk_size_checks: usize, max_duplicates: usize) {
-    if mirrors.len() > 0 {
-        thread::spawn(move || {
-            let mut list_deleted: Vec<UuidWithTime> = vec![];
-            let client = Client::new();
-            loop {
-                let result = pull_worker(&client, connection_string.clone(), &mirrors, chunk_size_changes, chunk_size_checks, max_duplicates, &mut list_deleted);
-                match result {
-                    Ok(_) => {
-                    },
-                    Err(err) => {
-                        error!("Error in pull worker: {}", err);
-                    }
-                }
-                thread::sleep(time::Duration::from_secs(pull_interval));
-                // remove items from deleted list after 1 day
-                list_deleted.retain(|item| item.instant.elapsed().as_secs() < 3600 * 24);
-                debug!("List of deleted station uuids (duplicates): len={}", list_deleted.len());
-            }
-        });
-    }
 }
 
 fn get_remote_version(client: &Client, server: &str) -> Result<u32,Box<dyn std::error::Error>> {

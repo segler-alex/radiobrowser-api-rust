@@ -7,9 +7,13 @@ extern crate log;
 #[macro_use]
 extern crate prometheus;
 
+use crate::pull::UuidWithTime;
 use core::fmt::Display;
 use core::fmt::Formatter;
+use reqwest::blocking::Client;
 use std::error::Error;
+use std::time::Duration;
+use std::time::Instant;
 use std::{thread, time};
 
 mod api;
@@ -42,6 +46,113 @@ impl Display for MainError {
 
 impl Error for MainError {}
 
+fn jobs(config: config::Config) {
+    let mut once_refresh = false;
+    let mut once_pull = false;
+    let mut once_cleanup = false;
+    let mut once_check = false;
+
+    let mut last_time_refresh = Instant::now();
+    let mut last_time_pull = Instant::now();
+    let mut last_time_cleanup = Instant::now();
+    let mut last_time_check = Instant::now();
+
+    let mut list_deleted: Vec<UuidWithTime> = vec![];
+    let client = Client::new();
+
+    thread::spawn(move || loop {
+        if config.update_caches_interval.as_secs() > 0
+            && (!once_refresh
+                || last_time_refresh.elapsed().as_secs() >= config.update_caches_interval.as_secs())
+        {
+            once_refresh = true;
+            last_time_refresh = Instant::now();
+            let result = refresh::refresh_all_caches(config.connection_string.clone());
+            match result {
+                Ok(_) => {}
+                Err(err) => {
+                    error!("Refresh worker error: {}", err);
+                }
+            }
+        }
+
+        if config.servers_pull.len() > 0
+            && (!once_pull
+                || last_time_pull.elapsed().as_secs() >= config.mirror_pull_interval.as_secs())
+        {
+            once_pull = true;
+            last_time_pull = Instant::now();
+            let result = pull::pull_worker(
+                &client,
+                config.connection_string.clone(),
+                &config.servers_pull,
+                config.chunk_size_changes,
+                config.chunk_size_checks,
+                config.max_duplicates,
+                &mut list_deleted,
+            );
+            match result {
+                Ok(_) => {}
+                Err(err) => {
+                    error!("Error in pull worker: {}", err);
+                }
+            }
+            // remove items from deleted list after 1 day
+            list_deleted.retain(|item| item.instant.elapsed().as_secs() < 3600 * 24);
+            debug!(
+                "List of deleted station uuids (duplicates): len={}",
+                list_deleted.len()
+            );
+        }
+
+        if !once_cleanup || last_time_cleanup.elapsed().as_secs() >= 3600 {
+            once_cleanup = true;
+            last_time_cleanup = Instant::now();
+            let result = cleanup::do_cleanup(
+                config.delete,
+                config.connection_string.clone(),
+                config.click_valid_timeout.as_secs(),
+                config.broken_stations_never_working_timeout.as_secs(),
+                config.broken_stations_timeout.as_secs(),
+                config.checks_timeout.as_secs(),
+                config.clicks_timeout.as_secs(),
+            );
+            if let Err(error) = result {
+                error!("Error: {}", error);
+            }
+        }
+
+        if config.enable_check
+            && (!once_check || last_time_check.elapsed().as_secs() >= config.pause.as_secs())
+        {
+            trace!(
+                "Check started.. (concurrency: {}, chunksize: {})",
+                config.concurrency,
+                config.check_stations
+            );
+            once_check = true;
+            last_time_check = Instant::now();
+            let result = check::dbcheck(
+                config.connection_string.clone(),
+                &config.source,
+                config.concurrency,
+                config.check_stations,
+                config.tcp_timeout.as_secs(),
+                config.max_depth,
+                config.retries,
+            );
+            match result {
+                Ok(_) => {}
+                Err(err) => {
+                    error!("Check worker error: {}", err);
+                }
+            }
+        }
+
+        thread::sleep(Duration::from_secs(10));
+    });
+}
+
 fn mainloop() -> Result<(), Box<dyn Error>> {
     let config = config::load_config().map_err(|e| MainError::ConfigLoadError(e.to_string()))?;
     logger::setup_logger(config.log_level, &config.log_dir, config.log_json)
@@ -59,43 +170,8 @@ fn mainloop() -> Result<(), Box<dyn Error>> {
                 );
                 match migration_result {
                     Ok(_) => {
-                        let config_for_api = config.clone();
-
-                        refresh::start(
-                            config.connection_string.clone(),
-                            config.update_caches_interval.as_secs(),
-                        );
-                        pull::start(
-                            config.connection_string.clone(),
-                            config.servers_pull,
-                            config.mirror_pull_interval.as_secs(),
-                            config.chunk_size_changes,
-                            config.chunk_size_checks,
-                            config.max_duplicates,
-                        );
-                        cleanup::start(
-                            config.connection_string.clone(),
-                            config.delete,
-                            3600,
-                            config.click_valid_timeout.as_secs(),
-                            config.broken_stations_never_working_timeout.as_secs(),
-                            config.broken_stations_timeout.as_secs(),
-                            config.checks_timeout.as_secs(),
-                            config.clicks_timeout.as_secs(),
-                        );
-                        check::start(
-                            config.connection_string,
-                            config.source,
-                            config.concurrency,
-                            config.check_stations,
-                            config.tcp_timeout.as_secs(),
-                            config.max_depth,
-                            config.retries,
-                            config.enable_check,
-                            config.pause.as_secs(),
-                        );
-
-                        api::start(connection, config_for_api);
+                        jobs(config.clone());
+                        api::start(connection, config);
                     }
                     Err(err) => {
                         error!("Migrations error: {}", err);
