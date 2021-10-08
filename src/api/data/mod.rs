@@ -7,6 +7,7 @@ mod station_check_step;
 mod station_click;
 mod station_history;
 mod status;
+mod server_stats;
 
 pub use self::config::ApiConfig;
 pub use self::result_message::ResultMessage;
@@ -22,3 +23,4 @@ pub use self::station_click::StationClickV0;
 pub use self::station_history::StationHistoryCurrent;
 pub use self::station_history::StationHistoryV0;
 pub use self::status::Status;
+pub use self::server_stats::ApiStreamingServer;

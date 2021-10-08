@@ -2,6 +2,8 @@ mod migrations;
 mod simple_migrate;
 mod conversions;
 
+use crate::db::models::DbStreamingServerNew;
+use crate::db::models::DbStreamingServer;
 use mysql::Opts;
 use mysql::from_row;
 use url::Url;
@@ -423,6 +425,63 @@ impl DbConnection for MysqlConnection {
         let mut conn = self.pool.get_conn()?;
         let results = conn.exec_iter(query, ())?;
         self.get_list_from_query_result(results)
+    }
+
+    fn get_servers_to_check(&mut self, hours: u32, chunksize: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>>{
+        let query = format!(
+            "SELECT Id, Uuid, Url, StatusUrl, Status, Error FROM StreamingServers WHERE UpdatedAt IS NULL OR UpdatedAt < UTC_TIMESTAMP() - INTERVAL :hours HOUR LIMIT :chunksize"
+        );
+        let mut conn = self.pool.get_conn()?;
+        let results = conn.exec_map(query, params!(hours, chunksize), |(id,uuid,url,statusurl,status,error)|
+            DbStreamingServer::new(id, uuid, url,statusurl,status,error)
+        )?;
+        Ok(results)
+    }
+
+    fn get_streaming_servers_by_url(&mut self, items: Vec<String>) -> Result<Vec<DbStreamingServer>, Box<dyn Error>> {
+        if items.len() > 0 {
+            let mut conn = self.pool.get_conn()?;
+            let search_query: Vec<&str> = (0..items.len()).map(|_item| "?").collect();
+            let query = format!("SELECT Id,Uuid,Url,StatusUrl,Status,Error FROM StreamingServers WHERE Url IN ({})", search_query.join(","));
+            let list = conn.exec_map(query, items, |(id,uuid,url,statusurl,status,error)|
+                DbStreamingServer::new(id, uuid, url,statusurl,status,error)
+            )?;
+            Ok(list)
+        }else{
+            Ok(vec![])
+        }
+    }
+
+    fn get_streaming_servers(&self) -> Result<Vec<DbStreamingServer>, Box<dyn Error>> {
+        let mut conn = self.pool.get_conn()?;
+        let query = format!("SELECT Id,Uuid,Url,StatusUrl,Status,Error FROM StreamingServers");
+        let list = conn.query_map(query, |(id,uuid,url,statusurl,status,error)|
+            DbStreamingServer::new(id, uuid, url,statusurl,status,error)
+        )?;
+        Ok(list)
+    }
+
+    fn insert_streaming_servers(&mut self, items: Vec<DbStreamingServerNew>) -> Result<(), Box<dyn Error>> {
+        let mut conn = self.pool.get_conn()?;
+        let mut existing = self.get_streaming_servers_by_url(items.iter().map(|item| item.url.clone()).collect())?;
+        let existing_urls: Vec<_> = existing.drain(..).map(|item| item.url).collect();
+        let query = "INSERT INTO StreamingServers (Uuid, Url, StatusUrl, Status, CreatedAt, Error) VALUES (?,?,?,?,UTC_TIMESTAMP(),?)";
+        conn.exec_batch(query, items
+            .iter()
+            .filter(|item2| !existing_urls.contains(&item2.url))
+            .map(|item| (Uuid::new_v4().to_hyphenated().to_string(),&item.url,&item.statusurl,&item.status,&item.error))
+        )?;
+        Ok(())
+    }
+
+    fn update_streaming_servers(&mut self, items: Vec<DbStreamingServer>) -> Result<(), Box<dyn Error>> {
+        let mut conn = self.pool.get_conn()?;
+        let query = "UPDATE StreamingServers SET Url=?,StatusUrl=?,Status=?,Error=?,UpdatedAt=UTC_TIMESTAMP() WHERE Id=?";
+        conn.exec_batch(query, items
+            .iter()
+            .map(|item| (&item.url,&item.statusurl,&item.status,&item.error,item.id))
+        )?;
+        Ok(())
     }
 
     fn get_station_by_uuid(&self, id_str: &str) -> Result<Vec<StationItem>,Box<dyn Error>> {

@@ -1,9 +1,11 @@
+use av_stream_info_rust::StreamCheckResult;
 use crate::db::models;
+use crate::db::models::DbStreamingServerNew;
 use crate::db::models::StationCheckItemNew;
 use crate::db::models::StationCheckStepItemNew;
 use crate::db::models::StationItem;
-use av_stream_info_rust::StreamCheckResult;
 use std::time::Instant;
+use url::Url;
 use uuid::Uuid;
 
 use rayon::prelude::*;
@@ -235,6 +237,21 @@ pub fn dbcheck(
     let mut conn = connect(connection_str)?;
     let stations = conn.get_stations_to_check(24, stations_count)?;
     let checked_count = stations.len();
+
+    let mut urls_full: Vec<_> = stations.iter()
+        .filter_map(|station| Url::parse(&station.url).ok())
+        .map(|mut url| {
+            url.set_path("/");
+            url.to_string()
+        })
+        .collect();
+
+    urls_full.sort();
+    urls_full.dedup();
+
+    conn.insert_streaming_servers(urls_full.drain(..).map(|base_url|{
+        DbStreamingServerNew::new(base_url, None, None, None)
+    }).collect())?;
 
     let pool = rayon::ThreadPoolBuilder::new()
         .num_threads(concurrency)

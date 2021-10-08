@@ -70,6 +70,8 @@ pub struct Config {
     pub chunk_size_changes: usize,
     pub chunk_size_checks: usize,
     pub max_duplicates: usize,
+    pub check_servers: bool,
+    pub check_servers_chunksize: u32,
 }
 
 fn get_option_string(
@@ -527,6 +529,22 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name("server-info-check")
+                .long("server-info-check")
+                .value_name("ENABLE_SERVER_CHECK")
+                .help("enable server checks")
+                .env("ENABLE_SERVER_CHECK")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("server-info-check-chunksize")
+                .long("server-info-check-chunksize")
+                .value_name("ENABLE_SERVER_CHECK_CHUNKSIZE")
+                .help("chunk size for server check")
+                .env("ENABLE_SERVER_CHECK_CHUNKSIZE")
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("favicon")
                 .long("favicon")
                 .value_name("FAVICON")
@@ -575,6 +593,8 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
     let allow_database_downgrade: bool = get_option_bool(&matches, &config, "allow-database-downgrade", false)?;
     let log_level: usize = get_option_number_occurences(&matches, &config,"log-level", 0)?;
     let log_json: bool = get_option_bool(&matches, &config, "log-json", false)?;
+    let check_servers: bool = get_option_bool(&matches, &config, "server-info-check", false)?;
+    let check_servers_chunksize = get_option_number(&matches, &config, "server-info-check-chunksize", 100)? as u32;
 
     let concurrency: usize = get_option_number(&matches, &config, "concurrency", 1)? as usize;
     let check_stations: u32 = get_option_number(&matches, &config, "stations", 10)? as u32;
@@ -662,5 +682,7 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         chunk_size_changes,
         chunk_size_checks,
         max_duplicates,
+        check_servers,
+        check_servers_chunksize,
     })
 }

@@ -1,3 +1,5 @@
+use crate::db::models::DbStreamingServerNew;
+use crate::db::models::DbStreamingServer;
 use crate::db::models::StationCheckStepItem;
 use crate::db::models::StationCheckStepItemNew;
 use crate::api::data::Station;
@@ -98,6 +100,12 @@ pub trait DbConnection {
     fn select_station_check_steps(&self) -> Result<Vec<StationCheckStepItem>,Box<dyn std::error::Error>>;
     fn select_station_check_steps_by_stations(&self, stationuuids: &[String]) -> Result<Vec<StationCheckStepItem>,Box<dyn std::error::Error>>;
     fn delete_old_station_check_steps(&mut self, seconds: u32) -> Result<(),Box<dyn std::error::Error>>;
+
+    fn get_servers_to_check(&mut self, hours: u32, chunksize: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>>;
+    fn get_streaming_servers_by_url(&mut self, items: Vec<String>) -> Result<Vec<DbStreamingServer>, Box<dyn Error>>;
+    fn get_streaming_servers(&self) -> Result<Vec<DbStreamingServer>, Box<dyn Error>>;
+    fn insert_streaming_servers(&mut self, items: Vec<DbStreamingServerNew>) -> Result<(), Box<dyn Error>>;
+    fn update_streaming_servers(&mut self, items: Vec<DbStreamingServer>) -> Result<(), Box<dyn Error>>;
 }
 
 pub fn connect(connection_string: String) -> Result<Box<dyn DbConnection>, Box<dyn std::error::Error>> {

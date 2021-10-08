@@ -25,6 +25,7 @@ use api_error::ApiError;
 
 use self::parameters::RequestParameters;
 
+use crate::api::data::ApiStreamingServer;
 use crate::api::data::ResultMessage;
 use crate::api::data::StationCachedInfo;
 use crate::api::data::StationHistoryCurrent;
@@ -632,6 +633,7 @@ fn do_api_calls<A>(all_params: AllParameters,
             "checksteps" => Ok((true,StationCheckStep::get_response(connection_new.select_station_check_steps_by_stations(&all_params.param_uuids)?.drain(..).map(|x|x.into()).collect(), format)?)),
             "add" => Ok((false,StationAddResult::from(connection_new.add_station_opt(all_params.param_name, all_params.param_url, all_params.param_homepage, all_params.param_favicon, all_params.param_countrycode, all_params.param_state, all_params.param_language, all_params.param_language_codes, all_params.param_tags, all_params.param_geo_lat, all_params.param_geo_long)).get_response(format)?)),
             "config" => Ok((true,ApiConfig::get_response(config.into(),format)?)),
+            "streamingservers" => Ok((true,ApiStreamingServer::get_response(connection_new.get_streaming_servers()?,format)?)),
             _ => Ok((true,ApiResponse::NotFound)),
         }
     } else if items.len() == 4 {

@@ -18,6 +18,7 @@ use std::{thread, time};
 
 mod api;
 mod check;
+mod checkserver;
 mod cleanup;
 mod config;
 mod db;
@@ -133,6 +134,20 @@ fn jobs(config: config::Config) {
                 Ok(_) => {}
                 Err(err) => {
                     error!("Check worker error: {}", err);
+                }
+            }
+
+            if config.check_servers {
+                let result = checkserver::do_check(
+                    config.connection_string.clone(),
+                    config.check_servers_chunksize,
+                    config.concurrency,
+                );
+                match result {
+                    Ok(_) => {}
+                    Err(err) => {
+                        error!("Check worker error: {}", err);
+                    }
                 }
             }
         }

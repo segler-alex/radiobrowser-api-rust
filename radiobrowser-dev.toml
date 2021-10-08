@@ -88,6 +88,11 @@ server-country-code = "DE"
 ## User agent for the stream check
 #useragent = "useragent/1.0"
 
+# Check server infos if server supports it (icecast)
+server-info-check = false
+# Chunksize for checking servers
+server-info-check-chunksize = 100
+
 ## Mirroring
 ## =========
 ## Mirror pull interval in seconds

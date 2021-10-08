@@ -505,5 +505,20 @@ r#"ALTER TABLE StationCheckHistory MODIFY COLUMN CountrySubdivisionCode VARCHAR(
 r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT * FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#,
 r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex,CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs,SslError FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#);
 
+    migrations.add_migration("20211008_203000_Create_Table_StreamingServers",
+r#"CREATE TABLE `StreamingServers` (
+`Id` INT(11) NOT NULL AUTO_INCREMENT,
+`Uuid` CHAR(36) NOT NULL,
+`Url` VARCHAR(300) NOT NULL,
+`StatusUrl` TEXT,
+`Status` JSON,
+`Error` VARCHAR(50),
+`CreatedAt` DATETIME NOT NULL,
+`UpdatedAt` DATETIME,
+PRIMARY KEY (`Id`),
+UNIQUE KEY `Uuid` (`Uuid`),
+UNIQUE KEY `Url` (`Url`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"#,"DROP TABLE StreamingServers");
+
     Ok(migrations)
 }
