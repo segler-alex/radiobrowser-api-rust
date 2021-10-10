@@ -273,6 +273,8 @@ pub fn dbcheck(
         .filter_map(|station| Url::parse(&station.url).ok())
         .map(|mut url| {
             url.set_path("/");
+            url.set_query(None);
+            url.set_fragment(None);
             url.to_string()
         })
         .collect();
