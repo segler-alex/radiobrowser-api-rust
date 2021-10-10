@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 * DB: removed fragment and query from streaming server urls
 * CHECK: removed fragment and query from streaming server urls
+* CLEANUP: remove unreferenced streaming server after 1 day
 
 ## [0.7.17] 2021-10-10
 ### Added

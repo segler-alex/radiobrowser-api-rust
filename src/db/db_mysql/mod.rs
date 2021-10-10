@@ -316,6 +316,7 @@ impl DbConnection for MysqlConnection {
     }
 
     fn delete_stations(&self, stationuuids: &[String]) -> Result<(), Box<dyn Error>> {
+        trace!("delete_stations()");
         let mut conn = self.pool.get_conn()?;
         conn.exec_batch("DELETE FROM Station WHERE StationUuid=:uuid", 
         stationuuids.iter().map(|uuid|params!{uuid}))?;
@@ -323,6 +324,7 @@ impl DbConnection for MysqlConnection {
     }
 
     fn delete_old_checks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
+        trace!("delete_old_checks()");
         let delete_old_checks_history_query = "DELETE FROM StationCheckHistory WHERE CheckTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut conn = self.pool.get_conn()?;
         conn.exec_drop(delete_old_checks_history_query, params!(seconds))?;
@@ -330,6 +332,7 @@ impl DbConnection for MysqlConnection {
     }
 
     fn delete_old_clicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
+        trace!("delete_old_clicks()");
         let delete_old_clicks_query = "DELETE FROM StationClick WHERE ClickTimestamp < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut conn = self.pool.get_conn()?;
         conn.exec_drop(delete_old_clicks_query, params!(seconds))?;
@@ -337,6 +340,7 @@ impl DbConnection for MysqlConnection {
     }
 
     fn delete_removed_from_history(&mut self) -> Result<(), Box<dyn Error>> {
+        trace!("delete_removed_from_history()");
         let query = "DELETE h FROM StationHistory h LEFT JOIN Station s ON s.StationUuid=h.StationUuid WHERE s.Tags IS NULL;";
         let mut conn = self.pool.get_conn()?;
         conn.query_drop(query)?;
@@ -344,6 +348,7 @@ impl DbConnection for MysqlConnection {
     }
 
     fn delete_never_working(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
+        trace!("delete_never_working()");
         let delete_never_working_query = "DELETE FROM Station WHERE LastCheckOkTime IS NULL AND Creation < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut conn = self.pool.get_conn()?;
         conn.exec_drop(delete_never_working_query, params!(seconds))?;
@@ -351,13 +356,25 @@ impl DbConnection for MysqlConnection {
     }
 
     fn delete_were_working(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
+        trace!("delete_were_working()");
         let delete_were_working_query = "DELETE FROM Station WHERE LastCheckOK=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut conn = self.pool.get_conn()?;
         conn.exec_drop(delete_were_working_query, params!(seconds))?;
         Ok(())
     }
 
+    fn delete_unused_streaming_servers(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
+        trace!("delete_unused_streaming_servers()");
+        let mut conn = self.pool.get_conn()?;
+        let query = "SELECT ss.Uuid FROM StreamingServers ss LEFT JOIN Station st ON ss.Uuid=st.ServerUuid WHERE st.ServerUuid IS NULL AND CreatedAt < UTC_TIMESTAMP() - INTERVAL :seconds SECOND;";
+        let list: Vec<String> = conn.exec_map(query, params!(seconds), |(uuid,)| uuid)?;
+        let query = "DELETE FROM StreamingServers WHERE Uuid=:uuid;";
+        conn.exec_batch(query, list.iter().map(|uuid| params!("uuid" => uuid)))?;
+        Ok(())
+    }
+
     fn remove_unused_ip_infos_from_stationclicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
+        trace!("remove_unused_ip_infos_from_stationclicks()");
         let query = "UPDATE StationClick SET IP=NULL WHERE InsertTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut conn = self.pool.get_conn()?;
         conn.exec_drop(query, params!(seconds))?;
@@ -365,6 +382,7 @@ impl DbConnection for MysqlConnection {
     }
 
     fn remove_illegal_icon_links(&mut self) -> Result<(), Box<dyn Error>> {
+        trace!("remove_illegal_icon_links()");
         let query = r#"UPDATE Station SET Favicon="" WHERE LOWER(Favicon) NOT LIKE 'http://%' AND LOWER(Favicon) NOT LIKE'https://%' AND Favicon<>"";"#;
         let mut conn = self.pool.get_conn()?;
         conn.query_drop(query)?;
@@ -520,7 +538,7 @@ impl DbConnection for MysqlConnection {
             .map(|item| (&item.url,&item.statusurl,&item.status,&item.error,item.id))
         )?;
 
-        let query = "UPDATE Station SET ServerUuid=:uuid WHERE UrlCache LIKE CONCAT(:url, '%')";
+        let query = "UPDATE Station SET ServerUuid=:uuid WHERE UrlCache IS NOT NULL AND UrlCache LIKE CONCAT(:url, '%')";
         conn.exec_batch(query, items.iter().map(|item| params!{"uuid" => &item.uuid, "url" => &item.url}))?;
 
         Ok(())

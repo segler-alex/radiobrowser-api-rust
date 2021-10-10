@@ -80,6 +80,7 @@ pub trait DbConnection {
     fn delete_old_checks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn delete_old_clicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn delete_removed_from_history(&mut self) -> Result<(), Box<dyn Error>>;
+    fn delete_unused_streaming_servers(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn remove_unused_ip_infos_from_stationclicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn remove_illegal_icon_links(&mut self) -> Result<(), Box<dyn Error>>;
     fn calc_country_field(&mut self) -> Result<(), Box<dyn Error>>;

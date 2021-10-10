@@ -26,6 +26,7 @@ pub fn do_cleanup(
         conn_new_style.delete_old_checks(checks_timeout)?;
         conn_new_style.delete_old_clicks(clicks_timeout)?;
         conn_new_style.delete_removed_from_history()?;
+        conn_new_style.delete_unused_streaming_servers(24 * 60 * 60)?;
     }
 
     conn_new_style.clean_urls("Station", "StationUuid", "Url", false)?;
