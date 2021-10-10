@@ -51,6 +51,7 @@ pub trait DbConnection {
     fn get_stations_lastclick(&self, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
     fn get_stations_lastchange(&self, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
     fn get_stations_by_column(&self,column_name: &str,search: String,exact: bool,order: &str,reverse: bool,hidebroken: bool,offset: u32,limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
+    fn get_stations_by_server_uuids(&self,uuids: Vec<String>, order: &str,reverse: bool,hidebroken: bool,offset: u32,limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
 
     fn get_pull_server_lastid(&self, server: &str) -> Result<Option<String>, Box<dyn Error>>;
     fn set_pull_server_lastid(&self, server: &str, lastid: &str) -> Result<(),Box<dyn std::error::Error>>;
@@ -103,7 +104,9 @@ pub trait DbConnection {
 
     fn get_servers_to_check(&mut self, hours: u32, chunksize: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>>;
     fn get_streaming_servers_by_url(&mut self, items: Vec<String>) -> Result<Vec<DbStreamingServer>, Box<dyn Error>>;
-    fn get_streaming_servers(&self) -> Result<Vec<DbStreamingServer>, Box<dyn Error>>;
+    fn get_streaming_servers(&self, order: &str,reverse: bool,offset: u32,limit: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>>;
+    fn get_streaming_servers_by_uuids(&self, uuids: Vec<String>, order: &str,reverse: bool,offset: u32,limit: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>>;
+    fn get_streaming_servers_by_station_uuids(&self, uuids: Vec<String>, order: &str,reverse: bool,offset: u32,limit: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>>;
     fn insert_streaming_servers(&mut self, items: Vec<DbStreamingServerNew>) -> Result<(), Box<dyn Error>>;
     fn update_streaming_servers(&mut self, items: Vec<DbStreamingServer>) -> Result<(), Box<dyn Error>>;
 }

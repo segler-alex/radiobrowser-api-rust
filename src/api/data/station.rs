@@ -65,6 +65,7 @@ pub struct StationV0 {
 pub struct Station {
     pub changeuuid: String,
     pub stationuuid: String,
+    pub serveruuid: Option<String>,
     pub name: String,
     pub url: String,
     pub url_resolved: String,
@@ -130,6 +131,9 @@ impl Station {
             xml.begin_elem("station")?;
             xml.attr_esc("changeuuid", &entry.changeuuid)?;
             xml.attr_esc("stationuuid", &entry.stationuuid)?;
+            if let Some(serveruuid) = entry.serveruuid {
+                xml.attr_esc("serveruuid", &serveruuid)?;
+            }
             xml.attr_esc("name", &entry.name)?;
             xml.attr_esc("url", &entry.url)?;
             xml.attr_esc("url_resolved", &entry.url_resolved)?;
@@ -412,6 +416,7 @@ impl From<&StationHistoryCurrent> for Station {
         Station {
             changeuuid: item.changeuuid.clone(),
             stationuuid: item.stationuuid.clone(),
+            serveruuid: None,
             name: item.name.clone(),
             url: item.url.clone(),
             homepage: item.homepage.clone(),
@@ -454,6 +459,7 @@ impl From<StationItem> for Station {
         Station {
             changeuuid: item.changeuuid,
             stationuuid: item.stationuuid,
+            serveruuid: item.serveruuid,
             name: item.name,
             url: item.url,
             homepage: item.homepage,
@@ -509,6 +515,7 @@ impl From<StationV0> for Station {
         Station {
             changeuuid: item.changeuuid,
             stationuuid: item.stationuuid,
+            serveruuid: None,
             name: item.name,
             url: item.url,
             homepage: item.homepage,

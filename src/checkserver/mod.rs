@@ -10,7 +10,7 @@ fn single_check(server: &mut DbStreamingServer) -> Result<(), String> {
     let u = Url::parse(&server.url).or(Err(String::from("URLParseError")))?;
     let u = generate_icecast_stats_url(u);
     let result = get(u.clone()).or(Err(String::from("FetchError")))?;
-    let t:IcecastStatsRoot = result.json().or(Err(String::from("ResultDecodeError")))?;
+    let t: IcecastStatsRoot = result.json().or(Err(String::from("ResultDecodeError")))?;
     let j = serde_json::to_string(&t).or(Err(String::from("ResultToJsonError")))?;
     server.status = Some(j);
     server.statusurl = Some(u.to_string());
@@ -39,7 +39,7 @@ pub fn do_check(
                 match single_check(&mut server) {
                     Ok(_) => {
                         debug!("found icecast url at {}", server.url);
-                    },
+                    }
                     Err(err) => {
                         trace!("{}: {}", err, server.url);
                         server.error = Some(err);

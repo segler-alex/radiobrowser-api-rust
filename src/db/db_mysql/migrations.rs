@@ -520,5 +520,9 @@ UNIQUE KEY `Uuid` (`Uuid`),
 UNIQUE KEY `Url` (`Url`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"#,"DROP TABLE StreamingServers");
 
+    migrations.add_migration("20211010_171000_Add_Station_StreamingServers",
+r#"ALTER TABLE Station ADD COLUMN ServerUuid CHAR(36);"#,
+r#"ALTER TABLE Station DROP COLUMN ServerUuid;"#);
+
     Ok(migrations)
 }

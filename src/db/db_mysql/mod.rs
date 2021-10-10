@@ -58,7 +58,8 @@ impl MysqlConnection {
     ClickTimestamp,
     Date_Format(ClickTimestamp,'%Y-%m-%d %H:%i:%s') AS ClickTimestampFormated,
     clickcount,ClickTrend,
-    LanguageCodes,SslError,GeoLat,GeoLong,ExtendedInfo,CountrySubdivisionCode";
+    LanguageCodes,SslError,GeoLat,GeoLong,ExtendedInfo,CountrySubdivisionCode,
+    ServerUuid";
 
     const COLUMNS_CHECK: &'static str =
         "CheckID, StationUuid, CheckUuid, Source, Codec, Bitrate, Hls, CheckOK,
@@ -452,10 +453,45 @@ impl DbConnection for MysqlConnection {
         }
     }
 
-    fn get_streaming_servers(&self) -> Result<Vec<DbStreamingServer>, Box<dyn Error>> {
+    fn get_streaming_servers(&self, order: &str,reverse: bool,offset: u32,limit: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>> {
         let mut conn = self.pool.get_conn()?;
-        let query = format!("SELECT Id,Uuid,Url,StatusUrl,Status,Error FROM StreamingServers");
+        let order = filter_order_streaming_server(order);
+        let reverse_string = if reverse { "DESC" } else { "ASC" };
+        let query = format!("SELECT Id,Uuid,Url,StatusUrl,Status,Error FROM StreamingServers ORDER BY {order} {reverse} LIMIT {offset},{limit}",order = order, reverse = reverse_string, offset = offset, limit = limit);
         let list = conn.query_map(query, |(id,uuid,url,statusurl,status,error)|
+            DbStreamingServer::new(id, uuid, url,statusurl,status,error)
+        )?;
+        Ok(list)
+    }
+
+    fn get_streaming_servers_by_uuids(&self, uuids: Vec<String>, order: &str,reverse: bool,offset: u32,limit: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>> {
+        let mut conn = self.pool.get_conn()?;
+        let order = filter_order_streaming_server(order);
+        let reverse_string = if reverse { "DESC" } else { "ASC" };
+        let search_query: Vec<&str> = (0..uuids.len()).map(|_item| "?").collect();
+        let query = format!("SELECT Id,Uuid,Url,StatusUrl,Status,Error FROM StreamingServers WHERE Uuid IN ({search}) ORDER BY {order} {reverse} LIMIT {offset},{limit}",order = order, reverse = reverse_string, offset = offset, limit = limit, search = search_query.join(","));
+        let list = conn.exec_map(query, uuids, |(id,uuid,url,statusurl,status,error)|
+            DbStreamingServer::new(id, uuid, url,statusurl,status,error)
+        )?;
+        Ok(list)
+    }
+
+    fn get_streaming_servers_by_station_uuids(&self, uuids: Vec<String>, order: &str,reverse: bool,offset: u32,limit: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>> {
+        let mut conn = self.pool.get_conn()?;
+        let urls: Vec<_> = self.get_stations_by_uuid(uuids)?
+            .drain(..)
+            .filter_map(|station| Url::parse(&station.url_resolved).ok())
+            .map(|mut url| {
+                url.set_path("/");
+                url.to_string()
+            })
+            .collect();
+
+        let order = filter_order_streaming_server(order);
+        let reverse_string = if reverse { "DESC" } else { "ASC" };
+        let search_query: Vec<&str> = (0..urls.len()).map(|_item| "?").collect();
+        let query = format!("SELECT Id,Uuid,Url,StatusUrl,Status,Error FROM StreamingServers WHERE Url IN ({search}) ORDER BY {order} {reverse} LIMIT {offset},{limit}",order = order, reverse = reverse_string, offset = offset, limit = limit, search = search_query.join(","));
+        let list = conn.exec_map(query, urls, |(id,uuid,url,statusurl,status,error)|
             DbStreamingServer::new(id, uuid, url,statusurl,status,error)
         )?;
         Ok(list)
@@ -481,6 +517,10 @@ impl DbConnection for MysqlConnection {
             .iter()
             .map(|item| (&item.url,&item.statusurl,&item.status,&item.error,item.id))
         )?;
+
+        let query = "UPDATE Station SET ServerUuid=:uuid WHERE UrlCache LIKE CONCAT(:url, '%')";
+        conn.exec_batch(query, items.iter().map(|item| params!{"uuid" => &item.uuid, "url" => &item.url}))?;
+
         Ok(())
     }
 
@@ -663,6 +703,30 @@ impl DbConnection for MysqlConnection {
         } else {
             conn.exec_iter(query, (search,))?
         };
+        self.get_list_from_query_result(results)
+    }
+
+    fn get_stations_by_server_uuids(&self,
+        uuids: Vec<String>,
+        order: &str,
+        reverse: bool,
+        hidebroken: bool,
+        offset: u32,
+        limit: u32
+    ) -> Result<Vec<StationItem>, Box<dyn Error>>
+    {
+        let order = filter_order(order);
+        let reverse_string = if reverse { "DESC" } else { "ASC" };
+        let hidebroken_string = if hidebroken {
+            " AND LastCheckOK=TRUE"
+        } else {
+            ""
+        };
+        let uuids_query: Vec<&str> = (0..uuids.len()).map(|_item| "?").collect();
+        let uuids_str = uuids_query.join(",");
+        let query = format!("SELECT {columns} from Station WHERE ServerUuid IN ({search}) {hidebroken} ORDER BY {order} {reverse} LIMIT {offset},{limit}", columns = MysqlConnection::COLUMNS, order = order, reverse = reverse_string, hidebroken = hidebroken_string, offset = offset, limit = limit, search = uuids_str);
+        let mut conn = self.pool.get_conn()?;
+        let results = conn.exec_iter(query, uuids)?;
         self.get_list_from_query_result(results)
     }
 
@@ -1909,6 +1973,17 @@ fn filter_order(order: &str) -> &str {
         "changetimestamp" => "Creation",
         "random" => "RAND()",
         _ => "Name",
+    }
+}
+
+fn filter_order_streaming_server(order: &str) -> &str {
+    match order {
+        "url" => "Url",
+        "error" => "Error",
+        "createdat" => "CreatedAt",
+        "changedat" => "ChangedAt",
+        "random" => "RAND()",
+        _ => "Id",
     }
 }
 

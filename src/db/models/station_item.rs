@@ -6,6 +6,7 @@ pub struct StationItem {
     pub id: i32,
     pub changeuuid: String,
     pub stationuuid: String,
+    pub serveruuid: Option<String>,
     pub name: String,
     pub url: String,
     pub url_resolved: String,

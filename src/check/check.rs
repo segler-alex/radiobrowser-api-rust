@@ -238,21 +238,6 @@ pub fn dbcheck(
     let stations = conn.get_stations_to_check(24, stations_count)?;
     let checked_count = stations.len();
 
-    let mut urls_full: Vec<_> = stations.iter()
-        .filter_map(|station| Url::parse(&station.url).ok())
-        .map(|mut url| {
-            url.set_path("/");
-            url.to_string()
-        })
-        .collect();
-
-    urls_full.sort();
-    urls_full.dedup();
-
-    conn.insert_streaming_servers(urls_full.drain(..).map(|base_url|{
-        DbStreamingServerNew::new(base_url, None, None, None)
-    }).collect())?;
-
     let pool = rayon::ThreadPoolBuilder::new()
         .num_threads(concurrency)
         .build()?;
@@ -283,6 +268,21 @@ pub fn dbcheck(
     let (_x, _y, inserted) = conn.insert_checks(checks)?;
     conn.insert_station_check_steps(&steps)?;
     conn.update_station_with_check_data(&inserted, true)?;
+
+    let mut urls_full: Vec<_> = inserted.iter()
+        .filter_map(|station| Url::parse(&station.url).ok())
+        .map(|mut url| {
+            url.set_path("/");
+            url.to_string()
+        })
+        .collect();
+
+    urls_full.sort();
+    urls_full.dedup();
+
+    conn.insert_streaming_servers(urls_full.drain(..).map(|base_url|{
+        DbStreamingServerNew::new(base_url, None, None, None)
+    }).collect())?;
 
     Ok(checked_count)
 }

@@ -48,6 +48,7 @@ impl From<Row> for StationItem {
             id:                          row.take("StationID").unwrap(),
             changeuuid:                  row.take("ChangeUuid").unwrap(),
             stationuuid:                 row.take("StationUuid").unwrap_or("".to_string()),
+            serveruuid:                  row.take("ServerUuid").unwrap_or(None),
             name:                        row.take_opt("Name").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             url:                         row.take_opt("Url").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             url_resolved:                row.take_opt("UrlCache").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
