@@ -524,5 +524,9 @@ UNIQUE KEY `Url` (`Url`)
 r#"ALTER TABLE Station ADD COLUMN ServerUuid CHAR(36);"#,
 r#"ALTER TABLE Station DROP COLUMN ServerUuid;"#);
 
+    migrations.add_migration("20211010_201400_Add_FK_Station_StreamingServers",
+r#"ALTER TABLE Station ADD CONSTRAINT FK_Station_StreamingServers FOREIGN KEY (ServerUuid) REFERENCES StreamingServers(Uuid);"#,
+r#"ALTER TABLE Station DROP FOREIGN KEY FK_Station_StreamingServers;"#);
+
     Ok(migrations)
 }
