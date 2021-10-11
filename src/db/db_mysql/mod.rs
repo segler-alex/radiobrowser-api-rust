@@ -483,38 +483,50 @@ impl DbConnection for MysqlConnection {
     }
 
     fn get_streaming_servers_by_uuids(&self, uuids: Vec<String>, order: &str,reverse: bool,offset: u32,limit: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>> {
-        let mut conn = self.pool.get_conn()?;
-        let order = filter_order_streaming_server(order);
-        let reverse_string = if reverse { "DESC" } else { "ASC" };
-        let search_query: Vec<&str> = (0..uuids.len()).map(|_item| "?").collect();
-        let query = format!("SELECT Id,Uuid,Url,StatusUrl,Status,Error FROM StreamingServers WHERE Uuid IN ({search}) ORDER BY {order} {reverse} LIMIT {offset},{limit}",order = order, reverse = reverse_string, offset = offset, limit = limit, search = search_query.join(","));
-        let list = conn.exec_map(query, uuids, |(id,uuid,url,statusurl,status,error)|
-            DbStreamingServer::new(id, uuid, url,statusurl,status,error)
-        )?;
-        Ok(list)
+        if uuids.len() > 0 {
+            let mut conn = self.pool.get_conn()?;
+            let order = filter_order_streaming_server(order);
+            let reverse_string = if reverse { "DESC" } else { "ASC" };
+            let search_query: Vec<&str> = (0..uuids.len()).map(|_item| "?").collect();
+            let query = format!("SELECT Id,Uuid,Url,StatusUrl,Status,Error FROM StreamingServers WHERE Uuid IN ({search}) ORDER BY {order} {reverse} LIMIT {offset},{limit}",order = order, reverse = reverse_string, offset = offset, limit = limit, search = search_query.join(","));
+            let list = conn.exec_map(query, uuids, |(id,uuid,url,statusurl,status,error)|
+                DbStreamingServer::new(id, uuid, url,statusurl,status,error)
+            )?;
+            Ok(list)
+        }else{
+            vec![]
+        }
     }
 
     fn get_streaming_servers_by_station_uuids(&self, uuids: Vec<String>, order: &str,reverse: bool,offset: u32,limit: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>> {
-        let mut conn = self.pool.get_conn()?;
-        let urls: Vec<_> = self.get_stations_by_uuid(uuids)?
-            .drain(..)
-            .filter_map(|station| Url::parse(&station.url_resolved).ok())
-            .map(|mut url| {
-                url.set_path("/");
-                url.set_query(None);
-                url.set_fragment(None);
-                url.to_string()
-            })
-            .collect();
+        if uuids.len() > 0 {
+            let mut conn = self.pool.get_conn()?;
+            let urls: Vec<_> = self.get_stations_by_uuid(uuids)?
+                .drain(..)
+                .filter_map(|station| Url::parse(&station.url_resolved).ok())
+                .map(|mut url| {
+                    url.set_path("/");
+                    url.set_query(None);
+                    url.set_fragment(None);
+                    url.to_string()
+                })
+                .collect();
 
-        let order = filter_order_streaming_server(order);
-        let reverse_string = if reverse { "DESC" } else { "ASC" };
-        let search_query: Vec<&str> = (0..urls.len()).map(|_item| "?").collect();
-        let query = format!("SELECT Id,Uuid,Url,StatusUrl,Status,Error FROM StreamingServers WHERE Url IN ({search}) ORDER BY {order} {reverse} LIMIT {offset},{limit}",order = order, reverse = reverse_string, offset = offset, limit = limit, search = search_query.join(","));
-        let list = conn.exec_map(query, urls, |(id,uuid,url,statusurl,status,error)|
-            DbStreamingServer::new(id, uuid, url,statusurl,status,error)
-        )?;
-        Ok(list)
+            let order = filter_order_streaming_server(order);
+            let reverse_string = if reverse { "DESC" } else { "ASC" };
+            if urls.len() > 0 {
+                let search_query: Vec<&str> = (0..urls.len()).map(|_item| "?").collect();
+                let query = format!("SELECT Id,Uuid,Url,StatusUrl,Status,Error FROM StreamingServers WHERE Url IN ({search}) ORDER BY {order} {reverse} LIMIT {offset},{limit}",order = order, reverse = reverse_string, offset = offset, limit = limit, search = search_query.join(","));
+                let list = conn.exec_map(query, urls, |(id,uuid,url,statusurl,status,error)|
+                    DbStreamingServer::new(id, uuid, url,statusurl,status,error)
+                )?;
+                Ok(list)
+            }else{
+                vec![]
+            }
+        }else{
+            vec![]
+        }
     }
 
     fn insert_streaming_servers(&mut self, items: Vec<DbStreamingServerNew>) -> Result<(), Box<dyn Error>> {

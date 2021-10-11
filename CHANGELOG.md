@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 * CHECK: update stations with new languagecodes
+* DB: check for empty lists in streaming servers api
 
 ## [0.7.18] 2021-10-10
 ### Changed
