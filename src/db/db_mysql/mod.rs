@@ -1393,6 +1393,10 @@ impl DbConnection for MysqlConnection {
                             params.push((String::from("geo_long"),geo_long.into(),));
                             query.push("GeoLong=:geo_long");
                         }
+                        if let Some(languagecodes) = &item.languagecodes {
+                            params.push((String::from("languagecodes"),languagecodes.into(),));
+                            query.push("LanguageCodes=:languagecodes");
+                        }
                         query.push("SslError=:ssl_error");
                         query.push("LastCheckOk=:vote");
                         if local {
