@@ -233,6 +233,7 @@ pub fn dbcheck(
     timeout: u64,
     max_depth: u8,
     retries: u8,
+    add_streaming_servers: bool,
 ) -> Result<usize, Box<dyn std::error::Error>> {
     let mut conn = connect(connection_str)?;
     let stations = conn.get_stations_to_check(24, stations_count)?;
@@ -269,22 +270,24 @@ pub fn dbcheck(
     conn.insert_station_check_steps(&steps)?;
     conn.update_station_with_check_data(&inserted, true)?;
 
-    let mut urls_full: Vec<_> = inserted.iter()
-        .filter_map(|station| Url::parse(&station.url).ok())
-        .map(|mut url| {
-            url.set_path("/");
-            url.set_query(None);
-            url.set_fragment(None);
-            url.to_string()
-        })
-        .collect();
+    if add_streaming_servers {
+        let mut urls_full: Vec<_> = inserted.iter()
+            .filter_map(|station| Url::parse(&station.url).ok())
+            .map(|mut url| {
+                url.set_path("/");
+                url.set_query(None);
+                url.set_fragment(None);
+                url.to_string()
+            })
+            .collect();
 
-    urls_full.sort();
-    urls_full.dedup();
+        urls_full.sort();
+        urls_full.dedup();
 
-    conn.insert_streaming_servers(urls_full.drain(..).map(|base_url|{
-        DbStreamingServerNew::new(base_url, None, None, None)
-    }).collect())?;
+        conn.insert_streaming_servers(urls_full.drain(..).map(|base_url|{
+            DbStreamingServerNew::new(base_url, None, None, None)
+        }).collect())?;
+    }
 
     Ok(checked_count)
 }

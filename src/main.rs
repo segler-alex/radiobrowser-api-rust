@@ -129,6 +129,7 @@ fn jobs(config: config::Config) {
                 config.tcp_timeout.as_secs(),
                 config.max_depth,
                 config.retries,
+                config.check_servers,
             );
             match result {
                 Ok(_) => {}
