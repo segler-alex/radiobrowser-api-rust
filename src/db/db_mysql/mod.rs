@@ -494,7 +494,7 @@ impl DbConnection for MysqlConnection {
             )?;
             Ok(list)
         }else{
-            vec![]
+            Ok(vec![])
         }
     }
 
@@ -522,10 +522,10 @@ impl DbConnection for MysqlConnection {
                 )?;
                 Ok(list)
             }else{
-                vec![]
+                Ok(vec![])
             }
         }else{
-            vec![]
+            Ok(vec![])
         }
     }
 
