@@ -93,6 +93,14 @@ server-info-check = false
 # Chunksize for checking servers
 server-info-check-chunksize = 100
 
+## Cleanup
+## =======
+## File path to CSV for replacing languages (local path or http/https)
+#replace-language-file = "https://radiobrowser.gitlab.io/radiobrowser-static-data/language-replace.csv"
+replace-language-file = "/etc/radiobrowser/language-replace.csv"
+## File path to CSV for mapping language to code (local path or http/https)
+language-to-code-file = "/etc/radiobrowser/language-to-code.csv"
+
 ## Mirroring
 ## =========
 ## Mirror pull interval in seconds

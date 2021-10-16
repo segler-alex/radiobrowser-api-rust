@@ -81,9 +81,9 @@ max-depth = 5
 retries = 5
 ## Hostname for the check-entries in the database, defaults to the local hostname
 #source = "myhostname"
-# Freeform location string for this server
+## Freeform location string for this server
 server-location = "Datacenter 2 in coolstreet"
-# 2 letter countrycode to locate this server
+## 2 letter countrycode to locate this server
 server-country-code = "DE"
 ## User agent for the stream check
 #useragent = "useragent/1.0"
@@ -92,6 +92,14 @@ server-country-code = "DE"
 server-info-check = false
 # Chunksize for checking servers
 server-info-check-chunksize = 100
+
+## Cleanup
+## =======
+## File path to CSV for replacing languages (local path or http/https)
+#replace-language-file = "https://radiobrowser.gitlab.io/radiobrowser-static-data/language-replace.csv"
+replace-language-file = "./etc/language-replace.csv"
+## File path to CSV for mapping language to code (local path or http/https)
+language-to-code-file = "./etc/language-to-code.csv"
 
 ## Mirroring
 ## =========

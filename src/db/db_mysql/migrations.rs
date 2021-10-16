@@ -528,5 +528,13 @@ r#"ALTER TABLE Station DROP COLUMN ServerUuid;"#);
 r#"ALTER TABLE Station ADD CONSTRAINT FK_Station_StreamingServers FOREIGN KEY (ServerUuid) REFERENCES StreamingServers(Uuid);"#,
 r#"ALTER TABLE Station DROP FOREIGN KEY FK_Station_StreamingServers;"#);
 
+    migrations.add_migration("20211015_215600_Change_Station_Language",
+r#"ALTER TABLE Station MODIFY COLUMN Language VARCHAR(100) NULL;"#,
+r#"ALTER TABLE Station MODIFY COLUMN Language VARCHAR(50) NULL;"#);
+
+    migrations.add_migration("20211016_181000_Change_Station_Tags",
+r#"ALTER TABLE Station MODIFY COLUMN Tags TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;"#,
+r#"ALTER TABLE Station MODIFY COLUMN Tags TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"#);
+
     Ok(migrations)
 }

@@ -176,8 +176,9 @@ fn mainloop() -> Result<(), Box<dyn Error>> {
     let config = config::load_config().map_err(|e| MainError::ConfigLoadError(e.to_string()))?;
     logger::setup_logger(config.log_level, &config.log_dir, config.log_json)
         .map_err(|e| MainError::LoggerInitError(e.to_string()))?;
-
+        
     info!("Config: {:#?}", config);
+    config::load_all_extra_configs(&config)?;
 
     loop {
         let connection = db::MysqlConnection::new(&config.connection_string);

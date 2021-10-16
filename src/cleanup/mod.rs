@@ -1,4 +1,13 @@
+use crate::config::get_cache_language_replace;
+use crate::config::get_cache_language_to_code;
 use crate::db::connect;
+use serde::Deserialize;
+
+#[derive(Debug, Clone, Deserialize)]
+struct DataMappingItem {
+    from: String,
+    to: String,
+}
 
 pub fn do_cleanup(
     delete: bool,
@@ -29,6 +38,28 @@ pub fn do_cleanup(
         conn_new_style.delete_unused_streaming_servers(24 * 60 * 60)?;
     }
 
+    let languages_cache = get_cache_language_replace();
+    let changed_entries_language_replace = match languages_cache {
+        Some(languages_mutex) => match languages_mutex.lock() {
+            Ok(languages) => conn_new_style.replace_languages(&languages)?,
+            Err(err) => {
+                warn!("replace languages {}", err);
+                0
+            }
+        },
+        None => 0,
+    };
+    let language_to_code_cache = get_cache_language_to_code();
+    let changed_entries_language_to_code = match language_to_code_cache {
+        Some(language_to_code_mutex) => match language_to_code_mutex.lock() {
+            Ok(language_to_code) => conn_new_style.detect_language_codes(&language_to_code)?,
+            Err(err) => {
+                warn!("language to code {}", err);
+                0
+            }
+        },
+        None => 0,
+    };
     conn_new_style.clean_urls("Station", "StationUuid", "Url", false)?;
     conn_new_style.clean_urls("Station", "StationUuid", "Homepage", true)?;
     conn_new_style.clean_urls("Station", "StationUuid", "UrlCache", true)?;
@@ -39,6 +70,6 @@ pub fn do_cleanup(
     conn_new_style.remove_illegal_icon_links()?;
     conn_new_style.calc_country_field()?;
 
-    info!("STATS: {} Checks/Hour, {} Checks/Day, {} Working stations, {} Broken stations, {} to do, deletable {} + {}", checks_hour, checks_day, stations_working, stations_broken, stations_todo, stations_deletable_never_worked, stations_deletable_were_working);
+    info!("STATS: {} Checks/Hour, {} Checks/Day, {} Working stations, {} Broken stations, {} to do, deletable {} + {}, lang replace {}, lang codes added {}", checks_hour, checks_day, stations_working, stations_broken, stations_todo, stations_deletable_never_worked, stations_deletable_were_working, changed_entries_language_replace, changed_entries_language_to_code);
     Ok(())
 }

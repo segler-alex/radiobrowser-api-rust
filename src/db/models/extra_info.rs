@@ -3,8 +3,8 @@ use std::error::Error;
 
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExtraInfo {
-    name: String,
-    stationcount: u32,
+    pub name: String,
+    pub stationcount: u32,
 }
 
 impl ExtraInfo {

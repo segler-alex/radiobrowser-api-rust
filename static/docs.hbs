@@ -1204,6 +1204,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
           <li>{{ API_SERVER }}/json/languages/&lt;filter&gt;</li>
           <li>{{ API_SERVER }}/xml/languages</li>
           <li>{{ API_SERVER }}/xml/languages/&lt;filter&gt;</li>
+          <li>{{ API_SERVER }}/csv/languages</li>
+          <li>{{ API_SERVER }}/csv/languages/&lt;filter&gt;</li>
         </ul>
       </div>
       <div class="h5">Parameter:</div>
@@ -1255,11 +1257,13 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
         <pre class="mt-4">
           [
               {
-                  &quot;name&quot;: &quot;Albanian&quot;,
+                  &quot;name&quot;: &quot;albanian&quot;,
+                  &quot;iso_639&quot;: &quot;sq&quot;,
                   &quot;stationcount&quot;: &quot;1&quot;
               },
               {
-                  &quot;name&quot;: &quot;Arabic&quot;,
+                  &quot;name&quot;: &quot;american english&quot;,
+                  &quot;iso_639&quot;: null,
                   &quot;stationcount&quot;: &quot;8&quot;
               },
               ..
@@ -1271,8 +1275,8 @@ stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso860
       <div class="well well-sm bg-light border border-secondary rounded">
         <pre class="mt-4">
           &lt;result&gt;
-            &lt;language name=&quot;Albanian&quot; stationcount=&quot;1&quot;/&gt;
-            &lt;language name=&quot;Arabic&quot; stationcount=&quot;8&quot;/&gt;
+            &lt;language name=&quot;albanian&quot; iso_639=&quot;sq&quot; stationcount=&quot;1&quot;/&gt;
+            &lt;language name=&quot;american english&quot; stationcount=&quot;8&quot;/&gt;
             ..
           &lt;/result&gt;
               </pre>

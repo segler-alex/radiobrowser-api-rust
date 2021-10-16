@@ -373,6 +373,108 @@ impl DbConnection for MysqlConnection {
         Ok(())
     }
 
+    fn replace_languages(&mut self, items: &HashMap<String, String>) -> Result<u32, Box<dyn Error>> {
+        trace!("replace_languages()");
+        let mut conn = self.pool.get_conn()?;
+        let query = "SELECT StationID, Language FROM Station;";
+        let list: Vec<(u32, String)> = conn.exec_map(query, (), |(id, language)| (id, language))?;
+        let stmt = conn.prep("UPDATE Station SET Language=:language WHERE StationID=:id")?;
+        let mut updated_count = 0;
+        for (id, language) in list {
+            //let language = language.replace("/", ",");
+            let mut updated = false;
+            let mut lang_trimmed: Vec<&str> = language
+                .split(",")
+                .by_ref()
+                .map(|item| item.trim())
+                .filter(|item| !item.is_empty())
+                .map(|item| match items.get(&item.to_string()) {
+                    Some(item_replaced) => {
+                        updated = true;
+                        debug!("replace '{}' -> '{}'", item, item_replaced);
+                        item_replaced
+                    }
+                    None => item,
+                })
+                .map(|item| item.trim())
+                .filter(|item| !item.is_empty())
+                .collect();
+            lang_trimmed.sort();
+            lang_trimmed.dedup();
+
+            if updated {
+                updated_count += 1;
+                match conn.exec_drop(
+                    stmt.clone(),
+                    params! {
+                        "language" => lang_trimmed.join(","),
+                        "id" => id,
+                    },
+                ) {
+                    Ok(_) => {}
+                    Err(err) => {
+                        error!("Unable to update row {}: {}", id, err);
+                    }
+                };
+            }
+        }
+
+        Ok(updated_count)
+    }
+
+    fn detect_language_codes(&mut self, language_to_code: &HashMap<String,String>) -> Result<u32, Box<dyn Error>> {
+        let mut conn = self.pool.get_conn()?;
+        let query = "SELECT StationID, LanguageCodes, Language FROM Station;";
+        let list: Vec<(u32, Option<String>, String)> =
+            conn.exec_map(query, (), |(id, codes, language)| (id, codes, language))?;
+
+        let mut undetected: Vec<String> = vec![];
+        let mut updated_count = 0;
+        let stmt = conn.prep("UPDATE Station SET LanguageCodes=:codes WHERE StationID=:id")?;
+        for (id, codes, language) in list {
+            //let language = language.replace("/", ",");//.replace(" ", ",");
+            let mut lang_trimmed: Vec<&str> = language
+                .split(",")
+                .by_ref()
+                .map(|item| item.trim())
+                .filter(|item| !item.is_empty())
+                .filter_map(|item| {
+                    let detected = language_to_code.get(item);
+                    if detected.is_none() {
+                        let item_owned = item.to_string();
+                        if !undetected.contains(&item_owned) {
+                            undetected.push(item_owned);
+                        }
+                    }
+                    detected
+                })
+                .map(|item| item.as_ref())
+                .collect();
+            lang_trimmed.sort();
+            lang_trimmed.dedup();
+            
+            let codes = codes.unwrap_or(String::from(""));
+            let mut codes_trimmed: Vec<&str> = codes.split(",").by_ref().map(|item|item.trim()).filter(|item|!item.is_empty()).collect();
+            let mut changed = false;
+            for new_lang in lang_trimmed.drain(..) {
+                if !codes_trimmed.contains(&new_lang) {
+                    codes_trimmed.push(new_lang);
+                    changed = true;
+                }
+            }
+            if changed {
+                updated_count += 1;
+                conn.exec_drop(stmt.clone(), params!{
+                    "codes" => codes_trimmed.join(","),
+                    "id" => id,
+                })?;
+            }
+        }
+        undetected.sort();
+        trace!("unable to detect {}\n{:#?}", undetected.len(), undetected);
+        Ok(updated_count)
+    }
+
     fn remove_unused_ip_infos_from_stationclicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
         trace!("remove_unused_ip_infos_from_stationclicks()");
         let query = "UPDATE StationClick SET IP=NULL WHERE InsertTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";

@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+* CLEANUP: language replace, language to code
+* API: iso 639 code output to language list
+* DB: use binary collation for tags to fix compare
+* CONFIG: allow pulling of replacement csv info from web
+
 ## [0.7.19] 2021-10-11
 ### Changed
 * DOCKER: use alpine as base image

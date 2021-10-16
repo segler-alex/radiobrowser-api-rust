@@ -1,77 +1,72 @@
+mod config;
 mod config_error;
+mod data_mapping_item;
 
 use clap::{App, Arg};
+pub use config::CacheType;
+pub use config::Config;
+use std::error::Error;
 use std::fs;
 use std::time::Duration;
-use std::error::Error;
 
 use humantime;
 
 pub use config_error::ConfigError;
 
-#[derive(Debug,Clone)]
-pub enum CacheType {
-    None,
-    BuiltIn,
-    Redis,
-    Memcached,
-}
+use std::{collections::HashMap, sync::Mutex};
 
-impl From<CacheType> for String {
-    fn from(c: CacheType) -> Self {
-        match c {
-            CacheType::None => String::from("none"),
-            CacheType::BuiltIn => String::from("builtin"),
-            CacheType::Redis => String::from("redis"),
-            CacheType::Memcached => String::from("memcached"),
+use once_cell::sync::OnceCell;
+
+static INSTANCE_LANGUAGE_TO_CODE: OnceCell<Mutex<HashMap<String, String>>> = OnceCell::new();
+static INSTANCE_LANGUAGE_REPLACE: OnceCell<Mutex<HashMap<String, String>>> = OnceCell::new();
+
+pub fn load_all_extra_configs(c: &Config) -> Result<(), Box<dyn Error>> {
+    debug!("load_all_extra_configs()");
+    let x1 = data_mapping_item::read_map_csv_file(&c.language_replace_filepath)?;
+    match INSTANCE_LANGUAGE_REPLACE.set(Mutex::new(x1)) {
+        Ok(_) => {
+            info!("Initial set of global language replace cache");
         }
-    }
+        Err(_) => {
+            info!("Updating global language replace cache");
+        }
+    };
+    let x2 = data_mapping_item::read_map_csv_file(&c.language_to_code_filepath)?;
+    match INSTANCE_LANGUAGE_TO_CODE.set(Mutex::new(x2)) {
+        Ok(_) => {
+            info!("Initial set of global language to code cache");
+        }
+        Err(_) => {
+            info!("Updating global language to code cache");
+        }
+    };
+    Ok(())
 }
 
-#[derive(Debug,Clone)]
-pub struct Config {
-    pub allow_database_downgrade: bool,
-    pub broken_stations_never_working_timeout: Duration,
-    pub broken_stations_timeout: Duration,
-    pub check_stations: u32,
-    pub checks_timeout: Duration,
-    pub click_valid_timeout: Duration,
-    pub clicks_timeout: Duration,
-    pub concurrency: usize,
-    pub connection_string: String,
-    pub delete: bool,
-    pub enable_check: bool,
-    pub favicon: bool,
-    pub ignore_migration_errors: bool,
-    pub listen_host: String,
-    pub listen_port: i32,
-    pub log_dir: String,
-    pub log_level: usize,
-    pub log_json: bool,
-    pub max_depth: u8,
-    pub mirror_pull_interval: Duration,
-    pub pause: Duration,
-    pub prometheus_exporter_prefix: String,
-    pub prometheus_exporter: bool,
-    pub retries: u8,
-    pub server_url: String,
-    pub servers_pull: Vec<String>,
-    pub source: String,
-    pub server_location: String,
-    pub server_country_code: String,
-    pub static_files_dir: String,
-    pub tcp_timeout: Duration,
-    pub threads: usize,
-    pub update_caches_interval: Duration,
-    pub useragent: String,
-    pub cache_type: CacheType,
-    pub cache_url: String,
-    pub cache_ttl: Duration,
-    pub chunk_size_changes: usize,
-    pub chunk_size_checks: usize,
-    pub max_duplicates: usize,
-    pub check_servers: bool,
-    pub check_servers_chunksize: u32,
+pub fn get_cache_language_to_code() -> Option<&'static Mutex<HashMap<String,String>>> {
+    INSTANCE_LANGUAGE_TO_CODE.get()
+}
+
+pub fn get_cache_language_replace() -> Option<&'static Mutex<HashMap<String,String>>> {
+    INSTANCE_LANGUAGE_REPLACE.get()
+}
+
+pub fn convert_language_to_code<P: AsRef<str>>(language: P) -> Option<String> {
+    // get global var
+    match INSTANCE_LANGUAGE_TO_CODE.get() {
+        Some(map) => {
+            // get lock for mutex
+            let map = map.lock();
+            match map {
+                Ok(map) => {
+                    // search in hashmap
+                    map.get(language.as_ref()).map(|item| item.to_string())
+                }
+                Err(_) => None,
+            }
+        }
+        None => None,
+    }
 }
 
 fn get_option_string(
@@ -92,8 +87,11 @@ fn get_option_string(
             if let Some(setting_decoded) = setting_decoded {
                 return Ok(String::from(setting_decoded));
             }
-        }else{
-            return Err(Box::new(ConfigError::TypeError(setting_name.into(), setting.to_string())));
+        } else {
+            return Err(Box::new(ConfigError::TypeError(
+                setting_name.into(),
+                setting.to_string(),
+            )));
         }
     }
 
@@ -128,8 +126,11 @@ fn get_option_number(
             if let Some(setting_decoded) = setting_decoded {
                 return Ok(setting_decoded);
             }
-        }else{
-            return Err(Box::new(ConfigError::TypeError(setting_name.into(), setting.to_string())));
+        } else {
+            return Err(Box::new(ConfigError::TypeError(
+                setting_name.into(),
+                setting.to_string(),
+            )));
         }
     }
 
@@ -154,8 +155,11 @@ fn get_option_number_occurences(
             if let Some(setting_decoded) = setting_decoded {
                 return Ok(setting_decoded as usize);
             }
-        }else{
-            return Err(Box::new(ConfigError::TypeError(setting_name.into(), setting.to_string())));
+        } else {
+            return Err(Box::new(ConfigError::TypeError(
+                setting_name.into(),
+                setting.to_string(),
+            )));
         }
     }
 
@@ -175,13 +179,16 @@ fn get_option_bool(
 
     let setting = config.get(setting_name);
     if let Some(setting) = setting {
-        if setting.is_bool(){
+        if setting.is_bool() {
             let setting_decoded = setting.as_bool();
             if let Some(setting_decoded) = setting_decoded {
                 return Ok(setting_decoded);
             }
-        }else{
-            return Err(Box::new(ConfigError::TypeError(setting_name.into(), setting.to_string())));
+        } else {
+            return Err(Box::new(ConfigError::TypeError(
+                setting_name.into(),
+                setting.to_string(),
+            )));
         }
     }
 
@@ -192,11 +199,17 @@ fn get_hosts_from_config(config: &toml::Value) -> Result<Vec<String>, Box<dyn Er
     let mut list = vec![];
     let setting = config.get("pullservers");
     if let Some(setting) = setting {
-        let setting_decoded = setting.as_table().ok_or(Box::new(ConfigError::TypeError("pullservers".into(), setting.to_string())))?;
+        let setting_decoded = setting.as_table().ok_or(Box::new(ConfigError::TypeError(
+            "pullservers".into(),
+            setting.to_string(),
+        )))?;
         for i in setting_decoded {
             let host = i.1.get("host");
             if let Some(host) = host {
-                let host_str = host.as_str().ok_or(Box::new(ConfigError::TypeError("host".into(), host.to_string())))?;
+                let host_str = host.as_str().ok_or(Box::new(ConfigError::TypeError(
+                    "host".into(),
+                    host.to_string(),
+                )))?;
                 list.push(host_str.to_string());
             }
         }
@@ -205,7 +218,9 @@ fn get_hosts_from_config(config: &toml::Value) -> Result<Vec<String>, Box<dyn Er
 }
 
 pub fn load_config() -> Result<Config, Box<dyn Error>> {
-    let hostname_str: String = hostname::get().map(|os_string| os_string.to_string_lossy().into_owned()).unwrap_or("".to_string());
+    let hostname_str: String = hostname::get()
+        .map(|os_string| os_string.to_string_lossy().into_owned())
+        .unwrap_or("".to_string());
 
     let matches = App::new("radiobrowser-api-rust")
         .version(crate_version!())
@@ -227,6 +242,20 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("LOG-DIR")
                 .help("Path to log dir")
                 .env("LOG_DIR")
+                .takes_value(true),
+        ).arg(
+            Arg::with_name("replace-language-file")
+                .long("replace-language-file")
+                .value_name("REPLACE_LANGUAGE_FILE")
+                .help("Path to csv file for language replacement")
+                .env("REPLACE_LANGUAGE_FILE")
+                .takes_value(true),
+        ).arg(
+            Arg::with_name("language-to-code-file")
+                .long("language-to-code-file")
+                .value_name("LANGUAGE_TO_CODE_FILE")
+                .help("Path to csv file for language to code mapping")
+                .env("LANGUAGE_TO_CODE_FILE")
                 .takes_value(true),
         ).arg(
             Arg::with_name("log-json")
@@ -575,8 +604,14 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         get_option_string(&matches, &config, "listen-host", String::from("127.0.0.1"))?;
     let listen_port: i32 = get_option_number(&matches, &config, "listen-port", 8080)? as i32;
 
-    let prometheus_exporter: bool = get_option_bool(&matches, &config, "prometheus-exporter", true)?;
-    let prometheus_exporter_prefix: String = get_option_string(&matches, &config, "prometheus-exporter-prefix", String::from("radio_browser_"))?;
+    let prometheus_exporter: bool =
+        get_option_bool(&matches, &config, "prometheus-exporter", true)?;
+    let prometheus_exporter_prefix: String = get_option_string(
+        &matches,
+        &config,
+        "prometheus-exporter-prefix",
+        String::from("radio_browser_"),
+    )?;
 
     let server_url: String = get_option_string(
         &matches,
@@ -585,16 +620,27 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         String::from("http://localhost"),
     )?;
     let threads: usize = get_option_number(&matches, &config, "threads", 1)? as usize;
-    let update_caches_interval =
-        get_option_duration(&matches, &config, "update-caches-interval", String::from("2mins"))?;
-    let mirror_pull_interval =
-        get_option_duration(&matches, &config, "mirror-pull-interval", String::from("5mins"))?;
-    let ignore_migration_errors: bool = get_option_bool(&matches, &config, "ignore-migration-errors", false)?;
-    let allow_database_downgrade: bool = get_option_bool(&matches, &config, "allow-database-downgrade", false)?;
-    let log_level: usize = get_option_number_occurences(&matches, &config,"log-level", 0)?;
+    let update_caches_interval = get_option_duration(
+        &matches,
+        &config,
+        "update-caches-interval",
+        String::from("2mins"),
+    )?;
+    let mirror_pull_interval = get_option_duration(
+        &matches,
+        &config,
+        "mirror-pull-interval",
+        String::from("5mins"),
+    )?;
+    let ignore_migration_errors: bool =
+        get_option_bool(&matches, &config, "ignore-migration-errors", false)?;
+    let allow_database_downgrade: bool =
+        get_option_bool(&matches, &config, "allow-database-downgrade", false)?;
+    let log_level: usize = get_option_number_occurences(&matches, &config, "log-level", 0)?;
     let log_json: bool = get_option_bool(&matches, &config, "log-json", false)?;
     let check_servers: bool = get_option_bool(&matches, &config, "server-info-check", false)?;
-    let check_servers_chunksize = get_option_number(&matches, &config, "server-info-check-chunksize", 100)? as u32;
+    let check_servers_chunksize =
+        get_option_number(&matches, &config, "server-info-check-chunksize", 100)? as u32;
 
     let concurrency: usize = get_option_number(&matches, &config, "concurrency", 1)? as usize;
     let check_stations: u32 = get_option_number(&matches, &config, "stations", 10)? as u32;
@@ -602,32 +648,75 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
     let delete: bool = get_option_bool(&matches, &config, "delete", false)?;
     let favicon: bool = get_option_bool(&matches, &config, "favicon", false)?;
     let pause = get_option_duration(&matches, &config, "pause", String::from("10secs"))?;
-    let tcp_timeout = get_option_duration(&matches, &config, "tcp-timeout", String::from("10secs"))?;
+    let tcp_timeout =
+        get_option_duration(&matches, &config, "tcp-timeout", String::from("10secs"))?;
     let max_depth: u8 = get_option_number(&matches, &config, "max-depth", 5)? as u8;
     let retries: u8 = get_option_number(&matches, &config, "retries", 5)? as u8;
     let source: String = get_option_string(&matches, &config, "source", hostname_str)?;
-    let server_location: String = get_option_string(&matches, &config, "server-location", String::from(""))?;
-    let server_country_code: String = get_option_string(&matches, &config, "server-country-code", String::from(""))?;
-    let useragent = get_option_string(&matches, &config, "useragent", String::from("stream-check/0.1"))?;
-    let click_valid_timeout = get_option_duration(&matches, &config, "click-valid-timeout", String::from("1day"))?;
-    let broken_stations_never_working_timeout = get_option_duration(&matches, &config, "broken-stations-never-working-timeout", String::from("3days"))?;
-    let broken_stations_timeout = get_option_duration(&matches, &config, "broken-stations-timeout", String::from("30days"))?;
-    let checks_timeout = get_option_duration(&matches, &config, "checks-timeout", String::from("30days"))?;
-    let clicks_timeout = get_option_duration(&matches, &config, "clicks-timeout", String::from("30days"))?;
+    let server_location: String =
+        get_option_string(&matches, &config, "server-location", String::from(""))?;
+    let server_country_code: String =
+        get_option_string(&matches, &config, "server-country-code", String::from(""))?;
+    let useragent = get_option_string(
+        &matches,
+        &config,
+        "useragent",
+        String::from("stream-check/0.1"),
+    )?;
+    let click_valid_timeout = get_option_duration(
+        &matches,
+        &config,
+        "click-valid-timeout",
+        String::from("1day"),
+    )?;
+    let broken_stations_never_working_timeout = get_option_duration(
+        &matches,
+        &config,
+        "broken-stations-never-working-timeout",
+        String::from("3days"),
+    )?;
+    let broken_stations_timeout = get_option_duration(
+        &matches,
+        &config,
+        "broken-stations-timeout",
+        String::from("30days"),
+    )?;
+    let checks_timeout =
+        get_option_duration(&matches, &config, "checks-timeout", String::from("30days"))?;
+    let clicks_timeout =
+        get_option_duration(&matches, &config, "clicks-timeout", String::from("30days"))?;
 
-    let chunk_size_changes = get_option_number(&matches, &config, "chunk-size-changes", 999999)? as usize;
-    let chunk_size_checks = get_option_number(&matches, &config, "chunk-size-checks", 999999)? as usize;
+    let language_replace_filepath = get_option_string(
+        &matches,
+        &config,
+        "replace-language-file",
+        "language-replace.csv".to_string(),
+    )?;
+    let language_to_code_filepath = get_option_string(
+        &matches,
+        &config,
+        "language-to-code-file",
+        "language-to-code.csv".to_string(),
+    )?;
 
-    let cache_type_str: String = get_option_string(&matches, &config, "cache-type", String::from("none"))?;
+    let chunk_size_changes =
+        get_option_number(&matches, &config, "chunk-size-changes", 999999)? as usize;
+    let chunk_size_checks =
+        get_option_number(&matches, &config, "chunk-size-checks", 999999)? as usize;
+
+    let cache_type_str: String =
+        get_option_string(&matches, &config, "cache-type", String::from("none"))?;
     let cache_url: String = get_option_string(&matches, &config, "cache-url", String::from(""))?;
     let cache_ttl = get_option_duration(&matches, &config, "cache-ttl", String::from("60secs"))?;
-    
     let cache_type: CacheType = match cache_type_str.as_str() {
         "none" => Ok(CacheType::None),
         "builtin" => Ok(CacheType::BuiltIn),
         "redis" => Ok(CacheType::Redis),
         "memcached" => Ok(CacheType::Memcached),
-        _ => Err(ConfigError::TypeError("cache-type".into(), "possible values are none,builtin,redis,memcached".into())),
+        _ => Err(ConfigError::TypeError(
+            "cache-type".into(),
+            "possible values are none,builtin,redis,memcached".into(),
+        )),
     }?;
 
     let max_duplicates = get_option_number(&matches, &config, "max-duplicates", 0)? as usize;
@@ -684,5 +773,7 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         max_duplicates,
         check_servers,
         check_servers_chunksize,
+        language_replace_filepath,
+        language_to_code_filepath,
     })
 }
