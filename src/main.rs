@@ -7,6 +7,8 @@ extern crate log;
 #[macro_use]
 extern crate prometheus;
 
+use signal_hook::iterator::Signals;
+use signal_hook::consts::SIGHUP;
 use crate::pull::UuidWithTime;
 use core::fmt::Display;
 use core::fmt::Formatter;
@@ -15,6 +17,7 @@ use std::error::Error;
 use std::time::Duration;
 use std::time::Instant;
 use std::{thread, time};
+use signal_hook;
 
 mod api;
 mod check;
@@ -176,36 +179,51 @@ fn mainloop() -> Result<(), Box<dyn Error>> {
     let config = config::load_config().map_err(|e| MainError::ConfigLoadError(e.to_string()))?;
     logger::setup_logger(config.log_level, &config.log_dir, config.log_json)
         .map_err(|e| MainError::LoggerInitError(e.to_string()))?;
-        
+     
     info!("Config: {:#?}", config);
     config::load_all_extra_configs(&config)?;
-
-    loop {
-        let connection = db::MysqlConnection::new(&config.connection_string);
-        match connection {
-            Ok(connection) => {
-                let migration_result = connection.do_migrations(
-                    config.ignore_migration_errors,
-                    config.allow_database_downgrade,
-                );
-                match migration_result {
-                    Ok(_) => {
-                        jobs(config.clone());
-                        api::start(connection, config);
-                    }
-                    Err(err) => {
-                        error!("Migrations error: {}", err);
-                        thread::sleep(time::Duration::from_millis(1000));
-                    }
-                };
-                break;
-            }
-            Err(e) => {
-                error!("DB connection error: {}", e);
-                thread::sleep(time::Duration::from_millis(1000));
+    
+    let config2 = config.clone();
+    thread::spawn(|| {
+        loop {
+            let connection = db::MysqlConnection::new(&config2.connection_string);
+            match connection {
+                Ok(connection) => {
+                    let migration_result = connection.do_migrations(
+                        config2.ignore_migration_errors,
+                        config2.allow_database_downgrade,
+                    );
+                    match migration_result {
+                        Ok(_) => {
+                            jobs(config2.clone());
+                            api::start(connection, config2);
+                        }
+                        Err(err) => {
+                            error!("Migrations error: {}", err);
+                            thread::sleep(time::Duration::from_millis(1000));
+                        }
+                    };
+                    break;
+                }
+                Err(e) => {
+                    error!("DB connection error: {}", e);
+                    thread::sleep(time::Duration::from_millis(1000));
+                }
             }
         }
+    });
+
+    let mut signals = Signals::new(&[SIGHUP,])?;
+    for signal in &mut signals {
+        match signal {
+            SIGHUP => {
+                info!("received HUP, reload config");
+                config::load_all_extra_configs(&config)?;
+            }
+            _ => unreachable!(),
+        }
     }
+
     Ok(())
 }
 

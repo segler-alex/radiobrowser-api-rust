@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * API: iso 639 code output to language list
 * DB: use binary collation for tags to fix compare
 * CONFIG: allow pulling of replacement csv info from web
+* CONFIG: reload csv list files on HUP signal
 
 ## [0.7.19] 2021-10-11
 ### Changed

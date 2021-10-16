@@ -5,49 +5,41 @@ mod data_mapping_item;
 use clap::{App, Arg};
 pub use config::CacheType;
 pub use config::Config;
+pub use config_error::ConfigError;
+use humantime;
+use once_cell::sync::OnceCell;
 use std::error::Error;
 use std::fs;
 use std::time::Duration;
-
-use humantime;
-
-pub use config_error::ConfigError;
-
 use std::{collections::HashMap, sync::Mutex};
-
-use once_cell::sync::OnceCell;
 
 static INSTANCE_LANGUAGE_TO_CODE: OnceCell<Mutex<HashMap<String, String>>> = OnceCell::new();
 static INSTANCE_LANGUAGE_REPLACE: OnceCell<Mutex<HashMap<String, String>>> = OnceCell::new();
 
 pub fn load_all_extra_configs(c: &Config) -> Result<(), Box<dyn Error>> {
     debug!("load_all_extra_configs()");
-    let x1 = data_mapping_item::read_map_csv_file(&c.language_replace_filepath)?;
-    match INSTANCE_LANGUAGE_REPLACE.set(Mutex::new(x1)) {
-        Ok(_) => {
-            info!("Initial set of global language replace cache");
-        }
-        Err(_) => {
-            info!("Updating global language replace cache");
-        }
-    };
-    let x2 = data_mapping_item::read_map_csv_file(&c.language_to_code_filepath)?;
-    match INSTANCE_LANGUAGE_TO_CODE.set(Mutex::new(x2)) {
-        Ok(_) => {
-            info!("Initial set of global language to code cache");
-        }
-        Err(_) => {
-            info!("Updating global language to code cache");
-        }
-    };
+    match data_mapping_item::read_map_csv_file(&c.language_replace_filepath) {
+        Ok(x1) => match INSTANCE_LANGUAGE_REPLACE.set(Mutex::new(x1)) {
+            Ok(_) => info!("Initial set of global language replace cache"),
+            Err(_) => info!("Updating global language replace cache"),
+        },
+        Err(err) => warn!("Unable to load file '{}': {}", &c.language_replace_filepath, err),
+    }
+    match data_mapping_item::read_map_csv_file(&c.language_to_code_filepath) {
+        Ok(x2) => match INSTANCE_LANGUAGE_TO_CODE.set(Mutex::new(x2)) {
+            Ok(_) => info!("Initial set of global language to code cache"),
+            Err(_) => info!("Updating global language to code cache"),
+        },
+        Err(err) => warn!("Unable to load file '{}': {}", &c.language_to_code_filepath, err),
+    }
     Ok(())
 }
 
-pub fn get_cache_language_to_code() -> Option<&'static Mutex<HashMap<String,String>>> {
+pub fn get_cache_language_to_code() -> Option<&'static Mutex<HashMap<String, String>>> {
     INSTANCE_LANGUAGE_TO_CODE.get()
 }
 
-pub fn get_cache_language_replace() -> Option<&'static Mutex<HashMap<String,String>>> {
+pub fn get_cache_language_replace() -> Option<&'static Mutex<HashMap<String, String>>> {
     INSTANCE_LANGUAGE_REPLACE.get()
 }
 

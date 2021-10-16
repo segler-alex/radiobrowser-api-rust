@@ -25,6 +25,8 @@ pub struct ApiConfig {
     pub api_threads: usize,
     pub cache_type: String,
     pub cache_ttl: u64,
+    pub language_replace_filepath: String,
+    pub language_to_code_filepath: String,
 }
 
 impl ApiConfig {
@@ -90,6 +92,8 @@ impl ApiConfig {
         xml.elem_text("api_threads", &config.api_threads.to_string())?;
         xml.elem_text("cache_type", &config.cache_type.to_string())?;
         xml.elem_text("cache_ttl", &config.cache_ttl.to_string())?;
+        xml.elem_text("language_replace_filepath", &config.language_replace_filepath)?;
+        xml.elem_text("language_to_code_filepath", &config.language_to_code_filepath)?;
         xml.end_elem()?;
         xml.close()?;
         xml.flush()?;
@@ -130,6 +134,8 @@ impl From<Config> for ApiConfig {
             cache_ttl: item.cache_ttl.as_secs(),
             server_location: item.server_location,
             server_country_code: item.server_country_code,
+            language_replace_filepath: item.language_replace_filepath,
+            language_to_code_filepath: item.language_to_code_filepath,
         }
     }
 }
