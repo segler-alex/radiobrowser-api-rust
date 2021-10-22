@@ -40,7 +40,7 @@ use crate::api::data::ApiConfig;
 use crate::db::DbConnection;
 use crate::db::models::ExtraInfo;
 use crate::db::models::State;
-use crate::db::models::StationItem;
+use crate::db::models::DbStationItem;
 use crate::api::rouille::Response;
 use crate::api::rouille::Request;
 use std;
@@ -70,7 +70,7 @@ fn add_cors(result : rouille::Response) -> rouille::Response {
         .with_unique_header("Access-Control-Allow-Methods", "GET,POST")
 }
 
-fn get_only_first_item(mut stations: Vec<StationItem>) -> Option<StationItem>{
+fn get_only_first_item(mut stations: Vec<DbStationItem>) -> Option<DbStationItem>{
     if stations.len() == 1 {
         Some(stations.pop().unwrap())
     } else {
@@ -128,7 +128,7 @@ fn encode_message(status: Result<String, Box<dyn Error>>, format : &str) -> Resu
     })
 }
 
-fn encode_station_url<A>(connection_new: &A, station: Option<StationItem>, ip: &str, format : &str, seconds: u64, registry: RegistryLinks) -> Result<ApiResponse, Box<dyn Error>> where A: DbConnection {
+fn encode_station_url<A>(connection_new: &A, station: Option<DbStationItem>, ip: &str, format : &str, seconds: u64, registry: RegistryLinks) -> Result<ApiResponse, Box<dyn Error>> where A: DbConnection {
     Ok(match station {
         Some(station) => {
             registry.clicks.inc();

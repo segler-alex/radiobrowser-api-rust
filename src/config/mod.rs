@@ -550,6 +550,22 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name("enable-extract-favicon")
+                .long("enable-extract-favicon")
+                .value_name("ENABLE_EXTRACT_FAVICON")
+                .help("enable checking homepage for new icon")
+                .env("ENABLE_EXTRACT_FAVICON")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("recheck-existing-favicon")
+                .long("recheck-existing-favicon")
+                .value_name("RECHECK_EXISTING_FAVICON")
+                .help("recheck existing favicons")
+                .env("RECHECK_EXISTING_FAVICON")
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("server-info-check")
                 .long("server-info-check")
                 .value_name("ENABLE_SERVER_CHECK")
@@ -637,6 +653,9 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
     let concurrency: usize = get_option_number(&matches, &config, "concurrency", 1)? as usize;
     let check_stations: u32 = get_option_number(&matches, &config, "stations", 10)? as u32;
     let enable_check: bool = get_option_bool(&matches, &config, "enable-check", false)?;
+    let enable_extract_favicon: bool = get_option_bool(&matches, &config, "enable-extract-favicon", false)?;
+    let recheck_existing_favicon: bool = get_option_bool(&matches, &config, "recheck-existing-favicon", false)?;
+
     let delete: bool = get_option_bool(&matches, &config, "delete", false)?;
     let favicon: bool = get_option_bool(&matches, &config, "favicon", false)?;
     let pause = get_option_duration(&matches, &config, "pause", String::from("10secs"))?;
@@ -767,5 +786,7 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         check_servers_chunksize,
         language_replace_filepath,
         language_to_code_filepath,
+        enable_extract_favicon,
+        recheck_existing_favicon,
     })
 }

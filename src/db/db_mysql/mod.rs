@@ -1,41 +1,41 @@
+mod conversions;
 mod migrations;
 mod simple_migrate;
-mod conversions;
 
-use crate::db::models::DbStreamingServerNew;
+use crate::db::db_error::DbError;
 use crate::db::models::DbStreamingServer;
-use mysql::Opts;
+use crate::db::models::DbStreamingServerNew;
 use mysql::from_row;
-use url::Url;
+use mysql::Opts;
 use mysql::Params;
 use std::collections::HashSet;
-use crate::db::db_error::DbError;
+use url::Url;
 
 use std;
 use std::collections::HashMap;
 
-use celes::Country;
-use uuid::Uuid;
-use crate::db::models::State;
+use crate::api::data::Station;
 use crate::db::models::ExtraInfo;
-use crate::db::models::StationItem;
+use crate::db::models::State;
+use crate::db::models::StationChangeItemNew;
 use crate::db::models::StationCheckItem;
 use crate::db::models::StationCheckItemNew;
-use crate::db::models::StationChangeItemNew;
+use crate::db::models::StationCheckStepItem;
+use crate::db::models::StationCheckStepItemNew;
 use crate::db::models::StationClickItem;
 use crate::db::models::StationClickItemNew;
 use crate::db::models::StationHistoryItem;
-use crate::db::models::StationCheckStepItem;
-use crate::db::models::StationCheckStepItemNew;
-use crate::api::data::Station;
-use std::error::Error;
+use crate::db::models::DbStationItem;
 use crate::db::DbConnection;
+use celes::Country;
 use mysql;
-use mysql::Row;
-use mysql::QueryResult;
-use mysql::Value;
-use mysql::TxOpts;
 use mysql::prelude::*;
+use mysql::QueryResult;
+use mysql::Row;
+use mysql::TxOpts;
+use mysql::Value;
+use std::error::Error;
+use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct MysqlConnection {
@@ -72,28 +72,33 @@ impl MysqlConnection {
     CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs,SslError,
     GeoLat,GeoLong";
 
-    const COLUMNS_CLICK: &'static str =
-        "ClickID, StationUuid, ClickUuid, IP,
+    const COLUMNS_CLICK: &'static str = "ClickID, StationUuid, ClickUuid, IP,
     ClickTimestamp,
     Date_Format(ClickTimestamp,'%Y-%m-%d %H:%i:%s') AS ClickTimestampFormated";
 
     pub fn new(connection_str: &str) -> Result<Self, Box<dyn Error>> {
         let opts = Opts::from_url(connection_str)?;
         let pool = mysql::Pool::new(opts)?;
-        Ok(
-            MysqlConnection{
-                pool,
-            }
-        )
+        Ok(MysqlConnection { pool })
     }
 
-    pub fn do_migrations(&self, ignore_migration_errors: bool, allow_database_downgrade: bool) -> Result<(), Box<dyn Error>> {
+    pub fn do_migrations(
+        &self,
+        ignore_migration_errors: bool,
+        allow_database_downgrade: bool,
+    ) -> Result<(), Box<dyn Error>> {
         let migrations = migrations::load_migrations(&self.pool)?;
         migrations.do_migrations(ignore_migration_errors, allow_database_downgrade)?;
         Ok(())
     }
 
-    fn get_list_from_query_result<A>(&self, results: QueryResult<mysql::Binary>) -> Result<Vec<A>, Box<dyn Error>> where A: From<Row> {
+    fn get_list_from_query_result<A>(
+        &self,
+        results: QueryResult<mysql::Binary>,
+    ) -> Result<Vec<A>, Box<dyn Error>>
+    where
+        A: From<Row>,
+    {
         let mut list: Vec<A> = vec![];
         for result in results {
             let row = result?;
@@ -102,13 +107,13 @@ impl MysqlConnection {
         Ok(list)
     }
 
-    fn get_stations_query(&self, query: String) -> Result<Vec<StationItem>, Box<dyn Error>> {
+    fn get_stations_query(&self, query: String) -> Result<Vec<DbStationItem>, Box<dyn Error>> {
         let mut conn = self.pool.get_conn()?;
         let results = conn.exec_iter(query, ())?;
         self.get_list_from_query_result(results)
     }
 
-    pub fn get_single_column_number(&self, query: &str) -> Result<u64,Box<dyn std::error::Error>> {
+    pub fn get_single_column_number(&self, query: &str) -> Result<u64, Box<dyn std::error::Error>> {
         let row: Option<Row> = self.pool.get_conn()?.query_first(query)?;
         if let Some(mut row) = row {
             let items: u64 = row.take_opt(0).unwrap_or(Ok(0))?;
@@ -117,7 +122,11 @@ impl MysqlConnection {
         return Ok(0);
     }
 
-    pub fn get_single_column_number_params(&self, query: &str, p: mysql::Params) -> Result<u64,Box<dyn std::error::Error>> {
+    pub fn get_single_column_number_params(
+        &self,
+        query: &str,
+        p: mysql::Params,
+    ) -> Result<u64, Box<dyn std::error::Error>> {
         let mut conn = self.pool.get_conn()?;
         let row: Option<Row> = conn.exec_first(query, p)?;
         if let Some(mut row) = row {
@@ -127,29 +136,46 @@ impl MysqlConnection {
         return Ok(0);
     }
 
-    fn backup_stations_by_uuid(transaction: &mut mysql::Transaction<'_>, stationuuids: &Vec<String>) -> Result<(),Box<dyn std::error::Error>>{
-        if stationuuids.len() > 0{
+    fn backup_stations_by_uuid(
+        transaction: &mut mysql::Transaction<'_>,
+        stationuuids: &Vec<String>,
+        source: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if stationuuids.len() > 0 {
             let mut insert_params: Vec<Value> = vec![];
             let mut insert_query = vec![];
             for stationuuid in stationuuids {
                 insert_params.push(stationuuid.into());
                 insert_query.push("?");
             }
-            let query = format!("INSERT INTO StationHistory(Name,Url,Homepage,Favicon,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid,GeoLat,GeoLong)
-                                                     SELECT Name,Url,Homepage,Favicon,CountryCode,SubCountry,Language,Tags,Votes,Creation,StationUuid,ChangeUuid,GeoLat,GeoLong FROM Station WHERE StationUuid IN ({})", insert_query.join(","));
+            let query = format!(
+                r#"INSERT INTO StationHistory(Name,Url,Homepage,Favicon,CountryCode,SubCountry,Language,LanguageCodes,CountrySubdivisionCode,Tags,Votes,Creation,StationUuid,ChangeUuid,GeoLat,GeoLong,Source)
+                                                       SELECT Name,Url,Homepage,Favicon,CountryCode,SubCountry,Language,LanguageCodes,CountrySubdivisionCode,Tags,Votes,Creation,StationUuid,ChangeUuid,GeoLat,GeoLong,"{}" FROM Station WHERE StationUuid IN ({})"#,
+                source,
+                insert_query.join(",")
+            );
             transaction.exec_drop(query, insert_params)?;
         }
         Ok(())
     }
 
-    fn stationchange_exists(transaction: &mut mysql::Transaction<'_>, changeuuids: &Vec<String>) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    fn stationchange_exists(
+        transaction: &mut mysql::Transaction<'_>,
+        changeuuids: &Vec<String>,
+    ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         let mut select_query = vec![];
         let mut select_params: Vec<Value> = vec![];
         for changeuuid in changeuuids {
             select_query.push("?");
             select_params.push(changeuuid.into());
         }
-        let result = transaction.exec_iter(format!("SELECT ChangeUuid FROM StationHistory WHERE ChangeUuid IN ({})", select_query.join(",")), select_params)?;
+        let result = transaction.exec_iter(
+            format!(
+                "SELECT ChangeUuid FROM StationHistory WHERE ChangeUuid IN ({})",
+                select_query.join(",")
+            ),
+            select_params,
+        )?;
 
         let mut list_result = vec![];
         for row in result {
@@ -159,10 +185,15 @@ impl MysqlConnection {
         Ok(list_result)
     }
 
-    fn insert_station_by_change_internal(transaction: &mut mysql::Transaction<'_>, stationchanges: &[StationChangeItemNew])
-         -> Result<Vec<String>,Box<dyn std::error::Error>> {
+    fn insert_station_by_change_internal(
+        transaction: &mut mysql::Transaction<'_>,
+        stationchanges: &[StationChangeItemNew],
+    ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         // filter out changes that already exist in the database
-        let changeuuids: Vec<String> = stationchanges.iter().map(|item|item.changeuuid.clone()).collect();
+        let changeuuids: Vec<String> = stationchanges
+            .iter()
+            .map(|item| item.changeuuid.clone())
+            .collect();
         let changeexists = MysqlConnection::stationchange_exists(transaction, &changeuuids)?;
         let mut list: Vec<&StationChangeItemNew> = vec![];
         for station in stationchanges {
@@ -212,6 +243,151 @@ impl MysqlConnection {
 }
 
 impl DbConnection for MysqlConnection {
+    /*
+    fn update_station(&self, station: &DbStationItem, reason: &str) -> Result<(), Box<dyn Error>> {
+        let mut transaction = self.pool.start_transaction(TxOpts::default())?;
+        transaction.exec_drop(
+r#"UPDATE Station SET
+    Name=:Name,
+    Url=:Url,
+    Homepage=:Homepage,
+    Favicon=:Favicon,
+    Creation=UTC_TIMESTAMP(),
+    Country=:Country,
+    Language=:Language,
+    Tags=:Tags,
+    Votes=:Votes,
+    Subcountry=:Subcountry,
+    clickcount=:clickcount,
+    ClickTrend=:ClickTrend,
+    Codec=:Codec,
+    LastCheckOK=:LastCheckOK,
+    Bitrate=:Bitrate,
+    UrlCache=:UrlCache,
+    Hls=:hls
+WHERE
+    StationUuid=:StationUuid"#,
+        params!{
+            "Name" => &station.name,
+            "Url" => &station.url,
+            "Homepage" => &station.homepage,
+            "Favicon" => &station.favicon,
+            "Country" => &station.country,
+            "Language" => &station.language,
+            "Tags" => &station.tags,
+            "Votes" => station.votes,
+            "Subcountry" => &station.state,
+            "clickcount" => station.clickcount,
+            "ClickTrend" => station.clicktrend,
+            "Codec" => &station.codec,
+            "LastCheckOK" => station.lastcheckok,
+            "Bitrate" => station.bitrate,
+            "UrlCache" => &station.url_resolved,
+            "Hls" => station.hls,
+            "ChangeUuid" => &station.changeuuid,
+            "CountryCode" => &station.countrycode,
+            "CountrySubdivisionCode" => &station.iso_3166_2,
+            "GeoLat" => station.geo_lat,
+            "GeoLong" => station.geo_long,
+            "SslError" => station.ssl_error,
+            "LanguageCodes" => &station.languagecodes,
+            "ExtendedInfo" => station.has_extended_info,
+            "StationUuid" => &station.stationuuid,
+        })?;
+        MysqlConnection::backup_stations_by_uuid(
+            &mut transaction,
+            &(vec![station.stationuuid.to_string()]),
+            reason,
+        )?;
+        transaction.commit()?;
+        Ok(())
+    }
+    */
+/*
+    fn update_station_timestamps(&self, station: &DbStationItem, reason: &str) -> Result<(), Box<dyn Error>> {
+        let mut transaction = self.pool.start_transaction(TxOpts::default())?;
+        transaction.exec_drop(
+r#"UPDATE Station SET
+    Creation=UTC_TIMESTAMP(),
+    ClickTimestamp=UTC_TIMESTAMP(),
+    LastCheckTime=UTC_TIMESTAMP(),
+    LastCheckOkTime=UTC_TIMESTAMP(),
+    LastLocalCheckTime=UTC_TIMESTAMP()
+WHERE
+    StationUuid=:stationuuid"#,
+params!{
+            "stationuuid" => &station.stationuuid,
+        })?;
+        MysqlConnection::backup_stations_by_uuid(
+            &mut transaction,
+            &(vec![station.stationuuid.to_string()]),
+            reason,
+        )?;
+        transaction.commit()?;
+        Ok(())
+    }
+*/
+    fn get_stations_with_empty_icon(&mut self) -> Result<Vec<(String, String)>, Box<dyn Error>> {
+        trace!("get_stations_with_empty_icon()");
+        let query =
+            r#"SELECT StationUuid, Homepage FROM Station WHERE Favicon="" OR Favicon IS NULL"#;
+        let mut conn = self.pool.get_conn()?;
+        let stations: Vec<(String, String)> =
+            conn.exec_map(query, (), |(uuid, website)| (uuid, website))?;
+        Ok(stations)
+    }
+
+    fn get_stations_with_non_empty_icon(&mut self) -> Result<Vec<(String, String)>, Box<dyn Error>> {
+        trace!("get_stations_with_non_empty_icon()");
+        let query =
+            r#"SELECT StationUuid, Homepage FROM Station WHERE Favicon<>"" AND Favicon IS NOT NULL"#;
+        let mut conn = self.pool.get_conn()?;
+        let stations: Vec<(String, String)> =
+            conn.exec_map(query, (), |(uuid, website)| (uuid, website))?;
+        Ok(stations)
+    }
+
+    fn update_stations_favicon(&mut self, list: &Vec<DbStationItem>, reason: &str) -> Result<(), Box<dyn Error>>
+    {
+        trace!("update_stations_favicon(list len={})", list.len());
+        let query = r#"UPDATE Station SET Favicon=:favicon,Creation=UTC_TIMESTAMP() WHERE StationUuid=:stationuuid"#;
+        let mut transaction = self.pool.start_transaction(TxOpts::default())?;
+        transaction.exec_batch(
+            query,
+            list.iter().map(|station| {
+                params! {
+                    "favicon" => &station.favicon,
+                    "stationuuid" => &station.stationuuid,
+                    "changeuuid" => Uuid::new_v4().to_hyphenated().to_string(),
+                }
+            }),
+        )?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    fn update_station_favicon(&mut self, station: &DbStationItem, reason: &str) -> Result<(), Box<dyn Error>>
+    {
+        trace!("update_station_favicon({})", station.stationuuid);
+        let query = r#"UPDATE Station SET Favicon=:favicon,Creation=UTC_TIMESTAMP(),ChangeUuid=:changeuuid WHERE StationUuid=:stationuuid"#;
+        let mut transaction = self.pool.start_transaction(TxOpts::default())?;
+        transaction.exec_drop(
+            query,
+            params! {
+                "favicon" => &station.favicon,
+                "stationuuid" => &station.stationuuid,
+                "changeuuid" => Uuid::new_v4().to_hyphenated().to_string(),
+            }
+        )?;
+        MysqlConnection::backup_stations_by_uuid(
+            &mut transaction,
+            &(vec![station.stationuuid.to_string()]),
+            reason,
+        )?;
+        transaction.commit()?;
+        Ok(())
+    }
+
     fn calc_country_field(&mut self) -> Result<(), Box<dyn Error>> {
         trace!("calc_country_field() 0");
         let mut transaction = self.pool.start_transaction(TxOpts::default())?;
@@ -223,11 +399,16 @@ impl DbConnection for MysqlConnection {
 
         let query_select = "SELECT DISTINCT(CountryCode) FROM Station";
         let result: Vec<String> = transaction.query(query_select)?;
-        let list: Vec<Params> = result.iter()
-            .map(|cc| { (String::from(cc), Country::from_alpha2(cc).map(|d| d.long_name).unwrap_or("") ) })
-            .map(|co| params!{"countrycode" => co.0, "country" => co.1})
+        let list: Vec<Params> = result
+            .iter()
+            .map(|cc| {
+                (
+                    String::from(cc),
+                    Country::from_alpha2(cc).map(|d| d.long_name).unwrap_or(""),
+                )
+            })
+            .map(|co| params! {"countrycode" => co.0, "country" => co.1})
             .collect();
-        
         trace!("calc_country_field() 2");
         let query_update = "UPDATE Station SET Country=:country WHERE CountryCode=:countrycode";
         transaction.exec_batch(query_update, list)?;
@@ -250,31 +431,53 @@ impl DbConnection for MysqlConnection {
         Ok(())
     }
 
-    fn clean_urls(&self, table_name: &str, column_key: &str, column_url: &str, allow_empty: bool) -> Result<(), Box<dyn Error>> {
-        trace!("cleanurls({},{},{}) started..", table_name, column_key, column_url);
+    fn clean_urls(
+        &self,
+        table_name: &str,
+        column_key: &str,
+        column_url: &str,
+        allow_empty: bool,
+    ) -> Result<(), Box<dyn Error>> {
+        trace!(
+            "cleanurls({},{},{}) started..",
+            table_name,
+            column_key,
+            column_url
+        );
         let mut conn = self.pool.get_conn()?;
-        let result_sets: Vec<(String,String)> = conn.query_iter(format!("SELECT {column_key},{column_url} FROM {table_name}", column_key = column_key, column_url = column_url, table_name = table_name))?
-            .filter_map(|row| ok_output(row.map(from_row::<(String, String)>),"Unable to decode row"))
+        let result_sets: Vec<(String, String)> = conn
+            .query_iter(format!(
+                "SELECT {column_key},{column_url} FROM {table_name}",
+                column_key = column_key,
+                column_url = column_url,
+                table_name = table_name
+            ))?
+            .filter_map(|row| {
+                ok_output(
+                    row.map(from_row::<(String, String)>),
+                    "Unable to decode row",
+                )
+            })
             .filter_map(|r| {
                 match fix_url(&r.1, allow_empty) {
                     Ok(url) => {
-                        if !r.1.eq(&url){
+                        if !r.1.eq(&url) {
                             // parse ok and url changed
                             // -> change row in DB
                             Some((r.0, url))
-                        }else{
+                        } else {
                             // parse ok and url did not chang
                             // -> do nothing
                             None
                         }
-                    },
+                    }
                     Err(e) => {
                         if allow_empty {
                             // parse failed and empty is allowed
                             // -> reset broken value to empty
                             warn!("url parse failed of '{}': {}", r.1, e);
                             Some((r.0, "".to_string()))
-                        }else{
+                        } else {
                             // parse failed and empty is not allowed
                             // -> make it an error
                             // -> TODO: should remove line from DB
@@ -285,16 +488,42 @@ impl DbConnection for MysqlConnection {
                 }
             })
             .collect();
-        trace!("cleanurls({},{},{}) todo {}", table_name, column_key, column_url, result_sets.len());
-        conn.exec_batch(format!("UPDATE {table_name} SET {column_url}=:url WHERE {column_key}=:uuid", table_name = table_name, column_url = column_url, column_key = column_key),
-            result_sets.iter().map(|(uuid,url)|params!{uuid,url}))?;
-        
-        trace!("cleanurls({},{},{}) finished", table_name, column_key, column_url);
+        trace!(
+            "cleanurls({},{},{}) todo {}",
+            table_name,
+            column_key,
+            column_url,
+            result_sets.len()
+        );
+        conn.exec_batch(
+            format!(
+                "UPDATE {table_name} SET {column_url}=:url WHERE {column_key}=:uuid",
+                table_name = table_name,
+                column_url = column_url,
+                column_key = column_key
+            ),
+            result_sets.iter().map(|(uuid, url)| params! {uuid,url}),
+        )?;
+
+        trace!(
+            "cleanurls({},{},{}) finished",
+            table_name,
+            column_key,
+            column_url
+        );
         Ok(())
     }
 
-    fn get_duplicated_stations(&self, column_key: &str, max_duplicates: usize) -> Result<Vec<String>, Box<dyn Error>> {
-        trace!("get_duplicated_stations({},{}) started..", column_key, max_duplicates);
+    fn get_duplicated_stations(
+        &self,
+        column_key: &str,
+        max_duplicates: usize,
+    ) -> Result<Vec<String>, Box<dyn Error>> {
+        trace!(
+            "get_duplicated_stations({},{}) started..",
+            column_key,
+            max_duplicates
+        );
         let mut list = vec![];
         if max_duplicates > 0 {
             let mut conn = self.pool.get_conn()?;
@@ -302,7 +531,7 @@ impl DbConnection for MysqlConnection {
                 params!(max_duplicates),
                 |(url, _count):(String, u32)| url
             )?;
-            for url in urls.iter(){
+            for url in urls.iter() {
                 let uuids: Vec<String> = conn.exec_map(
                     format!("SELECT StationUuid FROM Station WHERE {column_key}=:url ORDER BY clickcount DESC, Votes DESC, Creation LIMIT :max_duplicates,1000", column_key = column_key),
                     params!(max_duplicates,url),
@@ -318,8 +547,10 @@ impl DbConnection for MysqlConnection {
     fn delete_stations(&self, stationuuids: &[String]) -> Result<(), Box<dyn Error>> {
         trace!("delete_stations()");
         let mut conn = self.pool.get_conn()?;
-        conn.exec_batch("DELETE FROM Station WHERE StationUuid=:uuid", 
-        stationuuids.iter().map(|uuid|params!{uuid}))?;
+        conn.exec_batch(
+            "DELETE FROM Station WHERE StationUuid=:uuid",
+            stationuuids.iter().map(|uuid| params! {uuid}),
+        )?;
         Ok(())
     }
 
@@ -373,13 +604,17 @@ impl DbConnection for MysqlConnection {
         Ok(())
     }
 
-    fn replace_languages(&mut self, items: &HashMap<String, String>) -> Result<u32, Box<dyn Error>> {
+    fn replace_languages(
+        &mut self,
+        items: &HashMap<String, String>,
+    ) -> Result<Vec<String>, Box<dyn Error>> {
         trace!("replace_languages()");
         let mut conn = self.pool.get_conn()?;
-        let query = "SELECT StationID, Language FROM Station;";
-        let list: Vec<(u32, String)> = conn.exec_map(query, (), |(id, language)| (id, language))?;
-        let stmt = conn.prep("UPDATE Station SET Language=:language WHERE StationID=:id")?;
-        let mut updated_count = 0;
+        let query = "SELECT StationUuid, Language FROM Station;";
+        let list: Vec<(String, String)> =
+            conn.exec_map(query, (), |(id, language)| (id, language))?;
+        let stmt = conn.prep("UPDATE Station SET ChangeUuid=:changeuuid,Language=:language,Creation=UTC_TIMESTAMP() WHERE StationUuid=:id")?;
+        let mut updated_list = vec![];
         for (id, language) in list {
             //let language = language.replace("/", ",");
             let mut updated = false;
@@ -403,12 +638,14 @@ impl DbConnection for MysqlConnection {
             lang_trimmed.dedup();
 
             if updated {
-                updated_count += 1;
-                match conn.exec_drop(
+                let mut transaction = conn.start_transaction(TxOpts::default())?;
+                updated_list.push(id.to_string());
+                match transaction.exec_drop(
                     stmt.clone(),
                     params! {
+                        "changeuuid" => Uuid::new_v4().to_hyphenated().to_string(),
                         "language" => lang_trimmed.join(","),
-                        "id" => id,
+                        "id" => &id,
                     },
                 ) {
                     Ok(_) => {}
@@ -416,21 +653,30 @@ impl DbConnection for MysqlConnection {
                         error!("Unable to update row {}: {}", id, err);
                     }
                 };
+                MysqlConnection::backup_stations_by_uuid(
+                    &mut transaction,
+                    &(vec![id.to_string()]),
+                    "AUTO_REPLACE_LANG",
+                )?;
+                transaction.commit()?;
             }
         }
 
-        Ok(updated_count)
+        Ok(updated_list)
     }
 
-    fn detect_language_codes(&mut self, language_to_code: &HashMap<String,String>) -> Result<u32, Box<dyn Error>> {
+    fn detect_language_codes(
+        &mut self,
+        language_to_code: &HashMap<String, String>,
+    ) -> Result<Vec<String>, Box<dyn Error>> {
         let mut conn = self.pool.get_conn()?;
-        let query = "SELECT StationID, LanguageCodes, Language FROM Station;";
-        let list: Vec<(u32, Option<String>, String)> =
+        let query = "SELECT StationUuid, LanguageCodes, Language FROM Station;";
+        let list: Vec<(String, Option<String>, String)> =
             conn.exec_map(query, (), |(id, codes, language)| (id, codes, language))?;
 
         let mut undetected: Vec<String> = vec![];
-        let mut updated_count = 0;
-        let stmt = conn.prep("UPDATE Station SET LanguageCodes=:codes WHERE StationID=:id")?;
+        let mut updated_list = vec![];
+        let stmt = conn.prep("UPDATE Station SET ChangeUuid=:changeuuid,LanguageCodes=:codes,Creation=UTC_TIMESTAMP() WHERE StationUuid=:id")?;
         for (id, codes, language) in list {
             //let language = language.replace("/", ",");//.replace(" ", ",");
             let mut lang_trimmed: Vec<&str> = language
@@ -452,9 +698,13 @@ impl DbConnection for MysqlConnection {
                 .collect();
             lang_trimmed.sort();
             lang_trimmed.dedup();
-            
             let codes = codes.unwrap_or(String::from(""));
-            let mut codes_trimmed: Vec<&str> = codes.split(",").by_ref().map(|item|item.trim()).filter(|item|!item.is_empty()).collect();
+            let mut codes_trimmed: Vec<&str> = codes
+                .split(",")
+                .by_ref()
+                .map(|item| item.trim())
+                .filter(|item| !item.is_empty())
+                .collect();
             let mut changed = false;
             for new_lang in lang_trimmed.drain(..) {
                 if !codes_trimmed.contains(&new_lang) {
@@ -463,19 +713,33 @@ impl DbConnection for MysqlConnection {
                 }
             }
             if changed {
-                updated_count += 1;
-                conn.exec_drop(stmt.clone(), params!{
-                    "codes" => codes_trimmed.join(","),
-                    "id" => id,
-                })?;
+                let mut transaction = conn.start_transaction(TxOpts::default())?;
+                updated_list.push(id.to_string());
+                transaction.exec_drop(
+                    stmt.clone(),
+                    params! {
+                        "changeuuid" => Uuid::new_v4().to_hyphenated().to_string(),
+                        "codes" => codes_trimmed.join(","),
+                        "id" => &id,
+                    },
+                )?;
+                MysqlConnection::backup_stations_by_uuid(
+                    &mut transaction,
+                    &(vec![id.to_string()]),
+                    "AUTO_DETECT_LANG_CODE",
+                )?;
+                transaction.commit()?;
             }
         }
         undetected.sort();
         trace!("unable to detect {}\n{:#?}", undetected.len(), undetected);
-        Ok(updated_count)
+        Ok(updated_list)
     }
 
-    fn remove_unused_ip_infos_from_stationclicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>> {
+    fn remove_unused_ip_infos_from_stationclicks(
+        &mut self,
+        seconds: u64,
+    ) -> Result<(), Box<dyn Error>> {
         trace!("remove_unused_ip_infos_from_stationclicks()");
         let query = "UPDATE StationClick SET IP=NULL WHERE InsertTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut conn = self.pool.get_conn()?;
@@ -507,7 +771,9 @@ impl DbConnection for MysqlConnection {
     }
 
     fn get_station_count_broken(&self) -> Result<u64, Box<dyn Error>> {
-        self.get_single_column_number("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOK=0 OR LastCheckOK IS NULL")
+        self.get_single_column_number(
+            "SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOK=0 OR LastCheckOK IS NULL",
+        )
     }
 
     fn get_station_count_working(&self) -> Result<u64, Box<dyn Error>> {
@@ -519,7 +785,9 @@ impl DbConnection for MysqlConnection {
     }
 
     fn get_country_count(&self) -> Result<u64, Box<dyn Error>> {
-        self.get_single_column_number(r#"SELECT COUNT(DISTINCT(Country)) AS StationCount FROM Station"#)
+        self.get_single_column_number(
+            r#"SELECT COUNT(DISTINCT(Country)) AS StationCount FROM Station"#,
+        )
     }
 
     fn get_language_count(&self) -> Result<u64, Box<dyn Error>> {
@@ -541,69 +809,110 @@ impl DbConnection for MysqlConnection {
         self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastLocalCheckTime IS NULL OR LastLocalCheckTime < UTC_TIMESTAMP() - INTERVAL :hours HOUR", params!(hours))
     }
 
-    fn get_stations_to_check(&mut self, hours: u32, itemcount: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+    fn get_stations_to_check(
+        &mut self,
+        hours: u32,
+        itemcount: u32,
+    ) -> Result<Vec<DbStationItem>, Box<dyn Error>> {
         let query = format!("SELECT {columns} FROM Station WHERE LastLocalCheckTime IS NULL OR LastLocalCheckTime < UTC_TIMESTAMP() - INTERVAL {interval} HOUR ORDER BY RAND() LIMIT {limit}", columns = MysqlConnection::COLUMNS, interval = hours, limit = itemcount);
         let mut conn = self.pool.get_conn()?;
         let results = conn.exec_iter(query, ())?;
         self.get_list_from_query_result(results)
     }
 
-    fn get_servers_to_check(&mut self, hours: u32, chunksize: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>>{
+    fn get_servers_to_check(
+        &mut self,
+        hours: u32,
+        chunksize: u32,
+    ) -> Result<Vec<DbStreamingServer>, Box<dyn Error>> {
         let query = format!(
             "SELECT Id, Uuid, Url, StatusUrl, Status, Error FROM StreamingServers WHERE UpdatedAt IS NULL OR UpdatedAt < UTC_TIMESTAMP() - INTERVAL :hours HOUR LIMIT :chunksize"
         );
         let mut conn = self.pool.get_conn()?;
-        let results = conn.exec_map(query, params!(hours, chunksize), |(id,uuid,url,statusurl,status,error)|
-            DbStreamingServer::new(id, uuid, url,statusurl,status,error)
+        let results = conn.exec_map(
+            query,
+            params!(hours, chunksize),
+            |(id, uuid, url, statusurl, status, error)| {
+                DbStreamingServer::new(id, uuid, url, statusurl, status, error)
+            },
         )?;
         Ok(results)
     }
 
-    fn get_streaming_servers_by_url(&mut self, items: Vec<String>) -> Result<Vec<DbStreamingServer>, Box<dyn Error>> {
+    fn get_streaming_servers_by_url(
+        &mut self,
+        items: Vec<String>,
+    ) -> Result<Vec<DbStreamingServer>, Box<dyn Error>> {
         if items.len() > 0 {
             let mut conn = self.pool.get_conn()?;
             let search_query: Vec<&str> = (0..items.len()).map(|_item| "?").collect();
-            let query = format!("SELECT Id,Uuid,Url,StatusUrl,Status,Error FROM StreamingServers WHERE Url IN ({})", search_query.join(","));
-            let list = conn.exec_map(query, items, |(id,uuid,url,statusurl,status,error)|
-                DbStreamingServer::new(id, uuid, url,statusurl,status,error)
-            )?;
+            let query = format!(
+                "SELECT Id,Uuid,Url,StatusUrl,Status,Error FROM StreamingServers WHERE Url IN ({})",
+                search_query.join(",")
+            );
+            let list =
+                conn.exec_map(query, items, |(id, uuid, url, statusurl, status, error)| {
+                    DbStreamingServer::new(id, uuid, url, statusurl, status, error)
+                })?;
             Ok(list)
-        }else{
+        } else {
             Ok(vec![])
         }
     }
 
-    fn get_streaming_servers(&self, order: &str,reverse: bool,offset: u32,limit: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>> {
+    fn get_streaming_servers(
+        &self,
+        order: &str,
+        reverse: bool,
+        offset: u32,
+        limit: u32,
+    ) -> Result<Vec<DbStreamingServer>, Box<dyn Error>> {
         let mut conn = self.pool.get_conn()?;
         let order = filter_order_streaming_server(order);
         let reverse_string = if reverse { "DESC" } else { "ASC" };
         let query = format!("SELECT Id,Uuid,Url,StatusUrl,Status,Error FROM StreamingServers ORDER BY {order} {reverse} LIMIT {offset},{limit}",order = order, reverse = reverse_string, offset = offset, limit = limit);
-        let list = conn.query_map(query, |(id,uuid,url,statusurl,status,error)|
-            DbStreamingServer::new(id, uuid, url,statusurl,status,error)
-        )?;
+        let list = conn.query_map(query, |(id, uuid, url, statusurl, status, error)| {
+            DbStreamingServer::new(id, uuid, url, statusurl, status, error)
+        })?;
         Ok(list)
     }
 
-    fn get_streaming_servers_by_uuids(&self, uuids: Vec<String>, order: &str,reverse: bool,offset: u32,limit: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>> {
+    fn get_streaming_servers_by_uuids(
+        &self,
+        uuids: Vec<String>,
+        order: &str,
+        reverse: bool,
+        offset: u32,
+        limit: u32,
+    ) -> Result<Vec<DbStreamingServer>, Box<dyn Error>> {
         if uuids.len() > 0 {
             let mut conn = self.pool.get_conn()?;
             let order = filter_order_streaming_server(order);
             let reverse_string = if reverse { "DESC" } else { "ASC" };
             let search_query: Vec<&str> = (0..uuids.len()).map(|_item| "?").collect();
             let query = format!("SELECT Id,Uuid,Url,StatusUrl,Status,Error FROM StreamingServers WHERE Uuid IN ({search}) ORDER BY {order} {reverse} LIMIT {offset},{limit}",order = order, reverse = reverse_string, offset = offset, limit = limit, search = search_query.join(","));
-            let list = conn.exec_map(query, uuids, |(id,uuid,url,statusurl,status,error)|
-                DbStreamingServer::new(id, uuid, url,statusurl,status,error)
-            )?;
+            let list =
+                conn.exec_map(query, uuids, |(id, uuid, url, statusurl, status, error)| {
+                    DbStreamingServer::new(id, uuid, url, statusurl, status, error)
+                })?;
             Ok(list)
-        }else{
+        } else {
             Ok(vec![])
         }
     }
 
-    fn get_streaming_servers_by_station_uuids(&self, uuids: Vec<String>, order: &str,reverse: bool,offset: u32,limit: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>> {
+    fn get_streaming_servers_by_station_uuids(
+        &self,
+        uuids: Vec<String>,
+        order: &str,
+        reverse: bool,
+        offset: u32,
+        limit: u32,
+    ) -> Result<Vec<DbStreamingServer>, Box<dyn Error>> {
         if uuids.len() > 0 {
             let mut conn = self.pool.get_conn()?;
-            let urls: Vec<_> = self.get_stations_by_uuid(uuids)?
+            let urls: Vec<_> = self
+                .get_stations_by_uuid(uuids)?
                 .drain(..)
                 .filter_map(|station| Url::parse(&station.url_resolved).ok())
                 .map(|mut url| {
@@ -619,46 +928,77 @@ impl DbConnection for MysqlConnection {
             if urls.len() > 0 {
                 let search_query: Vec<&str> = (0..urls.len()).map(|_item| "?").collect();
                 let query = format!("SELECT Id,Uuid,Url,StatusUrl,Status,Error FROM StreamingServers WHERE Url IN ({search}) ORDER BY {order} {reverse} LIMIT {offset},{limit}",order = order, reverse = reverse_string, offset = offset, limit = limit, search = search_query.join(","));
-                let list = conn.exec_map(query, urls, |(id,uuid,url,statusurl,status,error)|
-                    DbStreamingServer::new(id, uuid, url,statusurl,status,error)
-                )?;
+                let list =
+                    conn.exec_map(query, urls, |(id, uuid, url, statusurl, status, error)| {
+                        DbStreamingServer::new(id, uuid, url, statusurl, status, error)
+                    })?;
                 Ok(list)
-            }else{
+            } else {
                 Ok(vec![])
             }
-        }else{
+        } else {
             Ok(vec![])
         }
     }
 
-    fn insert_streaming_servers(&mut self, items: Vec<DbStreamingServerNew>) -> Result<(), Box<dyn Error>> {
+    fn insert_streaming_servers(
+        &mut self,
+        items: Vec<DbStreamingServerNew>,
+    ) -> Result<(), Box<dyn Error>> {
         let mut conn = self.pool.get_conn()?;
-        let mut existing = self.get_streaming_servers_by_url(items.iter().map(|item| item.url.clone()).collect())?;
+        let mut existing =
+            self.get_streaming_servers_by_url(items.iter().map(|item| item.url.clone()).collect())?;
         let existing_urls: Vec<_> = existing.drain(..).map(|item| item.url).collect();
         let query = "INSERT INTO StreamingServers (Uuid, Url, StatusUrl, Status, CreatedAt, Error) VALUES (?,?,?,?,UTC_TIMESTAMP(),?)";
-        conn.exec_batch(query, items
-            .iter()
-            .filter(|item2| !existing_urls.contains(&item2.url))
-            .map(|item| (Uuid::new_v4().to_hyphenated().to_string(),&item.url,&item.statusurl,&item.status,&item.error))
+        conn.exec_batch(
+            query,
+            items
+                .iter()
+                .filter(|item2| !existing_urls.contains(&item2.url))
+                .map(|item| {
+                    (
+                        Uuid::new_v4().to_hyphenated().to_string(),
+                        &item.url,
+                        &item.statusurl,
+                        &item.status,
+                        &item.error,
+                    )
+                }),
         )?;
         Ok(())
     }
 
-    fn update_streaming_servers(&mut self, items: Vec<DbStreamingServer>) -> Result<(), Box<dyn Error>> {
+    fn update_streaming_servers(
+        &mut self,
+        items: Vec<DbStreamingServer>,
+    ) -> Result<(), Box<dyn Error>> {
         let mut conn = self.pool.get_conn()?;
         let query = "UPDATE StreamingServers SET Url=?,StatusUrl=?,Status=?,Error=?,UpdatedAt=UTC_TIMESTAMP() WHERE Id=?";
-        conn.exec_batch(query, items
-            .iter()
-            .map(|item| (&item.url,&item.statusurl,&item.status,&item.error,item.id))
+        conn.exec_batch(
+            query,
+            items.iter().map(|item| {
+                (
+                    &item.url,
+                    &item.statusurl,
+                    &item.status,
+                    &item.error,
+                    item.id,
+                )
+            }),
         )?;
 
         let query = "UPDATE Station SET ServerUuid=:uuid WHERE UrlCache IS NOT NULL AND UrlCache LIKE CONCAT(:url, '%')";
-        conn.exec_batch(query, items.iter().map(|item| params!{"uuid" => &item.uuid, "url" => &item.url}))?;
+        conn.exec_batch(
+            query,
+            items
+                .iter()
+                .map(|item| params! {"uuid" => &item.uuid, "url" => &item.url}),
+        )?;
 
         Ok(())
     }
 
-    fn get_station_by_uuid(&self, id_str: &str) -> Result<Vec<StationItem>,Box<dyn Error>> {
+    fn get_station_by_uuid(&self, id_str: &str) -> Result<Vec<DbStationItem>, Box<dyn Error>> {
         let query = format!(
             "SELECT {columns} from Station WHERE StationUuid=? ORDER BY Name",
             columns = MysqlConnection::COLUMNS
@@ -668,16 +1008,20 @@ impl DbConnection for MysqlConnection {
         self.get_list_from_query_result(results)
     }
 
-    fn get_stations_by_uuid(&self, uuids: Vec<String>) -> Result<Vec<StationItem>, Box<dyn Error>> {
+    fn get_stations_by_uuid(&self, uuids: Vec<String>) -> Result<Vec<DbStationItem>, Box<dyn Error>> {
         let search_params: Vec<Value> = uuids.iter().map(|item| item.clone().into()).collect();
         let search_query: Vec<&str> = (0..search_params.len()).map(|_item| "?").collect();
 
         if search_query.len() > 0 {
-            let query_select_stations_by_uuid = format!("SELECT {columns} FROM Station WHERE StationUuid IN ({items})", items=search_query.join(","),columns=MysqlConnection::COLUMNS);
+            let query_select_stations_by_uuid = format!(
+                "SELECT {columns} FROM Station WHERE StationUuid IN ({items})",
+                items = search_query.join(","),
+                columns = MysqlConnection::COLUMNS
+            );
             let mut conn = self.pool.get_conn()?;
             let result = conn.exec_iter(query_select_stations_by_uuid, search_params)?;
             self.get_list_from_query_result(result)
-        }else{
+        } else {
             Ok(vec![])
         }
     }
@@ -690,7 +1034,11 @@ impl DbConnection for MysqlConnection {
         self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastCheckOK=0 AND LastCheckOkTime IS NOT NULL AND LastCheckOkTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND", params!(seconds))
     }
 
-    fn get_stations_broken(&self, offset: u32, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+    fn get_stations_broken(
+        &self,
+        offset: u32,
+        limit: u32,
+    ) -> Result<Vec<DbStationItem>, Box<dyn Error>> {
         self.get_stations_query(format!(
             "SELECT {columns} from Station WHERE LastCheckOK=FALSE ORDER BY rand() LIMIT {offset},{limit}",
             columns = MysqlConnection::COLUMNS,
@@ -699,7 +1047,12 @@ impl DbConnection for MysqlConnection {
         ))
     }
 
-    fn get_stations_topvote(&self, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+    fn get_stations_topvote(
+        &self,
+        hidebroken: bool,
+        offset: u32,
+        limit: u32,
+    ) -> Result<Vec<DbStationItem>, Box<dyn Error>> {
         let query: String;
         let hidebroken_string = if hidebroken {
             " WHERE LastCheckOK=TRUE"
@@ -716,7 +1069,12 @@ impl DbConnection for MysqlConnection {
         self.get_stations_query(query)
     }
 
-    fn get_stations_topclick(&self, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+    fn get_stations_topclick(
+        &self,
+        hidebroken: bool,
+        offset: u32,
+        limit: u32,
+    ) -> Result<Vec<DbStationItem>, Box<dyn Error>> {
         let query: String;
         let hidebroken_string = if hidebroken {
             " WHERE LastCheckOK=TRUE"
@@ -733,7 +1091,12 @@ impl DbConnection for MysqlConnection {
         self.get_stations_query(query)
     }
 
-    fn get_stations_lastclick(&self, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+    fn get_stations_lastclick(
+        &self,
+        hidebroken: bool,
+        offset: u32,
+        limit: u32,
+    ) -> Result<Vec<DbStationItem>, Box<dyn Error>> {
         let query: String;
         let hidebroken_string = if hidebroken {
             " WHERE LastCheckOK=TRUE"
@@ -750,7 +1113,12 @@ impl DbConnection for MysqlConnection {
         self.get_stations_query(query)
     }
 
-    fn get_stations_lastchange(&self, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>> {
+    fn get_stations_lastchange(
+        &self,
+        hidebroken: bool,
+        offset: u32,
+        limit: u32,
+    ) -> Result<Vec<DbStationItem>, Box<dyn Error>> {
         let query: String;
         let hidebroken_string = if hidebroken {
             " WHERE LastCheckOK=TRUE"
@@ -777,7 +1145,7 @@ impl DbConnection for MysqlConnection {
         hidebroken: bool,
         offset: u32,
         limit: u32,
-    ) -> Result<Vec<StationItem>, Box<dyn Error>> {
+    ) -> Result<Vec<DbStationItem>, Box<dyn Error>> {
         let order = filter_order(order);
         let reverse_string = if reverse { "DESC" } else { "ASC" };
         let hidebroken_string = if hidebroken {
@@ -805,7 +1173,7 @@ impl DbConnection for MysqlConnection {
         hidebroken: bool,
         offset: u32,
         limit: u32,
-    ) -> Result<Vec<StationItem>, Box<dyn Error>> {
+    ) -> Result<Vec<DbStationItem>, Box<dyn Error>> {
         let order = filter_order(order);
         let reverse_string = if reverse { "DESC" } else { "ASC" };
         let hidebroken_string = if hidebroken {
@@ -840,15 +1208,15 @@ impl DbConnection for MysqlConnection {
         self.get_list_from_query_result(results)
     }
 
-    fn get_stations_by_server_uuids(&self,
+    fn get_stations_by_server_uuids(
+        &self,
         uuids: Vec<String>,
         order: &str,
         reverse: bool,
         hidebroken: bool,
         offset: u32,
-        limit: u32
-    ) -> Result<Vec<StationItem>, Box<dyn Error>>
-    {
+        limit: u32,
+    ) -> Result<Vec<DbStationItem>, Box<dyn Error>> {
         let order = filter_order(order);
         let reverse_string = if reverse { "DESC" } else { "ASC" };
         let hidebroken_string = if hidebroken {
@@ -871,7 +1239,7 @@ impl DbConnection for MysqlConnection {
         hidebroken: bool,
         offset: u32,
         limit: u32,
-    ) -> Result<Vec<StationItem>, Box<dyn Error>> {
+    ) -> Result<Vec<DbStationItem>, Box<dyn Error>> {
         let order = filter_order(order);
         let reverse_string = if reverse { "DESC" } else { "ASC" };
         let hidebroken_string = if hidebroken {
@@ -913,7 +1281,7 @@ impl DbConnection for MysqlConnection {
         hidebroken: bool,
         offset: u32,
         limit: u32,
-    ) -> Result<Vec<StationItem>, Box<dyn Error>> {
+    ) -> Result<Vec<DbStationItem>, Box<dyn Error>> {
         let order = filter_order(order);
         let reverse_string = if reverse { "DESC" } else { "ASC" };
         let hidebroken_string = if hidebroken {
@@ -930,30 +1298,30 @@ impl DbConnection for MysqlConnection {
             Some(has_geo_info) => {
                 if has_geo_info {
                     query.push_str(" AND GeoLat IS NOT NULL AND GeoLong IS NOT NULL");
-                }else{
+                } else {
                     query.push_str(" AND (GeoLat IS NULL OR GeoLong IS NULL)");
                 }
-            },
+            }
             None => {}
         }
         match has_extended_info {
             Some(has_extended_info) => {
                 if has_extended_info {
                     query.push_str(" AND ExtendedInfo=1");
-                }else{
+                } else {
                     query.push_str(" AND ExtendedInfo=0");
                 }
-            },
+            }
             None => {}
         }
         match is_https {
             Some(is_https) => {
                 if is_https {
                     query.push_str(" AND UrlCache LIKE 'https://%'");
-                }else{
+                } else {
                     query.push_str(" AND UrlCache LIKE 'http://%'");
                 }
-            },
+            }
             None => {}
         }
         if name.is_some() {
@@ -997,25 +1365,40 @@ impl DbConnection for MysqlConnection {
         if codec.is_some() {
             query.push_str(" AND LOWER(Codec)=LOWER(:codec)");
         }
-        let mut params: Vec<(String,Value)> = vec!{
+        let mut params: Vec<(String, Value)> = vec![
             (String::from("name"), Value::from(name.unwrap_or_default())),
-            (String::from("country"), Value::from(country.unwrap_or_default())),
-            (String::from("countrycode"), Value::from(countrycode.unwrap_or_default())),
-            (String::from("state"), Value::from(state.unwrap_or_default())),
-            (String::from("language"), Value::from(language.unwrap_or_default())),
+            (
+                String::from("country"),
+                Value::from(country.unwrap_or_default()),
+            ),
+            (
+                String::from("countrycode"),
+                Value::from(countrycode.unwrap_or_default()),
+            ),
+            (
+                String::from("state"),
+                Value::from(state.unwrap_or_default()),
+            ),
+            (
+                String::from("language"),
+                Value::from(language.unwrap_or_default()),
+            ),
             (String::from("tag"), Value::from(tag.unwrap_or_default())),
-            (String::from("codec"), Value::from(codec.unwrap_or_default())),
+            (
+                String::from("codec"),
+                Value::from(codec.unwrap_or_default()),
+            ),
             (String::from("bitrate_min"), Value::from(bitrate_min)),
             (String::from("bitrate_max"), Value::from(bitrate_max)),
-        };
+        ];
         let mut i = 0;
         for tag in tag_list {
             if tag_exact {
                 query.push_str(&format!(" AND ( Tags=:tag{i} OR Tags LIKE CONCAT('%,',:tag{i},',%') OR Tags LIKE CONCAT('%,',:tag{i}) OR Tags LIKE CONCAT(:tag{i},',%'))",i=i));
             } else {
-                query.push_str(&format!(" AND Tags LIKE CONCAT('%',:tag{i},'%')",i=i));
+                query.push_str(&format!(" AND Tags LIKE CONCAT('%',:tag{i},'%')", i = i));
             }
-            params.push((format!("tag{i}",i=i), Value::from(tag)));
+            params.push((format!("tag{i}", i = i), Value::from(tag)));
             i += 1;
         }
         query.push_str(&format!(
@@ -1026,16 +1409,17 @@ impl DbConnection for MysqlConnection {
             offset = offset,
             limit = limit
         ));
-        
         let mut conn = self.pool.get_conn()?;
-        let results = conn.exec_iter(
-            query,
-            params,
-        )?;
+        let results = conn.exec_iter(query, params)?;
         self.get_list_from_query_result(results)
     }
 
-    fn get_changes(&self, stationuuid: Option<String>, changeuuid: Option<String>, limit: u32) -> Result<Vec<StationHistoryItem>, Box<dyn Error>> {
+    fn get_changes(
+        &self,
+        stationuuid: Option<String>,
+        changeuuid: Option<String>,
+        limit: u32,
+    ) -> Result<Vec<StationHistoryItem>, Box<dyn Error>> {
         let changeuuid_str = if changeuuid.is_some() {
             " AND StationChangeID >= IFNULL((SELECT StationChangeID FROM StationHistory WHERE ChangeUuid=:changeuuid),0)
               AND StationChangeID <= (SELECT MAX(StationChangeID) FROM StationHistory WHERE Creation <= UTC_TIMESTAMP() - INTERVAL 60 SECOND)
@@ -1046,10 +1430,9 @@ impl DbConnection for MysqlConnection {
 
         let stationuuid_str = if stationuuid.is_some() {
             " AND StationUuid=:stationuuid"
-        }else{
+        } else {
             ""
         };
-        
         let query: String = format!("SELECT StationChangeID,ChangeUuid,
                 StationUuid,Name,
                 Url,Homepage,
@@ -1063,23 +1446,29 @@ impl DbConnection for MysqlConnection {
                 Date_Format(Creation,'%Y-%m-%d %H:%i:%s') AS CreationFormated
                 from StationHistory WHERE 1=:mynumber {changeuuid_str} {stationuuid} ORDER BY StationChangeID ASC LIMIT {limit}", changeuuid_str = changeuuid_str, stationuuid = stationuuid_str, limit = limit);
         let mut conn = self.pool.get_conn()?;
-        let results = conn.exec_iter(query, params! {
-            "mynumber" => 1,
-            "stationuuid" => stationuuid.unwrap_or(String::from("")),
-            "changeuuid" => changeuuid.unwrap_or(String::from(""))
-        })?;
+        let results = conn.exec_iter(
+            query,
+            params! {
+                "mynumber" => 1,
+                "stationuuid" => stationuuid.unwrap_or(String::from("")),
+                "changeuuid" => changeuuid.unwrap_or(String::from(""))
+            },
+        )?;
         self.get_list_from_query_result(results)
     }
 
     /// Select all historic changes for stations with the given uuids
     /// ordered by creation date
-    fn get_changes_for_stations(&self, mut station_uuids: Vec<String>) -> Result<Vec<StationHistoryItem>, Box<dyn Error>> {
-        if station_uuids.len() > 0{
+    fn get_changes_for_stations(
+        &self,
+        mut station_uuids: Vec<String>,
+    ) -> Result<Vec<StationHistoryItem>, Box<dyn Error>> {
+        if station_uuids.len() > 0 {
             let stationuuids_query: Vec<&str> = (0..station_uuids.len()).map(|_item| "?").collect();
             let stationuuids_str = stationuuids_query.join(",");
 
-            let stationuuids_params: Vec<Value> = station_uuids.drain(..).map(|item| item.into()).collect();
-            
+            let stationuuids_params: Vec<Value> =
+                station_uuids.drain(..).map(|item| item.into()).collect();
             let query: String = format!("SELECT StationChangeID,ChangeUuid,
                     StationUuid,Name,
                     Url,Homepage,
@@ -1100,31 +1489,51 @@ impl DbConnection for MysqlConnection {
         }
     }
 
-    fn add_station_opt(&self, name: Option<String>, url: Option<String>, homepage: Option<String>, favicon: Option<String>,
-        countrycode: Option<String>, state: Option<String>, language: Option<String>, languagecodes: Option<String>, tags: Option<String>, geo_lat: Option<f64>, geo_long: Option<f64>) -> Result<String, Box<dyn Error>> {
+    fn add_station_opt(
+        &self,
+        name: Option<String>,
+        url: Option<String>,
+        homepage: Option<String>,
+        favicon: Option<String>,
+        countrycode: Option<String>,
+        state: Option<String>,
+        language: Option<String>,
+        languagecodes: Option<String>,
+        tags: Option<String>,
+        geo_lat: Option<f64>,
+        geo_long: Option<f64>,
+    ) -> Result<String, Box<dyn Error>> {
         let mut transaction = self.pool.start_transaction(TxOpts::default())?;
 
         let countrycode: String = countrycode.unwrap_or_default().to_uppercase();
-        let country: String = String::from(Country::from_alpha2(&countrycode).map(|c| c.long_name).unwrap_or(""));
+        let country: String = String::from(
+            Country::from_alpha2(&countrycode)
+                .map(|c| c.long_name)
+                .unwrap_or(""),
+        );
 
         let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,LanguageCodes,Tags,ChangeUuid,StationUuid,GeoLat,GeoLong,UrlCache,Creation) 
                         VALUES(:name, :url, :homepage, :favicon, :country, :countrycode, :state, :language, :languagecodes, :tags, :changeuuid, :stationuuid, :geo_lat, :geo_long, '', UTC_TIMESTAMP())");
 
         let name = name.ok_or(DbError::AddStationError(String::from("name is empty")))?;
-        let url = url.map(|x|fix_url(&x, false)).transpose()?;
-        let homepage = homepage.map(|x|fix_url(&x, true)).transpose()?;
+        let url = url.map(|x| fix_url(&x, false)).transpose()?;
+        let homepage = homepage.map(|x| fix_url(&x, true)).transpose()?;
 
         if countrycode.len() != 2 {
-            return Err(Box::new(DbError::AddStationError(String::from("countrycode does not have exactly 2 chars"))));
+            return Err(Box::new(DbError::AddStationError(String::from(
+                "countrycode does not have exactly 2 chars",
+            ))));
         }
 
-        if name.len() > 400{
-            return Err(Box::new(DbError::AddStationError(String::from("name is longer than 400 chars"))));
+        if name.len() > 400 {
+            return Err(Box::new(DbError::AddStationError(String::from(
+                "name is longer than 400 chars",
+            ))));
         }
 
         let stationuuid = Uuid::new_v4().to_hyphenated().to_string();
         let changeuuid = Uuid::new_v4().to_hyphenated().to_string();
-        let params = params!{
+        let params = params! {
             "name" => name,
             "url" => url,
             "homepage" => homepage.unwrap_or_default(),
@@ -1142,7 +1551,11 @@ impl DbConnection for MysqlConnection {
         };
 
         transaction.exec_drop(query, params)?;
-        MysqlConnection::backup_stations_by_uuid(&mut transaction, &(vec![stationuuid.clone()]))?;
+        MysqlConnection::backup_stations_by_uuid(
+            &mut transaction,
+            &(vec![stationuuid.clone()]),
+            "INITIAL",
+        )?;
         transaction.commit()?;
 
         Ok(stationuuid)
@@ -1151,9 +1564,12 @@ impl DbConnection for MysqlConnection {
     fn get_pull_server_lastid(&self, server: &str) -> Result<Option<String>, Box<dyn Error>> {
         let query: String = format!("SELECT lastid FROM PullServers WHERE name=:name");
         let mut conn = self.pool.get_conn()?;
-        let results = conn.exec_iter(query, params!{
-            "name" => server
-        });
+        let results = conn.exec_iter(
+            query,
+            params! {
+                "name" => server
+            },
+        );
         match results {
             Ok(results) => {
                 for result in results {
@@ -1165,23 +1581,29 @@ impl DbConnection for MysqlConnection {
                             }
                         }
                     }
-                };
+                }
                 Ok(None)
-            },
-            _ => Ok(None)
+            }
+            _ => Ok(None),
         }
     }
 
-    fn set_pull_server_lastid(&self, server: &str, lastid: &str) -> Result<(),Box<dyn std::error::Error>> {
-        let params = params!{
+    fn set_pull_server_lastid(
+        &self,
+        server: &str,
+        lastid: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let params = params! {
             "name" => server,
             "lastid" => lastid,
         };
         let mut conn = self.pool.get_conn()?;
-        let query_update: String = format!("UPDATE PullServers SET lastid=:lastid WHERE name=:name");
+        let query_update: String =
+            format!("UPDATE PullServers SET lastid=:lastid WHERE name=:name");
         let results_update = conn.exec_iter(query_update, &params)?.affected_rows();
         if results_update == 0 {
-            let query_insert: String = format!("INSERT INTO PullServers(name, lastid) VALUES(:name,:lastid)");
+            let query_insert: String =
+                format!("INSERT INTO PullServers(name, lastid) VALUES(:name,:lastid)");
             conn.exec_drop(query_insert, &params)?;
         }
         Ok(())
@@ -1190,9 +1612,12 @@ impl DbConnection for MysqlConnection {
     fn get_pull_server_lastcheckid(&self, server: &str) -> Result<Option<String>, Box<dyn Error>> {
         let query: String = format!("SELECT lastcheckid FROM PullServers WHERE name=:name");
         let mut conn = self.pool.get_conn()?;
-        let results = conn.exec_iter(query, params!{
-            "name" => server
-        });
+        let results = conn.exec_iter(
+            query,
+            params! {
+                "name" => server
+            },
+        );
         match results {
             Ok(results) => {
                 for result in results {
@@ -1204,35 +1629,43 @@ impl DbConnection for MysqlConnection {
                             }
                         }
                     }
-                };
+                }
                 Ok(None)
-            },
-            _ => Ok(None)
+            }
+            _ => Ok(None),
         }
     }
 
-    fn set_pull_server_lastcheckid(&self, server: &str, lastcheckid: &str) -> Result<(),Box<dyn std::error::Error>> {
-        let params = params!{
+    fn set_pull_server_lastcheckid(
+        &self,
+        server: &str,
+        lastcheckid: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let params = params! {
             "name" => server,
             "lastcheckid" => lastcheckid,
         };
         let mut conn = self.pool.get_conn()?;
-        let query_update: String = format!("UPDATE PullServers SET lastcheckid=:lastcheckid WHERE name=:name");
+        let query_update: String =
+            format!("UPDATE PullServers SET lastcheckid=:lastcheckid WHERE name=:name");
         let results_update = conn.exec_iter(query_update, &params)?.affected_rows();
         if results_update == 0 {
-            let query_insert: String = format!("INSERT INTO PullServers(name, lastcheckid) VALUES(:name,:lastcheckid)");
+            let query_insert: String =
+                format!("INSERT INTO PullServers(name, lastcheckid) VALUES(:name,:lastcheckid)");
             conn.exec_drop(query_insert, &params)?;
         }
         Ok(())
     }
 
-
     fn get_pull_server_lastclickid(&self, server: &str) -> Result<Option<String>, Box<dyn Error>> {
         let query: String = format!("SELECT lastclickuuid FROM PullServers WHERE name=:name");
         let mut conn = self.pool.get_conn()?;
-        let results = conn.exec_iter(query, params!{
-            "name" => server
-        });
+        let results = conn.exec_iter(
+            query,
+            params! {
+                "name" => server
+            },
+        );
         match results {
             Ok(results) => {
                 for result in results {
@@ -1244,73 +1677,112 @@ impl DbConnection for MysqlConnection {
                             }
                         }
                     }
-                };
+                }
                 Ok(None)
-            },
-            _ => Ok(None)
+            }
+            _ => Ok(None),
         }
     }
 
-    fn set_pull_server_lastclickid(&self, server: &str, lastclickuuid: &str) -> Result<(),Box<dyn std::error::Error>> {
-        let params = params!{
+    fn set_pull_server_lastclickid(
+        &self,
+        server: &str,
+        lastclickuuid: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let params = params! {
             "name" => server,
             "lastclickuuid" => lastclickuuid,
         };
         let mut conn = self.pool.get_conn()?;
-        let query_update: String = format!("UPDATE PullServers SET lastclickuuid=:lastclickuuid WHERE name=:name");
+        let query_update: String =
+            format!("UPDATE PullServers SET lastclickuuid=:lastclickuuid WHERE name=:name");
         let results_update = conn.exec_iter(query_update, &params)?.affected_rows();
         if results_update == 0 {
-            let query_insert: String = format!("INSERT INTO PullServers(name, lastclickuuid) VALUES(:name,:lastclickuuid)");
+            let query_insert: String = format!(
+                "INSERT INTO PullServers(name, lastclickuuid) VALUES(:name,:lastclickuuid)"
+            );
             conn.exec_drop(query_insert, &params)?;
         }
         Ok(())
     }
 
-    fn insert_station_by_change(&self, list_station_changes: &[StationChangeItemNew]) -> Result<Vec<String>,Box<dyn std::error::Error>> {
+    fn insert_station_by_change(
+        &self,
+        list_station_changes: &[StationChangeItemNew],
+    ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         let mut transaction = self.pool.start_transaction(TxOpts::default())?;
 
-        let list_ids = MysqlConnection::insert_station_by_change_internal(&mut transaction, list_station_changes)?;
-        MysqlConnection::backup_stations_by_uuid(&mut transaction, &list_ids)?;
+        let list_ids = MysqlConnection::insert_station_by_change_internal(
+            &mut transaction,
+            list_station_changes,
+        )?;
+        MysqlConnection::backup_stations_by_uuid(&mut transaction, &list_ids, "UNKNOWN")?;
 
         transaction.commit()?;
         Ok(list_ids)
     }
 
-    fn insert_checks(&self, list: Vec<StationCheckItemNew>) -> Result<(Vec<StationCheckItemNew>,Vec<StationCheckItemNew>,Vec<StationCheckItemNew>), Box<dyn std::error::Error>> {
+    fn insert_checks(
+        &self,
+        list: Vec<StationCheckItemNew>,
+    ) -> Result<
+        (
+            Vec<StationCheckItemNew>,
+            Vec<StationCheckItemNew>,
+            Vec<StationCheckItemNew>,
+        ),
+        Box<dyn std::error::Error>,
+    > {
         trace!("insert_checks()");
         let mut transaction = self.pool.start_transaction(TxOpts::default())?;
-        
         // search for checkuuids in history table, if already added (maybe from other source)
         let mut existing_checks_uuids: HashSet<String> = HashSet::new();
         {
-            let search_params: Vec<Value> = list.iter().filter_map(|item| item.checkuuid.clone()).map(|item2| item2.into()).collect();
+            let search_params: Vec<Value> = list
+                .iter()
+                .filter_map(|item| item.checkuuid.clone())
+                .map(|item2| item2.into())
+                .collect();
             let search_query: Vec<&str> = (0..search_params.len()).map(|_item| "?").collect();
 
             if search_query.len() > 0 {
-                let query_delete_old_station_checks = format!("SELECT CheckUuid FROM StationCheckHistory WHERE CheckUuid IN ({})", search_query.join(","));
-                let result = transaction.exec_iter(query_delete_old_station_checks, search_params)?;
+                let query_delete_old_station_checks = format!(
+                    "SELECT CheckUuid FROM StationCheckHistory WHERE CheckUuid IN ({})",
+                    search_query.join(",")
+                );
+                let result =
+                    transaction.exec_iter(query_delete_old_station_checks, search_params)?;
 
                 for row in result {
-                    let (checkuuid, ) = mysql::from_row_opt(row?)?;
+                    let (checkuuid,) = mysql::from_row_opt(row?)?;
                     existing_checks_uuids.replace(checkuuid);
                 }
             }
         }
 
-        trace!("Ignored checks(already existing) for insert: {}", existing_checks_uuids.len());
+        trace!(
+            "Ignored checks(already existing) for insert: {}",
+            existing_checks_uuids.len()
+        );
 
         // search for stations by stationuuid
         let mut existing_stations: HashSet<String> = HashSet::new();
         {
-            let search_params: Vec<Value> = list.iter().map(|item| item.station_uuid.clone().into()).collect();
+            let search_params: Vec<Value> = list
+                .iter()
+                .map(|item| item.station_uuid.clone().into())
+                .collect();
             let search_query: Vec<&str> = (0..search_params.len()).map(|_item| "?").collect();
 
             if search_query.len() > 0 {
-                let query_select_stations_by_uuid = format!("SELECT StationUuid FROM Station WHERE StationUuid IN ({})", search_query.join(","));
+                let query_select_stations_by_uuid = format!(
+                    "SELECT StationUuid FROM Station WHERE StationUuid IN ({})",
+                    search_query.join(",")
+                );
                 let result = transaction.exec_iter(query_select_stations_by_uuid, search_params)?;
 
                 for row in result {
-                    let (stationuuid, ) = mysql::from_row_opt(row?)?;
+                    let (stationuuid,) = mysql::from_row_opt(row?)?;
                     existing_stations.replace(stationuuid);
                 }
             }
@@ -1353,7 +1825,7 @@ impl DbConnection for MysqlConnection {
                             insert_station_check_params.push(checkuuid.into());
                         }
                     }
-                },
+                }
                 None => {
                     // generate new checkuuid
                     match &item.timestamp {
@@ -1365,14 +1837,11 @@ impl DbConnection for MysqlConnection {
                             insert_station_check_query.push("(UUID(),UTC_TIMESTAMP(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(),?,?,?,?,?,?,?)");
                         }
                     }
-                    
                 }
             }
-            
             delete_station_check_params.push(item.station_uuid.clone().into());
             delete_station_check_params.push(item.source.clone().into());
             delete_station_check_query.push("(StationUuid=? AND Source=?)");
-  
             insert_station_check_params.push(item.station_uuid.clone().into());
             insert_station_check_params.push(item.source.clone().into());
             insert_station_check_params.push(item.codec.clone().into());
@@ -1391,7 +1860,6 @@ impl DbConnection for MysqlConnection {
             insert_station_check_params.push(item.favicon.clone().into());
             insert_station_check_params.push(item.loadbalancer.clone().into());
             insert_station_check_params.push(item.do_not_index.clone().into());
-            
             insert_station_check_params.push(item.server_software.clone().into());
             insert_station_check_params.push(item.sampling.clone().into());
             insert_station_check_params.push(item.languagecodes.clone().into());
@@ -1404,25 +1872,35 @@ impl DbConnection for MysqlConnection {
             inserted.push(item);
         }
 
-        trace!("Ignored checks(no stations) for insert: {}", ignored_checks_no_station.len());
+        trace!(
+            "Ignored checks(no stations) for insert: {}",
+            ignored_checks_no_station.len()
+        );
 
         // insert into history table
         if insert_station_check_query.len() > 0 {
             let insert_station_check_params_str = insert_station_check_query.join(",");
             let query_insert_station_check_history = format!("INSERT INTO StationCheckHistory(CheckUuid,CheckTime,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,UrlCache,
                 MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,DoNotIndex,InsertTime,ServerSoftware,Sampling,LanguageCodes,TimingMs,CountrySubdivisionCode,GeoLat,GeoLong) VALUES{}", insert_station_check_params_str);
-            transaction.exec_drop(query_insert_station_check_history, insert_station_check_params)?;
+            transaction.exec_drop(
+                query_insert_station_check_history,
+                insert_station_check_params,
+            )?;
         }
 
         transaction.commit()?;
 
-        Ok((existing_checks,ignored_checks_no_station,inserted))
+        Ok((existing_checks, ignored_checks_no_station, inserted))
     }
 
     /// Select all checks that are currently in the database of a station with the given uuid
     /// and calculate an overall status by majority vote. Ties are broken with the own vote
     /// of the most current check
-    fn update_station_with_check_data(&self, list: &Vec<StationCheckItemNew>, local: bool) -> Result<(), Box<dyn std::error::Error>> {
+    fn update_station_with_check_data(
+        &self,
+        list: &Vec<StationCheckItemNew>,
+        local: bool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         trace!("update_station_with_check_data()");
         let mut transaction = self.pool.start_transaction(TxOpts::default())?;
 
@@ -1435,7 +1913,7 @@ impl DbConnection for MysqlConnection {
         }
         let query_in = list_station_uuid_query.join(",");
 
-        let mut majority_vote: HashMap<String,bool> = HashMap::new();
+        let mut majority_vote: HashMap<String, bool> = HashMap::new();
         if list.len() > 0 {
             // calculate majority vote for checks
             let result = transaction.exec_iter(
@@ -1444,7 +1922,7 @@ impl DbConnection for MysqlConnection {
             )?;
 
             for row in result {
-                let (stationuuid, result): (String, u8,) = mysql::from_row_opt(row?)?;
+                let (stationuuid, result): (String, u8) = mysql::from_row_opt(row?)?;
                 majority_vote.insert(stationuuid, result == 1);
             }
         }
@@ -1453,7 +1931,7 @@ impl DbConnection for MysqlConnection {
             for item in list {
                 let vote = majority_vote.get(&item.station_uuid).unwrap_or(&true);
 
-                let mut params: Vec<(String, Value)> = vec!{
+                let mut params: Vec<(String, Value)> = vec![
                     (String::from("one"), Value::from(1)),
                     (String::from("codec"), Value::from(&item.codec)),
                     (String::from("bitrate"), Value::from(item.bitrate)),
@@ -1461,7 +1939,7 @@ impl DbConnection for MysqlConnection {
                     (String::from("stationuuid"), Value::from(&item.station_uuid)),
                     (String::from("vote"), Value::from(vote)),
                     (String::from("ssl_error"), Value::from(item.ssl_error)),
-                };
+                ];
 
                 if item.metainfo_overrides_database {
                     let mut query = vec![];
@@ -1469,46 +1947,49 @@ impl DbConnection for MysqlConnection {
                     if !do_not_index {
                         debug!("override station: uuid='{}'", item.station_uuid);
 
-                        params.push((String::from("urlcache"), item.url.clone().into(),));
+                        params.push((String::from("urlcache"), item.url.clone().into()));
 
                         if let Some(name) = &item.name {
-                            params.push((String::from("name"),name.into(),));
+                            params.push((String::from("name"), name.into()));
                             query.push("Name=:name");
                         }
                         if let Some(homepage) = &item.homepage {
-                            params.push((String::from("homepage"),homepage.into(),));
+                            params.push((String::from("homepage"), homepage.into()));
                             query.push("Homepage=:homepage");
                         }
                         if let Some(loadbalancer) = &item.loadbalancer {
-                            params.push((String::from("loadbalancer"),loadbalancer.into(),));
+                            params.push((String::from("loadbalancer"), loadbalancer.into()));
                             query.push("Url=:loadbalancer");
                         }
                         if let Some(countrycode) = &item.countrycode {
-                            params.push((String::from("countrycode"),countrycode.into(),));
+                            params.push((String::from("countrycode"), countrycode.into()));
                             query.push("CountryCode=UPPER(:countrycode)");
                         }
                         if let Some(countrysubdivisioncode) = &item.countrysubdivisioncode {
-                            params.push((String::from("countrysubdivisioncode"),countrysubdivisioncode.into(),));
+                            params.push((
+                                String::from("countrysubdivisioncode"),
+                                countrysubdivisioncode.into(),
+                            ));
                             query.push("CountrySubdivisionCode=UPPER(:countrysubdivisioncode)");
                         }
                         if let Some(tags) = &item.tags {
-                            params.push((String::from("tags"),fix_multi_field(tags).into(),));
+                            params.push((String::from("tags"), fix_multi_field(tags).into()));
                             query.push("Tags=:tags");
                         }
                         if let Some(favicon) = &item.favicon {
-                            params.push((String::from("favicon"),favicon.into(),));
+                            params.push((String::from("favicon"), favicon.into()));
                             query.push("Favicon=:favicon");
                         }
                         if let Some(geo_lat) = &item.geo_lat {
-                            params.push((String::from("geo_lat"),geo_lat.into(),));
+                            params.push((String::from("geo_lat"), geo_lat.into()));
                             query.push("GeoLat=:geo_lat");
                         }
                         if let Some(geo_long) = &item.geo_long {
-                            params.push((String::from("geo_long"),geo_long.into(),));
+                            params.push((String::from("geo_long"), geo_long.into()));
                             query.push("GeoLong=:geo_long");
                         }
                         if let Some(languagecodes) = &item.languagecodes {
-                            params.push((String::from("languagecodes"),languagecodes.into(),));
+                            params.push((String::from("languagecodes"), languagecodes.into()));
                             query.push("LanguageCodes=:languagecodes");
                         }
                         query.push("SslError=:ssl_error");
@@ -1521,19 +2002,19 @@ impl DbConnection for MysqlConnection {
                             let query_update_ok = format!("UPDATE Station SET ExtendedInfo=TRUE,LastCheckOkTime=UTC_TIMESTAMP(),LastCheckTime=UTC_TIMESTAMP(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache,{} WHERE StationUuid=:stationuuid", query.join(","));
                             transaction.exec_drop(query_update_ok, params)?;
                         }
-                    }else{
+                    } else {
                         let query_delete = "DELETE FROM Station WHERE StationUuid=:stationuuid";
                         transaction.exec_drop(query_delete, params)?;
                     }
-                }else{
+                } else {
                     if item.check_ok {
-                        params.push((String::from("urlcache"), item.url.clone().into(),));
+                        params.push((String::from("urlcache"), item.url.clone().into()));
 
                         let query_update_ok = format!("UPDATE Station SET ExtendedInfo=FALSE,{lastlocalchecktime}LastCheckOkTime=UTC_TIMESTAMP(),LastCheckTime=UTC_TIMESTAMP(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache,LastCheckOk=:vote,SslError=:ssl_error WHERE StationUuid=:stationuuid",
                             lastlocalchecktime = if local {"LastLocalCheckTime=UTC_TIMESTAMP(),"} else {""},
                         );
                         transaction.exec_drop(query_update_ok, params)?;
-                    }else{
+                    } else {
                         let query_update_check_ok = format!("UPDATE Station st SET {lastlocalchecktime}LastCheckTime=UTC_TIMESTAMP(),LastCheckOk=:vote WHERE StationUuid=:stationuuid",
                             lastlocalchecktime = if local {"LastLocalCheckTime=UTC_TIMESTAMP(),"} else {""},
                         );
@@ -1554,13 +2035,15 @@ impl DbConnection for MysqlConnection {
         {
             let mut search_click_params: Vec<Value> = vec![];
             let mut search_click_query = vec![];
-            
             for item in list {
                 search_click_params.push(item.clickuuid.clone().into());
                 search_click_query.push("?");
             }
             {
-                let query = format!("SELECT ClickUuid FROM StationClick WHERE ClickUuid IN ({})", search_click_query.join(","));
+                let query = format!(
+                    "SELECT ClickUuid FROM StationClick WHERE ClickUuid IN ({})",
+                    search_click_query.join(",")
+                );
                 let result = transaction.exec_iter(query, search_click_params)?;
                 for row in result {
                     let (clickuuid,) = mysql::from_row_opt(row?)?;
@@ -1569,7 +2052,10 @@ impl DbConnection for MysqlConnection {
             }
         }
 
-        trace!("Ignored clicks(already existing) for insert: {}", found_clickuuids.len());
+        trace!(
+            "Ignored clicks(already existing) for insert: {}",
+            found_clickuuids.len()
+        );
 
         let mut found_stationuuids: Vec<String> = vec![];
         {
@@ -1580,7 +2066,10 @@ impl DbConnection for MysqlConnection {
                 search_station_query.push("?");
             }
             {
-                let query = format!("SELECT StationUuid FROM Station WHERE StationUuid IN ({})", search_station_query.join(","));
+                let query = format!(
+                    "SELECT StationUuid FROM Station WHERE StationUuid IN ({})",
+                    search_station_query.join(",")
+                );
                 let result = transaction.exec_iter(query, search_station_params)?;
                 for row in result {
                     let (stationuuid,) = mysql::from_row_opt(row?)?;
@@ -1618,8 +2107,19 @@ impl DbConnection for MysqlConnection {
         Ok(())
     }
 
-    fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32, include_history: bool, limit: u32) -> Result<Vec<StationCheckItem>, Box<dyn Error>> {
-        let table_name = if include_history { "StationCheckHistory" } else { "StationCheck" };
+    fn get_checks(
+        &self,
+        stationuuid: Option<String>,
+        checkuuid: Option<String>,
+        seconds: u32,
+        include_history: bool,
+        limit: u32,
+    ) -> Result<Vec<StationCheckItem>, Box<dyn Error>> {
+        let table_name = if include_history {
+            "StationCheckHistory"
+        } else {
+            "StationCheck"
+        };
         let where_seconds = if seconds > 0 {
             format!(
                 "AND TIMESTAMPDIFF(SECOND,CheckTime,UTC_TIMESTAMP())<{seconds}",
@@ -1629,20 +2129,20 @@ impl DbConnection for MysqlConnection {
             String::from("")
         };
 
-        let mut query_params: Vec<(String, Value)> = vec!{(String::from("one"), Value::from(1))};
+        let mut query_params: Vec<(String, Value)> = vec![(String::from("one"), Value::from(1))];
         let where_checkuuid_str = match checkuuid {
             Some(checkuuid) => {
-                query_params.push((String::from("checkuuid"), checkuuid.into(),));
+                query_params.push((String::from("checkuuid"), checkuuid.into()));
                 format!(" AND CheckID >= IFNULL((SELECT CheckID FROM StationCheckHistory WHERE CheckUuid=:checkuuid),0)
                           AND CheckID <= (SELECT MAX(CheckID) FROM StationCheckHistory WHERE InsertTime <= UTC_TIMESTAMP() - INTERVAL 60 SECOND)
                           AND CheckUuid<>:checkuuid")
-            },
-            None => String::from("")
+            }
+            None => String::from(""),
         };
 
         let query = match stationuuid {
             Some(stationuuid) => {
-                query_params.push((String::from("stationuuid"), stationuuid.into(),));
+                query_params.push((String::from("stationuuid"), stationuuid.into()));
                 format!("SELECT {columns} FROM {table_name} WHERE StationUuid=:stationuuid {where_checkuuid} {where_seconds} ORDER BY CheckID LIMIT {limit}", columns = MysqlConnection::COLUMNS_CHECK, where_seconds = where_seconds, where_checkuuid = where_checkuuid_str, table_name = table_name, limit = limit)
             }
             None => {
@@ -1657,7 +2157,12 @@ impl DbConnection for MysqlConnection {
         self.get_list_from_query_result(results)
     }
 
-    fn get_clicks(&self, stationuuid: Option<String>, clickuuid: Option<String>, seconds: u32) -> Result<Vec<StationClickItem>, Box<dyn Error>> {
+    fn get_clicks(
+        &self,
+        stationuuid: Option<String>,
+        clickuuid: Option<String>,
+        seconds: u32,
+    ) -> Result<Vec<StationClickItem>, Box<dyn Error>> {
         let where_seconds = if seconds > 0 {
             format!(
                 "AND TIMESTAMPDIFF(SECOND,ClickTimestamp,UTC_TIMESTAMP())<{seconds}",
@@ -1667,19 +2172,19 @@ impl DbConnection for MysqlConnection {
             String::from("")
         };
 
-        let mut query_params: Vec<(String, Value)> = vec!{(String::from("one"), Value::from(1))};
+        let mut query_params: Vec<(String, Value)> = vec![(String::from("one"), Value::from(1))];
         let where_clickuuid_str = match clickuuid {
             Some(clickuuid) => {
-                query_params.push((String::from("clickuuid"), clickuuid.into(),));
+                query_params.push((String::from("clickuuid"), clickuuid.into()));
                 " AND ClickID >= IFNULL((SELECT ClickID FROM StationClick WHERE ClickUuid=:clickuuid),0)
                   AND ClickID <= (SELECT MAX(ClickID) FROM StationClick WHERE InsertTime <= UTC_TIMESTAMP() - INTERVAL 60 SECOND)
                   AND ClickUuid<>:clickuuid"
-            },
-            None => ""
+            }
+            None => "",
         };
         let query = match stationuuid {
             Some(stationuuid) => {
-                query_params.push((String::from("stationuuid"), stationuuid.into(),));
+                query_params.push((String::from("stationuuid"), stationuuid.into()));
                 format!("SELECT {columns} FROM StationClick WHERE StationUuid=:stationuuid {where_clickuuid} {where_seconds} ORDER BY ClickID LIMIT 10000", columns = MysqlConnection::COLUMNS_CLICK, where_seconds = where_seconds, where_clickuuid = where_clickuuid_str)
             }
             None => {
@@ -1776,7 +2281,7 @@ impl DbConnection for MysqlConnection {
             }
         }?;
 
-        let mut stations = vec!();
+        let mut stations = vec![];
         for row in result {
             let row = row?;
             let (name, stationcount) = mysql::from_row_opt(row)?;
@@ -1832,14 +2337,19 @@ impl DbConnection for MysqlConnection {
 
     /// Get items from a single column from Station table, add number of occurences
     /// Supports columns with multiple values that are split by komma
-    fn get_stations_multi_items(&self, column_name: &str) -> Result<HashMap<String, (u32,u32)>, Box<dyn Error>> {
+    fn get_stations_multi_items(
+        &self,
+        column_name: &str,
+    ) -> Result<HashMap<String, (u32, u32)>, Box<dyn Error>> {
         let mut items = HashMap::new();
         let mut conn = self.pool.get_conn()?;
-        let result = conn
-            .exec_iter(format!(
+        let result = conn.exec_iter(
+            format!(
                 "SELECT {column_name}, LastCheckOK FROM Station",
                 column_name = column_name
-            ), ())?;
+            ),
+            (),
+        )?;
 
         for row in result {
             let (tags_str, ok): (String, bool) = mysql::from_row_opt(row?)?;
@@ -1847,9 +2357,9 @@ impl DbConnection for MysqlConnection {
             for single_tag in tags_arr {
                 let single_tag_trimmed = single_tag.trim().to_lowercase();
                 if single_tag_trimmed != "" {
-                    let counter = items.entry(single_tag_trimmed).or_insert((0,0));
+                    let counter = items.entry(single_tag_trimmed).or_insert((0, 0));
                     counter.0 += 1;
-                    if ok{
+                    if ok {
                         counter.1 += 1;
                     }
                 }
@@ -1866,12 +2376,14 @@ impl DbConnection for MysqlConnection {
     ) -> Result<HashMap<String, (u32, u32)>, Box<dyn Error>> {
         let mut items = HashMap::new();
         let mut conn = self.pool.get_conn()?;
-        let result = conn
-            .exec_iter(format!(
+        let result = conn.exec_iter(
+            format!(
                 "SELECT {column_name},StationCount, StationCountWorking FROM {table_name}",
                 table_name = table_name,
                 column_name = column_name
-            ), ())?;
+            ),
+            (),
+        )?;
 
         for row in result {
             let (key, value, value_working): (String, u32, u32) = mysql::from_row_opt(row?)?;
@@ -1894,21 +2406,36 @@ impl DbConnection for MysqlConnection {
             table_name = table_name,
             column_name = column_name
         );
-        self.pool.get_conn()?.exec_drop(query, (count, count_working, tag))?;
+        self.pool
+            .get_conn()?
+            .exec_drop(query, (count, count_working, tag))?;
         Ok(())
     }
 
-    fn insert_to_cache(&self, tags: HashMap<&String, (u32,u32)>, table_name: &str, column_name: &str) -> Result<(), Box<dyn Error>> {
+    fn insert_to_cache(
+        &self,
+        tags: HashMap<&String, (u32, u32)>,
+        table_name: &str,
+        column_name: &str,
+    ) -> Result<(), Box<dyn Error>> {
         let query = format!(
             r"INSERT INTO {table_name}({column_name},StationCount,StationCountWorking) VALUES(?,?,?)",
             table_name = table_name,
             column_name = column_name
         );
-        self.pool.get_conn()?.exec_batch(query, tags.iter().map(|item| (item.0, (item.1).0, (item.1).1)))?;
+        self.pool.get_conn()?.exec_batch(
+            query,
+            tags.iter().map(|item| (item.0, (item.1).0, (item.1).1)),
+        )?;
         Ok(())
     }
 
-    fn remove_from_cache(&self, tags: Vec<&String>, table_name: &str, column_name: &str) -> Result<(), Box<dyn Error>> {
+    fn remove_from_cache(
+        &self,
+        tags: Vec<&String>,
+        table_name: &str,
+        column_name: &str,
+    ) -> Result<(), Box<dyn Error>> {
         let mut query = format!(
             "DELETE FROM {table_name} WHERE {column_name}=''",
             table_name = table_name,
@@ -1923,59 +2450,94 @@ impl DbConnection for MysqlConnection {
         Ok(())
     }
 
-    fn vote_for_station(&self, ip: &str, station: Option<StationItem>) -> Result<String, Box<dyn Error>> {
+    fn vote_for_station(
+        &self,
+        ip: &str,
+        station: Option<DbStationItem>,
+    ) -> Result<String, Box<dyn Error>> {
         match station {
             Some(station) => {
                 let mut conn = self.pool.get_conn()?;
                 // delete ipcheck entries after 1 day minutes
-                let query_1_delete = format!(r#"DELETE FROM IPVoteCheck WHERE TIME_TO_SEC(TIMEDIFF(UTC_TIMESTAMP,VoteTimestamp))>24*60*60"#);
+                let query_1_delete = format!(
+                    r#"DELETE FROM IPVoteCheck WHERE TIME_TO_SEC(TIMEDIFF(UTC_TIMESTAMP,VoteTimestamp))>24*60*60"#
+                );
                 conn.exec_drop(query_1_delete, ())?;
 
                 // was there a vote from the ip in the last 1 day?
-                let query_2_vote_check = "SELECT StationID FROM IPVoteCheck WHERE StationID=:id AND IP=:ip";
-                let result_2_vote_check = conn.exec_iter(query_2_vote_check, params!(ip, "id" => station.id))?;
+                let query_2_vote_check =
+                    "SELECT StationID FROM IPVoteCheck WHERE StationID=:id AND IP=:ip";
+                let result_2_vote_check =
+                    conn.exec_iter(query_2_vote_check, params!(ip, "id" => station.id))?;
                 for resultsingle in result_2_vote_check {
                     for _ in resultsingle {
                         // do not allow vote
-                        return Err(Box::new(DbError::VoteError("you are voting for the same station too often".to_string())));
+                        return Err(Box::new(DbError::VoteError(
+                            "you are voting for the same station too often".to_string(),
+                        )));
                     }
                 }
 
                 // add vote entry
                 let query_3_insert_votecheck = "INSERT INTO IPVoteCheck(IP,StationID,VoteTimestamp) VALUES(:ip,:id,UTC_TIMESTAMP())";
-                let result_3_insert_votecheck =
-                    conn.exec_iter(query_3_insert_votecheck, params!(ip,"id" => station.id))?.affected_rows();
+                let result_3_insert_votecheck = conn
+                    .exec_iter(query_3_insert_votecheck, params!(ip,"id" => station.id))?
+                    .affected_rows();
                 if result_3_insert_votecheck == 0 {
-                    return Err(Box::new(DbError::VoteError("could not insert vote check".to_string())));
+                    return Err(Box::new(DbError::VoteError(
+                        "could not insert vote check".to_string(),
+                    )));
                 }
 
                 // vote for station
                 let query_4_update_votes = "UPDATE Station SET Votes=Votes+1 WHERE StationID=:id";
-                let result_4_update_votes = conn.exec_iter(query_4_update_votes, params!("id" => station.id))?.affected_rows();
+                let result_4_update_votes = conn
+                    .exec_iter(query_4_update_votes, params!("id" => station.id))?
+                    .affected_rows();
                 if result_4_update_votes == 1 {
                     Ok("voted for station successfully".to_string())
                 } else {
-                    Err(Box::new(DbError::VoteError("could not find station with matching id".to_string())))
+                    Err(Box::new(DbError::VoteError(
+                        "could not find station with matching id".to_string(),
+                    )))
                 }
             }
-            _ => Err(Box::new(DbError::VoteError("could not find station with matching id".to_string()))),
+            _ => Err(Box::new(DbError::VoteError(
+                "could not find station with matching id".to_string(),
+            ))),
         }
     }
 
-    fn increase_clicks(&self, ip: &str, station: &StationItem, seconds: u64) -> Result<bool,Box<dyn std::error::Error>> {
+    fn increase_clicks(
+        &self,
+        ip: &str,
+        station: &DbStationItem,
+        seconds: u64,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
         let mut conn = self.pool.get_conn()?;
         let query = "SELECT StationUuid, IP FROM StationClick WHERE StationUuid=:stationuuid AND IP=:ip AND TIME_TO_SEC(TIMEDIFF(UTC_TIMESTAMP(),ClickTimestamp))<:seconds";
-        let result = conn.exec_iter(query, params!{"stationuuid" => &station.stationuuid, ip, seconds})?;
+        let result = conn.exec_iter(
+            query,
+            params! {"stationuuid" => &station.stationuuid, ip, seconds},
+        )?;
 
         for _ in result {
             return Ok(false);
         }
 
         let query2 = "INSERT INTO StationClick(IP,StationUuid,ClickUuid,ClickTimestamp,InsertTime) VALUES(:ip,:stationuuid,UUID(),UTC_TIMESTAMP(),UTC_TIMESTAMP())";
-        let result2 = conn.exec_iter(query2, params!{"stationuuid" => &station.stationuuid, "ip" => ip})?.affected_rows();
+        let result2 = conn
+            .exec_iter(
+                query2,
+                params! {"stationuuid" => &station.stationuuid, "ip" => ip},
+            )?
+            .affected_rows();
 
-        let query3 = "UPDATE Station SET ClickTimestamp=UTC_TIMESTAMP() WHERE StationUuid=:stationuuid";
-        let result3 = conn.exec_iter(query3, params!{"stationuuid" => &station.stationuuid})?.affected_rows();
+        let query3 =
+            "UPDATE Station SET ClickTimestamp=UTC_TIMESTAMP() WHERE StationUuid=:stationuuid";
+        let result3 = conn
+            .exec_iter(query3, params! {"stationuuid" => &station.stationuuid})?
+            .affected_rows();
 
         if result2 == 1 && result3 == 1 {
             return Ok(true);
@@ -1990,7 +2552,7 @@ impl DbConnection for MysqlConnection {
         // get current list of votes in database
         let mut stations_current: HashMap<String, i32> = HashMap::new();
         {
-            let result = transaction.exec_iter("SELECT StationUuid,Votes FROM Station",())?;
+            let result = transaction.exec_iter("SELECT StationUuid,Votes FROM Station", ())?;
             for row in result {
                 let (stationuuid, votes): (String, i32) = mysql::from_row_opt(row?)?;
                 stations_current.insert(stationuuid, votes);
@@ -1998,7 +2560,7 @@ impl DbConnection for MysqlConnection {
         }
         trace!("sync_votes() 2");
         // compare and search for changes
-        let mut rows_to_update: Vec<(String,i32)> = vec![];
+        let mut rows_to_update: Vec<(String, i32)> = vec![];
         for station in list {
             let entry = stations_current.remove_entry(&station.stationuuid);
             if let Some(entry) = entry {
@@ -2011,7 +2573,12 @@ impl DbConnection for MysqlConnection {
         trace!("sync_votes() 3");
         // update changed votes
         {
-            transaction.exec_batch("UPDATE Station SET Votes=GREATEST(Votes,:votes) WHERE StationUuid=:stationuuid;", rows_to_update.iter().map(|(stationuuid, votes)| params!(votes, stationuuid)))?;
+            transaction.exec_batch(
+                "UPDATE Station SET Votes=GREATEST(Votes,:votes) WHERE StationUuid=:stationuuid;",
+                rows_to_update
+                    .iter()
+                    .map(|(stationuuid, votes)| params!(votes, stationuuid)),
+            )?;
         }
         trace!("sync_votes() 4");
         transaction.commit()?;
@@ -2019,8 +2586,10 @@ impl DbConnection for MysqlConnection {
         Ok(())
     }
 
-    fn insert_station_check_steps(&mut self, station_check_steps: &[StationCheckStepItemNew])
-    -> Result<(),Box<dyn std::error::Error>> {
+    fn insert_station_check_steps(
+        &mut self,
+        station_check_steps: &[StationCheckStepItemNew],
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let mut conn = self.pool.get_conn()?;
         conn.exec_batch(
             r"INSERT INTO StationCheckStep (StationUuid,CheckUuid,Url,UrlType,Error,StepUuid,ParentStepUuid,InsertTime)
@@ -2038,8 +2607,9 @@ impl DbConnection for MysqlConnection {
         Ok(())
     }
 
-    fn select_station_check_steps(&self)
-    -> Result<Vec<StationCheckStepItem>,Box<dyn std::error::Error>> {
+    fn select_station_check_steps(
+        &self,
+    ) -> Result<Vec<StationCheckStepItem>, Box<dyn std::error::Error>> {
         let mut conn = self.pool.get_conn()?;
         let list = conn.query_map("SELECT Id,StationUuid,CheckUuid,Url,UrlType,Error,StepUuid,ParentStepUuid,InsertTime FROM StationCheckStep",
             |(id,stationuuid,checkuuid,url,urltype,error,stepuuid,parent_stepuuid,inserttime)| {
@@ -2051,10 +2621,12 @@ impl DbConnection for MysqlConnection {
         Ok(list)
     }
 
-    fn select_station_check_steps_by_stations(&self, stationuuids: &[String])
-    -> Result<Vec<StationCheckStepItem>,Box<dyn std::error::Error>> {
+    fn select_station_check_steps_by_stations(
+        &self,
+        stationuuids: &[String],
+    ) -> Result<Vec<StationCheckStepItem>, Box<dyn std::error::Error>> {
         let mut conn = self.pool.get_conn()?;
-        if stationuuids.len() > 0{
+        if stationuuids.len() > 0 {
             let mut select_params: Vec<Value> = vec![];
             let mut select_query = vec![];
             for stationuuid in stationuuids {
@@ -2063,21 +2635,45 @@ impl DbConnection for MysqlConnection {
             }
 
             let query = format!("SELECT Id,StationUuid,CheckUuid,Url,UrlType,Error,StepUuid,ParentStepUuid,InsertTime FROM StationCheckStep WHERE StationUuid IN ({})", select_query.join(","));
-            let list = conn.exec_map(query, select_params,
-                |(id,stationuuid,checkuuid,url,urltype,error,stepuuid,parent_stepuuid,inserttime)| {
-                let inserttime = chrono::DateTime::<chrono::Utc>::from_utc(inserttime, chrono::Utc);
-                StationCheckStepItem{
-                    id,stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,inserttime
-                }
-            })?;
+            let list = conn.exec_map(
+                query,
+                select_params,
+                |(
+                    id,
+                    stationuuid,
+                    checkuuid,
+                    url,
+                    urltype,
+                    error,
+                    stepuuid,
+                    parent_stepuuid,
+                    inserttime,
+                )| {
+                    let inserttime =
+                        chrono::DateTime::<chrono::Utc>::from_utc(inserttime, chrono::Utc);
+                    StationCheckStepItem {
+                        id,
+                        stepuuid,
+                        parent_stepuuid,
+                        checkuuid,
+                        stationuuid,
+                        url,
+                        urltype,
+                        error,
+                        inserttime,
+                    }
+                },
+            )?;
             Ok(list)
         } else {
             Ok(vec![])
         }
     }
 
-    fn delete_old_station_check_steps(&mut self, seconds: u32)
-    -> Result<(),Box<dyn std::error::Error>> {
+    fn delete_old_station_check_steps(
+        &mut self,
+        seconds: u32,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let delete_never_working_query = "DELETE FROM StationCheckStep WHERE InsertTime < UTC_TIMESTAMP() - INTERVAL :seconds SECOND";
         let mut conn = self.pool.get_conn()?;
         conn.exec_drop(delete_never_working_query, params!(seconds))?;
@@ -2086,7 +2682,10 @@ impl DbConnection for MysqlConnection {
 }
 
 fn fix_multi_field(value: &str) -> String {
-    let values: Vec<String> = value.split(",").map(|v| v.trim().to_lowercase().to_string()).collect();
+    let values: Vec<String> = value
+        .split(",")
+        .map(|v| v.trim().to_lowercase().to_string())
+        .collect();
     values.join(",")
 }
 
@@ -2138,22 +2737,32 @@ fn fix_url(u: &str, allow_empty: bool) -> Result<String, Box<dyn std::error::Err
     if url_str.is_empty() {
         if allow_empty {
             return Ok(url_str.to_string());
-        }else{
-            return Err(Box::new(DbError::AddStationError(String::from("empty url not allowed"))));
+        } else {
+            return Err(Box::new(DbError::AddStationError(String::from(
+                "empty url not allowed",
+            ))));
         }
     }
     let url = Url::parse(url_str)?;
     let scheme = url.scheme().to_lowercase();
     if !scheme.eq("http") && !scheme.eq("https") {
-        return Err(Box::new(DbError::AddStationError(String::from("unknown url scheme"))));
+        return Err(Box::new(DbError::AddStationError(String::from(
+            "unknown url scheme",
+        ))));
     }
     let url = url.to_string();
     Ok(url)
 }
 
-fn ok_output<U,V>(t: Result<U, V>, msg: &str) -> Option<U> where V: std::error::Error {
+fn ok_output<U, V>(t: Result<U, V>, msg: &str) -> Option<U>
+where
+    V: std::error::Error,
+{
     match t {
         Ok(u) => Some(u),
-        Err(v) => {error!("{}: {}", msg, v); None}
+        Err(v) => {
+            error!("{}: {}", msg, v);
+            None
+        }
     }
 }

@@ -14,18 +14,6 @@ listen-host = "127.0.0.1"
 listen-port = 8080
 ## How many concurrent threads used by socket
 threads = 5
-## Update caches at an interval
-update-caches-interval = "5mins"
-## The same ip cannot do clicks for the same stream in this timespan
-click-valid-timeout = "1day"
-## Broken streams are removed after this timespan, if they have never worked.
-broken-stations-never-working-timeout = "3days"
-## Broken streams are removed after this timespan.
-broken-stations-timeout = "30days"
-## Checks are removed after this timespan.
-checks-timeout = "30days"
-## Checks are removed after this timespan.
-clicks-timeout = "30days"
 ## Documentation url to be used if automatic way is not working (HTTP/1.0)
 server-url = "https://de1.api.radio-browser.info"
 
@@ -93,13 +81,30 @@ server-info-check = false
 # Chunksize for checking servers
 server-info-check-chunksize = 100
 
+# Try to extract favicon from website for empty favicons
+enable-extract-favicon = false
+
 ## Cleanup
 ## =======
+## Update caches at an interval
+update-caches-interval = "5mins"
+## The same ip cannot do clicks for the same stream in this timespan
+click-valid-timeout = "1day"
+## Broken streams are removed after this timespan, if they have never worked.
+broken-stations-never-working-timeout = "3days"
+## Broken streams are removed after this timespan.
+broken-stations-timeout = "30days"
+## Checks are removed after this timespan.
+checks-timeout = "30days"
+## Checks are removed after this timespan.
+clicks-timeout = "30days"
 ## File path to CSV for replacing languages (local path or http/https)
 #replace-language-file = "https://radiobrowser.gitlab.io/radiobrowser-static-data/language-replace.csv"
 replace-language-file = "./etc/language-replace.csv"
 ## File path to CSV for mapping language to code (local path or http/https)
 language-to-code-file = "./etc/language-to-code.csv"
+# Check if current favicon in database still works, and remove them if not
+recheck-existing-favicon = false
 
 ## Mirroring
 ## =========

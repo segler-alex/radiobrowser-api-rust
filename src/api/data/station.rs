@@ -1,6 +1,6 @@
 use crate::api::api_response::ApiResponse;
 use crate::api::data::StationHistoryCurrent;
-use crate::db::models::StationItem;
+use crate::db::models::DbStationItem;
 use std::error::Error;
 use chrono::NaiveDateTime;
 use chrono::DateTime;
@@ -454,8 +454,8 @@ impl From<&StationHistoryCurrent> for Station {
     }
 }
 
-impl From<StationItem> for Station {
-    fn from(item: StationItem) -> Self {
+impl From<DbStationItem> for Station {
+    fn from(item: DbStationItem) -> Self {
         Station {
             changeuuid: item.changeuuid,
             stationuuid: item.stationuuid,

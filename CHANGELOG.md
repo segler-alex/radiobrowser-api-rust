@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+* CHECK: check websites for favicons, if favicon is currently empty
+* CLEANUP: recheck favicon every day if still existing and delete from station if not
+
+### Changed
+* CLEANUP: add station change entries into the database for language updates
+
 ## [0.7.20] 2021-10-16
 ### Added
 * CLEANUP: language replace, language to code

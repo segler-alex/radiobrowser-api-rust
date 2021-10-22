@@ -1,78 +1,26 @@
-use av_stream_info_rust::StreamCheckResult;
-use crate::db::models;
+use crate::check::favicon::get_best_icon;
+use crate::db::connect;
+use crate::db::models::DbStationItem;
 use crate::db::models::DbStreamingServerNew;
 use crate::db::models::StationCheckItemNew;
 use crate::db::models::StationCheckStepItemNew;
-use crate::db::models::StationItem;
+use av_stream_info_rust;
+use av_stream_info_rust::StreamCheckResult;
+use av_stream_info_rust::UrlType;
+use rayon::prelude::*;
+use reqwest::blocking::Client;
+use std;
+use std::time::Duration;
 use std::time::Instant;
 use url::Url;
 use uuid::Uuid;
-
-use rayon::prelude::*;
-
-use av_stream_info_rust;
-use av_stream_info_rust::UrlType;
-
-use std;
-
-use crate::db::connect;
-
-use colored::*;
+use website_icon_extract::ImageLink;
 
 #[derive(Clone, Debug)]
 pub struct StationOldNew {
-    pub station: StationItem,
+    pub station: DbStationItem,
     pub check: StationCheckItemNew,
     pub steps: Vec<StationCheckStepItemNew>,
-}
-
-fn check_for_change(
-    old: &models::StationItem,
-    new: &StationCheckItemNew,
-    timing_ms: u128,
-) -> (bool, String) {
-    let mut retval = false;
-    let mut result = String::from("");
-
-    if old.lastcheckok != new.check_ok {
-        if new.check_ok {
-            result.push('+');
-            result.red();
-        } else {
-            result.push('-');
-        }
-        retval = true;
-    } else {
-        result.push('~');
-    }
-    result.push(' ');
-    result.push('\'');
-    result.push_str(&old.name);
-    result.push('\'');
-    result.push(' ');
-    result.push_str(&old.url);
-    if old.hls != new.hls {
-        result.push_str(&format!(" hls:{}->{}", old.hls, new.hls));
-        retval = true;
-    }
-    if old.bitrate != new.bitrate {
-        result.push_str(&format!(" bitrate:{}->{}", old.bitrate, new.bitrate));
-        retval = true;
-    }
-    if old.codec != new.codec {
-        result.push_str(&format!(" codec:{}->{}", old.codec, new.codec));
-        retval = true;
-    }
-    result.push_str(&format!(" ({}ms)", timing_ms));
-    if old.lastcheckok != new.check_ok {
-        if new.check_ok {
-            return (retval, result.green().to_string());
-        } else {
-            return (retval, result.red().to_string());
-        }
-    } else {
-        return (retval, result.yellow().to_string());
-    }
 }
 
 /// returns list of
@@ -182,7 +130,7 @@ fn flatten_check_result(
 }
 
 fn dbcheck_internal(
-    station: StationItem,
+    station: DbStationItem,
     source: &str,
     timeout: u64,
     max_depth: u8,
@@ -191,7 +139,7 @@ fn dbcheck_internal(
     let checkuuid = Uuid::new_v4().to_hyphenated().to_string();
     let now = Instant::now();
     trace!("Check started: {} - {}", station.stationuuid, station.name);
-    let checks =
+    let checks: StreamCheckResult =
         av_stream_info_rust::check_tree(&station.url, timeout as u32, max_depth, retries, true);
     let timing_ms = now.elapsed().as_millis();
     let (steps, check) = flatten_check_result(
@@ -234,10 +182,18 @@ pub fn dbcheck(
     max_depth: u8,
     retries: u8,
     add_streaming_servers: bool,
+    recheck_existing_favicon: bool,
+    enable_extract_favicon: bool,
 ) -> Result<usize, Box<dyn std::error::Error>> {
     let mut conn = connect(connection_str)?;
     let stations = conn.get_stations_to_check(24, stations_count)?;
     let checked_count = stations.len();
+    let agent = "radiobrowser-api-rust/0.1.0";
+
+    let client = Client::builder()
+        .user_agent(agent)
+        .timeout(Duration::from_secs(timeout))
+        .build()?;
 
     let pool = rayon::ThreadPoolBuilder::new()
         .num_threads(concurrency)
@@ -245,18 +201,54 @@ pub fn dbcheck(
     let results: Vec<_> = pool.install(|| {
         stations
             .into_par_iter()
+            .map(|mut station| {
+                // check current favicon
+                if !station.favicon.is_empty() && recheck_existing_favicon {
+                    trace!(
+                        "checking favicon {} '{}'",
+                        station.stationuuid,
+                        station.favicon
+                    );
+                    let request = client.head(&station.favicon).send();
+                    //let link = ImageLink::new(&station.favicon, agent, timeout);
+                    if request.is_err() {
+                        debug!(
+                            "removed favicon {} '{}'",
+                            station.stationuuid, station.favicon
+                        );
+                        // reset favicon, it could not be loaded
+                        station.set_favicon(String::new());
+                    }
+                }
+                station
+            })
+            .map(|mut station| {
+                if station.favicon.is_empty() && enable_extract_favicon {
+                    trace!("searching favicon {}", station.stationuuid);
+                    let links = ImageLink::from_website(&station.homepage, agent, timeout);
+                    if let Ok(links) = links {
+                        let icon = get_best_icon(links, 32, 256);
+                        if let Some(icon) = icon {
+                            station.set_favicon(icon.url.to_string());
+                            debug!(
+                                "added favicon {} '{}'",
+                                station.stationuuid, station.favicon
+                            );
+                        }
+                    }
+                }
+                station
+            })
             .map(|station| dbcheck_internal(station, source, timeout, max_depth, retries))
+            //.map(|mut diff| {
+            //    diff.station.set_bitrate(diff.check.bitrate);
+            //    diff.station.set_codec(&diff.check.codec);
+            //    diff.station.set_hls(diff.check.hls);
+            //    diff.station.set_last_check_ok(diff.check.check_ok);
+            //    diff
+            //})
             .collect()
     });
-    for result in results.iter() {
-        let timing_ms = result.check.timing_ms;
-        let (changed, change_str) = check_for_change(&result.station, &result.check, timing_ms);
-        if changed {
-            debug!("{}", change_str.red());
-        } else {
-            debug!("{}", change_str.dimmed());
-        }
-    }
 
     // do real insert
     let mut checks = vec![];
@@ -264,6 +256,11 @@ pub fn dbcheck(
     for result in results {
         checks.push(result.check);
         steps.extend(result.steps);
+
+        if result.station.get_changed() {
+            debug!("changed {}", result.station.stationuuid);
+            conn.update_station_favicon(&result.station, "AUTO")?;
+        }
     }
 
     let (_x, _y, inserted) = conn.insert_checks(checks)?;
@@ -271,7 +268,8 @@ pub fn dbcheck(
     conn.update_station_with_check_data(&inserted, true)?;
 
     if add_streaming_servers {
-        let mut urls_full: Vec<_> = inserted.iter()
+        let mut urls_full: Vec<_> = inserted
+            .iter()
             .filter_map(|station| Url::parse(&station.url).ok())
             .map(|mut url| {
                 url.set_path("/");
@@ -284,9 +282,12 @@ pub fn dbcheck(
         urls_full.sort();
         urls_full.dedup();
 
-        conn.insert_streaming_servers(urls_full.drain(..).map(|base_url|{
-            DbStreamingServerNew::new(base_url, None, None, None)
-        }).collect())?;
+        conn.insert_streaming_servers(
+            urls_full
+                .drain(..)
+                .map(|base_url| DbStreamingServerNew::new(base_url, None, None, None))
+                .collect(),
+        )?;
     }
 
     Ok(checked_count)

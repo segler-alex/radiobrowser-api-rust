@@ -1,4 +1,4 @@
-use crate::db::models::StationItem;
+use crate::db::models::DbStationItem;
 use crate::db::models::StationCheckItem;
 use crate::db::models::StationHistoryItem;
 use crate::db::models::StationClickItem;
@@ -42,9 +42,10 @@ impl From<Row> for StationCheckItem {
     }
 }
 
-impl From<Row> for StationItem {
+impl From<Row> for DbStationItem {
     fn from(mut row: Row) -> Self {
-        StationItem {
+        DbStationItem {
+            changed:                     false,
             id:                          row.take("StationID").unwrap(),
             changeuuid:                  row.take("ChangeUuid").unwrap(),
             stationuuid:                 row.take("StationUuid").unwrap_or("".to_string()),
