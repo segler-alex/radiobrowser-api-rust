@@ -1,3 +1,5 @@
+use serde::{Serialize,Deserialize};
+
 #[derive(Serialize, Deserialize)]
 pub struct Status {
     pub supported_version: u32,

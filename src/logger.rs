@@ -1,5 +1,6 @@
 use fern::colors::{Color, ColoredLevelConfig};
 use std::io;
+use serde::{Serialize,Deserialize};
 
 #[derive(Serialize, Deserialize)]
 struct StructuredLog {

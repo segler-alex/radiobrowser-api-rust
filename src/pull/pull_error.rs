@@ -16,12 +16,4 @@ impl Display for PullError {
     }
 }
 
-impl Error for PullError {
-    fn description(&self) -> &str {
-        "invalid first item to double"
-    }
-
-    fn cause(&self) -> Option<&dyn Error> {
-        None
-    }
-}
+impl Error for PullError {}

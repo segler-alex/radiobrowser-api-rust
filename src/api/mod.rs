@@ -12,6 +12,7 @@ mod api_response;
 mod cache;
 mod all_params;
 
+use crate::api::data::ApiLanguage;
 use all_params::AllParameters;
 use prometheus_exporter::RegistryLinks;
 
@@ -25,11 +26,13 @@ use api_error::ApiError;
 
 use self::parameters::RequestParameters;
 
+use crate::api::data::ApiStreamingServer;
 use crate::api::data::ResultMessage;
 use crate::api::data::StationCachedInfo;
 use crate::api::data::StationHistoryCurrent;
 use crate::api::data::Station;
 use crate::api::data::StationCheck;
+use crate::api::data::StationCheckStep;
 use crate::api::data::StationAddResult;
 use crate::api::data::Status;
 use crate::api::data::StationClick;
@@ -49,6 +52,7 @@ use crate::config::Config;
 
 use std::fs::File;
 use self::serde_json::value::{Map};
+use serde::{Serialize,Deserialize};
 
 use handlebars::{
     to_json, Handlebars,
@@ -62,7 +66,7 @@ pub struct ServerEntry {
 
 fn add_cors(result : rouille::Response) -> rouille::Response {
     result.with_unique_header("Access-Control-Allow-Origin", "*")
-        .with_unique_header("Access-Control-Allow-Headers", "origin, x-requested-with, content-type")
+        .with_unique_header("Access-Control-Allow-Headers", "origin, x-requested-with, content-type, User-Agent")
         .with_unique_header("Access-Control-Allow-Methods", "GET,POST")
 }
 
@@ -93,6 +97,9 @@ fn dns_resolve(format : &str) -> Result<ApiResponse, Box<dyn Error>> {
 
 fn encode_changes(list : Vec<StationHistoryCurrent>, format : &str) -> Result<ApiResponse, Box<dyn Error>> {
     Ok(match format {
+        "csv" => {
+            ApiResponse::Text(StationHistoryCurrent::serialize_changes_list_csv(list)?)
+        },
         "json" => {
             ApiResponse::Text(serde_json::to_string(&list)?)
         },
@@ -153,6 +160,9 @@ fn encode_station_url<A>(connection_new: &A, station: Option<StationItem>, ip: &
 
 fn encode_states(list : Vec<State>, format : &str) -> Result<ApiResponse, Box<dyn Error>> {
     Ok(match format {
+        "csv" => {
+            ApiResponse::Text(State::serialize_state_list_csv(list)?)
+        },
         "json" => {
             ApiResponse::Text(serde_json::to_string(&list)?)
         },
@@ -176,6 +186,9 @@ impl From<config::CacheType> for cache::GenericCacheType {
 
 fn encode_extra(list : Vec<ExtraInfo>, format : &str, tag_name: &str) -> Result<ApiResponse, Box<dyn Error>> {
     Ok(match format {
+        "csv" => {
+            ApiResponse::Text(ExtraInfo::serialize_extra_list_csv(list)?)
+        },
         "json" => {
             ApiResponse::Text(serde_json::to_string(&list)?)
         },
@@ -455,6 +468,7 @@ fn handle_cached_connection<A>(
         param_state: ppp.get_string("state"),
         param_state_exact: ppp.get_bool("stateExact", false),
         param_language: ppp.get_string("language"),
+        param_language_codes: ppp.get_string("languagecodes"),
         param_language_exact: ppp.get_bool("languageExact", false),
         param_tag: ppp.get_string("tag"),
         param_tag_exact: ppp.get_bool("tagExact", false),
@@ -466,11 +480,17 @@ fn handle_cached_connection<A>(
         param_order: ppp.get_string("order").unwrap_or(String::from("name")),
         param_reverse: ppp.get_bool("reverse", false),
         param_hidebroken: ppp.get_bool("hidebroken", false),
+        param_has_geo_info: ppp.get_bool_opt("has_geo_info")?,
+        param_has_extended_info: ppp.get_bool_opt("has_extended_info")?,
+        param_is_https: ppp.get_bool_opt("is_https")?,
+        
         param_offset: ppp.get_number("offset", 0),
         param_limit: ppp.get_number("limit", 999999),
     
         param_seconds: ppp.get_number("seconds", 0),
         param_url: ppp.get_string("url"),
+        param_geo_lat: ppp.get_double("geo_lat", None),
+        param_geo_long: ppp.get_double("geo_long", None),
     };
 
     let key = allparams.to_string()?;
@@ -600,19 +620,21 @@ fn do_api_calls<A>(all_params: AllParameters,
         let filter : Option<String> = None;
 
         match command {
-            "languages" => Ok((true,encode_extra(connection_new.get_extra("LanguageCache", "LanguageName", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "language")?)),
-            "countries" => Ok((true,encode_extra(connection_new.get_1_n("Country", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "country")?)),
-            "countrycodes" => Ok((true,encode_extra(connection_new.get_1_n("CountryCode", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "countrycode")?)),
-            "states" => Ok((true,encode_states(connection_new.get_states(None, filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format)?)),
-            "codecs" => Ok((true,encode_extra(connection_new.get_1_n("Codec", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "codec")?)),
-            "tags" => Ok((true,encode_extra(connection_new.get_extra("TagCache", "TagName", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "tag")?)),
+            "languages" => Ok((true,ApiLanguage::get_response(connection_new.get_extra("LanguageCache", "LanguageName", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format)?)),
+            "countries" => Ok((true,encode_extra(connection_new.get_1_n("Country", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "country")?)),
+            "countrycodes" => Ok((true,encode_extra(connection_new.get_1_n("CountryCode", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "countrycode")?)),
+            "states" => Ok((true,encode_states(connection_new.get_states(None, filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format)?)),
+            "codecs" => Ok((true,encode_extra(connection_new.get_1_n("Codec", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "codec")?)),
+            "tags" => Ok((true,encode_extra(connection_new.get_extra("TagCache", "TagName", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "tag")?)),
             "stations" => Ok((true,Station::get_response(connection_new.get_stations_by_all(&all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?.drain(..).map(|x|x.into()).collect(), format)?)),
             "servers" => Ok((true,dns_resolve(format)?)),
             "stats" => Ok((true,encode_status(get_status(connection_new)?, format, &config.static_files_dir))),
-            "checks" => Ok((true,StationCheck::get_response(connection_new.get_checks(None, all_params.param_last_checkuuid, all_params.param_seconds, false)?.drain(..).map(|x|x.into()).collect(),format)?)),
+            "checks" => Ok((true,StationCheck::get_response(connection_new.get_checks(None, all_params.param_last_checkuuid, all_params.param_seconds, false, all_params.param_limit)?.drain(..).map(|x|x.into()).collect(),format)?)),
             "clicks" => Ok((true,StationClick::get_response(connection_new.get_clicks(None, all_params.param_last_clickuuid, all_params.param_seconds)?.drain(..).map(|x|x.into()).collect(),format)?)),
-            "add" => Ok((false,StationAddResult::from(connection_new.add_station_opt(all_params.param_name, all_params.param_url, all_params.param_homepage, all_params.param_favicon, all_params.param_country, all_params.param_countrycode, all_params.param_state, all_params.param_language, all_params.param_tags)).get_response(format)?)),
+            "checksteps" => Ok((true,StationCheckStep::get_response(connection_new.select_station_check_steps_by_stations(&all_params.param_uuids)?.drain(..).map(|x|x.into()).collect(), format)?)),
+            "add" => Ok((false,StationAddResult::from(connection_new.add_station_opt(all_params.param_name, all_params.param_url, all_params.param_homepage, all_params.param_favicon, all_params.param_countrycode, all_params.param_state, all_params.param_language, all_params.param_language_codes, all_params.param_tags, all_params.param_geo_lat, all_params.param_geo_long)).get_response(format)?)),
             "config" => Ok((true,ApiConfig::get_response(config.into(),format)?)),
+            "streamingservers" => Ok((true,ApiStreamingServer::get_response(connection_new.get_streaming_servers(&all_params.param_order, all_params.param_reverse, all_params.param_offset, all_params.param_limit)?,format)?)),
             _ => Ok((true,ApiResponse::NotFound)),
         }
     } else if items.len() == 4 {
@@ -622,34 +644,42 @@ fn do_api_calls<A>(all_params: AllParameters,
 
         // None => connection_new.get_1_n("Country", filter, param_order, param_reverse, param_hidebroken)?, format, "country")?,
         match command {
-            "languages" => Ok((true,encode_extra(connection_new.get_extra("LanguageCache", "LanguageName", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "language")?)),
-            "countries" => Ok((true,encode_extra(connection_new.get_1_n("Country", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "country")?)),
-            "countrycodes" => Ok((true,encode_extra(connection_new.get_1_n("CountryCode", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "countrycode")?)),
-            "codecs" => Ok((true,encode_extra(connection_new.get_1_n("Codec", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "codec")?)),
-            "tags" => Ok((true,encode_extra(connection_new.get_extra("TagCache", "TagName", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format, "tag")?)),
-            "states" => Ok((true,encode_states(connection_new.get_states(None, Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format)?)),
+            "languages" => Ok((true,ApiLanguage::get_response(connection_new.get_extra("LanguageCache", "LanguageName", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format)?)),
+            "countries" => Ok((true,encode_extra(connection_new.get_1_n("Country", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "country")?)),
+            "countrycodes" => Ok((true,encode_extra(connection_new.get_1_n("CountryCode", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "countrycode")?)),
+            "codecs" => Ok((true,encode_extra(connection_new.get_1_n("Codec", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "codec")?)),
+            "tags" => Ok((true,encode_extra(connection_new.get_extra("TagCache", "TagName", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "tag")?)),
+            "states" => Ok((true,encode_states(connection_new.get_states(None, Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format)?)),
             "vote" => Ok((false,encode_message(connection_new.vote_for_station(&remote_ip, get_only_first_item(connection_new.get_station_by_uuid(parameter)?)), format)?)),
             "url" => Ok((false,encode_station_url(connection_new, get_only_first_item(connection_new.get_station_by_uuid(parameter)?), &remote_ip, format, config.click_valid_timeout.as_secs(),registry)?)),
             "stations" => {
                 match parameter {
-                    "topvote" => Ok((true,Station::get_response(connection_new.get_stations_topvote(all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
-                    "topclick" => Ok((true,Station::get_response(connection_new.get_stations_topclick(all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
-                    "lastclick" => Ok((true,Station::get_response(connection_new.get_stations_lastclick(all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
-                    "lastchange" => Ok((true,Station::get_response(connection_new.get_stations_lastchange(all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
-                    "broken" => Ok((true,Station::get_response(connection_new.get_stations_broken(all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
-                    "improvable" => Ok((true,Station::get_response(connection_new.get_stations_improvable(all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
-                    "changed" => Ok((true,encode_changes(connection_new.get_changes(None, all_params.param_last_changeuuid)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    "topvote" => Ok((true,Station::get_response(connection_new.get_stations_topvote(all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    "topclick" => Ok((true,Station::get_response(connection_new.get_stations_topclick(all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    "lastclick" => Ok((true,Station::get_response(connection_new.get_stations_lastclick(all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    "lastchange" => Ok((true,Station::get_response(connection_new.get_stations_lastchange(all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    "broken" => Ok((true,Station::get_response(connection_new.get_stations_broken(all_params.param_offset,all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    "changed" => Ok((true,encode_changes(connection_new.get_changes(None, all_params.param_last_changeuuid, all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
                     "byurl" => Ok((true,Station::get_response(connection_new.get_stations_by_column_multiple("Url", all_params.param_url,true,&all_params.param_order,all_params.param_reverse,
                         all_params.param_hidebroken,all_params.param_offset,all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    "byserveruuid" => Ok((true,Station::get_response(connection_new.get_stations_by_server_uuids(all_params.param_uuids, &all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                    //"byserverurl" => Ok((true,Station::get_response(connection_new.get_stations_by_uuid(all_params.param_uuids)?.drain(..).map(|x| x.into()).collect(), format)?)),
                     "byuuid" => Ok((true,Station::get_response(connection_new.get_stations_by_uuid(all_params.param_uuids)?.drain(..).map(|x| x.into()).collect(), format)?)),
                     "search" => Ok((true,Station::get_response(connection_new.get_stations_advanced(all_params.param_name, all_params.param_name_exact, all_params.param_country,
                         all_params.param_country_exact, all_params.param_countrycode, all_params.param_state, all_params.param_state_exact, all_params.param_language, all_params.param_language_exact, all_params.param_tag,
-                        all_params.param_tag_exact, all_params.param_tag_list, all_params.param_codec, all_params.param_bitrate_min, all_params.param_bitrate_max, &all_params.param_order,all_params.param_reverse,
+                        all_params.param_tag_exact, all_params.param_tag_list, all_params.param_codec, all_params.param_bitrate_min, all_params.param_bitrate_max, all_params.param_has_geo_info, all_params.param_has_extended_info, all_params.param_is_https, &all_params.param_order,all_params.param_reverse,
                         all_params.param_hidebroken,all_params.param_offset,all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
                     _ => Ok((true,ApiResponse::NotFound)),
                 }
             },
-            "checks" => Ok((true,StationCheck::get_response(connection_new.get_checks(Some(parameter.to_string()), all_params.param_last_checkuuid, all_params.param_seconds, true)?.drain(..).map(|x|x.into()).collect(), format)?)),
+            "streamingservers" => {
+                match parameter {
+                    "byserveruuid" => Ok((true,ApiStreamingServer::get_response(connection_new.get_streaming_servers_by_uuids(all_params.param_uuids, &all_params.param_order, all_params.param_reverse, all_params.param_offset, all_params.param_limit)?,format)?)),
+                    "bystationuuid" => Ok((true,ApiStreamingServer::get_response(connection_new.get_streaming_servers_by_station_uuids(all_params.param_uuids, &all_params.param_order, all_params.param_reverse, all_params.param_offset, all_params.param_limit)?,format)?)),
+                    _ => Ok((true,ApiResponse::NotFound)),
+                }
+            },
+            "checks" => Ok((true,StationCheck::get_response(connection_new.get_checks(Some(parameter.to_string()), all_params.param_last_checkuuid, all_params.param_seconds, true, all_params.param_limit)?.drain(..).map(|x|x.into()).collect(), format)?)),
             "clicks" => Ok((true,StationClick::get_response(connection_new.get_clicks(Some(parameter.to_string()), all_params.param_last_clickuuid, all_params.param_seconds)?.drain(..).map(|x|x.into()).collect(), format)?)),
             _ => Ok((true,ApiResponse::NotFound)),
         }
@@ -668,16 +698,15 @@ fn do_api_calls<A>(all_params: AllParameters,
             }
         }else{
             match command {
-                "states" => Ok((true,encode_states(connection_new.get_states(Some(String::from(parameter)), Some(String::from(search)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken)?, format)?)),
+                "states" => Ok((true,encode_states(connection_new.get_states(Some(String::from(parameter)), Some(String::from(search)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format)?)),
                 
                 "stations" => {
                     match parameter {
-                        "topvote" => Ok((true,Station::get_response(connection_new.get_stations_topvote(search.parse().unwrap_or(0))?.drain(..).map(|x| x.into()).collect(), format)?)),
-                        "topclick" => Ok((true,Station::get_response(connection_new.get_stations_topclick(search.parse().unwrap_or(0))?.drain(..).map(|x| x.into()).collect(), format)?)),
-                        "lastclick" => Ok((true,Station::get_response(connection_new.get_stations_lastclick(search.parse().unwrap_or(0))?.drain(..).map(|x| x.into()).collect(), format)?)),
-                        "lastchange" => Ok((true,Station::get_response(connection_new.get_stations_lastchange(search.parse().unwrap_or(0))?.drain(..).map(|x| x.into()).collect(), format)?)),
-                        "broken" => Ok((true,Station::get_response(connection_new.get_stations_broken(search.parse().unwrap_or(0))?.drain(..).map(|x| x.into()).collect(), format)?)),
-                        "improvable" => Ok((true,Station::get_response(connection_new.get_stations_improvable(search.parse().unwrap_or(0))?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "topvote" => Ok((true,Station::get_response(connection_new.get_stations_topvote(all_params.param_hidebroken, all_params.param_offset, search.parse().unwrap_or(0))?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "topclick" => Ok((true,Station::get_response(connection_new.get_stations_topclick(all_params.param_hidebroken, all_params.param_offset, search.parse().unwrap_or(0))?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "lastclick" => Ok((true,Station::get_response(connection_new.get_stations_lastclick(all_params.param_hidebroken, all_params.param_offset, search.parse().unwrap_or(0))?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "lastchange" => Ok((true,Station::get_response(connection_new.get_stations_lastchange(all_params.param_hidebroken, all_params.param_offset, search.parse().unwrap_or(0))?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "broken" => Ok((true,Station::get_response(connection_new.get_stations_broken(all_params.param_offset, search.parse().unwrap_or(0))?.drain(..).map(|x| x.into()).collect(), format)?)),
                         "byname" => Ok((true,Station::get_response(connection_new.get_stations_by_column("Name", search.to_string(),false,&all_params.param_order,all_params.param_reverse,all_params.param_hidebroken,all_params.param_offset,all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
                         "bynameexact" => Ok((true,Station::get_response(connection_new.get_stations_by_column("Name", search.to_string(),true,&all_params.param_order,all_params.param_reverse,all_params.param_hidebroken,all_params.param_offset,all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
                         "bycodec" => Ok((true,Station::get_response(connection_new.get_stations_by_column("Codec", search.to_string(),false,&all_params.param_order,all_params.param_reverse,all_params.param_hidebroken,all_params.param_offset,all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
@@ -692,7 +721,7 @@ fn do_api_calls<A>(all_params: AllParameters,
                         "bylanguage" => Ok((true,Station::get_response(connection_new.get_stations_by_column_multiple("Language", Some(search.to_string()),false,&all_params.param_order,all_params.param_reverse,all_params.param_hidebroken,all_params.param_offset,all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
                         "bylanguageexact" => Ok((true,Station::get_response(connection_new.get_stations_by_column_multiple("Language", Some(search.to_string()),true,&all_params.param_order,all_params.param_reverse,all_params.param_hidebroken,all_params.param_offset,all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
                         "byuuid" => Ok((true,Station::get_response(connection_new.get_stations_by_column("StationUuid", search.to_string(),true,&all_params.param_order,all_params.param_reverse,all_params.param_hidebroken,all_params.param_offset,all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
-                        "changed" => Ok((true,encode_changes(connection_new.get_changes(Some(search.to_string()),all_params.param_last_changeuuid)?.drain(..).map(|x| x.into()).collect(), format)?)),
+                        "changed" => Ok((true,encode_changes(connection_new.get_changes(Some(search.to_string()),all_params.param_last_changeuuid,all_params.param_limit)?.drain(..).map(|x| x.into()).collect(), format)?)),
                         _ => Ok((true,ApiResponse::NotFound)),
                     }
                 },

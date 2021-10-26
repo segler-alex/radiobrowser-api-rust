@@ -1,3 +1,7 @@
+use crate::db::models::DbStreamingServerNew;
+use crate::db::models::DbStreamingServer;
+use crate::db::models::StationCheckStepItem;
+use crate::db::models::StationCheckStepItemNew;
 use crate::api::data::Station;
 use crate::db::models::StationClickItemNew;
 use crate::db::models::State;
@@ -11,7 +15,6 @@ use crate::db::models::StationClickItem;
 use crate::db::MysqlConnection;
 use crate::db::DbError;
 use std::error::Error;
-use std::collections::HashSet;
 use std::collections::HashMap;
 
 pub trait DbConnection {
@@ -35,48 +38,58 @@ pub trait DbConnection {
         state: Option<String>,state_exact: bool,language: Option<String>,
         language_exact: bool,tag: Option<String>,tag_exact: bool,tag_list: Vec<String>,
         codec: Option<String>,
-        bitrate_min: u32,bitrate_max: u32,order: &str,reverse: bool,hidebroken: bool,offset: u32,limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
-    fn get_changes(&self, stationuuid: Option<String>, changeuuid: Option<String>) -> Result<Vec<StationHistoryItem>, Box<dyn Error>>;
+        bitrate_min: u32,bitrate_max: u32,has_geo_info: Option<bool>,has_extended_info: Option<bool>, is_https: Option<bool>, order: &str,reverse: bool,hidebroken: bool,offset: u32,limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
+    fn get_changes(&self, stationuuid: Option<String>, changeuuid: Option<String>, limit: u32) -> Result<Vec<StationHistoryItem>, Box<dyn Error>>;
+    fn get_changes_for_stations(&self, station_uuids: Vec<String>) -> Result<Vec<StationHistoryItem>, Box<dyn Error>>;
     
     fn add_station_opt(&self, name: Option<String>, url: Option<String>, homepage: Option<String>, favicon: Option<String>,
-        country: Option<String>, countrycode: Option<String>, state: Option<String>, language: Option<String>, tags: Option<String>) -> Result<String, Box<dyn Error>>;
+        countrycode: Option<String>, state: Option<String>, language: Option<String>, languagecodes: Option<String>, tags: Option<String>, geo_lat: Option<f64>, geo_long: Option<f64>) -> Result<String, Box<dyn Error>>;
 
-    fn get_stations_broken(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
-    fn get_stations_improvable(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
-    fn get_stations_topvote(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
-    fn get_stations_topclick(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
-    fn get_stations_lastclick(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
-    fn get_stations_lastchange(&self, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
+    fn get_stations_broken(&self, offset: u32, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
+    fn get_stations_topvote(&self, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
+    fn get_stations_topclick(&self, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
+    fn get_stations_lastclick(&self, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
+    fn get_stations_lastchange(&self, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
     fn get_stations_by_column(&self,column_name: &str,search: String,exact: bool,order: &str,reverse: bool,hidebroken: bool,offset: u32,limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
+    fn get_stations_by_server_uuids(&self,uuids: Vec<String>, order: &str,reverse: bool,hidebroken: bool,offset: u32,limit: u32) -> Result<Vec<StationItem>, Box<dyn Error>>;
 
-    fn get_pull_server_lastid(&self, server: &str) -> Option<String>;
+    fn get_pull_server_lastid(&self, server: &str) -> Result<Option<String>, Box<dyn Error>>;
     fn set_pull_server_lastid(&self, server: &str, lastid: &str) -> Result<(),Box<dyn std::error::Error>>;
-    fn get_pull_server_lastcheckid(&self, server: &str) -> Option<String>;
+    fn get_pull_server_lastcheckid(&self, server: &str) -> Result<Option<String>, Box<dyn Error>>;
     fn set_pull_server_lastcheckid(&self, server: &str, lastcheckid: &str) -> Result<(),Box<dyn std::error::Error>>;
-    fn get_pull_server_lastclickid(&self, server: &str) -> Option<String>;
+    fn get_pull_server_lastclickid(&self, server: &str) -> Result<Option<String>, Box<dyn Error>>;
     fn set_pull_server_lastclickid(&self, server: &str, lastclickuuid: &str) -> Result<(),Box<dyn std::error::Error>>;
 
-    fn insert_station_by_change(&self, list_station_changes: &Vec<StationChangeItemNew>) -> Result<Vec<String>,Box<dyn std::error::Error>>;
+    fn insert_station_by_change(&self, list_station_changes: &[StationChangeItemNew]) -> Result<Vec<String>,Box<dyn std::error::Error>>;
 
-    fn get_extra(&self, table_name: &str, column_name: &str, search: Option<String>, order: String, reverse: bool, hidebroken: bool) -> Result<Vec<ExtraInfo>, Box<dyn Error>>;
-    fn get_1_n(&self, column: &str, search: Option<String>, order: String, reverse: bool, hidebroken: bool) -> Result<Vec<ExtraInfo>, Box<dyn Error>>;
-    fn get_states(&self, country: Option<String>, search: Option<String>, order: String, reverse: bool, hidebroken: bool) -> Result<Vec<State>, Box<dyn Error>>;
-    fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32, include_history: bool) -> Result<Vec<StationCheckItem>, Box<dyn Error>>;
+    fn get_extra(&self, table_name: &str, column_name: &str, search: Option<String>, order: String, reverse: bool, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<ExtraInfo>, Box<dyn Error>>;
+    fn get_1_n(&self, column: &str, search: Option<String>, order: String, reverse: bool, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<ExtraInfo>, Box<dyn Error>>;
+    fn get_states(&self, country: Option<String>, search: Option<String>, order: String, reverse: bool, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<State>, Box<dyn Error>>;
+    fn get_checks(&self, stationuuid: Option<String>, checkuuid: Option<String>, seconds: u32, include_history: bool, limit: u32) -> Result<Vec<StationCheckItem>, Box<dyn Error>>;
     fn get_clicks(&self, stationuuid: Option<String>, clickuuid: Option<String>, seconds: u32) -> Result<Vec<StationClickItem>, Box<dyn Error>>;
 
-    fn insert_checks(&self, list: &Vec<StationCheckItemNew>) -> Result<HashSet<String>, Box<dyn std::error::Error>>;
+    fn insert_checks(&self, list: Vec<StationCheckItemNew>) -> Result<(Vec<StationCheckItemNew>,Vec<StationCheckItemNew>,Vec<StationCheckItemNew>), Box<dyn std::error::Error>>;
     fn update_station_with_check_data(&self, list: &Vec<StationCheckItemNew>, local: bool) -> Result<(), Box<dyn Error>>;
 
     fn insert_clicks(&self, list: &Vec<StationClickItemNew>) -> Result<(), Box<dyn Error>>;
 
     fn delete_never_working(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn delete_were_working(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
+    fn get_duplicated_stations(&self, column_key: &str, max_duplicates: usize) -> Result<Vec<String>, Box<dyn Error>>;
+    fn delete_stations(&self, stationuuids: &[String]) -> Result<(), Box<dyn Error>>;
     fn delete_old_checks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn delete_old_clicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
+    fn delete_removed_from_history(&mut self) -> Result<(), Box<dyn Error>>;
+    fn delete_unused_streaming_servers(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
+    fn detect_language_codes(&mut self, language_to_code: &HashMap<String,String>) -> Result<u32, Box<dyn Error>>;
     fn remove_unused_ip_infos_from_stationclicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn remove_illegal_icon_links(&mut self) -> Result<(), Box<dyn Error>>;
+    fn calc_country_field(&mut self) -> Result<(), Box<dyn Error>>;
+
+    fn replace_languages(&mut self, items: &HashMap<String,String>) -> Result<u32, Box<dyn Error>>;
     
     fn update_stations_clickcount(&self) -> Result<(), Box<dyn Error>>;
+    fn clean_urls(&self, table_name: &str, column_key: &str, column_url: &str, allow_empty: bool) -> Result<(), Box<dyn Error>>;
 
     fn get_stations_multi_items(&self, column_name: &str) -> Result<HashMap<String, (u32,u32)>, Box<dyn Error>>;
     fn get_cached_items(&self, table_name: &str, column_name: &str) -> Result<HashMap<String, (u32, u32)>, Box<dyn Error>>;
@@ -87,6 +100,19 @@ pub trait DbConnection {
     fn vote_for_station(&self, ip: &str, station: Option<StationItem>) -> Result<String, Box<dyn Error>>;
     fn increase_clicks(&self, ip: &str, station: &StationItem, seconds: u64) -> Result<bool,Box<dyn Error>>;
     fn sync_votes(&self, list: Vec<Station>) -> Result<(), Box<dyn Error>>;
+
+    fn insert_station_check_steps(&mut self, station_check_steps: &[StationCheckStepItemNew]) -> Result<(),Box<dyn std::error::Error>>;
+    fn select_station_check_steps(&self) -> Result<Vec<StationCheckStepItem>,Box<dyn std::error::Error>>;
+    fn select_station_check_steps_by_stations(&self, stationuuids: &[String]) -> Result<Vec<StationCheckStepItem>,Box<dyn std::error::Error>>;
+    fn delete_old_station_check_steps(&mut self, seconds: u32) -> Result<(),Box<dyn std::error::Error>>;
+
+    fn get_servers_to_check(&mut self, hours: u32, chunksize: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>>;
+    fn get_streaming_servers_by_url(&mut self, items: Vec<String>) -> Result<Vec<DbStreamingServer>, Box<dyn Error>>;
+    fn get_streaming_servers(&self, order: &str,reverse: bool,offset: u32,limit: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>>;
+    fn get_streaming_servers_by_uuids(&self, uuids: Vec<String>, order: &str,reverse: bool,offset: u32,limit: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>>;
+    fn get_streaming_servers_by_station_uuids(&self, uuids: Vec<String>, order: &str,reverse: bool,offset: u32,limit: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>>;
+    fn insert_streaming_servers(&mut self, items: Vec<DbStreamingServerNew>) -> Result<(), Box<dyn Error>>;
+    fn update_streaming_servers(&mut self, items: Vec<DbStreamingServer>) -> Result<(), Box<dyn Error>>;
 }
 
 pub fn connect(connection_string: String) -> Result<Box<dyn DbConnection>, Box<dyn std::error::Error>> {

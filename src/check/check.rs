@@ -1,34 +1,35 @@
+use av_stream_info_rust::StreamCheckResult;
 use crate::db::models;
-use crate::db::models::StationItem;
+use crate::db::models::DbStreamingServerNew;
 use crate::db::models::StationCheckItemNew;
+use crate::db::models::StationCheckStepItemNew;
+use crate::db::models::StationItem;
+use std::time::Instant;
+use url::Url;
+use uuid::Uuid;
 
-use crate::thread;
-use threadpool::ThreadPool;
+use rayon::prelude::*;
 
 use av_stream_info_rust;
-use crate::check::favicon;
+use av_stream_info_rust::UrlType;
 
 use std;
-use std::sync::mpsc::channel;
-use std::sync::mpsc::TryRecvError;
-use std::sync::mpsc::{Receiver, Sender};
-use std::time::Duration;
 
-use crate::db::DbConnection;
 use crate::db::connect;
 
 use colored::*;
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct StationOldNew {
-    pub old: StationItem,
-    pub new: StationCheckItemNew,
+    pub station: StationItem,
+    pub check: StationCheckItemNew,
+    pub steps: Vec<StationCheckStepItemNew>,
 }
 
 fn check_for_change(
     old: &models::StationItem,
     new: &StationCheckItemNew,
-    new_favicon: &str,
+    timing_ms: u128,
 ) -> (bool, String) {
     let mut retval = false;
     let mut result = String::from("");
@@ -62,14 +63,7 @@ fn check_for_change(
         result.push_str(&format!(" codec:{}->{}", old.codec, new.codec));
         retval = true;
     }
-    /*if old.urlcache != new.url{
-        debug!("  url      :{}->{}",old.urlcache,new.url);
-        retval = true;
-    }*/
-    if old.favicon != new_favicon {
-        result.push_str(&format!(" favicon: {} -> {}", old.favicon, new_favicon));
-        retval = true;
-    }
+    result.push_str(&format!(" ({}ms)", timing_ms));
     if old.lastcheckok != new.check_ok {
         if new.check_ok {
             return (retval, result.green().to_string());
@@ -81,146 +75,154 @@ fn check_for_change(
     }
 }
 
-fn update_station(
-    conn: &Box<dyn DbConnection>,
-    old: &models::StationItem,
-    new_item: StationCheckItemNew,
-    new_favicon: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    // output debug
-    let (changed, change_str) = check_for_change(&old, &new_item, new_favicon);
-    if changed {
-        debug!("{}", change_str.red());
-    } else {
-        debug!("{}", change_str.dimmed());
+/// returns list of
+/// (stepuuid, parentstepuuid, checkitemnew)
+fn flatten_check_result(
+    stationuuid: String,
+    checkuuid: String,
+    result: StreamCheckResult,
+    parent: Option<String>,
+    source: &str,
+    timing_ms: u128,
+) -> (Vec<StationCheckStepItemNew>, Option<StationCheckItemNew>) {
+    let mut list = vec![];
+    let url = result.url().to_string();
+    let mut found_working: Option<StationCheckItemNew> = None;
+    match result.info {
+        Ok(info) => {
+            match info {
+                UrlType::Stream(info) => {
+                    found_working = Some(StationCheckItemNew::working(
+                        stationuuid.clone(),
+                        checkuuid.to_string(),
+                        source.to_string(),
+                        timing_ms,
+                        url.to_string(),
+                        info,
+                    ));
+                    let new_item = StationCheckStepItemNew {
+                        stepuuid: Uuid::new_v4().to_hyphenated().to_string(),
+                        parent_stepuuid: parent,
+                        checkuuid,
+                        stationuuid,
+                        url,
+                        urltype: Some("STREAM".to_string()),
+                        error: None,
+                    };
+                    list.push(new_item);
+                }
+                UrlType::Redirect(item) => {
+                    let stepuuid = Uuid::new_v4().to_hyphenated().to_string();
+                    let new_item = StationCheckStepItemNew {
+                        stepuuid: stepuuid.clone(),
+                        parent_stepuuid: parent,
+                        checkuuid: checkuuid.clone(),
+                        stationuuid: stationuuid.clone(),
+                        url,
+                        urltype: Some("REDIRECT".to_string()),
+                        error: None,
+                    };
+                    list.push(new_item);
+                    let (ret_list, ret_found) = flatten_check_result(
+                        stationuuid,
+                        checkuuid,
+                        *item,
+                        Some(stepuuid),
+                        source,
+                        timing_ms,
+                    );
+                    list.extend(ret_list);
+                    if ret_found.is_some() {
+                        found_working = ret_found;
+                    }
+                }
+                UrlType::PlayList(playlist) => {
+                    let stepuuid = Uuid::new_v4().to_hyphenated().to_string();
+                    let new_item = StationCheckStepItemNew {
+                        stepuuid: stepuuid.clone(),
+                        parent_stepuuid: parent,
+                        checkuuid: checkuuid.clone(),
+                        stationuuid: checkuuid.clone(),
+                        url,
+                        urltype: Some("PLAYLIST".to_string()),
+                        error: None,
+                    };
+                    list.push(new_item);
+                    for playlist_item in playlist {
+                        let (ret_list, ret_found) = flatten_check_result(
+                            stationuuid.clone(),
+                            checkuuid.clone(),
+                            playlist_item,
+                            Some(stepuuid.clone()),
+                            source,
+                            timing_ms,
+                        );
+                        list.extend(ret_list);
+                        if ret_found.is_some() {
+                            found_working = ret_found;
+                        }
+                    }
+                }
+            };
+        }
+        Err(err) => {
+            let new_item = StationCheckStepItemNew {
+                stepuuid: Uuid::new_v4().to_hyphenated().to_string(),
+                parent_stepuuid: parent,
+                checkuuid,
+                stationuuid,
+                url,
+                urltype: None,
+                error: Some(err.to_string()),
+            };
+            list.push(new_item);
+        }
     }
-
-    // do real insert
-    let list_new = vec!(new_item);
-    conn.insert_checks(&list_new)?;
-    conn.update_station_with_check_data(&list_new, true)?;
-    Ok(())
+    (list, found_working)
 }
 
 fn dbcheck_internal(
-    pool: &ThreadPool,
-    stations: Vec<StationItem>,
+    station: StationItem,
     source: &str,
     timeout: u64,
     max_depth: u8,
     retries: u8,
-    result_sender: Sender<StationOldNew>,
-) -> u32 {
-    let mut checked_count = 0;
-    for station in stations {
-        checked_count = checked_count + 1;
-        let source = String::from(source);
-        let result_sender = result_sender.clone();
-        pool.execute(move || {
-            {
-                let (_, receiver): (Sender<i32>, Receiver<i32>) = channel();
-                let station_name = station.name.clone();
-                let max_timeout = (retries as u64) * timeout * 2;
-                thread::spawn(move || {
-                    for _ in 0..max_timeout {
-                        thread::sleep(Duration::from_secs(1));
-                        let o = receiver.try_recv();
-                        match o {
-                            Ok(_) => {
-                                return;
-                            }
-                            Err(value) => match value {
-                                TryRecvError::Empty => {}
-                                TryRecvError::Disconnected => {
-                                    return;
-                                }
-                            },
-                        }
-                    }
-                    debug!("Still not finished: {}", station_name);
-                    std::process::exit(0x0100);
-                });
-            }
+) -> StationOldNew {
+    let checkuuid = Uuid::new_v4().to_hyphenated().to_string();
+    let now = Instant::now();
+    trace!("Check started: {} - {}", station.stationuuid, station.name);
+    let checks =
+        av_stream_info_rust::check_tree(&station.url, timeout as u32, max_depth, retries, true);
+    let timing_ms = now.elapsed().as_millis();
+    let (steps, check) = flatten_check_result(
+        station.stationuuid.clone(),
+        checkuuid.clone(),
+        checks,
+        None,
+        source,
+        timing_ms,
+    );
 
-            let mut items = av_stream_info_rust::check(&station.url, timeout as u32, max_depth, retries);
-            for item in items.drain(..) {
-                match item {
-                    Ok(item) => {
-                        let public = item.Public.unwrap_or(true);
-                        if !public && item.OverrideIndexMetaData {
-                            // ignore non public streams
-                            debug!("Ignore private stream: {} - {}", station.stationuuid, item.Url);
-                        }else{
-                            let mut codec = item.CodecAudio.clone();
-                            if let Some(ref video) = item.CodecVideo {
-                                codec.push_str(",");
-                                codec.push_str(&video);
-                            }
-                            let new_item_ok = StationCheckItemNew {
-                                checkuuid: None,
-                                station_uuid: station.stationuuid.clone(),
-                                source: source.clone(),
-                                codec: codec,
-                                bitrate: item.Bitrate as u32,
-                                hls: item.Hls,
-                                check_ok: true,
-                                url: item.Url.clone(),
-                                timestamp: None,
-
-                                metainfo_overrides_database: item.OverrideIndexMetaData,
-                                public: item.Public,
-                                name: item.Name,
-                                description: item.Description,
-                                tags: item.Genre,
-                                countrycode: item.CountryCode,
-                                homepage: item.Homepage,
-                                favicon: item.LogoUrl,
-                                loadbalancer: item.LoadBalancerUrl,
-                            };
-                            let send_result = result_sender.send(StationOldNew {
-                                old: station,
-                                new: new_item_ok,
-                            });
-                            if let Err(send_result) = send_result {
-                                error!("Unable to send positive check result: {}", send_result);
-                            }
-                            return;
-                        }
-                    }
-                    Err(_) => {}
-                }
+    match check {
+        Some(check) => StationOldNew {
+            station,
+            check,
+            steps,
+        },
+        None => {
+            let check = StationCheckItemNew::broken(
+                station.stationuuid.clone(),
+                checkuuid,
+                source.to_string(),
+                timing_ms,
+            );
+            StationOldNew {
+                station,
+                check,
+                steps,
             }
-            let new_item_broken: StationCheckItemNew = StationCheckItemNew {
-                checkuuid: None,
-                station_uuid: station.stationuuid.clone(),
-                source: source.clone(),
-                codec: "".to_string(),
-                bitrate: 0,
-                hls: false,
-                check_ok: false,
-                url: "".to_string(),
-                timestamp: None,
-                
-                metainfo_overrides_database: false,
-                public: None,
-                name: None,
-                description: None,
-                tags: None,
-                countrycode: None,
-                homepage: None,
-                favicon: None,
-                loadbalancer: None,
-            };
-            let send_result = result_sender.send(StationOldNew {
-                old: station,
-                new: new_item_broken,
-            });
-            if let Err(send_result) = send_result {
-                error!("Unable to send negative check result: {}", send_result);
-            }
-        });
+        }
     }
-    checked_count
 }
 
 pub fn dbcheck(
@@ -228,31 +230,64 @@ pub fn dbcheck(
     source: &str,
     concurrency: usize,
     stations_count: u32,
-    useragent: &str,
     timeout: u64,
     max_depth: u8,
     retries: u8,
-    favicon_checks: bool,
-) -> Result<u32, Box<dyn std::error::Error>> {
+    add_streaming_servers: bool,
+) -> Result<usize, Box<dyn std::error::Error>> {
     let mut conn = connect(connection_str)?;
     let stations = conn.get_stations_to_check(24, stations_count)?;
-    let useragent = String::from(useragent);
+    let checked_count = stations.len();
 
-    let (result_sender, result_receiver): (Sender<StationOldNew>, Receiver<StationOldNew>) =
-        channel();
-    let pool = ThreadPool::new(concurrency);
-    let checked_count = dbcheck_internal(&pool, stations, source, timeout, max_depth, retries, result_sender);
-    pool.join();
-
-    for oldnew in result_receiver {
-        let station = oldnew.old;
-        let new_item = oldnew.new;
-        if favicon_checks {
-            let new_favicon = favicon::check(&station.homepage, &station.favicon, &useragent, timeout as u32)?;
-            update_station(&mut conn, &station, new_item, &new_favicon)?;
+    let pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(concurrency)
+        .build()?;
+    let results: Vec<_> = pool.install(|| {
+        stations
+            .into_par_iter()
+            .map(|station| dbcheck_internal(station, source, timeout, max_depth, retries))
+            .collect()
+    });
+    for result in results.iter() {
+        let timing_ms = result.check.timing_ms;
+        let (changed, change_str) = check_for_change(&result.station, &result.check, timing_ms);
+        if changed {
+            debug!("{}", change_str.red());
         } else {
-            update_station(&mut conn, &station, new_item, &station.favicon)?;
+            debug!("{}", change_str.dimmed());
         }
     }
+
+    // do real insert
+    let mut checks = vec![];
+    let mut steps = vec![];
+    for result in results {
+        checks.push(result.check);
+        steps.extend(result.steps);
+    }
+
+    let (_x, _y, inserted) = conn.insert_checks(checks)?;
+    conn.insert_station_check_steps(&steps)?;
+    conn.update_station_with_check_data(&inserted, true)?;
+
+    if add_streaming_servers {
+        let mut urls_full: Vec<_> = inserted.iter()
+            .filter_map(|station| Url::parse(&station.url).ok())
+            .map(|mut url| {
+                url.set_path("/");
+                url.set_query(None);
+                url.set_fragment(None);
+                url.to_string()
+            })
+            .collect();
+
+        urls_full.sort();
+        urls_full.dedup();
+
+        conn.insert_streaming_servers(urls_full.drain(..).map(|base_url|{
+            DbStreamingServerNew::new(base_url, None, None, None)
+        }).collect())?;
+    }
+
     Ok(checked_count)
 }

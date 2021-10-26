@@ -1,0 +1,4 @@
+# replace languages in the database in the first columen
+# with languages in the second column
+# empty strings in the second column does remove the item
+from;to

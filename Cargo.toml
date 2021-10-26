@@ -4,43 +4,47 @@ description = "Radio-Browser Server with REST API"
 license = "agpl-3.0"
 name = "radiobrowser-api-rust"
 readme = "README.md"
-version = "0.7.2"
+version = "0.7.20"
 edition = "2018"
 
 [dependencies]
-av-stream-info-rust = "0.7.3"
-chrono = { version = "0.4.15", features = ["serde"] }
+av-stream-info-rust = "0.10.2"
+celes = "2.1.0"
+chrono = { version = "0.4.19", features = ["serde"] }
 clap = "2.33.3"
 colored = "2.0.0"
-dns-lookup = "1.0.4"
+csv = "1.1.6"
+dns-lookup = "1.0.8"
 fern = { version = "0.6.0", features = ["colored"] }
-handlebars = "3.4.0"
+handlebars = "4.1.3"
 hostname = "0.3.1"
-humantime = "2.0.1"
-log = "0.4.11"
-memcache = "0.14.0"
-mysql = "17.0.0"
-native-tls = "0.2.4"
+humantime = "2.1.0"
+icecast-stats = { version = "0.1.1" }
+log = "0.4.14"
+memcache = "0.15.2"
+mysql = "21.0.2"
+native-tls = "0.2.8"
+once_cell = "1.8.0"
 percent-encoding = "2.1.0"
-prometheus = { version = "0.10.0" }
-redis = { version = "0.17.0" }
-reqwest = { version = "0.10.8", features = ["blocking", "json"] }
-rouille = "3.0.0"
-serde = "1.0.116"
-serde_derive = "1.0.116"
-serde_json = "1.0.57"
-serde_with = "1.4.0"
+prometheus = { version = "0.13.0" }
+rayon = "1.5.1"
+redis = { version = "0.21.3" }
+reqwest = { version = "0.11.5", features = ["blocking", "json"] }
+rouille = "3.3.1"
+serde = { version = "1.0.130", features = ["derive"] }
+serde_json = "1.0.68"
+serde_with = "1.10.0"
+signal-hook = "0.3.10"
 threadpool = "1.8.1"
-toml = "0.5.6"
-url = "2.1.1"
-uuid = { version = "0.8.1", features = ["serde", "v4"] }
-website-icon-extract = "0.4.1"
+toml = "0.5.8"
+url = "2.2.2"
+uuid = { version = "0.8.2", features = ["serde", "v4"] }
 xml_writer = "0.4.0"
 
 [package.metadata.deb]
 maintainer = "sailor <segler@programmierecke.net>"
 copyright = "2018, sailor <segler@programmierecke.net>"
-depends = "$auto, systemd, default-mysql-server"
+depends = "$auto, systemd"
 extended-description = """\
 Radio-Browser Server with REST API
 """
@@ -50,12 +54,15 @@ assets = [
     ["target/release/radiobrowser-api-rust", "usr/bin/radiobrowser", "755"],
     ["static/*", "usr/share/radiobrowser/", "644"],
     ["init.sql", "usr/share/radiobrowser/init.sql", "644"],
-    ["init/*", "etc/systemd/system/", "644"],
     ["etc/config-example.toml", "etc/radiobrowser/config-example.toml", "644"],
     ["etc/config-example.toml", "etc/radiobrowser/config.toml", "644"],
+    ["etc/language-replace.csv", "etc/radiobrowser/language-replace.csv", "644"],
+    ["etc/language-to-code.csv", "etc/radiobrowser/language-to-code.csv", "644"],
+    ["etc/logrotate", "etc/logrotate.d/radiobrowser", "644"],
     ["etc/logrotate", "etc/logrotate.d/radiobrowser", "644"],
 ]
 conf-files = [
     "etc/radiobrowser/config.toml",
 ]
 maintainer-scripts = "debian/"
+systemd-units = { unit-name = "radiobrowser", enable = false }

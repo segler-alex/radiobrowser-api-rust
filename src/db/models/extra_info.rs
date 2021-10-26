@@ -1,7 +1,10 @@
+use serde::{Serialize,Deserialize};
+use std::error::Error;
+
 #[derive(PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExtraInfo {
-    name: String,
-    stationcount: u32,
+    pub name: String,
+    pub stationcount: u32,
 }
 
 impl ExtraInfo {
@@ -10,6 +13,18 @@ impl ExtraInfo {
             name,
             stationcount,
         };
+    }
+
+    pub fn serialize_extra_list_csv(entries: Vec<ExtraInfo>) -> Result<String, Box<dyn Error>> {
+        let mut wtr = csv::Writer::from_writer(Vec::new());
+
+        for entry in entries {
+            wtr.serialize(entry)?;
+        }
+        
+        wtr.flush()?;
+        let x: Vec<u8> = wtr.into_inner()?;
+        Ok(String::from_utf8(x).unwrap_or("encoding error".to_string()))
     }
 
     pub fn serialize_extra_list(entries: Vec<ExtraInfo>, tag_name: &str) -> std::io::Result<String> {

@@ -378,5 +378,163 @@ r#"ALTER TABLE StationClick DROP INDEX IN_StationClick_StationUuid_ClickTimestam
 r#"ALTER TABLE IPVoteCheck MODIFY COLUMN IP VARCHAR(50) NOT NULL;"#,
 r#"ALTER TABLE IPVoteCheck MODIFY COLUMN IP VARCHAR(15) NOT NULL;"#);
 
+    migrations.add_migration("20201118_204500_Modify_Station_Country",
+r#"ALTER TABLE Station MODIFY COLUMN Country VARCHAR(250);"#,
+r#"ALTER TABLE Station MODIFY COLUMN Country VARCHAR(50);"#);
+
+    migrations.add_migration("20201118_205000_Drop_StationHistory_Country",
+r#"ALTER TABLE StationHistory DROP COLUMN Country;"#,
+r#"ALTER TABLE StationHistory ADD COLUMN Country VARCHAR(50);"#);
+
+    migrations.add_migration("20201123_220500_Add_Station_CountrySubdivisionCode",
+r#"ALTER TABLE Station ADD COLUMN CountrySubdivisionCode VARCHAR(3) NULL;"#,
+r#"ALTER TABLE Station DROP COLUMN CountrySubdivisionCode;"#);
+
+    migrations.add_migration("20201123_221000_Add_StationCheckHistory_CountrySubdivisionCode",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN CountrySubdivisionCode VARCHAR(3) NULL;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN CountrySubdivisionCode;"#);
+
+    migrations.add_migration("20210101_233000_Add_StationCheckHistory_DoNotIndex",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN DoNotIndex BOOLEAN NULL;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN DoNotIndex;"#);
+
+    migrations.add_migration("20210101_233500_Recreate_View_StationCheck",
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#,
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#);
+
+    migrations.add_migration("20210406_230000_Add_StationCheckHistory_ServerSoftware",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN ServerSoftware TEXT NULL;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN ServerSoftware;"#);
+
+    migrations.add_migration("20210406_230001_Add_StationCheckHistory_Sampling",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN Sampling INT UNSIGNED NULL;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN Sampling;"#);
+
+    migrations.add_migration("20210406_230002_Add_StationCheckHistory_LanguageCodes",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN LanguageCodes TEXT NULL;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN LanguageCodes;"#);
+
+    migrations.add_migration("20210406_230003_Add_StationCheckHistory_TimingMs",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN TimingMs INT UNSIGNED NULL;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN TimingMs;"#);
+
+    migrations.add_migration("20210406_233500_Recreate_View_StationCheck",
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex,CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#,
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#);
+
+    migrations.add_migration("20210409_190003_Add_StationCheckHistory_SslError",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN SslError BOOLEAN NOT NULL DEFAULT FALSE;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN SslError;"#);
+
+    migrations.add_migration("20210409_190010_Recreate_View_StationCheck",
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex,CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs,SslError FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#,
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex,CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#);
+
+    migrations.add_migration("20210412_231000_CreateStationCheckStep",
+r#"CREATE TABLE `StationCheckStep` (
+`Id` int(11) NOT NULL AUTO_INCREMENT,
+`StepUuid` char(36) NOT NULL,
+`ParentStepUuid` char(36) DEFAULT NULL,
+`CheckUuid` char(36) NOT NULL,
+`StationUuid` char(36) NOT NULL,
+`Url` text NOT NULL,
+`UrlType` text DEFAULT NULL,
+`Error` text DEFAULT NULL,
+`InsertTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+PRIMARY KEY (`Id`),
+UNIQUE KEY `StepUuid` (`StepUuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"#,"DROP TABLE StationCheckStep");
+
+    migrations.add_migration("20210413_211000_Add_FK_StationCheckStep_StationCheckHistory",
+r#"ALTER TABLE StationCheckStep ADD CONSTRAINT FK_StationCheckStep_StationCheckHistory FOREIGN KEY(CheckUuid) REFERENCES StationCheckHistory(CheckUuid) ON DELETE CASCADE;"#,
+r#"ALTER TABLE StationCheckStep DROP CONSTRAINT FK_StationCheckStep_StationCheckHistory;"#);
+
+    migrations.add_migration("20210414_190003_Add_Station_GeoLat",
+r#"ALTER TABLE Station ADD COLUMN GeoLat DOUBLE NULL;"#,
+r#"ALTER TABLE Station DROP COLUMN GeoLat;"#);
+
+    migrations.add_migration("20210414_190004_Add_Station_GeoLong",
+r#"ALTER TABLE Station ADD COLUMN GeoLong DOUBLE NULL;"#,
+r#"ALTER TABLE Station DROP COLUMN GeoLong;"#);
+
+    migrations.add_migration("20210414_190005_Add_Station_GeoLat",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN GeoLat DOUBLE NULL;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN GeoLat;"#);
+
+    migrations.add_migration("20210414_190006_Add_Station_GeoLong",
+r#"ALTER TABLE StationCheckHistory ADD COLUMN GeoLong DOUBLE NULL;"#,
+r#"ALTER TABLE StationCheckHistory DROP COLUMN GeoLong;"#);
+
+    migrations.add_migration("20210414_190007_Add_StationHistory_GeoLat",
+r#"ALTER TABLE StationHistory ADD COLUMN GeoLat DOUBLE NULL;"#,
+r#"ALTER TABLE StationHistory DROP COLUMN GeoLat;"#);
+
+    migrations.add_migration("20210414_190008_Add_StationHistory_GeoLong",
+r#"ALTER TABLE StationHistory ADD COLUMN GeoLong DOUBLE NULL;"#,
+r#"ALTER TABLE StationHistory DROP COLUMN GeoLong;"#);
+
+    migrations.add_migration("20210414_190009_Add_Station_SslError",
+r#"ALTER TABLE Station ADD COLUMN SslError BOOLEAN NOT NULL DEFAULT FALSE;"#,
+r#"ALTER TABLE Station DROP COLUMN SslError;"#);
+
+    migrations.add_migration("20210414_190010_Recreate_View_StationCheck",
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT * FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#,
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex,CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs,SslError FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#);
+
+    migrations.add_migration("20210414_210007_Add_Station_LanguageCodes",
+r#"ALTER TABLE Station ADD COLUMN LanguageCodes TEXT NULL;"#,
+r#"ALTER TABLE Station DROP COLUMN LanguageCodes;"#);
+
+    migrations.add_migration("20210414_210008_Add_StationHistory_LanguageCodes",
+r#"ALTER TABLE StationHistory ADD COLUMN LanguageCodes TEXT NULL;"#,
+r#"ALTER TABLE StationHistory DROP COLUMN LanguageCodes;"#);
+
+    migrations.add_migration("20210708_211807_Add_Station_ExtendedInfo",
+r#"ALTER TABLE Station ADD COLUMN ExtendedInfo BOOLEAN NOT NULL DEFAULT FALSE;"#,
+r#"ALTER TABLE Station DROP COLUMN ExtendedInfo;"#);
+
+    migrations.add_migration("20210905_214000_Change_Station_CountrySubdivisionCode",
+r#"ALTER TABLE Station MODIFY COLUMN CountrySubdivisionCode VARCHAR(6) NULL;"#,
+r#"ALTER TABLE Station MODIFY COLUMN CountrySubdivisionCode VARCHAR(3) NULL;"#);
+
+    migrations.add_migration("20210905_214001_Change_StationCheckHistory_CountrySubdivisionCode",
+r#"ALTER TABLE StationCheckHistory MODIFY COLUMN CountrySubdivisionCode VARCHAR(6) NULL;"#,
+r#"ALTER TABLE StationCheckHistory MODIFY COLUMN CountrySubdivisionCode VARCHAR(3) NULL;"#);
+
+    migrations.add_migration("20210905_215000_Recreate_View_StationCheck",
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT * FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#,
+r#"DROP VIEW StationCheck; CREATE VIEW StationCheck AS SELECT CheckID,CheckUuid,StationUuid,Source,Codec,Bitrate,Hls,CheckOK,CheckTime,UrlCache,MetainfoOverridesDatabase,Public,Name,Description,Tags,CountryCode,Homepage,Favicon,Loadbalancer,InsertTime,DoNotIndex,CountrySubdivisionCode,ServerSoftware,Sampling,LanguageCodes,TimingMs,SslError FROM StationCheckHistory WHERE CheckID IN (select max(CheckID) FROM StationCheckHistory Group By StationUuid,Source);"#);
+
+    migrations.add_migration("20211008_203000_Create_Table_StreamingServers",
+r#"CREATE TABLE `StreamingServers` (
+`Id` INT(11) NOT NULL AUTO_INCREMENT,
+`Uuid` CHAR(36) NOT NULL,
+`Url` VARCHAR(300) NOT NULL,
+`StatusUrl` TEXT,
+`Status` JSON,
+`Error` VARCHAR(50),
+`CreatedAt` DATETIME NOT NULL,
+`UpdatedAt` DATETIME,
+PRIMARY KEY (`Id`),
+UNIQUE KEY `Uuid` (`Uuid`),
+UNIQUE KEY `Url` (`Url`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;"#,"DROP TABLE StreamingServers");
+
+    migrations.add_migration("20211010_171000_Add_Station_StreamingServers",
+r#"ALTER TABLE Station ADD COLUMN ServerUuid CHAR(36);"#,
+r#"ALTER TABLE Station DROP COLUMN ServerUuid;"#);
+
+    migrations.add_migration("20211010_201400_Add_FK_Station_StreamingServers",
+r#"ALTER TABLE Station ADD CONSTRAINT FK_Station_StreamingServers FOREIGN KEY (ServerUuid) REFERENCES StreamingServers(Uuid);"#,
+r#"ALTER TABLE Station DROP FOREIGN KEY FK_Station_StreamingServers;"#);
+
+    migrations.add_migration("20211015_215600_Change_Station_Language",
+r#"ALTER TABLE Station MODIFY COLUMN Language VARCHAR(100) NULL;"#,
+r#"ALTER TABLE Station MODIFY COLUMN Language VARCHAR(50) NULL;"#);
+
+    migrations.add_migration("20211016_181000_Change_Station_Tags",
+r#"ALTER TABLE Station MODIFY COLUMN Tags TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;"#,
+r#"ALTER TABLE Station MODIFY COLUMN Tags TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"#);
+
     Ok(migrations)
 }

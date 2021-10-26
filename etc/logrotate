@@ -1,14 +1,4 @@
-/var/log/radiobrowser/access.log {
-    daily
-    rotate 10
-    copytruncate
-    compress
-    delaycompress
-    notifempty
-    missingok
-}
-
-/var/log/radiobrowser/main.log {
+/var/log/radiobrowser/*.log {
     daily
     rotate 10
     copytruncate

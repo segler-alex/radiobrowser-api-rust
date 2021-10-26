@@ -1,3 +1,4 @@
+/*
 use reqwest::blocking::Client;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::header::USER_AGENT;
@@ -63,3 +64,4 @@ fn check_url(url: &str, useragent: &str, timeout: u32) -> bool {
         }
     }
 }
+*/

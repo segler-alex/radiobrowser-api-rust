@@ -36,16 +36,19 @@ impl BuiltinCache {
         trace!("GET {}", key);
         let locked = self.cache.lock();
         match locked {
-            Ok(locked) => match locked.get(key.into()) {
-                Some(item) => {
-                    let now = SystemTime::now();
-                    if item.expire > now {
-                        Some(item.value.clone())
-                    } else {
-                        None
+            Ok(locked) => {
+                let cached_value = locked.get(key);
+                match cached_value {
+                    Some(item) => {
+                        let now = SystemTime::now();
+                        if item.expire > now {
+                            Some(item.value.clone())
+                        } else {
+                            None
+                        }
                     }
+                    None => None,
                 }
-                None => None,
             },
             Err(err) => {
                 error!("Unable to lock counter for get: {}", err);

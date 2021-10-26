@@ -4,7 +4,7 @@
     upgrade: "yes"
 - name: Install apache2, mysql, certbot, fail2ban
   apt:
-    name: apache2,default-mysql-server,python3-pymysql,certbot,python-certbot-apache
+    name: apache2,mariadb-server,python3-pymysql,certbot,python3-certbot-apache
 - name: Create a new database with name 'radio'
   mysql_db:
     name: radio

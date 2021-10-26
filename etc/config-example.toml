@@ -81,17 +81,40 @@ max-depth = 5
 retries = 5
 ## Hostname for the check-entries in the database, defaults to the local hostname
 #source = "myhostname"
+# Freeform location string for this server
+# server-location = "Datacenter 2 in coolstreet"
+# 2 letter countrycode to locate this server
+# server-country-code = "DE"
 ## User agent for the stream check
 #useragent = "useragent/1.0"
+
+# Check server infos if server supports it (icecast)
+server-info-check = false
+# Chunksize for checking servers
+server-info-check-chunksize = 100
+
+## Cleanup
+## =======
+## File path to CSV for replacing languages (local path or http/https)
+#replace-language-file = "https://radiobrowser.gitlab.io/radiobrowser-static-data/language-replace.csv"
+replace-language-file = "/etc/radiobrowser/language-replace.csv"
+## File path to CSV for mapping language to code (local path or http/https)
+language-to-code-file = "/etc/radiobrowser/language-to-code.csv"
 
 ## Mirroring
 ## =========
 ## Mirror pull interval in seconds
 mirror-pull-interval = "5mins"
+## How many changes should be pulled in a chunk while pulling
+chunk-size-changes = 10000
+## How many checks should be pulled in a chunk while pulling
+chunk-size-checks = 10000
+## On values > 0 autodelete stations with same urls, order by clickcount DESC
+# max-duplicates = 0
 ## Mirror from server
 [pullservers]
-[pullservers.alpha]
-host = "http://nl1.api.radio-browser.info"
+#[pullservers.alpha]
+#host = "http://nl1.api.radio-browser.info"
 #[pullservers.beta]
 #host = "http://de1.api.radio-browser.info"
 #[pullservers.gamma]

@@ -1,5 +1,6 @@
 use std::error::Error;
 use serde_with::skip_serializing_none;
+use serde::{Serialize,Deserialize};
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize)]
@@ -36,6 +37,8 @@ pub struct AllParameters {
     pub param_state_exact: bool,
     #[serde(rename = "lg")]
     pub param_language: Option<String>,
+    #[serde(rename = "lc")]
+    pub param_language_codes: Option<String>,
     #[serde(rename = "lx")]
     pub param_language_exact: bool,
     #[serde(rename = "tg")]
@@ -56,6 +59,12 @@ pub struct AllParameters {
     pub param_reverse: bool,
     #[serde(rename = "hb")]
     pub param_hidebroken: bool,
+    #[serde(rename = "hg")]
+    pub param_has_geo_info: Option<bool>,
+    #[serde(rename = "hx")]
+    pub param_has_extended_info: Option<bool>,
+    #[serde(rename = "hs")]
+    pub param_is_https: Option<bool>,
     #[serde(rename = "of")]
     pub param_offset: u32,
     #[serde(rename = "li")]
@@ -64,6 +73,10 @@ pub struct AllParameters {
     pub param_seconds: u32,
     #[serde(rename = "up")]
     pub param_url: Option<String>,
+    #[serde(rename = "ga")]
+    pub param_geo_lat: Option<f64>,
+    #[serde(rename = "go")]
+    pub param_geo_long: Option<f64>,
 }
 
 impl AllParameters {
