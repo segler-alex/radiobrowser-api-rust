@@ -89,9 +89,8 @@ pub trait DbConnection {
     
     fn get_stations_with_empty_icon(&mut self) -> Result<Vec<(String, String)>, Box<dyn Error>>;
     fn get_stations_with_non_empty_icon(&mut self) -> Result<Vec<(String, String)>, Box<dyn Error>>;
-    fn update_stations_favicon(&mut self, list: &Vec<DbStationItem>, reason: &str) -> Result<(), Box<dyn Error>>;
     fn update_station_favicon(&mut self, station: &DbStationItem, reason: &str) -> Result<(), Box<dyn Error>>;
-    
+
     fn replace_languages(&mut self, items: &HashMap<String, String>) -> Result<Vec<String>, Box<dyn Error>>;
     
     fn update_stations_clickcount(&self) -> Result<(), Box<dyn Error>>;

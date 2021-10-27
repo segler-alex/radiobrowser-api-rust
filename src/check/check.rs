@@ -259,7 +259,7 @@ pub fn dbcheck(
 
         if result.station.get_changed() {
             debug!("changed {}", result.station.stationuuid);
-            conn.update_station_favicon(&result.station, "AUTO")?;
+            conn.update_station_favicon(&result.station, "AUTO_FAVICON")?;
         }
     }
 

@@ -347,25 +347,6 @@ params!{
         Ok(stations)
     }
 
-    fn update_stations_favicon(&mut self, list: &Vec<DbStationItem>, reason: &str) -> Result<(), Box<dyn Error>>
-    {
-        trace!("update_stations_favicon(list len={})", list.len());
-        let query = r#"UPDATE Station SET Favicon=:favicon,Creation=UTC_TIMESTAMP() WHERE StationUuid=:stationuuid"#;
-        let mut transaction = self.pool.start_transaction(TxOpts::default())?;
-        transaction.exec_batch(
-            query,
-            list.iter().map(|station| {
-                params! {
-                    "favicon" => &station.favicon,
-                    "stationuuid" => &station.stationuuid,
-                    "changeuuid" => Uuid::new_v4().to_hyphenated().to_string(),
-                }
-            }),
-        )?;
-        transaction.commit()?;
-        Ok(())
-    }
-
     fn update_station_favicon(&mut self, station: &DbStationItem, reason: &str) -> Result<(), Box<dyn Error>>
     {
         trace!("update_station_favicon({})", station.stationuuid);
@@ -1716,7 +1697,7 @@ params!{
             &mut transaction,
             list_station_changes,
         )?;
-        MysqlConnection::backup_stations_by_uuid(&mut transaction, &list_ids, "UNKNOWN")?;
+        MysqlConnection::backup_stations_by_uuid(&mut transaction, &list_ids, "INITIAL")?;
 
         transaction.commit()?;
         Ok(list_ids)
