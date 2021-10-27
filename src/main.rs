@@ -7,6 +7,7 @@ extern crate log;
 #[macro_use]
 extern crate prometheus;
 
+use crate::db::DbConnection;
 use crate::pull::UuidWithTime;
 use core::fmt::Display;
 use core::fmt::Formatter;
@@ -50,7 +51,7 @@ impl Display for MainError {
 
 impl Error for MainError {}
 
-fn jobs(config: config::Config) {
+fn jobs<C: 'static>(config: config::Config, conn: C) where C: DbConnection + Clone + Send {
     let mut once_pull = true;
     let mut once_cleanup = true;
     let mut once_check = true;
@@ -74,7 +75,7 @@ fn jobs(config: config::Config) {
             last_time_pull = Instant::now();
             let result = pull::pull_worker(
                 &client,
-                config.connection_string.clone(),
+                conn.clone(),
                 &config.servers_pull,
                 config.chunk_size_changes,
                 config.chunk_size_checks,
@@ -101,7 +102,7 @@ fn jobs(config: config::Config) {
             last_time_cleanup = Instant::now();
             let result = cleanup::do_cleanup(
                 config.delete,
-                config.connection_string.clone(),
+                conn.clone(),
                 config.click_valid_timeout.as_secs(),
                 config.broken_stations_never_working_timeout.as_secs(),
                 config.broken_stations_timeout.as_secs(),
@@ -125,7 +126,7 @@ fn jobs(config: config::Config) {
             once_refresh = true;
             last_time_check = Instant::now();
             let result = check::dbcheck(
-                config.connection_string.clone(),
+                conn.clone(),
                 &config.source,
                 config.concurrency,
                 config.check_stations,
@@ -136,16 +137,16 @@ fn jobs(config: config::Config) {
                 config.recheck_existing_favicon,
                 config.enable_extract_favicon,
             );
+
             match result {
                 Ok(_) => {}
                 Err(err) => {
                     error!("Check worker error: {}", err);
                 }
             }
-
             if config.check_servers {
                 let result = checkserver::do_check(
-                    config.connection_string.clone(),
+                    conn.clone(),
                     config.check_servers_chunksize,
                     config.concurrency,
                 );
@@ -164,7 +165,7 @@ fn jobs(config: config::Config) {
         {
             once_refresh = false;
             last_time_refresh = Instant::now();
-            let result = refresh::refresh_all_caches(config.connection_string.clone());
+            let result = refresh::refresh_all_caches(conn.clone());
             match result {
                 Ok(_) => {}
                 Err(err) => {
@@ -176,15 +177,6 @@ fn jobs(config: config::Config) {
         thread::sleep(Duration::from_secs(10));
     });
 }
-
-/*
-fn get_db<P>(connstr: P) -> Result<(), Box<dyn Error>>
-where
-    P: AsRef<str>,
-{
-    Ok(())
-}
-*/
 
 fn mainloop() -> Result<(), Box<dyn Error>> {
     let config = config::load_config().map_err(|e| MainError::ConfigLoadError(e.to_string()))?;
@@ -203,7 +195,7 @@ fn mainloop() -> Result<(), Box<dyn Error>> {
                 );
                 match migration_result {
                     Ok(_) => {
-                        jobs(config2.clone());
+                        jobs(config2.clone(), connection.clone());
                         api::start(connection, config2);
                     }
                     Err(err) => {

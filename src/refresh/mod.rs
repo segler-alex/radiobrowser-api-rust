@@ -1,20 +1,22 @@
+use crate::db::DbConnection;
 use std;
 use std::collections::HashMap;
-use crate::db::connect;
-use crate::db::DbConnection;
 
-pub struct RefreshCacheStatus{
+pub struct RefreshCacheStatus {
     old_items: usize,
     new_items: usize,
     changed_items: usize,
 }
 
-pub fn refresh_cache_items(
-    pool: &Box<dyn DbConnection>,
+pub fn refresh_cache_items<C>(
+    pool: C,
     cache_table_name: &str,
     cache_column_name: &str,
     station_column_name: &str,
-)-> Result<RefreshCacheStatus, Box<dyn std::error::Error>> {
+) -> Result<RefreshCacheStatus, Box<dyn std::error::Error>>
+where
+    C: DbConnection,
+{
     let items_cached = pool.get_cached_items(cache_table_name, cache_column_name)?;
     let items_current = pool.get_stations_multi_items(station_column_name)?;
     let mut changed = 0;
@@ -28,17 +30,23 @@ pub fn refresh_cache_items(
     }
     pool.remove_from_cache(to_delete, cache_table_name, cache_column_name)?;
 
-    let mut to_insert: HashMap<&String, (u32,u32)> = HashMap::new();
+    let mut to_insert: HashMap<&String, (u32, u32)> = HashMap::new();
     for item_current in items_current.keys() {
         if !items_cached.contains_key(item_current) {
             if item_current.len() < max_cache_item_len {
-                to_insert.insert(item_current, *items_current.get(item_current).unwrap_or(&(0,0)));
-            }else{
-                debug!("cached '{}' item too long: '{}'", station_column_name, item_current);
+                to_insert.insert(
+                    item_current,
+                    *items_current.get(item_current).unwrap_or(&(0, 0)),
+                );
+            } else {
+                debug!(
+                    "cached '{}' item too long: '{}'",
+                    station_column_name, item_current
+                );
             }
         } else {
-            let value_new = *items_current.get(item_current).unwrap_or(&(0,0));
-            let value_old = *items_cached.get(item_current).unwrap_or(&(0,0));
+            let value_new = *items_current.get(item_current).unwrap_or(&(0, 0));
+            let value_old = *items_cached.get(item_current).unwrap_or(&(0, 0));
             if value_old != value_new {
                 pool.update_cache_item(
                     item_current,
@@ -59,19 +67,28 @@ pub fn refresh_cache_items(
         items_current.len(),
         changed
     );
-    Ok(
-    RefreshCacheStatus{
+    Ok(RefreshCacheStatus {
         old_items: items_cached.len(),
         new_items: items_current.len(),
         changed_items: changed,
     })
 }
 
-pub fn refresh_all_caches(connection_string: String) -> Result<(), Box<dyn std::error::Error>> {
-    let pool = connect(connection_string)?;
+pub fn refresh_all_caches<C>(pool: C) -> Result<(), Box<dyn std::error::Error>>
+where
+    C: DbConnection + Clone,
+{
     trace!("REFRESH START");
-    let tags = refresh_cache_items(&pool, "TagCache", "TagName", "Tags")?;
-    let languages = refresh_cache_items(&pool, "LanguageCache", "LanguageName", "Language")?;
-    debug!("Refresh(Tags={}->{} changed={}, Languages={}->{} changed={})", tags.old_items, tags.new_items, tags.changed_items, languages.old_items, languages.new_items, languages.changed_items);
+    let tags = refresh_cache_items(pool.clone(), "TagCache", "TagName", "Tags")?;
+    let languages = refresh_cache_items(pool, "LanguageCache", "LanguageName", "Language")?;
+    debug!(
+        "Refresh(Tags={}->{} changed={}, Languages={}->{} changed={})",
+        tags.old_items,
+        tags.new_items,
+        tags.changed_items,
+        languages.old_items,
+        languages.new_items,
+        languages.changed_items
+    );
     Ok(())
 }

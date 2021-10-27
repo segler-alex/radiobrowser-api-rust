@@ -54,7 +54,7 @@ impl DbStationItem {
             self.changed = true;
         }
     }
-
+    
     /*
     pub fn set_last_check_ok(&mut self, check_ok: bool) {
         if self.lastcheckok != check_ok {

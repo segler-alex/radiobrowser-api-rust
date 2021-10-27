@@ -1,6 +1,6 @@
+use crate::DbConnection;
 use crate::config::get_cache_language_replace;
 use crate::config::get_cache_language_to_code;
-use crate::db::connect;
 use serde::Deserialize;
 use std::error::Error;
 
@@ -10,17 +10,15 @@ struct DataMappingItem {
     to: String,
 }
 
-pub fn do_cleanup(
+pub fn do_cleanup<C>(
     delete: bool,
-    database_url: String,
+    mut conn_new_style: C,
     click_valid_timeout: u64,
     broken_stations_never_working_timeout: u64,
     broken_stations_timeout: u64,
     checks_timeout: u64,
     clicks_timeout: u64,
-) -> Result<(), Box<dyn Error>> {
-    let mut conn_new_style = connect(database_url)?;
-
+) -> Result<(), Box<dyn Error>> where C: DbConnection {
     let checks_hour = conn_new_style.get_station_count_todo(1)?;
     let checks_day = conn_new_style.get_station_count_todo(24)?;
     let stations_broken = conn_new_style.get_station_count_broken()?;

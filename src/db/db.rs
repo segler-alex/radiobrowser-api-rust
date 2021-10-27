@@ -12,8 +12,6 @@ use crate::db::models::StationCheckItemNew;
 use crate::db::models::StationChangeItemNew;
 use crate::db::models::StationHistoryItem;
 use crate::db::models::StationClickItem;
-use crate::db::MysqlConnection;
-use crate::db::DbError;
 use std::error::Error;
 use std::collections::HashMap;
 
@@ -118,12 +116,4 @@ pub trait DbConnection {
     fn get_streaming_servers_by_station_uuids(&self, uuids: Vec<String>, order: &str,reverse: bool,offset: u32,limit: u32) -> Result<Vec<DbStreamingServer>, Box<dyn Error>>;
     fn insert_streaming_servers(&mut self, items: Vec<DbStreamingServerNew>) -> Result<(), Box<dyn Error>>;
     fn update_streaming_servers(&mut self, items: Vec<DbStreamingServer>) -> Result<(), Box<dyn Error>>;
-}
-
-pub fn connect<P: AsRef<str>>(connection_string: P) -> Result<Box<dyn DbConnection>, Box<dyn std::error::Error>> {
-    if connection_string.as_ref().starts_with("mysql://") {
-        return Ok(Box::new(MysqlConnection::new(connection_string.as_ref())?));
-    }else{
-        return Err(Box::new(DbError::ConnectionError(String::from("Unknown protocol for database connection"))));
-    }
 }

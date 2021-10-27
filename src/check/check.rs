@@ -1,5 +1,5 @@
+use crate::db::DbConnection;
 use crate::check::favicon::get_best_icon;
-use crate::db::connect;
 use crate::db::models::DbStationItem;
 use crate::db::models::DbStreamingServerNew;
 use crate::db::models::StationCheckItemNew;
@@ -173,8 +173,8 @@ fn dbcheck_internal(
     }
 }
 
-pub fn dbcheck(
-    connection_str: String,
+pub fn dbcheck<C>(
+    mut conn: C,
     source: &str,
     concurrency: usize,
     stations_count: u32,
@@ -184,8 +184,9 @@ pub fn dbcheck(
     add_streaming_servers: bool,
     recheck_existing_favicon: bool,
     enable_extract_favicon: bool,
-) -> Result<usize, Box<dyn std::error::Error>> {
-    let mut conn = connect(connection_str)?;
+) -> Result<usize, Box<dyn std::error::Error>> where
+    C: DbConnection
+{
     let stations = conn.get_stations_to_check(24, stations_count)?;
     let checked_count = stations.len();
     let agent = "radiobrowser-api-rust/0.1.0";
