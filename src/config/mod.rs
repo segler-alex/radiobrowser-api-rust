@@ -542,6 +542,30 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name("favicon-size-min")
+                .long("favicon-size-min")
+                .value_name("FAVICON_SIZE_MIN")
+                .help("Minimum (width or height) of favicons extracted")
+                .env("FAVICON_SIZE_MIN")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("favicon-size-max")
+                .long("favicon-size-max")
+                .value_name("FAVICON_SIZE_MAX")
+                .help("Maximum (width or height) of favicons extracted")
+                .env("FAVICON_SIZE_MAX")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("favicon-size-optimum")
+                .long("favicon-size-optimum")
+                .value_name("FAVICON_SIZE_OPTIMUM")
+                .help("Optimum size of favicons extracted")
+                .env("FAVICON_SIZE_OPTIMUM")
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("enable-check")
                 .long("enable-check")
                 .value_name("ENABLE_CHECK")
@@ -655,6 +679,10 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
     let enable_check: bool = get_option_bool(&matches, &config, "enable-check", false)?;
     let enable_extract_favicon: bool = get_option_bool(&matches, &config, "enable-extract-favicon", false)?;
     let recheck_existing_favicon: bool = get_option_bool(&matches, &config, "recheck-existing-favicon", false)?;
+
+    let favicon_size_min: usize = get_option_number(&matches, &config, "favicon-size-min", 32)? as usize;
+    let favicon_size_max: usize = get_option_number(&matches, &config, "favicon-size-max", 256)? as usize;
+    let favicon_size_optimum: usize = get_option_number(&matches, &config, "favicon-size-optimum", 128)? as usize;
 
     let delete: bool = get_option_bool(&matches, &config, "delete", false)?;
     let favicon: bool = get_option_bool(&matches, &config, "favicon", false)?;
@@ -788,5 +816,8 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         language_to_code_filepath,
         enable_extract_favicon,
         recheck_existing_favicon,
+        favicon_size_min,
+        favicon_size_max,
+        favicon_size_optimum,
     })
 }

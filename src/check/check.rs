@@ -184,6 +184,9 @@ pub fn dbcheck<C>(
     add_streaming_servers: bool,
     recheck_existing_favicon: bool,
     enable_extract_favicon: bool,
+    favicon_size_min: usize,
+    favicon_size_max: usize,
+    favicon_size_optimum: usize,
 ) -> Result<usize, Box<dyn std::error::Error>> where
     C: DbConnection
 {
@@ -228,7 +231,7 @@ pub fn dbcheck<C>(
                     trace!("searching favicon {}", station.stationuuid);
                     let links = ImageLink::from_website(&station.homepage, agent, timeout);
                     if let Ok(links) = links {
-                        let icon = get_best_icon(links, 128, 32, 256);
+                        let icon = get_best_icon(links, favicon_size_optimum, favicon_size_min, favicon_size_max);
                         if let Some(icon) = icon {
                             station.set_favicon(icon.url.to_string());
                             debug!(

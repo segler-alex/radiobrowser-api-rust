@@ -67,4 +67,7 @@ pub struct Config {
     pub language_to_code_filepath: String,
     pub enable_extract_favicon: bool,
     pub recheck_existing_favicon: bool,
+    pub favicon_size_min: usize,
+    pub favicon_size_max: usize,
+    pub favicon_size_optimum: usize,
 }

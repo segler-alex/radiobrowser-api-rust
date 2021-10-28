@@ -83,6 +83,12 @@ server-info-check-chunksize = 100
 
 # Try to extract favicon from website for empty favicons
 enable-extract-favicon = false
+# Minimum (width or height) of favicons extracted
+favicon-size-min = 32
+# Maximum (width or height) of favicons extracted
+favicon-size-max = 256
+# Optimum size of favicons extracted
+favicon-size-optimum = 128
 
 ## Cleanup
 ## =======

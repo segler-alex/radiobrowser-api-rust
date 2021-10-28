@@ -136,6 +136,9 @@ fn jobs<C: 'static>(config: config::Config, conn: C) where C: DbConnection + Clo
                 config.check_servers,
                 config.recheck_existing_favicon,
                 config.enable_extract_favicon,
+                config.favicon_size_min,
+                config.favicon_size_max,
+                config.favicon_size_optimum,
             );
 
             match result {
