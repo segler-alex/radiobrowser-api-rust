@@ -228,7 +228,7 @@ pub fn dbcheck<C>(
                     trace!("searching favicon {}", station.stationuuid);
                     let links = ImageLink::from_website(&station.homepage, agent, timeout);
                     if let Ok(links) = links {
-                        let icon = get_best_icon(links, 32, 256);
+                        let icon = get_best_icon(links, 128, 32, 256);
                         if let Some(icon) = icon {
                             station.set_favicon(icon.url.to_string());
                             debug!(

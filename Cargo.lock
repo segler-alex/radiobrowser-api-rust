@@ -392,9 +392,9 @@ dependencies = [
 
 [[package]]
 name = "combine"
-version = "4.6.1"
+version = "4.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a909e4d93292cd8e9c42e189f61681eff9d67b6541f96b8a1a737f23737bd001"
+checksum = "b2b2f5d0ee456f3928812dfc8c6d9a1d592b98678f6d56db9b0cd2b7bc6c8db5"
 dependencies = [
  "bytes",
  "memchr 2.4.1",
@@ -1682,9 +1682,9 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
 name = "openssl"
-version = "0.10.36"
+version = "0.10.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d9facdb76fec0b73c406f125d44d86fdad818d66fef0531eec9233ca425ff4a"
+checksum = "2bc6b9e4403633698352880b22cbe2f0e45dd0177f6fabe4585536e56a3e4f75"
 dependencies = [
  "bitflags",
  "cfg-if 1.0.0",
@@ -1702,9 +1702,9 @@ checksum = "28988d872ab76095a6e6ac88d99b54fd267702734fd7ffe610ca27f533ddb95a"
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.67"
+version = "0.9.68"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69df2d8dfc6ce3aaf44b40dec6f487d5a886516cf6879c49e98e0710f310a058"
+checksum = "1c571f25d3f66dd427e417cebf73dbe2361d6125cf6e3a70d143fdf97c9f5150"
 dependencies = [
  "autocfg",
  "cc",
@@ -1879,9 +1879,9 @@ checksum = "dbf0c48bc1d91375ae5c3cd81e3722dff1abcf81a30960240640d223f59fe0e5"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.31"
+version = "1.0.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b581350bde2d774a19c6f30346796806b8f42b5fd3458c5f9a8623337fb27897"
+checksum = "ba508cc11742c0dc5c1659771673afbab7a0efab23aa17e854cbab0837ed0b43"
 dependencies = [
  "unicode-xid",
 ]
@@ -2600,9 +2600,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "1.0.80"
+version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d010a1623fbd906d51d650a9916aaefc05ffa0e4053ff7fe601167f3e715d194"
+checksum = "f2afee18b8beb5a596ecb4a2dce128c719b4ba399d34126b9e4396e3f9860966"
 dependencies = [
  "proc-macro2",
  "quote",
