@@ -334,6 +334,13 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .env("MIRROR_PULL_INTERVAL")
                 .takes_value(true),
         ).arg(
+            Arg::with_name("refresh-config-interval")
+                .long("refresh-config-interval")
+                .value_name("REFRESH_CONFIG_INTERVAL")
+                .help("download / redownload config interval")
+                .env("REFRESH_CONFIG_INTERVAL")
+                .takes_value(true),
+        ).arg(
             Arg::with_name("ignore-migration-errors")
                 .short("i")
                 .long("ignore-migration-errors")
@@ -664,6 +671,12 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         "mirror-pull-interval",
         String::from("5mins"),
     )?;
+    let refresh_config_interval = get_option_duration(
+        &matches,
+        &config,
+        "refresh-config-interval",
+        String::from("1day"),
+    )?;
     let ignore_migration_errors: bool =
         get_option_bool(&matches, &config, "ignore-migration-errors", false)?;
     let allow_database_downgrade: bool =
@@ -819,5 +832,6 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         favicon_size_min,
         favicon_size_max,
         favicon_size_optimum,
+        refresh_config_interval,
     })
 }

@@ -52,11 +52,13 @@ impl Display for MainError {
 impl Error for MainError {}
 
 fn jobs<C: 'static>(config: config::Config, conn: C) where C: DbConnection + Clone + Send {
+    let mut once_refresh_config = false;
     let mut once_pull = true;
     let mut once_cleanup = true;
     let mut once_check = true;
     let mut once_refresh = true;
 
+    let mut last_time_refresh_config = Instant::now();
     let mut last_time_pull = Instant::now();
     let mut last_time_cleanup = Instant::now();
     let mut last_time_check = Instant::now();
@@ -66,6 +68,22 @@ fn jobs<C: 'static>(config: config::Config, conn: C) where C: DbConnection + Clo
     let client = Client::new();
 
     thread::spawn(move || loop {
+        if config.refresh_config_interval.as_secs() > 0
+            && (once_refresh_config
+                || last_time_refresh_config.elapsed().as_secs() >= config.refresh_config_interval.as_secs())
+        {
+            once_refresh_config = false;
+            last_time_refresh_config = Instant::now();
+            match config::load_all_extra_configs(&config) {
+                Ok(_) => {
+
+                },
+                Err(err) => {
+                    error!("Reload config: {}", err);
+                }
+            }
+        }
+
         if config.servers_pull.len() > 0
             && (once_pull
                 || last_time_pull.elapsed().as_secs() >= config.mirror_pull_interval.as_secs())

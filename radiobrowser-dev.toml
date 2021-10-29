@@ -104,6 +104,8 @@ broken-stations-timeout = "30days"
 checks-timeout = "30days"
 ## Checks are removed after this timespan.
 clicks-timeout = "30days"
+# reload / redownload some config files
+refresh-config-interval = "1day"
 ## File path to CSV for replacing languages (local path or http/https)
 #replace-language-file = "https://radiobrowser.gitlab.io/radiobrowser-static-data/language-replace.csv"
 replace-language-file = "./etc/language-replace.csv"
