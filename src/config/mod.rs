@@ -642,14 +642,6 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .help("chunk size for server check")
                 .env("ENABLE_SERVER_CHECK_CHUNKSIZE")
                 .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("favicon")
-                .long("favicon")
-                .value_name("FAVICON")
-                .help("check favicons and try to repair them")
-                .env("FAVICON")
-                .takes_value(true),
         ).get_matches();
 
     let config_file_path: String = matches
@@ -737,7 +729,6 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         get_option_number(&matches, &config, "favicon-size-optimum", 128)? as usize;
 
     let delete: bool = get_option_bool(&matches, &config, "delete", false)?;
-    let favicon: bool = get_option_bool(&matches, &config, "favicon", false)?;
     let pause = get_option_duration(&matches, &config, "pause", String::from("10secs"))?;
     let tcp_timeout =
         get_option_duration(&matches, &config, "tcp-timeout", String::from("10secs"))?;
@@ -835,7 +826,6 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         connection_string,
         delete,
         enable_check,
-        favicon,
         ignore_migration_errors,
         listen_host,
         listen_port,

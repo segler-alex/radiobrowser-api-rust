@@ -57,8 +57,6 @@ concurrency = 10
 stations = 100
 ## Enable delete logic for stations
 delete = true
-## Automatic favicon check for stations (experimental)
-favicon = false
 ## Interval in seconds to wait after every batch of checks
 pause = "60secs"
 ## Timeout for tcp connections

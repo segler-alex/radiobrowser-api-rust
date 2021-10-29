@@ -32,7 +32,6 @@ pub struct Config {
     pub connection_string: String,
     pub delete: bool,
     pub enable_check: bool,
-    pub favicon: bool,
     pub ignore_migration_errors: bool,
     pub listen_host: String,
     pub listen_port: i32,
