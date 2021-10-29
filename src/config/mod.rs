@@ -22,10 +22,8 @@ pub fn load_all_extra_configs(c: &Config) -> Result<(), Box<dyn Error>> {
     match load_config() {
         Ok(config) => {
             trace!("Config: {:#?}", config);
-            match INSTANCE_CONFIG.set(Mutex::new(config)) {
-                Ok(_) => info!("Initial load of global config file"),
-                Err(_) => info!("Reload of global config file"),
-            }
+            let m = INSTANCE_CONFIG.get_or_init(||Mutex::new(config.clone()));
+            *(m.lock()?) = config;
         }
         Err(err) => warn!(
             "Unable to load file '{}': {}",
@@ -33,9 +31,9 @@ pub fn load_all_extra_configs(c: &Config) -> Result<(), Box<dyn Error>> {
         ),
     }
     match data_mapping_item::read_map_csv_file(&c.language_replace_filepath) {
-        Ok(x1) => match INSTANCE_LANGUAGE_REPLACE.set(Mutex::new(x1)) {
-            Ok(_) => info!("Initial set of global language replace cache"),
-            Err(_) => info!("Updating global language replace cache"),
+        Ok(data) => {
+            let m = INSTANCE_LANGUAGE_REPLACE.get_or_init(||Mutex::new(data.clone()));
+            *(m.lock()?) = data;
         },
         Err(err) => warn!(
             "Unable to load file '{}': {}",
@@ -43,9 +41,9 @@ pub fn load_all_extra_configs(c: &Config) -> Result<(), Box<dyn Error>> {
         ),
     }
     match data_mapping_item::read_map_csv_file(&c.language_to_code_filepath) {
-        Ok(x2) => match INSTANCE_LANGUAGE_TO_CODE.set(Mutex::new(x2)) {
-            Ok(_) => info!("Initial set of global language to code cache"),
-            Err(_) => info!("Updating global language to code cache"),
+        Ok(data) => {
+            let m = INSTANCE_LANGUAGE_TO_CODE.get_or_init(|| Mutex::new(data.clone()));
+            *(m.lock()?) = data;
         },
         Err(err) => warn!(
             "Unable to load file '{}': {}",

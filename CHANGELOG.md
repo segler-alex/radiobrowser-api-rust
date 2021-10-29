@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 * CLEANUP: add station change entries into the database for language and favicon updates
 
+### Fixed
+* CONFIG: replace config in shared memory
+
 ## [0.7.20] 2021-10-16
 ### Added
 * CLEANUP: language replace, language to code
