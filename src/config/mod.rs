@@ -392,7 +392,7 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("LOG_LEVEL")
                 .takes_value(false)
                 .multiple(true)
-                .help("increases the log level. can be specified mutliple times 0..3"),
+                .help("increases the log level. can be specified mutliple times 0..4"),
         ).arg(
             Arg::with_name("static-files-dir")
                 .short("g")
