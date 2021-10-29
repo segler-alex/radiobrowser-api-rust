@@ -51,7 +51,7 @@ impl Display for MainError {
 
 impl Error for MainError {}
 
-fn jobs<C: 'static>(config: config::Config, conn: C)
+fn jobs<C: 'static>(conn: C)
 where
     C: DbConnection + Clone + Send,
 {
@@ -71,6 +71,12 @@ where
     let client = Client::new();
 
     thread::spawn(move || loop {
+        let config = config::get_config()
+            .expect("No config loaded")
+            .lock()
+            .expect("Config could not be pulled from shared memory.")
+            .clone();
+        
         if config.refresh_config_interval.as_secs() > 0
             && (once_refresh_config
                 || last_time_refresh_config.elapsed().as_secs()
@@ -222,7 +228,7 @@ fn mainloop() -> Result<(), Box<dyn Error>> {
                 );
                 match migration_result {
                     Ok(_) => {
-                        jobs(config2.clone(), connection.clone());
+                        jobs(connection.clone());
                         api::start(connection, config2);
                     }
                     Err(err) => {

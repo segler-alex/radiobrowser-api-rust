@@ -13,26 +13,50 @@ use std::fs;
 use std::time::Duration;
 use std::{collections::HashMap, sync::Mutex};
 
+static INSTANCE_CONFIG: OnceCell<Mutex<Config>> = OnceCell::new();
 static INSTANCE_LANGUAGE_TO_CODE: OnceCell<Mutex<HashMap<String, String>>> = OnceCell::new();
 static INSTANCE_LANGUAGE_REPLACE: OnceCell<Mutex<HashMap<String, String>>> = OnceCell::new();
 
 pub fn load_all_extra_configs(c: &Config) -> Result<(), Box<dyn Error>> {
     debug!("load_all_extra_configs()");
+    match load_config() {
+        Ok(config) => {
+            trace!("Config: {:#?}", config);
+            match INSTANCE_CONFIG.set(Mutex::new(config)) {
+                Ok(_) => info!("Initial load of global config file"),
+                Err(_) => info!("Reload of global config file"),
+            }
+        }
+        Err(err) => warn!(
+            "Unable to load file '{}': {}",
+            &c.language_replace_filepath, err
+        ),
+    }
     match data_mapping_item::read_map_csv_file(&c.language_replace_filepath) {
         Ok(x1) => match INSTANCE_LANGUAGE_REPLACE.set(Mutex::new(x1)) {
             Ok(_) => info!("Initial set of global language replace cache"),
             Err(_) => info!("Updating global language replace cache"),
         },
-        Err(err) => warn!("Unable to load file '{}': {}", &c.language_replace_filepath, err),
+        Err(err) => warn!(
+            "Unable to load file '{}': {}",
+            &c.language_replace_filepath, err
+        ),
     }
     match data_mapping_item::read_map_csv_file(&c.language_to_code_filepath) {
         Ok(x2) => match INSTANCE_LANGUAGE_TO_CODE.set(Mutex::new(x2)) {
             Ok(_) => info!("Initial set of global language to code cache"),
             Err(_) => info!("Updating global language to code cache"),
         },
-        Err(err) => warn!("Unable to load file '{}': {}", &c.language_to_code_filepath, err),
+        Err(err) => warn!(
+            "Unable to load file '{}': {}",
+            &c.language_to_code_filepath, err
+        ),
     }
     Ok(())
+}
+
+pub fn get_config() -> Option<&'static Mutex<Config>> {
+    INSTANCE_CONFIG.get()
 }
 
 pub fn get_cache_language_to_code() -> Option<&'static Mutex<HashMap<String, String>>> {
@@ -628,7 +652,10 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         ).get_matches();
 
-    let config_file_path: String = matches.value_of("config-file").unwrap().to_string();
+    let config_file_path: String = matches
+        .value_of("config-file")
+        .unwrap_or("/etc/radiobrowser.toml")
+        .to_string();
 
     let contents = fs::read_to_string(config_file_path)?;
     let config = toml::from_str::<toml::Value>(&contents)?;
@@ -697,12 +724,17 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
     let concurrency: usize = get_option_number(&matches, &config, "concurrency", 1)? as usize;
     let check_stations: u32 = get_option_number(&matches, &config, "stations", 10)? as u32;
     let enable_check: bool = get_option_bool(&matches, &config, "enable-check", false)?;
-    let enable_extract_favicon: bool = get_option_bool(&matches, &config, "enable-extract-favicon", false)?;
-    let recheck_existing_favicon: bool = get_option_bool(&matches, &config, "recheck-existing-favicon", false)?;
+    let enable_extract_favicon: bool =
+        get_option_bool(&matches, &config, "enable-extract-favicon", false)?;
+    let recheck_existing_favicon: bool =
+        get_option_bool(&matches, &config, "recheck-existing-favicon", false)?;
 
-    let favicon_size_min: usize = get_option_number(&matches, &config, "favicon-size-min", 32)? as usize;
-    let favicon_size_max: usize = get_option_number(&matches, &config, "favicon-size-max", 256)? as usize;
-    let favicon_size_optimum: usize = get_option_number(&matches, &config, "favicon-size-optimum", 128)? as usize;
+    let favicon_size_min: usize =
+        get_option_number(&matches, &config, "favicon-size-min", 32)? as usize;
+    let favicon_size_max: usize =
+        get_option_number(&matches, &config, "favicon-size-max", 256)? as usize;
+    let favicon_size_optimum: usize =
+        get_option_number(&matches, &config, "favicon-size-optimum", 128)? as usize;
 
     let delete: bool = get_option_bool(&matches, &config, "delete", false)?;
     let favicon: bool = get_option_bool(&matches, &config, "favicon", false)?;
@@ -740,12 +772,8 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         "broken-stations-timeout",
         String::from("30days"),
     )?;
-    let cleanup_interval = get_option_duration(
-        &matches,
-        &config,
-        "cleanup-interval",
-        String::from("1hour"),
-    )?;
+    let cleanup_interval =
+        get_option_duration(&matches, &config, "cleanup-interval", String::from("1hour"))?;
     let checks_timeout =
         get_option_duration(&matches, &config, "checks-timeout", String::from("30days"))?;
     let clicks_timeout =
