@@ -341,6 +341,13 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .env("REFRESH_CONFIG_INTERVAL")
                 .takes_value(true),
         ).arg(
+            Arg::with_name("cleanup-interval")
+                .long("cleanup-interval")
+                .value_name("CLEANUP_INTERVAL")
+                .help("cleanup tasks interval")
+                .env("CLEANUP_INTERVAL")
+                .takes_value(true),
+        ).arg(
             Arg::with_name("ignore-migration-errors")
                 .short("i")
                 .long("ignore-migration-errors")
@@ -733,6 +740,12 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         "broken-stations-timeout",
         String::from("30days"),
     )?;
+    let cleanup_interval = get_option_duration(
+        &matches,
+        &config,
+        "cleanup-interval",
+        String::from("1hour"),
+    )?;
     let checks_timeout =
         get_option_duration(&matches, &config, "checks-timeout", String::from("30days"))?;
     let clicks_timeout =
@@ -833,5 +846,6 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         favicon_size_max,
         favicon_size_optimum,
         refresh_config_interval,
+        cleanup_interval,
     })
 }

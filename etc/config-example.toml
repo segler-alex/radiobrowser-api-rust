@@ -76,24 +76,31 @@ retries = 5
 ## User agent for the stream check
 #useragent = "useragent/1.0"
 
-# Check server infos if server supports it (icecast)
+## Check server infos if server supports it (icecast)
 server-info-check = false
-# Chunksize for checking servers
+## Chunksize for checking servers
 server-info-check-chunksize = 100
 
-# Try to extract favicon from website for empty favicons
+# Check if current favicon in database still works, and remove them if not
+recheck-existing-favicon = false
+## Try to extract favicon from website for empty favicons
 enable-extract-favicon = false
-# Minimum (width or height) of favicons extracted
+## Minimum (width or height) of favicons extracted
 favicon-size-min = 32
-# Maximum (width or height) of favicons extracted
+## Maximum (width or height) of favicons extracted
 favicon-size-max = 256
-# Optimum size of favicons extracted
+## Optimum size of favicons extracted
 favicon-size-optimum = 128
+
+## Caches
+## ======
+## Update caches at an interval
+update-caches-interval = "5mins"
 
 ## Cleanup
 ## =======
-## Update caches at an interval
-update-caches-interval = "5mins"
+## Cleanup worker startup interval
+cleanup-interval = "1hour"
 ## The same ip cannot do clicks for the same stream in this timespan
 click-valid-timeout = "1day"
 ## Broken streams are removed after this timespan, if they have never worked.
@@ -104,15 +111,13 @@ broken-stations-timeout = "30days"
 checks-timeout = "30days"
 ## Checks are removed after this timespan.
 clicks-timeout = "30days"
-# reload / redownload some config files
+## reload / redownload some config files
 refresh-config-interval = "1day"
 ## File path to CSV for replacing languages (local path or http/https)
 #replace-language-file = "https://radiobrowser.gitlab.io/radiobrowser-static-data/language-replace.csv"
 replace-language-file = "/etc/radiobrowser/language-replace.csv"
 ## File path to CSV for mapping language to code (local path or http/https)
 language-to-code-file = "/etc/radiobrowser/language-to-code.csv"
-# Check if current favicon in database still works, and remove them if not
-recheck-existing-favicon = false
 
 ## Mirroring
 ## =========

@@ -71,4 +71,5 @@ pub struct Config {
     pub favicon_size_max: usize,
     pub favicon_size_optimum: usize,
     pub refresh_config_interval: Duration,
+    pub cleanup_interval: Duration,
 }

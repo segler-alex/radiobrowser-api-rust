@@ -51,18 +51,21 @@ impl Display for MainError {
 
 impl Error for MainError {}
 
-fn jobs<C: 'static>(config: config::Config, conn: C) where C: DbConnection + Clone + Send {
+fn jobs<C: 'static>(config: config::Config, conn: C)
+where
+    C: DbConnection + Clone + Send,
+{
     let mut once_refresh_config = false;
     let mut once_pull = true;
     let mut once_cleanup = true;
     let mut once_check = true;
-    let mut once_refresh = true;
+    let mut once_refresh_caches = true;
 
     let mut last_time_refresh_config = Instant::now();
     let mut last_time_pull = Instant::now();
     let mut last_time_cleanup = Instant::now();
     let mut last_time_check = Instant::now();
-    let mut last_time_refresh = Instant::now();
+    let mut last_time_refresh_caches = Instant::now();
 
     let mut list_deleted: Vec<UuidWithTime> = vec![];
     let client = Client::new();
@@ -70,14 +73,13 @@ fn jobs<C: 'static>(config: config::Config, conn: C) where C: DbConnection + Clo
     thread::spawn(move || loop {
         if config.refresh_config_interval.as_secs() > 0
             && (once_refresh_config
-                || last_time_refresh_config.elapsed().as_secs() >= config.refresh_config_interval.as_secs())
+                || last_time_refresh_config.elapsed().as_secs()
+                    >= config.refresh_config_interval.as_secs())
         {
             once_refresh_config = false;
             last_time_refresh_config = Instant::now();
             match config::load_all_extra_configs(&config) {
-                Ok(_) => {
-
-                },
+                Ok(_) => {}
                 Err(err) => {
                     error!("Reload config: {}", err);
                 }
@@ -89,7 +91,7 @@ fn jobs<C: 'static>(config: config::Config, conn: C) where C: DbConnection + Clo
                 || last_time_pull.elapsed().as_secs() >= config.mirror_pull_interval.as_secs())
         {
             once_pull = false;
-            once_refresh = true;
+            once_refresh_caches = true;
             last_time_pull = Instant::now();
             let result = pull::pull_worker(
                 &client,
@@ -114,9 +116,12 @@ fn jobs<C: 'static>(config: config::Config, conn: C) where C: DbConnection + Clo
             );
         }
 
-        if once_cleanup || last_time_cleanup.elapsed().as_secs() >= 3600 {
+        if config.cleanup_interval.as_secs() > 0
+            && (once_cleanup
+                || last_time_cleanup.elapsed().as_secs() >= config.cleanup_interval.as_secs())
+        {
             once_cleanup = false;
-            once_refresh = true;
+            once_refresh_caches = true;
             last_time_cleanup = Instant::now();
             let result = cleanup::do_cleanup(
                 config.delete,
@@ -141,7 +146,7 @@ fn jobs<C: 'static>(config: config::Config, conn: C) where C: DbConnection + Clo
                 config.check_stations
             );
             once_check = false;
-            once_refresh = true;
+            once_refresh_caches = true;
             last_time_check = Instant::now();
             let result = check::dbcheck(
                 conn.clone(),
@@ -181,11 +186,12 @@ fn jobs<C: 'static>(config: config::Config, conn: C) where C: DbConnection + Clo
         }
 
         if config.update_caches_interval.as_secs() > 0
-            && (once_refresh
-                || last_time_refresh.elapsed().as_secs() >= config.update_caches_interval.as_secs())
+            && (once_refresh_caches
+                || last_time_refresh_caches.elapsed().as_secs()
+                    >= config.update_caches_interval.as_secs())
         {
-            once_refresh = false;
-            last_time_refresh = Instant::now();
+            once_refresh_caches = false;
+            last_time_refresh_caches = Instant::now();
             let result = refresh::refresh_all_caches(conn.clone());
             match result {
                 Ok(_) => {}
