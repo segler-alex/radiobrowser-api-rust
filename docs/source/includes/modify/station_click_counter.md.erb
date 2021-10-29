@@ -1,0 +1,51 @@
+## Station click counter
+
+> **Syntax:**
+
+```json
+<%= config[:api_server] %>/json/url/stationuuid
+```
+
+```xml
+<%= config[:api_server] %>/xml/url/stationuuid
+```
+
+```
+<%= config[:api_server] %>/pls/url/stationuuid
+<%= config[:api_server] %>/m3u/url/stationuuid
+```
+
+> **Results:**
+
+```json
+{
+    "ok": "true",
+    "message": "retrieved station url",
+    "stationuuid": "9617a958-0601-11e8-ae97-52543be04c81",
+    "name": "Station name",
+    "url": "http://this.is.an.url"
+}
+```
+
+```xml
+<result>
+    <status ok="true" message="retrieved station url" id="123" name="Station name" url="http://this.is.an.url"/>
+</result>
+```
+
+> **Example:**
+
+```json
+<%= config[:api_server] %>/json/url/123
+```
+
+```xml
+<%= config[:api_server] %>/xml/url/123
+```
+
+```
+<%= config[:api_server] %>/pls/url/123
+<%= config[:api_server] %>/m3u/url/123
+```
+
+Increase the click count of a station by one. This should be called everytime when a user starts playing a stream to mark the stream more popular than others. Every call to this endpoint from the same IP address and for the same station only gets counted once per day. The call will return detailed information about the stream, supported output formats: JSON, XML ,PLS ,M3U

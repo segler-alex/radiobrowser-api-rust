@@ -1,0 +1,58 @@
+## Server mirrors
+
+> **Syntax:**
+
+```json
+<%= config[:api_server] %>/json/servers
+```
+
+```xml
+<%= config[:api_server] %>/xml/servers
+```
+
+> **Results:**
+
+```json
+[
+    {
+        "ip": "95.179.139.106",
+        "name": "nl1.api.radio-browser.info"
+    },
+    {
+        "ip": "45.77.62.161",
+        "name": "fr1.api.radio-browser.info"
+    },
+    {
+        "ip": "188.68.62.16",
+        "name": "de1.api.radio-browser.info"
+    },
+    {
+        "ip": "2a03:4000:6:8077::1",
+        "name": "de1.api.radio-browser.info"
+    },
+    {
+        "ip": "2001:19f0:6801:19d7:5400:2ff:fe71:bdb7",
+        "name": "fr1.api.radio-browser.info"
+    },
+    {
+        "ip": "2001:19f0:5001:32a4:5400:2ff:fe37:75c2",
+        "name": "nl1.api.radio-browser.info"
+    }
+]
+```
+
+```xml
+
+```
+
+> **Example:**
+
+```json
+<%= config[:api_server] %>/json/servers
+```
+
+```xml
+<%= config[:api_server] %>/xml/servers
+```
+
+A list of server mirrors. A DNS look-up of all.api.radio-browser.info is performed followed by a reverse one for every result getting from the first request. This should be done on the client. ONLY USE THIS if your client is not able to do DNS look-ups, supported output formats: JSON

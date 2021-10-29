@@ -1,0 +1,33 @@
+## Search radio stations by URL
+
+> **Syntax:**
+
+```json
+<%= config[:api_server] %>/json/stations/byurl
+```
+
+```xml
+<%= config[:api_server] %>/xml/stations/byurl
+```
+
+> **Results:**
+
+> Array of struct '[station](#station)'
+
+> **Example:**
+
+```json
+<%= config[:api_server] %>/json/stations/byurl
+```
+
+```xml
+<%= config[:api_server] %>/sml/stations/byurl
+```
+
+A list of radio stations that have an exact URL match, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL
+
+### Parameters:
+
+| Name | Example value | Description |
+|------|---------------|-------------|
+| `url` | `http://this.is.a.link/test.mp3` | MANDATORY, URL of the station |

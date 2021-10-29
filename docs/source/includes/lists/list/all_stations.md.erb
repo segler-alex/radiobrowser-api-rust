@@ -1,0 +1,37 @@
+## List of all radio stations
+
+> **Syntax:**
+
+```json
+<%= config[:api_server] %>/json/stations
+```
+
+```xml
+<%= config[:api_server] %>/xml/stations
+```
+
+> **Results:**
+
+> An array of struct '[Station](#station)'
+
+> **Example:**
+
+```json
+<%= config[:api_server] %>/json/stations
+```
+
+```xml
+<%= config[:api_server] %>/xml/stations
+```
+
+A list of all radio stations. Please use the '[station click counter](#station-click-counter)' API call to let the click be counted, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL
+
+### Parameters:
+
+| Name | Default value | Possible value | Description |
+|------|---------------|----------------|-------------|
+| `order` | `name` | `name`, `url`, `homepage`, `favicon`, `tags`, `country`, `state`, `language`, `votes`, `codec`, `bitrate`, `lastcheckok`, `lastchecktime`, `clicktimestamp`, `clickcount`, `clicktrend`, `changetimestamp`, `random` | name of the attribute the result list will be sorted by |
+| `reverse` | `false` | `true`, `false` | reverse the result list if set to `true` |
+| `offset` | `0` | `0`,`1`,`2`,`3`,... | starting value of the result list from the database. For example, if you want to do paging on the server side. |
+| `limit` | `100000` | `0`,`1`,`2`,`3`,... | number of returned datarows (stations) starting with offset |
+| `hidebroken` | ``false`` | `true`, ``false`` | do list/not list broken stations |

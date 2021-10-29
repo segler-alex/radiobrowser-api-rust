@@ -1,0 +1,68 @@
+## List of states
+
+> **Syntax:**
+
+```json
+<%= config[:api_server] %>/json/states
+<%= config[:api_server] %>/json/states/<filter>
+<%= config[:api_server] %>/json/states/<country>/<filter>
+```
+
+```xml
+<%= config[:api_server] %>/xml/states
+<%= config[:api_server] %>/xml/states/<filter>
+<%= config[:api_server] %>/xml/states/<country>/<filter>
+```
+
+> **Results:**
+
+```json
+[
+    {
+        "name": "Alabama",
+        "country": "United States of America",
+        "stationcount": "6"
+    },
+    {
+        "name": "Alberta",
+        "country": "Canada",
+        "stationcount": "2"
+    },
+    ...
+]
+```
+
+```xml
+<result>
+    <state name="Alabama" country="United States of America" stationcount="6"/>
+    <state name="Alberta" country="Canada" stationcount="2"/>
+    ...
+</result>
+```
+
+> **Example:**
+
+```json
+<%= config[:api_server] %>/json/states
+<%= config[:api_server] %>/json/states/ber
+<%= config[:api_server] %>/json/states/Germany/ber
+```
+
+```xml
+<%= config[:api_server] %>/xml/states
+<%= config[:api_server] %>/xml/states/ber
+<%= config[:api_server] %>/xml/states/Germany/ber
+```
+
+A JSON-encoded list of all states in the database. Countries are divided into states. If a filter is given, it will only return the ones containing the filter as substring. If a country is given, it will only display states in this country, supported output formats: JSON, XML, CSV
+
+### Parameters:
+
+| Name | Default value | Possible value | Description |
+|------|---------------|----------------|-------------|
+| `order` | `name` | `name`, `stationcount` | name of the attribute the result list will be sorted by |
+| `reverse` | `false` | `true`, `false` | reverse the result list if set to `true` |
+| `hidebroken` | `false` | `true`, `false` | do not count broken stations |
+| `country` |  | string | OPTIONAL, filter states by country name |
+| `offset` | `0` | `0`,`1`,`2`,`3`,... | starting value of the result list from the database. For example, if you want to do paging on the server side. |
+| `limit` | `100000` | `0`,`1`,`2`,`3`,.... | number of returned datarows (stations) starting with offset |

@@ -1,0 +1,61 @@
+## List of codecs
+
+> **Syntax:**
+
+```json
+<%= config[:api_server] %>/json/codecs
+<%= config[:api_server] %>/json/codecs/<filter>
+```
+
+```xml
+<%= config[:api_server] %>/xml/codecs
+<%= config[:api_server] %>/xml/codecs/<filter>
+```
+
+> **Results:**
+
+```json
+[
+    {
+        "name": "AAC",
+        "stationcount": "34"
+    },
+    {
+        "name": "AAC+",
+        "stationcount": "367"
+    },
+    ...
+]
+```
+
+```xml
+<result>
+    <codec name="AAC" stationcount="34"/>
+    <codec name="AAC+" stationcount="367"/>
+    ...
+</result>
+```
+
+> **Example:**
+
+```json
+<%= config[:api_server] %>/json/codecs
+<%= config[:api_server] %>/json/codecs/aac
+```
+
+```xml
+<%= config[:api_server] %>/xml/codecs
+<%= config[:api_server] %>/xml/codecs/aac
+```
+
+A JSON-encoded list of all codecs in the database. If a filter is given, it will only return the ones containing the filter as substring, supported output formats: JSON, XML, CSV
+
+### Parameters:
+
+| Name | Default value | Possible value | Description |
+|------|---------------|----------------|-------------|
+| `order` | `name` | `name`, `stationcount` | name of the attribute the result list will be sorted by |
+| `reverse` | `false` | `true`, `false` | reverse the result list if set to `true` |
+| `hidebroken` | `false` | `true`, `false` | do not count broken stations |
+| `offset` | `0` | `0`,`1`,`2`,`3`,... | starting value of the result list from the database. For example, if you want to do paging on the server side. |
+| `limit` | `100000` | `0`,`1`,`2`,`3`,.... | number of returned datarows (stations) starting with offset |

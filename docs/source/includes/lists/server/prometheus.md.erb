@@ -1,0 +1,43 @@
+## Prometheus monitoring
+
+> **Syntax:**
+
+```
+<%= config[:api_server] %>/metrics
+```
+
+> **Results:**
+
+```
+# HELP radio_browser_clicks_last_hour Clicks in the last hour
+# TYPE radio_browser_clicks_last_hour gauge
+radio_browser_clicks_last_hour 0
+
+# HELP radio_browser_stations_broken Count of stations that are broken
+# TYPE radio_browser_stations_broken gauge
+radio_browser_stations_broken 740
+
+# HELP radio_browser_stations_working Count of stations that are working/usable
+# TYPE radio_browser_stations_working gauge
+radio_browser_stations_working 26514
+
+# HELP radio_browser_stations_todo Count of stations that need are in the queue for checking
+# TYPE radio_browser_stations_todo gauge
+radio_browser_stations_todo 27254
+
+# HELP radio_browser_stations_deletable_never_worked Count of stations that are in the list for deletion and which never worked
+# TYPE radio_browser_stations_deletable_never_worked gauge
+radio_browser_stations_deletable_never_worked 0
+
+# HELP radio_browser_stations_deletable_were_working Count of stations that are in the list for deletion and which worked at some point
+# TYPE radio_browser_stations_deletable_were_working gauge
+radio_browser_stations_deletable_were_working 0
+```
+
+> **Example:**
+
+```
+<%= config[:api_server] %>/metrics
+```
+
+Exporter for [prometheus](https://prometheus.io/). It renders internal data about the server in a specific format that is readable by the time series database prometheus.

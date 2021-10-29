@@ -1,0 +1,33 @@
+## Search radio stations by UUIDs
+
+> **Syntax:**
+
+```json
+<%= config[:api_server] %>/json/stations/byuuid
+```
+
+```xml
+<%= config[:api_server] %>/xml/stations/byuuid
+```
+
+> **Results:**
+
+> Array of struct '[station](#station)'
+
+> **Example:**
+
+```json
+<%= config[:api_server] %>/json/stations/byuuid
+```
+
+```xml
+<%= config[:api_server] %>/xml/stations/byuuid
+```
+
+A list of radio stations that have an exact UUID match, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL
+
+### Parameters:
+
+| Name | Example value | Description |
+|------|---------------|-------------|
+| `uuids` | `110e57c5-0601-11e8-ae97-52543be04c81,220e57c5-0601-11e8-ae97-52543be04c81,330e57c5-0601-11e8-ae97-52543be04c81` | MANDATORY, comma-separated list of UUIDs |

@@ -1,0 +1,57 @@
+## Server stats
+
+> **Syntax:**
+
+```json
+<%= config[:api_server] %>/json/stats
+```
+
+```xml
+<%= config[:api_server] %>/xml/stats
+```
+
+> **Results:**
+
+```json
+{
+    "supported_version": 1,
+    "software_version": "0.5.0",
+    "status": "OK",
+    "stations": 4047,
+    "stations_broken": 45,
+    "tags": 677,
+    "clicks_last_hour": 65,
+    "clicks_last_day": 1822,
+    "languages": 59,
+    "countries": 81
+}
+```
+
+```xml
+<result>
+    <stats
+        status="OK"
+        supported_version="1"
+        software_version="0.5.0"
+        stations="4047"
+        stations_broken="45"
+        tags="677"
+        clicks_last_hour="66"
+        clicks_last_day="1824"
+        languages="59"
+        countries="81"
+    />
+</result>
+```
+
+> **Example:**
+
+```json
+<%= config[:api_server] %>/json/stats
+```
+
+```xml
+<%= config[:api_server] %>/xml/stats
+```
+
+Web service stats, supported output formats: JSON, XML

@@ -1,0 +1,104 @@
+## Station check
+
+This struct is used to represent an online check of a stream. Most of the information gets extracted by checking the [http headers of the stream](https://www.stream-meta.info/).
+
+> **Results:**
+
+```json
+{
+    "stationuuid":"960e57c5-0601-11e8-ae97-52543be04c81",
+    "checkuuid":"18be4561-309a-11ea-b37a-0242ac120002",
+    "source":"fr1.api.radio-browser.info",
+    "codec":"MP3",
+    "bitrate":128,
+    "hls":0,
+    "ok":1,
+    "timestamp":"2020-01-06 15:34:58",
+    "timestamp_iso8601":"2020-01-06T15:34:58Z",
+    "urlcache":"http://stream.example.com/mp3_128",
+    "metainfo_overrides_database":0,
+    "public":null,
+    "name":null,
+    "description":null,
+    "tags":null,
+    "countrycode":null,
+    "countrysubdivisioncode": null,
+    "homepage":null,
+    "favicon":null,
+    "loadbalancer":null,
+    "server_software": "Icecast 2.4.0",
+    "sampling": 44100,
+    "timing_ms": 495,
+    "languagecodes": null,
+    "ssl_error": 0,
+    "geo_lat": 1.1,
+    "geo_long": -2.2
+}
+```
+
+```xml
+<check
+    stationuuid="01234567-89ab-cdef-0123-456789abcdef"
+    checkuuid="01234567-89ab-cdef-0123-456789abcdef"
+    source="fr1.api.radio-browser.info"
+    codec="MP3"
+    bitrate="128"
+    hls="0"
+    ok="1"
+    urlcache="http://stream.example.com/mp3_128"
+    timestamp="2020-01-06 15:34:58"
+    metainfo_overrides_database="0"
+    public="0"
+    name=""
+    description=""
+    tags=""
+    homepage=""
+    loadbalancer=""
+    favicon=""
+    countrycode=""
+    countrysubdivisioncode=""
+    server_software="Icecast 2.4.2"
+    sampling="44100"
+    timing_ms="495"
+    languagecodes=""
+    ssl_error="0"
+    geo_lat="1.1"
+    geo_long="-2.2"/>
+```
+
+```shell
+stationuuid,checkuuid,source,codec,bitrate,hls,ok,timestamp_iso8601,timestamp,urlcache,metainfo_overrides_database,public,name,description,tags,countrycode,homepage,favicon,loadbalancer,do_not_index,countrysubdivisioncode,server_software,sampling,timing_ms,languagecodes,ssl_error,geo_lat,geo_long
+01234567-89ab-cdef-0123-456789abcdef,01234567-89ab-cdef-0123-456789abcdef,fr1.api.radio-browser.info,MP3,192,0,1,2021-04-16T08:07:45Z,2021-04-16 08:07:45,http://stream.example.com/mp3_128,0,,,,,,,,,,,Icecast 2.4.2,,495,,0,,
+```
+
+### Fields:
+
+| Name | Possible value/Datatype | Description | Nullable |
+|------|-------------------------|-------------|----------|
+| `checkuuid` | [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier) | An unique id for this StationCheck | NO |
+| `stationuuid` | [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier) | An unique id for referencing a Station | NO |
+| `source` | string | DNS Name of the server that did the stream check. | NO |
+| `codec` | string | High level name of the used codec of the stream. May have the format AUDIO or AUDIO/VIDEO. | NO |
+| `bitrate` | number, integer | Bitrate 1000 bits per second (kBit/s) of the stream. (Audio + Video) | NO |
+| `hls` | number, integer | `1` means this is an [HLS stream](https://en.wikipedia.org/wiki/HTTP_Live_Streaming), otherwise `0`. | NO |
+| `ok` | number, integer | 1 means this stream is reachable, otherwise 0. | NO |
+| `timestamp_iso8601` | [ISO-8601](https://en.wikipedia.org/wiki/ISO_8601) datetime string | Date and time of check creation | NO |
+| `timestamp` | datetime, YYYY-MM-DD HH:mm:ss | Date and time of check creation | NO |
+| `urlcache` | string, URL (HTTP/HTTPS) | Direct stream url that has been resolved from the main stream url. HTTP redirects and playlists have been decoded. If hls is `1` then this is still a HLS-playlist. | NO |
+|  `metainfo_overrides_database` | number, integer | `1` means this stream has provided extended information and it should be used to override the local database, otherwise `0`. | NO |
+| `public` | number, integer | 1 that this stream appears in the public shoutcast/icecast directory, otherwise 0. | YES |
+| `name` | string | The name extracted from the stream header. | YES |
+| `description` | string | The description extracted from the stream header. | YES |
+| `tags` | string | Komma separated list of tags. (genres of this stream) | YES |
+| `countrycode` | string | Official country-codes as in [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) | YES |
+| `countrysubdivisioncode` | string | Official country subdivision codes as in [ISO 3166-2](https://en.wikipedia.org/wiki/ISO_3166-2) | YES |
+| `homepage` | string | The homepage extracted from the stream header. | YES |
+| `favicon` | string | The favicon extracted from the stream header. | YES |
+| `loadbalancer` | string | The loadbalancer extracted from the stream header. | YES |
+| `server_software` | string | The name of the server software used. | YES |
+| `sampling` | number, unsigned integer | Audio sampling frequency in Hz | YES |
+| `timing_ms` | number, unsigned integer | Timespan in miliseconds this check needed to be finished. | NO |
+| `languagecodes` | string | The description extracted from the stream header. | YES |
+| `ssl_error` | number, unsigned integer | 1 means that a ssl error occured while connecting to the stream, 0 otherwise. | NO |
+| `geo_lat` | number, double | Latitude on earth where the stream is located. | YES |
+| `geo_long` | number, double | Longitude on earth where the stream is located. | YES |

@@ -1,0 +1,105 @@
+## List of radio stations
+
+> **Syntax:**
+
+```json
+<%= config[:api_server] %>/json/stations/byuuid/{searchterm}
+<%= config[:api_server] %>/json/stations/byname/{searchterm}
+<%= config[:api_server] %>/json/stations/bynameexact/{searchterm}
+<%= config[:api_server] %>/json/stations/bycodec/{searchterm}
+<%= config[:api_server] %>/json/stations/bycodecexact/{searchterm}
+<%= config[:api_server] %>/json/stations/bycountry/{searchterm}
+<%= config[:api_server] %>/json/stations/bycountryexact/{searchterm}
+<%= config[:api_server] %>/json/stations/bycountrycodeexact/{searchterm}
+<%= config[:api_server] %>/json/stations/bystate/{searchterm}
+<%= config[:api_server] %>/json/stations/bystateexact/{searchterm}
+<%= config[:api_server] %>/json/stations/bylanguage/{searchterm}
+<%= config[:api_server] %>/json/stations/bylanguageexact/{searchterm}
+<%= config[:api_server] %>/json/stations/bytag/{searchterm}
+<%= config[:api_server] %>/json/stations/bytagexact/{searchterm}
+```
+
+```xml
+<%= config[:api_server] %>/xml/stations/byuuid/{searchterm}
+<%= config[:api_server] %>/xml/stations/byname/{searchterm}
+<%= config[:api_server] %>/xml/stations/bynameexact/{searchterm}
+<%= config[:api_server] %>/xml/stations/bycodec/{searchterm}
+<%= config[:api_server] %>/xml/stations/bycodecexact/{searchterm}
+<%= config[:api_server] %>/xml/stations/bycountry/{searchterm}
+<%= config[:api_server] %>/xml/stations/bycountryexact/{searchterm}
+<%= config[:api_server] %>/xml/stations/bycountrycodeexact/{searchterm}
+<%= config[:api_server] %>/xml/stations/bystate/{searchterm}
+<%= config[:api_server] %>/xml/stations/bystateexact/{searchterm}
+<%= config[:api_server] %>/xml/stations/bylanguage/{searchterm}
+<%= config[:api_server] %>/xml/stations/bylanguageexact/{searchterm}
+<%= config[:api_server] %>/xml/stations/bytag/{searchterm}
+<%= config[:api_server] %>/xml/stations/bytagexact/{searchterm}
+```
+
+> **Results:**
+
+> Details at struct '[Station](#station)'
+
+```json
+[
+    {
+        "name": "..",
+        ...
+    },
+    {
+        ...
+    },
+    {
+        ...
+    },
+    ...
+]
+```
+
+```xml
+<result>
+    <station name=".." ... >
+    <station name=".." ... >
+    <station name=".." ... >
+    ...
+</result>
+```
+
+> **Example:**
+
+```json
+<%= config[:api_server] %>/json/stations/byname/jazz
+<%= config[:api_server] %>/json/stations/bycountry/austria
+<%= config[:api_server] %>/json/stations/bycountryexact/austria
+<%= config[:api_server] %>/json/stations/bycountrycodeexact/at
+<%= config[:api_server] %>/json/stations/bytagexact/320kbps
+<%= config[:api_server] %>/json/stations/bytagexact/320kbps
+```
+
+```xml
+<%= config[:api_server] %>/xml/stations/byname/jazz
+<%= config[:api_server] %>/xml/stations/bycountry/austria
+<%= config[:api_server] %>/xml/stations/bycountryexact/austria
+<%= config[:api_server] %>/xml/stations/bycountrycodeexact/at
+<%= config[:api_server] %>/xml/stations/bytagexact/320kbps
+<%= config[:api_server] %>/xml/stations/bytagexact/320kbps
+```
+
+```plaintext
+<%= config[:api_server] %>/m3u/stations/bytagexact/320kbps
+<%= config[:api_server] %>/pls/stations/bytagexact/320kbps
+```
+
+A list of radio stations that match the search. The variants with "exact" will only search for perfect matches, and others will search for the station whose attribute contains the search term.
+
+Please use '[station click counter](#station-click-counter)' API call to let the click be counted, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL
+
+### Parameters:
+
+| Name | Default value | Possible value | Description |
+|------|---------------|----------------|-------------|
+| `order` | `name` | `name`, `url`, `homepage`, `favicon`, `tags`, `country`, `state`, `language`, `votes`, `codec`, `bitrate`, `lastcheckok`, `lastchecktime`, `clicktimestamp`, `clickcount`, `clicktrend`, `changetimestamp`, `random` | name of the attribute the result list will be sorted by |
+| `reverse` | `false` | `true`, `false` | reverse the result list if set to `true` |
+| `offset` | `0` | `0`,`1`,`2`,`3`,... | starting value of the result list from the database. For example, if you want to do paging on the server side. |
+| `limit` | `100000` | `0`,`1`,`2`,`3`,... | number of returned datarows (stations) starting with offset |
+| `hidebroken` | `false` | `true`, `false` | do list/not list broken stations |
