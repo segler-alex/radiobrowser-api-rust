@@ -17,24 +17,24 @@ static INSTANCE_CONFIG: OnceCell<Mutex<Config>> = OnceCell::new();
 static INSTANCE_LANGUAGE_TO_CODE: OnceCell<Mutex<HashMap<String, String>>> = OnceCell::new();
 static INSTANCE_LANGUAGE_REPLACE: OnceCell<Mutex<HashMap<String, String>>> = OnceCell::new();
 
-pub fn load_all_extra_configs(c: &Config) -> Result<(), Box<dyn Error>> {
-    debug!("load_all_extra_configs()");
+pub fn load_main_config() -> Result<(), Box<dyn Error>> {
+    debug!("load_main_config()");
     match load_config() {
         Ok(config) => {
             trace!("Config: {:#?}", config);
-            let m = INSTANCE_CONFIG.get_or_init(||Mutex::new(config.clone()));
+            let m = INSTANCE_CONFIG.get_or_init(|| Mutex::new(config.clone()));
             *(m.lock()?) = config;
         }
-        Err(err) => warn!(
-            "Unable to load file '{}': {}",
-            &c.language_replace_filepath, err
-        ),
+        Err(err) => warn!("Unable to load file: {}", err),
     }
+    Ok(())
+}
+pub fn load_all_extra_configs(c: &Config) -> Result<(), Box<dyn Error>> {
     match data_mapping_item::read_map_csv_file(&c.language_replace_filepath) {
         Ok(data) => {
-            let m = INSTANCE_LANGUAGE_REPLACE.get_or_init(||Mutex::new(data.clone()));
+            let m = INSTANCE_LANGUAGE_REPLACE.get_or_init(|| Mutex::new(data.clone()));
             *(m.lock()?) = data;
-        },
+        }
         Err(err) => warn!(
             "Unable to load file '{}': {}",
             &c.language_replace_filepath, err
@@ -44,7 +44,7 @@ pub fn load_all_extra_configs(c: &Config) -> Result<(), Box<dyn Error>> {
         Ok(data) => {
             let m = INSTANCE_LANGUAGE_TO_CODE.get_or_init(|| Mutex::new(data.clone()));
             *(m.lock()?) = data;
-        },
+        }
         Err(err) => warn!(
             "Unable to load file '{}': {}",
             &c.language_to_code_filepath, err
@@ -231,7 +231,7 @@ fn get_hosts_from_config(config: &toml::Value) -> Result<Vec<String>, Box<dyn Er
     Ok(list)
 }
 
-pub fn load_config() -> Result<Config, Box<dyn Error>> {
+fn load_config() -> Result<Config, Box<dyn Error>> {
     let hostname_str: String = hostname::get()
         .map(|os_string| os_string.to_string_lossy().into_owned())
         .unwrap_or("".to_string());

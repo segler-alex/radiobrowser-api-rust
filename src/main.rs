@@ -32,16 +32,12 @@ mod refresh;
 
 #[derive(Debug, Clone)]
 enum MainError {
-    ConfigLoadError(String),
     LoggerInitError(String),
 }
 
 impl Display for MainError {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match *self {
-            MainError::ConfigLoadError(ref msg) => {
-                write!(f, "Unable to load config file: {}", msg)
-            }
             MainError::LoggerInitError(ref msg) => {
                 write!(f, "Unable to initialize logger: {}", msg)
             }
@@ -212,7 +208,15 @@ where
 }
 
 fn mainloop() -> Result<(), Box<dyn Error>> {
-    let config = config::load_config().map_err(|e| MainError::ConfigLoadError(e.to_string()))?;
+    //let config = config::load_config().map_err(|e| MainError::ConfigLoadError(e.to_string()))?;
+    config::load_main_config()?;
+    let config = {
+        config::get_config()
+            .expect("config could not be loaded")
+            .lock()
+            .expect("could not load config from shared mem")
+            .clone()
+    };
     logger::setup_logger(config.log_level, &config.log_dir, config.log_json)
         .map_err(|e| MainError::LoggerInitError(e.to_string()))?;
     info!("Config: {:#?}", config);
@@ -250,6 +254,7 @@ fn mainloop() -> Result<(), Box<dyn Error>> {
         match signal {
             SIGHUP => {
                 info!("received HUP, reload config");
+                config::load_main_config()?;
                 config::load_all_extra_configs(&config)?;
             }
             _ => unreachable!(),
