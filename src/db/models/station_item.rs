@@ -86,6 +86,32 @@ impl DbStationItem {
             self.changed = true;
         }
     }
+
+    pub fn set_url<P: AsRef<str>>(&mut self, url: P) {
+        if !self.url.eq(url.as_ref()) {
+            debug!(
+                "station changed {}: url '{}' -> '{}'",
+                self.stationuuid,
+                self.url,
+                url.as_ref()
+            );
+            self.url = url.as_ref().to_string();
+            self.changed = true;
+        }
+    }
+
+    pub fn set_homepage<P: AsRef<str>>(&mut self, homepage: P) {
+        if !self.homepage.eq(homepage.as_ref()) {
+            debug!(
+                "station changed {}: homepage '{}' -> '{}'",
+                self.stationuuid,
+                self.homepage,
+                homepage.as_ref()
+            );
+            self.homepage = homepage.as_ref().to_string();
+            self.changed = true;
+        }
+    }
     /*
     pub fn set_last_check_ok(&mut self, check_ok: bool) {
         if self.lastcheckok != check_ok {

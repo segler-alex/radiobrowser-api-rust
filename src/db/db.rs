@@ -88,7 +88,6 @@ pub trait DbConnection {
     fn update_station_auto(&mut self, station: &DbStationItem, reason: &str) -> Result<(), Box<dyn Error>>;
 
     fn update_stations_clickcount(&self) -> Result<(), Box<dyn Error>>;
-    fn clean_urls(&self, table_name: &str, column_key: &str, column_url: &str, allow_empty: bool) -> Result<(), Box<dyn Error>>;
 
     fn get_stations_multi_items(&self, column_name: &str) -> Result<HashMap<String, (u32,u32)>, Box<dyn Error>>;
     fn get_cached_items(&self, table_name: &str, column_name: &str) -> Result<HashMap<String, (u32, u32)>, Box<dyn Error>>;

@@ -37,11 +37,6 @@ pub fn do_cleanup<C>(
 
     conn_new_style.update_stations_clickcount()?;
     conn_new_style.remove_unused_ip_infos_from_stationclicks(click_valid_timeout)?;
-    conn_new_style.clean_urls("Station", "StationUuid", "Url", false)?;
-    conn_new_style.clean_urls("Station", "StationUuid", "Homepage", true)?;
-    conn_new_style.clean_urls("Station", "StationUuid", "UrlCache", true)?;
-    conn_new_style.clean_urls("StationHistory", "StationUuid", "Url", false)?;
-    conn_new_style.clean_urls("StationHistory", "StationUuid", "Homepage", true)?;
     conn_new_style.calc_country_field()?;
 
     info!("STATS: {} Checks/Hour, {} Checks/Day, {} Working stations, {} Broken stations, {} to do, deletable {} + {}", checks_hour, checks_day, stations_working, stations_broken, stations_todo, stations_deletable_never_worked, stations_deletable_were_working);

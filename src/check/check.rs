@@ -335,6 +335,11 @@ where
                 station.set_languagecodes(codes_trimmed.join(","));
                 station
             })
+            .map(|mut station| {
+                station.set_homepage(Url::parse(&station.homepage).map(|u|u.to_string()).unwrap_or_default());
+                station.set_url(Url::parse(&station.url).map(|u|u.to_string()).unwrap_or_default());
+                station
+            })
             .map(|station| dbcheck_internal(station, source, timeout, max_depth, retries))
             //.map(|mut diff| {
             //    diff.station.set_bitrate(diff.check.bitrate);
