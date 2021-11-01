@@ -80,17 +80,14 @@ pub trait DbConnection {
     fn delete_old_clicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn delete_removed_from_history(&mut self) -> Result<(), Box<dyn Error>>;
     fn delete_unused_streaming_servers(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
-    fn detect_language_codes(&mut self, language_to_code: &HashMap<String,String>) -> Result<Vec<String>, Box<dyn Error>>;
     fn remove_unused_ip_infos_from_stationclicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn remove_illegal_icon_links(&mut self) -> Result<(), Box<dyn Error>>;
     fn calc_country_field(&mut self) -> Result<(), Box<dyn Error>>;
     
     fn get_stations_with_empty_icon(&mut self) -> Result<Vec<(String, String)>, Box<dyn Error>>;
     fn get_stations_with_non_empty_icon(&mut self) -> Result<Vec<(String, String)>, Box<dyn Error>>;
-    fn update_station_favicon(&mut self, station: &DbStationItem, reason: &str) -> Result<(), Box<dyn Error>>;
+    fn update_station_auto(&mut self, station: &DbStationItem, reason: &str) -> Result<(), Box<dyn Error>>;
 
-    fn replace_languages(&mut self, items: &HashMap<String, String>) -> Result<Vec<String>, Box<dyn Error>>;
-    
     fn update_stations_clickcount(&self) -> Result<(), Box<dyn Error>>;
     fn clean_urls(&self, table_name: &str, column_key: &str, column_url: &str, allow_empty: bool) -> Result<(), Box<dyn Error>>;
 

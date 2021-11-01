@@ -347,15 +347,17 @@ params!{
         Ok(stations)
     }
 
-    fn update_station_favicon(&mut self, station: &DbStationItem, reason: &str) -> Result<(), Box<dyn Error>>
+    fn update_station_auto(&mut self, station: &DbStationItem, reason: &str) -> Result<(), Box<dyn Error>>
     {
-        trace!("update_station_favicon({})", station.stationuuid);
-        let query = r#"UPDATE Station SET Favicon=:favicon,Creation=UTC_TIMESTAMP(),ChangeUuid=:changeuuid WHERE StationUuid=:stationuuid"#;
+        trace!("update_station_auto({})", station.stationuuid);
+        let query = r#"UPDATE Station SET Favicon=:favicon,Language=:language,LanguageCodes=:languagecodes,Creation=UTC_TIMESTAMP(),ChangeUuid=:changeuuid WHERE StationUuid=:stationuuid"#;
         let mut transaction = self.pool.start_transaction(TxOpts::default())?;
         transaction.exec_drop(
             query,
             params! {
                 "favicon" => &station.favicon,
+                "language" => &station.language,
+                "languagecodes" => &station.languagecodes,
                 "stationuuid" => &station.stationuuid,
                 "changeuuid" => Uuid::new_v4().to_hyphenated().to_string(),
             }
@@ -583,138 +585,6 @@ params!{
         let query = "DELETE FROM StreamingServers WHERE Uuid=:uuid;";
         conn.exec_batch(query, list.iter().map(|uuid| params!("uuid" => uuid)))?;
         Ok(())
-    }
-
-    fn replace_languages(
-        &mut self,
-        items: &HashMap<String, String>,
-    ) -> Result<Vec<String>, Box<dyn Error>> {
-        trace!("replace_languages()");
-        let mut conn = self.pool.get_conn()?;
-        let query = "SELECT StationUuid, Language FROM Station;";
-        let list: Vec<(String, String)> =
-            conn.exec_map(query, (), |(id, language)| (id, language))?;
-        let stmt = conn.prep("UPDATE Station SET ChangeUuid=:changeuuid,Language=:language,Creation=UTC_TIMESTAMP() WHERE StationUuid=:id")?;
-        let mut updated_list = vec![];
-        for (id, language) in list {
-            //let language = language.replace("/", ",");
-            let mut updated = false;
-            let mut lang_trimmed: Vec<&str> = language
-                .split(",")
-                .by_ref()
-                .map(|item| item.trim())
-                .filter(|item| !item.is_empty())
-                .map(|item| match items.get(&item.to_string()) {
-                    Some(item_replaced) => {
-                        updated = true;
-                        debug!("replace '{}' -> '{}'", item, item_replaced);
-                        item_replaced
-                    }
-                    None => item,
-                })
-                .map(|item| item.trim())
-                .filter(|item| !item.is_empty())
-                .collect();
-            lang_trimmed.sort();
-            lang_trimmed.dedup();
-
-            if updated {
-                let mut transaction = conn.start_transaction(TxOpts::default())?;
-                updated_list.push(id.to_string());
-                match transaction.exec_drop(
-                    stmt.clone(),
-                    params! {
-                        "changeuuid" => Uuid::new_v4().to_hyphenated().to_string(),
-                        "language" => lang_trimmed.join(","),
-                        "id" => &id,
-                    },
-                ) {
-                    Ok(_) => {}
-                    Err(err) => {
-                        error!("Unable to update row {}: {}", id, err);
-                    }
-                };
-                MysqlConnection::backup_stations_by_uuid(
-                    &mut transaction,
-                    &(vec![id.to_string()]),
-                    "AUTO_REPLACE_LANG",
-                )?;
-                transaction.commit()?;
-            }
-        }
-
-        Ok(updated_list)
-    }
-
-    fn detect_language_codes(
-        &mut self,
-        language_to_code: &HashMap<String, String>,
-    ) -> Result<Vec<String>, Box<dyn Error>> {
-        let mut conn = self.pool.get_conn()?;
-        let query = "SELECT StationUuid, LanguageCodes, Language FROM Station;";
-        let list: Vec<(String, Option<String>, String)> =
-            conn.exec_map(query, (), |(id, codes, language)| (id, codes, language))?;
-
-        let mut undetected: Vec<String> = vec![];
-        let mut updated_list = vec![];
-        let stmt = conn.prep("UPDATE Station SET ChangeUuid=:changeuuid,LanguageCodes=:codes,Creation=UTC_TIMESTAMP() WHERE StationUuid=:id")?;
-        for (id, codes, language) in list {
-            //let language = language.replace("/", ",");//.replace(" ", ",");
-            let mut lang_trimmed: Vec<&str> = language
-                .split(",")
-                .by_ref()
-                .map(|item| item.trim())
-                .filter(|item| !item.is_empty())
-                .filter_map(|item| {
-                    let detected = language_to_code.get(item);
-                    if detected.is_none() {
-                        let item_owned = item.to_string();
-                        if !undetected.contains(&item_owned) {
-                            undetected.push(item_owned);
-                        }
-                    }
-                    detected
-                })
-                .map(|item| item.as_ref())
-                .collect();
-            lang_trimmed.sort();
-            lang_trimmed.dedup();
-            let codes = codes.unwrap_or(String::from(""));
-            let mut codes_trimmed: Vec<&str> = codes
-                .split(",")
-                .by_ref()
-                .map(|item| item.trim())
-                .filter(|item| !item.is_empty())
-                .collect();
-            let mut changed = false;
-            for new_lang in lang_trimmed.drain(..) {
-                if !codes_trimmed.contains(&new_lang) {
-                    codes_trimmed.push(new_lang);
-                    changed = true;
-                }
-            }
-            if changed {
-                let mut transaction = conn.start_transaction(TxOpts::default())?;
-                updated_list.push(id.to_string());
-                transaction.exec_drop(
-                    stmt.clone(),
-                    params! {
-                        "changeuuid" => Uuid::new_v4().to_hyphenated().to_string(),
-                        "codes" => codes_trimmed.join(","),
-                        "id" => &id,
-                    },
-                )?;
-                MysqlConnection::backup_stations_by_uuid(
-                    &mut transaction,
-                    &(vec![id.to_string()]),
-                    "AUTO_DETECT_LANG_CODE",
-                )?;
-                transaction.commit()?;
-            }
-        }
-        undetected.sort();
-        trace!("unable to detect {}\n{:#?}", undetected.len(), undetected);
-        Ok(updated_list)
     }
 
     fn remove_unused_ip_infos_from_stationclicks(

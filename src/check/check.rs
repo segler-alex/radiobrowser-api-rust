@@ -1,15 +1,18 @@
-use crate::db::DbConnection;
 use crate::check::favicon::get_best_icon;
+use crate::config::get_cache_language_replace;
+use crate::config::get_cache_language_to_code;
 use crate::db::models::DbStationItem;
 use crate::db::models::DbStreamingServerNew;
 use crate::db::models::StationCheckItemNew;
 use crate::db::models::StationCheckStepItemNew;
+use crate::db::DbConnection;
 use av_stream_info_rust;
 use av_stream_info_rust::StreamCheckResult;
 use av_stream_info_rust::UrlType;
 use rayon::prelude::*;
 use reqwest::blocking::Client;
 use std;
+use std::collections::HashMap;
 use std::time::Duration;
 use std::time::Instant;
 use url::Url;
@@ -187,8 +190,9 @@ pub fn dbcheck<C>(
     favicon_size_min: usize,
     favicon_size_max: usize,
     favicon_size_optimum: usize,
-) -> Result<usize, Box<dyn std::error::Error>> where
-    C: DbConnection
+) -> Result<usize, Box<dyn std::error::Error>>
+where
+    C: DbConnection,
 {
     let stations = conn.get_stations_to_check(24, stations_count)?;
     let checked_count = stations.len();
@@ -198,6 +202,34 @@ pub fn dbcheck<C>(
         .user_agent(agent)
         .timeout(Duration::from_secs(timeout))
         .build()?;
+
+    let languages_cache: HashMap<String, String> = match get_cache_language_replace() {
+        Some(mutex) => match mutex.lock() {
+            Ok(map) => map.clone(),
+            Err(err) => {
+                warn!(
+                    "Unable to get language mapping cache from shared memory: {}",
+                    err
+                );
+                HashMap::new()
+            }
+        },
+        None => HashMap::new(),
+    };
+
+    let language_to_code_cache: HashMap<String, String> = match get_cache_language_to_code() {
+        Some(mutex) => match mutex.lock() {
+            Ok(map) => map.clone(),
+            Err(err) => {
+                warn!(
+                    "Unable to get language mapping cache from shared memory: {}",
+                    err
+                );
+                HashMap::new()
+            }
+        },
+        None => HashMap::new(),
+    };
 
     let pool = rayon::ThreadPoolBuilder::new()
         .num_threads(concurrency)
@@ -216,7 +248,7 @@ pub fn dbcheck<C>(
                     let request = client.head(&station.favicon).send();
                     //let link = ImageLink::new(&station.favicon, agent, timeout);
                     if request.is_err() {
-                        debug!(
+                        trace!(
                             "removed favicon {} '{}'",
                             station.stationuuid, station.favicon
                         );
@@ -231,16 +263,76 @@ pub fn dbcheck<C>(
                     trace!("searching favicon {}", station.stationuuid);
                     let links = ImageLink::from_website(&station.homepage, agent, timeout);
                     if let Ok(links) = links {
-                        let icon = get_best_icon(links, favicon_size_optimum, favicon_size_min, favicon_size_max);
+                        let icon = get_best_icon(
+                            links,
+                            favicon_size_optimum,
+                            favicon_size_min,
+                            favicon_size_max,
+                        );
                         if let Some(icon) = icon {
                             station.set_favicon(icon.url.to_string());
-                            debug!(
+                            trace!(
                                 "added favicon {} '{}'",
-                                station.stationuuid, station.favicon
+                                station.stationuuid,
+                                station.favicon
                             );
                         }
                     }
                 }
+                station
+            })
+            .map(|mut station| {
+                let lang_copy = station.language.clone();
+                let mut lang_trimmed: Vec<&str> = lang_copy
+                    .split(",")
+                    .by_ref()
+                    .map(|item| item.trim())
+                    .filter(|item| !item.is_empty())
+                    .map(|item| match languages_cache.get(&item.to_string()) {
+                        Some(item_replaced) => {
+                            trace!("replace '{}' -> '{}'", item, item_replaced);
+                            item_replaced
+                        }
+                        None => item,
+                    })
+                    .map(|item| item.trim())
+                    .filter(|item| !item.is_empty())
+                    .collect();
+                lang_trimmed.sort();
+                lang_trimmed.dedup();
+                station.set_language(lang_trimmed.join(","));
+                station
+            })
+            .map(|mut station| {
+                let language = station.language.clone();
+                // convert each language to code
+                let mut lang_trimmed: Vec<&str> = language
+                    .split(",")
+                    .by_ref()
+                    .map(|item| item.trim())
+                    .filter(|item| !item.is_empty())
+                    .filter_map(|item| {
+                        let detected = language_to_code_cache.get(item);
+                        detected
+                    })
+                    .map(|item| item.as_ref())
+                    .collect();
+                lang_trimmed.sort();
+                lang_trimmed.dedup();
+                let codes = station.languagecodes.clone();
+                // cleanup current codes
+                let mut codes_trimmed: Vec<&str> = codes
+                    .split(",")
+                    .by_ref()
+                    .map(|item| item.trim())
+                    .filter(|item| !item.is_empty())
+                    .collect();
+                for new_lang in lang_trimmed.drain(..) {
+                    if !codes_trimmed.contains(&new_lang) {
+                        codes_trimmed.push(new_lang);
+                    }
+                }
+                station.set_languagecodes(codes_trimmed.join(","));
                 station
             })
             .map(|station| dbcheck_internal(station, source, timeout, max_depth, retries))
@@ -263,7 +355,7 @@ pub fn dbcheck<C>(
 
         if result.station.get_changed() {
             debug!("changed {}", result.station.stationuuid);
-            conn.update_station_favicon(&result.station, "AUTO_FAVICON")?;
+            conn.update_station_auto(&result.station, "AUTO")?;
         }
     }
 

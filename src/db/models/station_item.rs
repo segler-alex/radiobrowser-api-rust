@@ -48,13 +48,44 @@ impl DbStationItem {
         self.changed
     }
 
-    pub fn set_favicon(&mut self, favicon: String) {
-        if self.favicon != favicon {
-            self.favicon = favicon;
+    pub fn set_favicon<P: AsRef<str>>(&mut self, favicon: P) {
+        if self.favicon != favicon.as_ref() {
+            debug!(
+                "station changed {}: favicon '{}' -> '{}'",
+                self.stationuuid,
+                self.languagecodes,
+                favicon.as_ref()
+            );
+            self.favicon = favicon.as_ref().to_string();
             self.changed = true;
         }
     }
-    
+
+    pub fn set_language<P: AsRef<str>>(&mut self, language: P) {
+        if self.language != language.as_ref() {
+            debug!(
+                "station changed {}: language '{}' -> '{}'",
+                self.stationuuid,
+                self.language,
+                language.as_ref()
+            );
+            self.language = language.as_ref().to_string();
+            self.changed = true;
+        }
+    }
+
+    pub fn set_languagecodes<P: AsRef<str>>(&mut self, languagecodes: P) {
+        if self.languagecodes != languagecodes.as_ref() {
+            debug!(
+                "station changed {}: languagecodes '{}' -> '{}'",
+                self.stationuuid,
+                self.languagecodes,
+                languagecodes.as_ref()
+            );
+            self.languagecodes = languagecodes.as_ref().to_string();
+            self.changed = true;
+        }
+    }
     /*
     pub fn set_last_check_ok(&mut self, check_ok: bool) {
         if self.lastcheckok != check_ok {
