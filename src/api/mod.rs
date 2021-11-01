@@ -12,6 +12,7 @@ mod api_response;
 mod cache;
 mod all_params;
 
+use std::thread::JoinHandle;
 use crate::api::data::ApiLanguage;
 use all_params::AllParameters;
 use prometheus_exporter::RegistryLinks;
@@ -242,6 +243,26 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> ApiResponse
         },
         _ => ApiResponse::UnknownContentType
     }
+}
+
+use rouille::Server;
+
+pub fn start_unavailable<F, T>(config: Config, func: F) -> JoinHandle<T> where
+    F: FnOnce(std::sync::mpsc::Sender<()>) -> T,
+    F: Send + 'static,
+    T: Send + 'static,
+{
+    let server = Server::new(format!("{}:{}", &config.listen_host, &config.listen_port), |_| {
+        // send "http service unavailable 503"
+        Response::text("loading").with_status_code(503)
+    }).unwrap();
+    info!("Listen on {:?} (warming up)", server.server_addr());
+    let (handle, sender) = server.stoppable();
+
+    let thread_handle = thread::spawn(|| func(sender));
+    handle.join().unwrap();
+
+    thread_handle
 }
 
 pub fn start<A: 'static +  std::clone::Clone>(

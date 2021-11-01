@@ -208,7 +208,7 @@ where
 }
 
 fn mainloop() -> Result<(), Box<dyn Error>> {
-    //let config = config::load_config().map_err(|e| MainError::ConfigLoadError(e.to_string()))?;
+    // load config
     config::load_main_config()?;
     let config = {
         config::get_config()
@@ -222,6 +222,37 @@ fn mainloop() -> Result<(), Box<dyn Error>> {
     info!("Config: {:#?}", config);
     config::load_all_extra_configs(&config)?;
     let config2 = config.clone();
+    let config3 = config.clone();
+    
+    api::start_unavailable(config3, move |sender| loop {
+        let connection = db::MysqlConnection::new(&config2.connection_string);
+        match connection {
+            Ok(connection) => {
+                let migration_result = connection.do_migrations(
+                    config2.ignore_migration_errors,
+                    config2.allow_database_downgrade,
+                );
+                match migration_result {
+                    Ok(_) => {
+                        // stop current server
+                        sender.send(()).unwrap();
+                    }
+                    Err(err) => {
+                        error!("Migrations error: {}", err);
+                        thread::sleep(time::Duration::from_millis(1000));
+                    }
+                };
+                break;
+            }
+            Err(e) => {
+                error!("DB connection error: {}", e);
+                thread::sleep(time::Duration::from_millis(1000));
+            }
+        }
+    });
+
+    let config2 = config.clone();
+
     thread::spawn(|| loop {
         let connection = db::MysqlConnection::new(&config2.connection_string);
         match connection {
