@@ -49,11 +49,11 @@ impl DbStationItem {
     }
 
     pub fn set_favicon<P: AsRef<str>>(&mut self, favicon: P) {
-        if self.favicon != favicon.as_ref() {
+        if !self.favicon.eq(favicon.as_ref()) {
             debug!(
                 "station changed {}: favicon '{}' -> '{}'",
                 self.stationuuid,
-                self.languagecodes,
+                self.favicon,
                 favicon.as_ref()
             );
             self.favicon = favicon.as_ref().to_string();
@@ -62,7 +62,7 @@ impl DbStationItem {
     }
 
     pub fn set_language<P: AsRef<str>>(&mut self, language: P) {
-        if self.language != language.as_ref() {
+        if !self.language.eq(language.as_ref()) {
             debug!(
                 "station changed {}: language '{}' -> '{}'",
                 self.stationuuid,
@@ -75,7 +75,7 @@ impl DbStationItem {
     }
 
     pub fn set_languagecodes<P: AsRef<str>>(&mut self, languagecodes: P) {
-        if self.languagecodes != languagecodes.as_ref() {
+        if !self.languagecodes.eq(languagecodes.as_ref()) {
             debug!(
                 "station changed {}: languagecodes '{}' -> '{}'",
                 self.stationuuid,
