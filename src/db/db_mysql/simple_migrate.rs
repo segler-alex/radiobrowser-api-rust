@@ -1,3 +1,4 @@
+use mysql::TxOpts;
 use mysql;
 use mysql::prelude::*;
 
@@ -29,20 +30,19 @@ impl<'a> Migrations<'a> {
     fn get_applied_migrations(&self) -> Result<Vec<Migration>, Box<dyn std::error::Error>> {
         let list = self.pool.get_conn()?.query_map(
             "SELECT name,up,down FROM __migrations ORDER BY name;",
-            |(name,up,down)| {
-                Migration { name, up, down }
-            }
+            |(name, up, down)| Migration { name, up, down },
         )?;
         Ok(list)
     }
 
     fn insert_db_migration(
         &self,
+        conn: &mut mysql::Transaction,
         name: &str,
         up: &str,
         down: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        self.pool.get_conn()?.exec_drop(
+        conn.exec_drop(
             "INSERT INTO __migrations(name, up , down) VALUES (:name,:up,:down);",
             params! {
                 name, up, down,
@@ -51,8 +51,12 @@ impl<'a> Migrations<'a> {
         Ok(())
     }
 
-    fn delete_db_migration(&self, name: &str) -> Result<(), Box<dyn std::error::Error>> {
-        self.pool.get_conn()?.exec_drop(
+    fn delete_db_migration(
+        &self,
+        conn: &mut mysql::Transaction,
+        name: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        conn.exec_drop(
             "DELETE FROM __migrations WHERE name=:name;",
             params! {
                 name,
@@ -74,11 +78,13 @@ impl<'a> Migrations<'a> {
 
     fn apply_migration(
         &self,
+        conn: &mut mysql::PooledConn,
         migration: &Migration,
         ignore_errors: bool,
     ) -> Result<(), Box<dyn std::error::Error>> {
         info!("APPLY UP '{}'", migration.name);
-        let result = self.pool.get_conn()?.query_drop(&migration.up);
+        let mut conn = conn.start_transaction(TxOpts::default())?;
+        let result = conn.query_drop(&migration.up);
         match result {
             Err(err) => {
                 if !ignore_errors {
@@ -87,17 +93,20 @@ impl<'a> Migrations<'a> {
             }
             _ => {}
         };
-        self.insert_db_migration(&migration.name, &migration.up, &migration.down)?;
+        self.insert_db_migration(&mut conn, &migration.name, &migration.up, &migration.down)?;
+        conn.commit()?;
         Ok(())
     }
 
     fn unapply_migration(
         &self,
+        conn: &mut mysql::PooledConn,
         migration: &Migration,
         ignore_errors: bool,
     ) -> Result<(), Box<dyn std::error::Error>> {
         info!("APPLY DOWN '{}'", migration.name);
-        let result = self.pool.get_conn()?.query_drop(&migration.down);
+        let mut conn = conn.start_transaction(TxOpts::default())?;
+        let result = conn.query_drop(&migration.down);
         match result {
             Err(err) => {
                 if !ignore_errors {
@@ -106,7 +115,8 @@ impl<'a> Migrations<'a> {
             }
             _ => {}
         };
-        self.delete_db_migration(&migration.name)?;
+        self.delete_db_migration(&mut conn, &migration.name)?;
+        conn.commit()?;
         Ok(())
     }
 
@@ -116,6 +126,7 @@ impl<'a> Migrations<'a> {
         allow_database_downgrade: bool,
     ) -> Result<(), Box<dyn std::error::Error>> {
         self.ensure_tables()?;
+        let mut conn = self.pool.get_conn()?;
 
         let migrations_applied = self.get_applied_migrations()?;
         // apply all migrations, that are not applied
@@ -127,7 +138,7 @@ impl<'a> Migrations<'a> {
                 }
             }
             if !found {
-                self.apply_migration(&wanted, ignore_errors)?;
+                self.apply_migration(&mut conn, &wanted, ignore_errors)?;
             }
         }
 
@@ -141,7 +152,7 @@ impl<'a> Migrations<'a> {
             }
             if !found {
                 if allow_database_downgrade {
-                    self.unapply_migration(&wanted, ignore_errors)?;
+                    self.unapply_migration(&mut conn, &wanted, ignore_errors)?;
                 } else {
                     panic!("Database downgrade would be neccessary! Please confirm if you really want to do that.")
                 }
