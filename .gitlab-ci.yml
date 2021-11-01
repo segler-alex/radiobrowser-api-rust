@@ -1,0 +1,62 @@
+stages:
+  - build
+  - upload
+  - release
+
+variables:
+  PKG_DIST: "radiobrowser-dist.tar.gz"
+  PKG_DEB: "radiobrowser-api-rust_${CI_COMMIT_TAG}_amd64.deb"
+  PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/releases/${CI_COMMIT_TAG}"
+
+build:release:
+  image: "rust:latest"
+  stage: build
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - rustc --version && cargo --version
+    - cargo install cargo-deb
+    - cargo build --release
+    - cargo deb
+    - bash -x builddist.sh
+  artifacts:
+    paths:
+      - ${PKG_DIST}
+      - target/debian/${PKG_DEB}
+
+build:docker:
+  image: docker:latest
+  stage: build
+  rules:
+    - if: $CI_COMMIT_TAG
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - docker build --pull -t "$CI_REGISTRY_IMAGE:${CI_COMMIT_TAG}" .
+    - docker push "$CI_REGISTRY_IMAGE:${CI_COMMIT_TAG}"
+    - docker tag "$CI_REGISTRY_IMAGE:${CI_COMMIT_TAG}" "$CI_REGISTRY_IMAGE:latest"
+    - docker push "$CI_REGISTRY_IMAGE:latest"
+
+upload:
+  stage: upload
+  image: curlimages/curl:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file ${PKG_DIST} "${PACKAGE_REGISTRY_URL}/${PKG_DIST}"
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file target/debian/${PKG_DEB} "${PACKAGE_REGISTRY_URL}/${PKG_DEB}"
+
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - |
+      release-cli create --name "Release $CI_COMMIT_TAG" --tag-name $CI_COMMIT_TAG \
+        --assets-link "{\"name\":\"${DARWIN_AMD64_BINARY}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PKG_DIST}\"}" \
+        --assets-link "{\"name\":\"${LINUX_AMD64_BINARY}\",\"url\":\"${PACKAGE_REGISTRY_URL}/${PKG_DEB}\"}"
