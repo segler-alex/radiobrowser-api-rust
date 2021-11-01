@@ -598,14 +598,6 @@ params!{
         Ok(())
     }
 
-    fn remove_illegal_icon_links(&mut self) -> Result<(), Box<dyn Error>> {
-        trace!("remove_illegal_icon_links()");
-        let query = r#"UPDATE Station SET Favicon="" WHERE LOWER(Favicon) NOT LIKE 'http://%' AND LOWER(Favicon) NOT LIKE'https://%' AND Favicon<>"";"#;
-        let mut conn = self.pool.get_conn()?;
-        conn.query_drop(query)?;
-        Ok(())
-    }
-
     fn update_stations_clickcount(&self) -> Result<(), Box<dyn Error>> {
         trace!("update_stations_clickcount() 1");
         let query = "UPDATE Station st SET 
