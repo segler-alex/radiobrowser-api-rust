@@ -253,6 +253,7 @@ pub fn start_unavailable<F, T>(config: Config, func: F) -> JoinHandle<T> where
     T: Send + 'static,
 {
     let server = Server::new(format!("{}:{}", &config.listen_host, &config.listen_port), |_| {
+        debug!("received request while loading");
         // send "http service unavailable 503"
         Response::text("loading").with_status_code(503)
     }).unwrap();

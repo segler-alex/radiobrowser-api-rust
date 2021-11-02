@@ -74,6 +74,19 @@ impl DbStationItem {
         }
     }
 
+    pub fn set_tags<P: AsRef<str>>(&mut self, tags: P) {
+        if !self.tags.eq(tags.as_ref()) {
+            debug!(
+                "station changed {}: tags '{}' -> '{}'",
+                self.stationuuid,
+                self.tags,
+                tags.as_ref()
+            );
+            self.tags = tags.as_ref().to_string();
+            self.changed = true;
+        }
+    }
+
     pub fn set_languagecodes<P: AsRef<str>>(&mut self, languagecodes: P) {
         if !self.languagecodes.eq(languagecodes.as_ref()) {
             debug!(

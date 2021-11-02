@@ -64,6 +64,7 @@ pub struct Config {
     pub check_servers_chunksize: u32,
     pub language_replace_filepath: String,
     pub language_to_code_filepath: String,
+    pub tag_replace_filepath: String,
     pub enable_extract_favicon: bool,
     pub recheck_existing_favicon: bool,
     pub favicon_size_min: usize,

@@ -90,6 +90,15 @@ favicon-size-max = 256
 ## Optimum size of favicons extracted
 favicon-size-optimum = 128
 
+## File path to CSV for replacing languages (local path or http/https)
+#replace-language-file = "https://radiobrowser.gitlab.io/radiobrowser-static-data/language-replace.csv"
+replace-language-file = "/etc/radiobrowser/language-replace.csv"
+## File path to CSV for mapping language to code (local path or http/https)
+language-to-code-file = "/etc/radiobrowser/language-to-code.csv"
+## File path to CSV for replacing tags (local path or http/https)
+#replace-tag-file = "https://radiobrowser.gitlab.io/radiobrowser-static-data/tag-replace.csv"
+replace-tag-file = "/etc/radiobrowser/tag-replace.csv"
+
 ## Caches
 ## ======
 ## Update caches at an interval
@@ -111,11 +120,6 @@ checks-timeout = "30days"
 clicks-timeout = "30days"
 ## reload / redownload some config files
 refresh-config-interval = "1day"
-## File path to CSV for replacing languages (local path or http/https)
-#replace-language-file = "https://radiobrowser.gitlab.io/radiobrowser-static-data/language-replace.csv"
-replace-language-file = "/etc/radiobrowser/language-replace.csv"
-## File path to CSV for mapping language to code (local path or http/https)
-language-to-code-file = "/etc/radiobrowser/language-to-code.csv"
 
 ## Mirroring
 ## =========

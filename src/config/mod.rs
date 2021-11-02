@@ -16,6 +16,7 @@ use std::{collections::HashMap, sync::Mutex};
 static INSTANCE_CONFIG: OnceCell<Mutex<Config>> = OnceCell::new();
 static INSTANCE_LANGUAGE_TO_CODE: OnceCell<Mutex<HashMap<String, String>>> = OnceCell::new();
 static INSTANCE_LANGUAGE_REPLACE: OnceCell<Mutex<HashMap<String, String>>> = OnceCell::new();
+static INSTANCE_TAG_REPLACE: OnceCell<Mutex<HashMap<String, String>>> = OnceCell::new();
 
 pub fn load_main_config() -> Result<(), Box<dyn Error>> {
     debug!("load_main_config()");
@@ -38,6 +39,16 @@ pub fn load_all_extra_configs(c: &Config) -> Result<(), Box<dyn Error>> {
         Err(err) => warn!(
             "Unable to load file '{}': {}",
             &c.language_replace_filepath, err
+        ),
+    }
+    match data_mapping_item::read_map_csv_file(&c.tag_replace_filepath) {
+        Ok(data) => {
+            let m = INSTANCE_TAG_REPLACE.get_or_init(|| Mutex::new(data.clone()));
+            *(m.lock()?) = data;
+        }
+        Err(err) => warn!(
+            "Unable to load file '{}': {}",
+            &c.tag_replace_filepath, err
         ),
     }
     match data_mapping_item::read_map_csv_file(&c.language_to_code_filepath) {
@@ -63,6 +74,10 @@ pub fn get_cache_language_to_code() -> Option<&'static Mutex<HashMap<String, Str
 
 pub fn get_cache_language_replace() -> Option<&'static Mutex<HashMap<String, String>>> {
     INSTANCE_LANGUAGE_REPLACE.get()
+}
+
+pub fn get_cache_tags_replace() -> Option<&'static Mutex<HashMap<String, String>>> {
+    INSTANCE_TAG_REPLACE.get()
 }
 
 pub fn convert_language_to_code<P: AsRef<str>>(language: P) -> Option<String> {
@@ -263,6 +278,13 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("REPLACE_LANGUAGE_FILE")
                 .help("Path to csv file for language replacement")
                 .env("REPLACE_LANGUAGE_FILE")
+                .takes_value(true),
+        ).arg(
+            Arg::with_name("replace-tag-file")
+                .long("replace-tag-file")
+                .value_name("REPLACE_TAG_FILE")
+                .help("Path to csv file for tag replacement")
+                .env("REPLACE_TAG_FILE")
                 .takes_value(true),
         ).arg(
             Arg::with_name("language-to-code-file")
@@ -774,6 +796,12 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
         "replace-language-file",
         "language-replace.csv".to_string(),
     )?;
+    let tag_replace_filepath = get_option_string(
+        &matches,
+        &config,
+        "replace-tag-file",
+        "tag-replace.csv".to_string(),
+    )?;
     let language_to_code_filepath = get_option_string(
         &matches,
         &config,
@@ -855,6 +883,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
         check_servers,
         check_servers_chunksize,
         language_replace_filepath,
+        tag_replace_filepath,
         language_to_code_filepath,
         enable_extract_favicon,
         recheck_existing_favicon,

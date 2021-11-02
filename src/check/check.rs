@@ -1,4 +1,5 @@
 use crate::check::favicon::get_best_icon;
+use crate::config::get_cache_tags_replace;
 use crate::config::get_cache_language_replace;
 use crate::config::get_cache_language_to_code;
 use crate::db::models::DbStationItem;
@@ -217,6 +218,20 @@ where
         None => HashMap::new(),
     };
 
+    let tags_cache: HashMap<String, String> = match get_cache_tags_replace() {
+        Some(mutex) => match mutex.lock() {
+            Ok(map) => map.clone(),
+            Err(err) => {
+                warn!(
+                    "Unable to get tag mapping cache from shared memory: {}",
+                    err
+                );
+                HashMap::new()
+            }
+        },
+        None => HashMap::new(),
+    };
+
     let language_to_code_cache: HashMap<String, String> = match get_cache_language_to_code() {
         Some(mutex) => match mutex.lock() {
             Ok(map) => map.clone(),
@@ -301,6 +316,28 @@ where
                 lang_trimmed.sort();
                 lang_trimmed.dedup();
                 station.set_language(lang_trimmed.join(","));
+                station
+            })
+            .map(|mut station| {
+                let tags_copy = station.tags.clone();
+                let mut tags_trimmed: Vec<&str> = tags_copy
+                    .split(",")
+                    .by_ref()
+                    .map(|item| item.trim())
+                    .filter(|item| !item.is_empty())
+                    .map(|item| match tags_cache.get(&item.to_string()) {
+                        Some(item_replaced) => {
+                            trace!("replace '{}' -> '{}'", item, item_replaced);
+                            item_replaced
+                        }
+                        None => item,
+                    })
+                    .map(|item| item.trim())
+                    .filter(|item| !item.is_empty())
+                    .collect();
+                tags_trimmed.sort();
+                tags_trimmed.dedup();
+                station.set_tags(tags_trimmed.join(","));
                 station
             })
             .map(|mut station| {

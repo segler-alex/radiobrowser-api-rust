@@ -349,13 +349,14 @@ params!{
     fn update_station_auto(&mut self, station: &DbStationItem, reason: &str) -> Result<(), Box<dyn Error>>
     {
         trace!("update_station_auto({})", station.stationuuid);
-        let query = r#"UPDATE Station SET Favicon=:favicon,Language=:language,LanguageCodes=:languagecodes,Creation=UTC_TIMESTAMP(),ChangeUuid=:changeuuid WHERE StationUuid=:stationuuid"#;
+        let query = r#"UPDATE Station SET Favicon=:favicon,Tags=:tags,Language=:language,LanguageCodes=:languagecodes,Creation=UTC_TIMESTAMP(),ChangeUuid=:changeuuid WHERE StationUuid=:stationuuid"#;
         let mut transaction = self.pool.start_transaction(TxOpts::default())?;
         transaction.exec_drop(
             query,
             params! {
                 "favicon" => &station.favicon,
                 "language" => &station.language,
+                "tags" => &station.tags,
                 "languagecodes" => &station.languagecodes,
                 "stationuuid" => &station.stationuuid,
                 "changeuuid" => Uuid::new_v4().to_hyphenated().to_string(),

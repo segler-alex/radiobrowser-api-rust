@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * CONFIG: regular automatic load/download of config
 * CONFIG: reload main config on HUP and regular automatic config reload (does not get used for db connection and api, but for regular jobs)
 * CONFIG: added error log level, now there are 5 log levels, 0-4
+* CHECK: tags replace
 
 ### Changed
 * CLEANUP: add station change entries into the database for language and favicon updates
