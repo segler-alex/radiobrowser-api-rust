@@ -4,7 +4,7 @@ description = "Radio-Browser Server with REST API"
 license = "agpl-3.0"
 name = "radiobrowser-api-rust"
 readme = "README.md"
-version = "0.7.20"
+version = "0.7.21"
 edition = "2021"
 
 [dependencies]
@@ -28,11 +28,11 @@ once_cell = "1.8.0"
 percent-encoding = "2.1.0"
 prometheus = { version = "0.13.0" }
 rayon = "1.5.1"
-redis = { version = "0.21.3" }
+redis = { version = "0.21.4" }
 reqwest = { version = "0.11.6", features = ["blocking", "json"] }
-rouille = "3.3.1"
+rouille = "3.4.0"
 serde = { version = "1.0.130", features = ["derive"] }
-serde_json = "1.0.68"
+serde_json = "1.0.69"
 serde_with = "1.11.0"
 signal-hook = "0.3.10"
 threadpool = "1.8.1"
@@ -48,6 +48,23 @@ copyright = "2018, sailor <segler@programmierecke.net>"
 depends = "$auto, systemd"
 extended-description = """\
 Radio-Browser Server with REST API
+
+In short it is an API for an index of web streams (audio and video). Streams can be added and searched by any user of the API.
+
+There is an official deployment of this software that is also freely usable at https://api.radio-browser.info
+
+## Features
+* Open source
+* Freely licensed
+* Well documented API
+* Automatic regular online checking of streams
+* Highliy configurable
+* Easy setup for multiple configurations (native, deb-packages, docker, ansible)
+* Implemented in Rust-lang
+* Multiple request types: query, json, x-www-form-urlencoded, form-data
+* Multiple output types: xml, json, m3u, pls, xspf, ttl, csv
+* Optional: multi-server setup with automatic mirroring
+* Optional: response caching in internal or external cache (redis, memcached)
 """
 section = "admin"
 priority = "optional"
@@ -59,6 +76,7 @@ assets = [
     ["etc/config-example.toml", "etc/radiobrowser/config.toml", "644"],
     ["etc/language-replace.csv", "etc/radiobrowser/language-replace.csv", "644"],
     ["etc/language-to-code.csv", "etc/radiobrowser/language-to-code.csv", "644"],
+    ["etc/tag-replace.csv", "etc/radiobrowser/tag-replace.csv", "644"],
     ["etc/logrotate", "etc/logrotate.d/radiobrowser", "644"],
     ["etc/logrotate", "etc/logrotate.d/radiobrowser", "644"],
 ]

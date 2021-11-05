@@ -58,7 +58,7 @@ pub trait DbConnection {
     fn get_pull_server_lastclickid(&self, server: &str) -> Result<Option<String>, Box<dyn Error>>;
     fn set_pull_server_lastclickid(&self, server: &str, lastclickuuid: &str) -> Result<(),Box<dyn std::error::Error>>;
 
-    fn insert_station_by_change(&self, list_station_changes: &[StationChangeItemNew]) -> Result<Vec<String>,Box<dyn std::error::Error>>;
+    fn insert_station_by_change(&self, list_station_changes: &[StationChangeItemNew], source: &str) -> Result<Vec<String>,Box<dyn std::error::Error>>;
 
     fn get_extra(&self, table_name: &str, column_name: &str, search: Option<String>, order: String, reverse: bool, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<ExtraInfo>, Box<dyn Error>>;
     fn get_1_n(&self, column: &str, search: Option<String>, order: String, reverse: bool, hidebroken: bool, offset: u32, limit: u32) -> Result<Vec<ExtraInfo>, Box<dyn Error>>;

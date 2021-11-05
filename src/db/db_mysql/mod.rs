@@ -158,6 +158,32 @@ impl MysqlConnection {
         Ok(())
     }
 
+    fn station_exists(
+        transaction: &mut mysql::Transaction<'_>,
+        changeuuids: &Vec<String>,
+    ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+        let mut select_query = vec![];
+        let mut select_params: Vec<Value> = vec![];
+        for changeuuid in changeuuids {
+            select_query.push("?");
+            select_params.push(changeuuid.into());
+        }
+        let result = transaction.exec_iter(
+            format!(
+                "SELECT StationUuid FROM StationHistory WHERE StationUuid IN ({})",
+                select_query.join(",")
+            ),
+            select_params,
+        )?;
+
+        let mut list_result = vec![];
+        for row in result {
+            let (stationuuid,) = mysql::from_row_opt(row?)?;
+            list_result.push(stationuuid);
+        }
+        Ok(list_result)
+    }
+
     fn stationchange_exists(
         transaction: &mut mysql::Transaction<'_>,
         changeuuids: &Vec<String>,
@@ -187,28 +213,42 @@ impl MysqlConnection {
     fn insert_station_by_change_internal(
         transaction: &mut mysql::Transaction<'_>,
         stationchanges: &[StationChangeItemNew],
+        source: &str,
     ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         // filter out changes that already exist in the database
+        let stationuuids: Vec<String> = stationchanges
+            .iter()
+            .map(|item| item.stationuuid.clone())
+            .collect();
+        let stationexists = MysqlConnection::station_exists(transaction, &stationuuids)?;
+
         let changeuuids: Vec<String> = stationchanges
             .iter()
             .map(|item| item.changeuuid.clone())
             .collect();
         let changeexists = MysqlConnection::stationchange_exists(transaction, &changeuuids)?;
-        let mut list: Vec<&StationChangeItemNew> = vec![];
+
+        let mut list_ids = vec![];
+        let mut list_insert: Vec<&StationChangeItemNew> = vec![];
+        let mut list_update: Vec<&StationChangeItemNew> = vec![];
         for station in stationchanges {
             if !changeexists.contains(&station.changeuuid) {
-                list.push(station);
+                list_ids.push(station.stationuuid.clone());
+                if stationexists.contains(&station.stationuuid) {
+                    list_update.push(station);
+                }else{
+                    list_insert.push(station);
+                }
             }
         }
 
         trace!("Ignored changes for insert: {}", changeexists.len());
 
-        // insert changes
-        let mut list_ids = vec![];
-        if list.len() > 0 {
+        // insert stations
+        if list_insert.len() > 0 {
             let mut insert_query = vec![];
             let mut insert_params: Vec<Value> = vec![];
-            for change in list {
+            for change in list_insert {
                 insert_query.push("(?,?,?,?,?,?,?,?,?,?,?,?,?,'',UTC_TIMESTAMP())");
                 insert_params.push(change.name.clone().into());
                 insert_params.push(change.url.clone().into());
@@ -223,12 +263,48 @@ impl MysqlConnection {
                 insert_params.push(change.stationuuid.clone().into());
                 insert_params.push(change.geo_lat.clone().into());
                 insert_params.push(change.geo_long.clone().into());
-                list_ids.push(change.stationuuid.clone());
             }
             let query = format!("INSERT INTO Station(Name,Url,Homepage,Favicon,Country,CountryCode,Subcountry,Language,Tags,ChangeUuid,StationUuid,GeoLat,GeoLong, UrlCache, Creation) 
                                     VALUES{}", insert_query.join(","));
             transaction.exec_drop(query, insert_params)?;
         }
+
+        // update stations
+        if list_update.len() > 0 {
+            transaction.exec_batch(r#"UPDATE Station SET
+                Name=:name,
+                Url=:url,
+                Homepage=:homepage,
+                Favicon=:favicon,
+                Country=:country,
+                CountryCode=:countrycode,
+                Subcountry=:subcountry,
+                Language=:language,
+                Tags=:tags,
+                ChangeUuid=:changeuuid,
+                GeoLat=:geolat,
+                GeoLong=:geolong,
+                Source=:pull,
+                UrlCache="",
+                Creation=UTC_TIMESTAMP()
+            WHERE StationUuid=:stationuuid"#, list_update.iter().map(|change|params!{
+                "name" => &change.name,
+                "url" => &change.url,
+                "homepage" => &change.homepage,
+                "favicon" => &change.favicon,
+                "country" => &change.country,
+                "countrycode" => &change.countrycode,
+                "subcountry" => &change.state,
+                "language" => fix_multi_field(&change.language),
+                "tags" => fix_multi_field(&change.tags),
+                "changeuuid" => &change.changeuuid,
+                "geolat" => &change.geo_lat,
+                "geolong" => &change.geo_long,
+                "stationuuid" => &change.stationuuid,
+                "source" => source,
+            }))?;
+        }
+
         Ok(list_ids)
     }
 
@@ -1469,12 +1545,14 @@ params!{
     fn insert_station_by_change(
         &self,
         list_station_changes: &[StationChangeItemNew],
+        source: &str,
     ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         let mut transaction = self.pool.start_transaction(TxOpts::default())?;
 
         let list_ids = MysqlConnection::insert_station_by_change_internal(
             &mut transaction,
             list_station_changes,
+            source,
         )?;
         MysqlConnection::backup_stations_by_uuid(&mut transaction, &list_ids, "INITIAL")?;
 

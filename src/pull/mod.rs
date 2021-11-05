@@ -204,7 +204,7 @@ fn pull_server<C>(client: &Client, connection_new: C, server: &str, chunk_size_c
 
             if let Some(last) = last {
                 trace!("Insert {} station changes..", chunk.len());
-                connection_new.insert_station_by_change(chunk)?;
+                connection_new.insert_station_by_change(chunk, "PULL")?;
                 connection_new.set_pull_server_lastid(server, &last.changeuuid)?;
             }
         }
@@ -284,7 +284,7 @@ fn pull_server<C>(client: &Client, connection_new: C, server: &str, chunk_size_c
                 
                 trace!("Inserting missing stations ({})..", changes.len());
                 if changes.len() > 0 {
-                    connection_new.insert_station_by_change(&changes)?;
+                    connection_new.insert_station_by_change(&changes, "PULL")?;
                 }
                 trace!("Insert checks ({})..", checks_ignored_station_missing.len());
                 let (_ignored_uuids_check_existing, _ignored_uuids_station_missing, inserted) = connection_new.insert_checks(checks_ignored_station_missing)?;
