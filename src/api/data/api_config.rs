@@ -1,5 +1,6 @@
 use crate::api::api_response::ApiResponse;
 use crate::config::Config;
+use crate::config::OauthServer;
 use std::error::Error;
 use serde::{Serialize,Deserialize};
 
@@ -27,6 +28,18 @@ pub struct ApiConfig {
     pub cache_ttl: u64,
     pub language_replace_filepath: String,
     pub language_to_code_filepath: String,
+    pub oauth_servers: Vec<ApiConfigOauthServer>,
+}
+
+#[derive(PartialEq, Eq, Serialize, Deserialize)]
+pub struct ApiConfigOauthServer {
+    pub id: String,
+    pub name: String,
+    pub icon_url: String,
+    pub auth_url: String,
+    pub token_url: String,
+    pub scopes: String,
+    pub email_url: String,
 }
 
 impl ApiConfig {
@@ -94,6 +107,21 @@ impl ApiConfig {
         xml.elem_text("cache_ttl", &config.cache_ttl.to_string())?;
         xml.elem_text("language_replace_filepath", &config.language_replace_filepath)?;
         xml.elem_text("language_to_code_filepath", &config.language_to_code_filepath)?;
+
+        xml.begin_elem("oauth_servers")?;
+        for oauthserver in config.oauth_servers {
+            xml.begin_elem("server")?;
+            xml.elem_text("id", &oauthserver.id)?;
+            xml.elem_text("name", &oauthserver.name)?;
+            xml.elem_text("icon_url", &oauthserver.icon_url)?;
+            xml.elem_text("auth_url", &oauthserver.auth_url)?;
+            xml.elem_text("token_url", &oauthserver.token_url)?;
+            xml.elem_text("scopes", &oauthserver.scopes)?;
+            xml.elem_text("email_url", &oauthserver.email_url)?;
+            xml.end_elem()?;
+        }
+        xml.end_elem()?;
+
         xml.end_elem()?;
         xml.close()?;
         xml.flush()?;
@@ -110,7 +138,7 @@ impl ApiConfig {
 }
 
 impl From<Config> for ApiConfig {
-    fn from(item: Config) -> Self {
+    fn from(mut item: Config) -> Self {
         ApiConfig {
             check_enabled: item.enable_check,
             prometheus_exporter_enabled: item.prometheus_exporter,
@@ -136,6 +164,21 @@ impl From<Config> for ApiConfig {
             server_country_code: item.server_country_code,
             language_replace_filepath: item.language_replace_filepath,
             language_to_code_filepath: item.language_to_code_filepath,
+            oauth_servers: item.oauth_servers.drain(..).map(|server| server.into()).collect(),
+        }
+    }
+}
+
+impl From<OauthServer> for ApiConfigOauthServer {
+    fn from(item: OauthServer) -> Self {
+        ApiConfigOauthServer {
+            id: item.id,
+            name: item.name,
+            icon_url: item.icon_url,
+            auth_url: item.auth_url,
+            token_url: item.token_url,
+            scopes: item.scopes,
+            email_url: item.email_url,
         }
     }
 }

@@ -139,3 +139,33 @@ chunk-size-checks = 10000
 #host = "http://de1.api.radio-browser.info"
 #[pullservers.gamma]
 #host = "http://fr1.api.radio-browser.info"
+
+## Login
+## =====
+## Support for external login servers with oauth2.
+## This will enable users with login to have higher rights than non-logged-in users.
+## And all of this without implementing own login service.
+[oauthservers]
+## Docs from
+#[oauthservers.github]
+#module = "github"
+#name = "Github"
+#icon_url = "https://github.com/favicon.ico"
+#auth_url = "https://github.com/login/oauth/authorize"
+#token_url = "https://github.com/login/oauth/access_token"
+#client_id = ""
+#client_secret = ""
+#scopes = "user:email"
+#email_url = "https://api.github.com/user/emails"
+
+## Docs from https://docs.gitlab.com/ee/integration/oauth_provider.html
+#[oauthservers.gitlab]
+#module = "gitlab"
+#name = "Gitlab"
+#icon_url = "https://gitlab.com/favicon.ico"
+#auth_url = "https://gitlab.com/oauth/authorize"
+#token_url = "https://gitlab.com/oauth/token"
+#client_id = ""
+#client_secret = ""
+#scopes = "openid,email"
+#email_url = "https://api.gitlab.com/user"

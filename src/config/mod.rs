@@ -5,6 +5,7 @@ mod data_mapping_item;
 use clap::{App, Arg};
 pub use config::CacheType;
 pub use config::Config;
+pub use config::OauthServer;
 pub use config_error::ConfigError;
 use humantime;
 use once_cell::sync::OnceCell;
@@ -241,6 +242,52 @@ fn get_hosts_from_config(config: &toml::Value) -> Result<Vec<String>, Box<dyn Er
                 )))?;
                 list.push(host_str.to_string());
             }
+        }
+    }
+    Ok(list)
+}
+
+fn decode_table_value(table: &toml::value::Table, key: &str) -> Result<String, Box<dyn Error>> {
+    let entry = table.get(key).ok_or(Box::new(ConfigError::KeyMissingError(
+        key.into(),
+    )))?;
+    let value = entry.as_str().ok_or(Box::new(ConfigError::TypeError(
+        key.into(),
+        entry.to_string(),
+    )))?;
+    Ok(value.to_string())
+}
+
+fn decode_single_oauth_server(id: &str, table: &toml::value::Table) -> Result<OauthServer, Box<dyn Error>> {
+    let s = OauthServer {
+        id: id.to_string(),
+        name: decode_table_value(table, "name")?,
+        icon_url: decode_table_value(table, "icon_url")?,
+        auth_url: decode_table_value(table, "auth_url")?,
+        token_url: decode_table_value(table, "token_url")?,
+        client_id: decode_table_value(table, "client_id")?,
+        client_secret: decode_table_value(table, "client_secret")?,
+        scopes: decode_table_value(table, "scopes")?,
+        email_url: decode_table_value(table, "email_url")?,
+    };
+    Ok(s)
+}
+
+fn get_loginservers_from_config(config: &toml::Value) -> Result<Vec<OauthServer>, Box<dyn Error>> {
+    let mut list = vec![];
+    let setting = config.get("oauthservers");
+    if let Some(setting) = setting {
+        let setting_decoded = setting.as_table().ok_or(Box::new(ConfigError::TypeError(
+            "oauthservers".into(),
+            setting.to_string(),
+        )))?;
+        for i in setting_decoded {
+            let subtable = i.1.as_table().ok_or(Box::new(ConfigError::TypeError(
+                "oauthservers.subtable".into(),
+                setting.to_string(),
+            )))?;
+            let decoded_section = decode_single_oauth_server(i.0, subtable)?;
+            list.push(decoded_section);
         }
     }
     Ok(list)
@@ -840,6 +887,8 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
 
     let mut servers = get_hosts_from_config(&config)?;
     servers_pull.append(&mut servers);
+
+    let oauth_servers = get_loginservers_from_config(&config)?;
     Ok(Config {
         allow_database_downgrade,
         broken_stations_never_working_timeout,
@@ -892,5 +941,6 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
         favicon_size_optimum,
         refresh_config_interval,
         cleanup_interval,
+        oauth_servers,
     })
 }

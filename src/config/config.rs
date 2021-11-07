@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub enum CacheType {
     None,
     BuiltIn,
@@ -19,7 +19,20 @@ impl From<CacheType> for String {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
+pub struct OauthServer {
+    pub id: String,
+    pub name: String,
+    pub icon_url: String,
+    pub auth_url: String,
+    pub token_url: String,
+    pub client_id: String,
+    pub client_secret: String,
+    pub scopes: String,
+    pub email_url: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct Config {
     pub allow_database_downgrade: bool,
     pub broken_stations_never_working_timeout: Duration,
@@ -72,4 +85,5 @@ pub struct Config {
     pub favicon_size_optimum: usize,
     pub refresh_config_interval: Duration,
     pub cleanup_interval: Duration,
+    pub oauth_servers: Vec<OauthServer>,
 }
