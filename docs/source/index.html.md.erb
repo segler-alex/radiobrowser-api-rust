@@ -70,7 +70,39 @@ This webservice can be used freely but without guarantee to work. I have been ke
 
 # Using the API
 
+> __Format__
+
+
+```html
+GET {path}
+User-Agent: {user-agent}/{version}
+Host: {root end-point}
+Content-type: {MIME type}
+
+```
+
+> __GET request examples__
+
+```html
+GET /json/stations/search?tag=rock&codec=mp3&order=country&reverse=true&limit=1000
+User-Agent: Cool Radio App/1.2
+Host: https://de1.api.radio-browser.info
+Content-type: application/json; charset=utf-8
+
+```
+
+```html
+GET /m3u/stations/bycountry/austria
+User-Agent: Cool Radio App/1.2
+Host: https://de1.api.radio-browser.info
+Content-type: text/plain
+
+```
+
+
 Please send a <span class="text-danger">descriptive User-Agent</span> in your HTTP requests, which makes it easier for me to get in touch with developers to help with the usage of the API. Something like `appname/appversion`, for example `Cool Radio App/1.2`. This also helps me to know which apps are using this service, so I can keep the list of apps up to date and tell people in which ways they can use this service.
+
+[Content type](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types) should be specified as appropriate.
 
 If you know an app that is using this service but not listed on <a class="badge badge-info"
 href="http://www.radio-browser.info">www.radio-browser.info</a>, please drop me a note.
