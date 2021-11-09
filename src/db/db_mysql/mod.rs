@@ -213,7 +213,6 @@ impl MysqlConnection {
     fn insert_station_by_change_internal(
         transaction: &mut mysql::Transaction<'_>,
         stationchanges: &[StationChangeItemNew],
-        source: &str,
     ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         // filter out changes that already exist in the database
         let stationuuids: Vec<String> = stationchanges
@@ -284,7 +283,6 @@ impl MysqlConnection {
                 ChangeUuid=:changeuuid,
                 GeoLat=:geolat,
                 GeoLong=:geolong,
-                Source=:pull,
                 UrlCache="",
                 Creation=UTC_TIMESTAMP()
             WHERE StationUuid=:stationuuid"#, list_update.iter().map(|change|params!{
@@ -301,7 +299,6 @@ impl MysqlConnection {
                 "geolat" => &change.geo_lat,
                 "geolong" => &change.geo_long,
                 "stationuuid" => &change.stationuuid,
-                "source" => source,
             }))?;
         }
 
@@ -1460,9 +1457,8 @@ impl DbConnection for MysqlConnection {
         let list_ids = MysqlConnection::insert_station_by_change_internal(
             &mut transaction,
             list_station_changes,
-            source,
         )?;
-        MysqlConnection::backup_stations_by_uuid(&mut transaction, &list_ids, "INITIAL")?;
+        MysqlConnection::backup_stations_by_uuid(&mut transaction, &list_ids, source)?;
 
         transaction.commit()?;
         Ok(list_ids)
