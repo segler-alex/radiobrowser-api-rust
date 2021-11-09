@@ -6,7 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.7.21] 2021-11-?
+## [0.7.22] 2021-11-10
+### Fixed
+* CHECK: check for http result code for favicons
+
+## [0.7.21] 2021-11-09
 ### Added
 * CHECK: check websites for favicons, if favicon is currently empty
 * CLEANUP: recheck favicon every day if still existing and delete from station if not

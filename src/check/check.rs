@@ -262,7 +262,14 @@ where
                     );
                     let request = client.head(&station.favicon).send();
                     //let link = ImageLink::new(&station.favicon, agent, timeout);
-                    if request.is_err() {
+                    let remove = match request {
+                        Ok(request) => {
+                            let status = request.status();
+                            status.is_client_error() || status.is_server_error()
+                        },
+                        Err(_) => true
+                    };
+                    if remove {
                         trace!(
                             "removed favicon {} '{}'",
                             station.stationuuid, station.favicon
