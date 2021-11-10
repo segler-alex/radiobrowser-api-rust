@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.7.22] 2021-11-10
 ### Fixed
 * CHECK: check for http result code for favicons
+* PULL: insert duplicates
 
 ## [0.7.21] 2021-11-09
 ### Added

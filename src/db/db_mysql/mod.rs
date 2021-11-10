@@ -158,7 +158,7 @@ impl MysqlConnection {
         Ok(())
     }
 
-    fn station_exists(
+    fn station_exists_in_stations(
         transaction: &mut mysql::Transaction<'_>,
         changeuuids: &Vec<String>,
     ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
@@ -170,7 +170,7 @@ impl MysqlConnection {
         }
         let result = transaction.exec_iter(
             format!(
-                "SELECT StationUuid FROM StationHistory WHERE StationUuid IN ({})",
+                "SELECT StationUuid FROM Station WHERE StationUuid IN ({})",
                 select_query.join(",")
             ),
             select_params,
@@ -184,7 +184,7 @@ impl MysqlConnection {
         Ok(list_result)
     }
 
-    fn stationchange_exists(
+    fn stationchange_exists_in_history(
         transaction: &mut mysql::Transaction<'_>,
         changeuuids: &Vec<String>,
     ) -> Result<Vec<String>, Box<dyn std::error::Error>> {
@@ -219,25 +219,25 @@ impl MysqlConnection {
             .iter()
             .map(|item| item.stationuuid.clone())
             .collect();
-        let stationexists = MysqlConnection::station_exists(transaction, &stationuuids)?;
+        let stationexists = MysqlConnection::station_exists_in_stations(transaction, &stationuuids)?;
 
         let changeuuids: Vec<String> = stationchanges
             .iter()
             .map(|item| item.changeuuid.clone())
             .collect();
-        let changeexists = MysqlConnection::stationchange_exists(transaction, &changeuuids)?;
+        let changeexists = MysqlConnection::stationchange_exists_in_history(transaction, &changeuuids)?;
 
-        let mut list_ids = vec![];
+        let mut hash_ids: HashSet<String> = HashSet::new();
         let mut list_insert: Vec<&StationChangeItemNew> = vec![];
         let mut list_update: Vec<&StationChangeItemNew> = vec![];
         for station in stationchanges {
             if !changeexists.contains(&station.changeuuid) {
-                list_ids.push(station.stationuuid.clone());
-                if stationexists.contains(&station.stationuuid) {
+                if stationexists.contains(&station.stationuuid) || hash_ids.contains(&station.stationuuid) {
                     list_update.push(station);
                 }else{
                     list_insert.push(station);
                 }
+                hash_ids.insert(station.stationuuid.clone());
             }
         }
 
@@ -301,8 +301,7 @@ impl MysqlConnection {
                 "stationuuid" => &change.stationuuid,
             }))?;
         }
-
-        Ok(list_ids)
+        Ok(hash_ids.into_iter().collect())
     }
 }
 
@@ -1459,7 +1458,7 @@ impl DbConnection for MysqlConnection {
             list_station_changes,
         )?;
         MysqlConnection::backup_stations_by_uuid(&mut transaction, &list_ids, source)?;
-
+        
         transaction.commit()?;
         Ok(list_ids)
     }
