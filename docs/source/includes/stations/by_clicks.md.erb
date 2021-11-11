@@ -12,6 +12,21 @@
 <%= config[:api_server] %>/json/stations/topclick/rowcount
 ```
 
+```shell
+<%= config[:api_server] %>/csv/stations/topclick
+<%= config[:api_server] %>/csv/stations/topclick/rowcount
+```
+
+```plaintext
+<%= config[:api_server] %>/m3u/stations/topclick
+<%= config[:api_server] %>/m3u/stations/topclick/rowcount
+```
+
+```ini
+<%= config[:api_server] %>/pls/stations/topclick
+<%= config[:api_server] %>/pls/stations/topclick/rowcount
+```
+
 > **Results:**
 
 > Array of struct '[station](#station)'
@@ -26,6 +41,21 @@
 ```xml
 <%= config[:api_server] %>/xml/stations/topclick
 <%= config[:api_server] %>/xml/stations/topclick/5
+```
+
+```shell
+<%= config[:api_server] %>/csv/stations/topclick
+<%= config[:api_server] %>/csv/stations/topclick/5
+```
+
+```plaintext
+<%= config[:api_server] %>/m3u/stations/topclick
+<%= config[:api_server] %>/m3u/stations/topclick/5
+```
+
+```ini
+<%= config[:api_server] %>/pls/stations/topclick
+<%= config[:api_server] %>/pls/stations/topclick/5
 ```
 
 A list of the stations that are clicked the most. You can add a parameter with the number of wanted stations, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL

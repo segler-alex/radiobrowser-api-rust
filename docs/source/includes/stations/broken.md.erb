@@ -11,6 +11,21 @@
 <%= config[:api_server] %>/xml/stations/broken/rowcount
 ```
 
+```shell
+<%= config[:api_server] %>/csv/stations/broken
+<%= config[:api_server] %>/csv/stations/broken/rowcount
+```
+
+```plaintext
+<%= config[:api_server] %>/m3u/stations/broken
+<%= config[:api_server] %>/m3u/stations/broken/rowcount
+```
+
+```ini
+<%= config[:api_server] %>/pls/stations/broken
+<%= config[:api_server] %>/pls/stations/broken/rowcount
+```
+
 > **Results:**
 
 > Array of struct '[station](#station)'
@@ -27,6 +42,20 @@
 <%= config[:api_server] %>/xml/stations/broken/5
 ```
 
+```shell
+<%= config[:api_server] %>/csv/stations/broken?limit=5
+<%= config[:api_server] %>/csv/stations/broken/5
+```
+
+```plaintext
+<%= config[:api_server] %>/m3u/stations/broken?limit=5
+<%= config[:api_server] %>/m3u/stations/broken/5
+```
+
+```ini
+<%= config[:api_server] %>/pls/stations/broken?limit=5
+<%= config[:api_server] %>/pls/stations/broken/5
+```
 
 A list of the stations that did not pass the connection test, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL
 

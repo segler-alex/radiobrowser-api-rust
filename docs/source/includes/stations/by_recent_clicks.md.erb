@@ -12,6 +12,21 @@
 <%= config[:api_server] %>/xml/stations/lastclick/rowcount
 ```
 
+```shell
+<%= config[:api_server] %>/csv/stations/lastclick
+<%= config[:api_server] %>/csv/stations/lastclick/rowcount
+```
+
+```plaintext
+<%= config[:api_server] %>/m3u/stations/lastclick
+<%= config[:api_server] %>/m3u/stations/lastclick/rowcount
+```
+
+```ini
+<%= config[:api_server] %>/pls/stations/lastclick
+<%= config[:api_server] %>/pls/stations/lastclick/rowcount
+```
+
 > **Results:**
 
 > Array of struct '[station](#station)'
@@ -26,6 +41,21 @@
 ```xml
 <%= config[:api_server] %>/xml/stations/lastclick
 <%= config[:api_server] %>/xml/stations/lastclick/5
+```
+
+```shell
+<%= config[:api_server] %>/csv/stations/lastclick
+<%= config[:api_server] %>/csv/stations/lastclick/5
+```
+
+```plaintext
+<%= config[:api_server] %>/m3u/stations/lastclick
+<%= config[:api_server] %>/m3u/stations/lastclick/5
+```
+
+```ini
+<%= config[:api_server] %>/pls/stations/lastclick
+<%= config[:api_server] %>/pls/stations/lastclick/5
 ```
 
 A list of stations that were clicked recently, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL

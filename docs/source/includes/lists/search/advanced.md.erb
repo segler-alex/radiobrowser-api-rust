@@ -14,6 +14,14 @@
 <%= config[:api_server] %>/csv/stations/search
 ```
 
+```plaintext
+<%= config[:api_server] %>/m3u/stations/search
+```
+
+```ini
+<%= config[:api_server] %>/pls/stations/search
+```
+
 > **Results:**
 
 > Array of struct [Station](#station)
@@ -30,6 +38,14 @@
 
 ```shell
 <%= config[:api_server] %>/csv/stations/search
+```
+
+```plaintext
+<%= config[:api_server] %>/m3u/stations/search
+```
+
+```ini
+<%= config[:api_server] %>/pls/stations/search
 ```
 
 A list of radio stations that match the search. It will search for the station whose attribute contains the search term. Please use '[Count station click](#station-click-count)' API call to let the click be counted, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL

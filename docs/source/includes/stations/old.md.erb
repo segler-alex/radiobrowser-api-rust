@@ -12,6 +12,11 @@
 <%= config[:api_server] %>/xml/stations/changed/stationuuid
 ```
 
+```shell
+<%= config[:api_server] %>/csv/stations/changed
+<%= config[:api_server] %>/csv/stations/changed/stationuuid
+```
+
 > **Example:**
 
 ```json
@@ -22,6 +27,11 @@
 ```xml
 <%= config[:api_server] %>/xml/stations/changed?lastchangeuuid=123&limit=10
 <%= config[:api_server] %>/xml/stations/changed/123
+```
+
+```shell
+<%= config[:api_server] %>/csv/stations/changed?lastchangeuuid=123&limit=10
+<%= config[:api_server] %>/csv/stations/changed/123
 ```
 
 A list of old versions of stations from the last 30 days, and you can also retrieve the history of a single station by its ID. They are not visible through any other API calls. Station ID can be an ID or a station UUID, supported output formats: JSON, XML, CSV
