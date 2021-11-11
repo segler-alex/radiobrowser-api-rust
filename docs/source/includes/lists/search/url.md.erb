@@ -10,6 +10,10 @@
 <%= config[:api_server] %>/xml/stations/byurl
 ```
 
+```shell
+<%= config[:api_server] %>/csv/stations/byurl
+```
+
 > **Results:**
 
 > Array of struct '[station](#station)'
@@ -21,7 +25,11 @@
 ```
 
 ```xml
-<%= config[:api_server] %>/sml/stations/byurl
+<%= config[:api_server] %>/xml/stations/byurl
+```
+
+```shell
+<%= config[:api_server] %>/csv/stations/byurl
 ```
 
 A list of radio stations that have an exact URL match, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL

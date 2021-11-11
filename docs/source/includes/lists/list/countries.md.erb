@@ -12,6 +12,11 @@
 <%= config[:api_server] %>/xml/countries/<filter>
 ```
 
+```shell
+<%= config[:api_server] %>/csv/countries
+<%= config[:api_server] %>/csv/countries/<filter>
+```
+
 > **Result**
 
 ```json
@@ -36,6 +41,13 @@
 </result>
 ```
 
+```shell
+name,stationcount
+Albania,1
+Argentina,5
+...
+```
+
 > **Example:**
 
 ```json
@@ -46,6 +58,11 @@
 ```xml
 <%= config[:api_server] %>/xml/countries
 <%= config[:api_server] %>/xml/countries/aus
+```
+
+```shell
+<%= config[:api_server] %>/csv/countries
+<%= config[:api_server] %>/csv/countries/aus
 ```
 
 A JSON-encoded list of all countries in the database. If a filter is given, it will only return the ones containing the filter as substring, supported output formats: JSON, XML, CSV.

@@ -12,6 +12,11 @@
 <%= config[:api_server] %>/xml/clicks/stationuuid
 ```
 
+```shell
+<%= config[:api_server] %>/csv/clicks
+<%= config[:api_server] %>/csv/clicks/stationuuid
+```
+
 > **Results:**
 
 ```json
@@ -47,6 +52,12 @@
 />
 ```
 
+```shell
+stationuuid,clickuuid,clicktimestamp_iso8601,clicktimestamp
+961fa288-0601-11e8-ae97-52543be04c81,87a69149-34c1-11ea-ac52-52543be04c81,2020-01-11T23:27:18Z,2020-01-11 23:27:18
+7a25bf68-1dbe-11ea-a955-52543be04c81,a25e5fb6-34c1-11ea-ac52-52543be04c81,2020-01-11T23:28:03Z,2020-01-11 23:28:03
+```
+
 > **Example:**
 
 ```json
@@ -57,6 +68,11 @@
 ```xml
 <%= config[:api_server] %>/xml/clicks
 <%= config[:api_server] %>/xml/clicks?seconds=3600
+```
+
+```shell
+<%= config[:api_server] %>/csv/clicks
+<%= config[:api_server] %>/csv/clicks?seconds=3600
 ```
 
 A list of station clicks. If a station UUID is provided, only clicks of the station will be returned. If a station UUID is not provided, a list of all clicks of all stations will be sent (chunksize 10000), supported output formats: JSON, XML, CSV

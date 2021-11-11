@@ -10,9 +10,12 @@
 <%= config[:api_server] %>/xml/url/stationuuid
 ```
 
-```
-<%= config[:api_server] %>/pls/url/stationuuid
+```plaintext
 <%= config[:api_server] %>/m3u/url/stationuuid
+```
+
+```ini
+<%= config[:api_server] %>/pls/url/stationuuid
 ```
 
 > **Results:**
@@ -29,8 +32,28 @@
 
 ```xml
 <result>
-    <status ok="true" message="retrieved station url" id="123" name="Station name" url="http://this.is.an.url"/>
+    <status 
+        ok="true" 
+        message="retrieved station url" 
+        stationuuid="9617a958-0601-11e8-ae97-52543be04c81" 
+        name="Station name" 
+        url="http://this.is.an.url"
+    />
 </result>
+```
+
+```plaintext
+#EXTM3U
+#RADIOBROWSERUUID:9617a958-0601-11e8-ae97-52543be04c81
+#EXTINF:1,Station name
+http://this.is.an.url
+```
+
+```ini
+[playlist]
+NumberOfEntries=1
+Title1=Station name
+File1=http://this.is.an.url
 ```
 
 > **Example:**
@@ -43,9 +66,12 @@
 <%= config[:api_server] %>/xml/url/123
 ```
 
-```
-<%= config[:api_server] %>/pls/url/123
+```plaintext
 <%= config[:api_server] %>/m3u/url/123
 ```
 
-Increase the click count of a station by one. This should be called everytime when a user starts playing a stream to mark the stream more popular than others. Every call to this endpoint from the same IP address and for the same station only gets counted once per day. The call will return detailed information about the stream, supported output formats: JSON, XML ,PLS ,M3U
+```ini
+<%= config[:api_server] %>/pls/url/123
+```
+
+Increase the click count of a station by one. This should be called everytime when a user starts playing a stream to mark the stream more popular than others. Every call to this endpoint from the same IP address and for the same station only gets counted once per day. The call will return detailed information about the stream, supported output formats: JSON, XML, PLS, M3U

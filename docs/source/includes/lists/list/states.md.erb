@@ -14,6 +14,12 @@
 <%= config[:api_server] %>/xml/states/<country>/<filter>
 ```
 
+```shell
+<%= config[:api_server] %>/csv/states
+<%= config[:api_server] %>/csv/states/<filter>
+<%= config[:api_server] %>/csv/states/<country>/<filter>
+```
+
 > **Results:**
 
 ```json
@@ -40,6 +46,12 @@
 </result>
 ```
 
+```shell
+name,country,stationcount
+Alabama,United States of America,6
+Alberta,Canada,2
+```
+
 > **Example:**
 
 ```json
@@ -52,6 +64,12 @@
 <%= config[:api_server] %>/xml/states
 <%= config[:api_server] %>/xml/states/ber
 <%= config[:api_server] %>/xml/states/Germany/ber
+```
+
+```shell
+<%= config[:api_server] %>/csv/states
+<%= config[:api_server] %>/csv/states/ber
+<%= config[:api_server] %>/csv/states/Germany/ber
 ```
 
 A JSON-encoded list of all states in the database. Countries are divided into states. If a filter is given, it will only return the ones containing the filter as substring. If a country is given, it will only display states in this country, supported output formats: JSON, XML, CSV

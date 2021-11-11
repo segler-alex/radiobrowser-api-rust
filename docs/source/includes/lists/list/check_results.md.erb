@@ -12,6 +12,11 @@
 <%= config[:api_server] %>/xml/checks/stationuuid
 ```
 
+```shell
+<%= config[:api_server] %>/csv/checks
+<%= config[:api_server] %>/csv/checks/stationuuid
+```
+
 > **Results:**
 
 > Details at struct '[Station check](#station-check)'
@@ -24,6 +29,10 @@
 
 ```xml
 <%= config[:api_server] %>/xml/checks
+```
+
+```shell
+<%= config[:api_server] %>/csv/checks
 ```
 
 A list of station check results. If a station UUID is provided, the whole history will be returned. If a station ID is not provided, a list of all last checks of all stations will be sent (without older check results), supported output formats: JSON, XML, CSV

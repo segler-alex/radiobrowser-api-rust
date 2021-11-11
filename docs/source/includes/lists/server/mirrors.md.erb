@@ -6,10 +6,6 @@
 <%= config[:api_server] %>/json/servers
 ```
 
-```xml
-<%= config[:api_server] %>/xml/servers
-```
-
 > **Results:**
 
 ```json
@@ -41,18 +37,10 @@
 ]
 ```
 
-```xml
-
-```
-
 > **Example:**
 
 ```json
 <%= config[:api_server] %>/json/servers
-```
-
-```xml
-<%= config[:api_server] %>/xml/servers
 ```
 
 A list of server mirrors. A DNS look-up of all.api.radio-browser.info is performed followed by a reverse one for every result getting from the first request. This should be done on the client. ONLY USE THIS if your client is not able to do DNS look-ups, supported output formats: JSON

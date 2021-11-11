@@ -12,6 +12,11 @@
 <%= config[:api_server] %>/xml/codecs/<filter>
 ```
 
+```shell
+<%= config[:api_server] %>/csv/codecs
+<%= config[:api_server] %>/csv/codecs/<filter>
+```
+
 > **Results:**
 
 ```json
@@ -36,6 +41,14 @@
 </result>
 ```
 
+```shell
+name,stationcount
+AAC,2202
+AAC+,5487
+"AAC+,H.264",6
+...
+```
+
 > **Example:**
 
 ```json
@@ -46,6 +59,11 @@
 ```xml
 <%= config[:api_server] %>/xml/codecs
 <%= config[:api_server] %>/xml/codecs/aac
+```
+
+```shell
+<%= config[:api_server] %>/csv/codecs
+<%= config[:api_server] %>/csv/codecs/aac
 ```
 
 A JSON-encoded list of all codecs in the database. If a filter is given, it will only return the ones containing the filter as substring, supported output formats: JSON, XML, CSV

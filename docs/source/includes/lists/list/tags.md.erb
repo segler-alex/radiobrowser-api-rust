@@ -12,6 +12,11 @@
 <%= config[:api_server] %>/xml/tags/<filter>
 ```
 
+```shell
+<%= config[:api_server] %>/csv/tags
+<%= config[:api_server] %>/csv/tags/<filter>
+```
+
 > **Results:**
 
 ```json
@@ -36,6 +41,12 @@
 </result>
 ```
 
+```shell
+name,stationcount
+00s,3
+10s,1
+```
+
 > **Example:**
 
 ```json
@@ -46,6 +57,11 @@
 ```xml
 <%= config[:api_server] %>/xml/tags
 <%= config[:api_server] %>/xml/tags/jazz
+```
+
+```shell
+<%= config[:api_server] %>/csv/tags
+<%= config[:api_server] %>/csv/tags/jazz
 ```
 
 A JSON-encoded list of all tags in the database. If a filter is given, it will only return the ones containing the filter as substring, supported output formats: JSON, XML, CSV
