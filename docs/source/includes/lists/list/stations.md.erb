@@ -36,6 +36,57 @@
 <%= config[:api_server] %>/xml/stations/bytagexact/{searchterm}
 ```
 
+```shell
+<%= config[:api_server] %>/csv/stations/byuuid/{searchterm}
+<%= config[:api_server] %>/csv/stations/byname/{searchterm}
+<%= config[:api_server] %>/csv/stations/bynameexact/{searchterm}
+<%= config[:api_server] %>/csv/stations/bycodec/{searchterm}
+<%= config[:api_server] %>/csv/stations/bycodecexact/{searchterm}
+<%= config[:api_server] %>/csv/stations/bycountry/{searchterm}
+<%= config[:api_server] %>/csv/stations/bycountryexact/{searchterm}
+<%= config[:api_server] %>/csv/stations/bycountrycodeexact/{searchterm}
+<%= config[:api_server] %>/csv/stations/bystate/{searchterm}
+<%= config[:api_server] %>/csv/stations/bystateexact/{searchterm}
+<%= config[:api_server] %>/csv/stations/bylanguage/{searchterm}
+<%= config[:api_server] %>/csv/stations/bylanguageexact/{searchterm}
+<%= config[:api_server] %>/csv/stations/bytag/{searchterm}
+<%= config[:api_server] %>/csv/stations/bytagexact/{searchterm}
+```
+
+```plaintext
+<%= config[:api_server] %>/m3u/stations/byuuid/{searchterm}
+<%= config[:api_server] %>/m3u/stations/byname/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bynameexact/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bycodec/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bycodecexact/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bycountry/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bycountryexact/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bycountrycodeexact/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bystate/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bystateexact/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bylanguage/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bylanguageexact/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bytag/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bytagexact/{searchterm}
+```
+
+```ini
+<%= config[:api_server] %>/pls/stations/byuuid/{searchterm}
+<%= config[:api_server] %>/pls/stations/byname/{searchterm}
+<%= config[:api_server] %>/pls/stations/bynameexact/{searchterm}
+<%= config[:api_server] %>/pls/stations/bycodec/{searchterm}
+<%= config[:api_server] %>/pls/stations/bycodecexact/{searchterm}
+<%= config[:api_server] %>/pls/stations/bycountry/{searchterm}
+<%= config[:api_server] %>/pls/stations/bycountryexact/{searchterm}
+<%= config[:api_server] %>/pls/stations/bycountrycodeexact/{searchterm}
+<%= config[:api_server] %>/pls/stations/bystate/{searchterm}
+<%= config[:api_server] %>/pls/stations/bystateexact/{searchterm}
+<%= config[:api_server] %>/pls/stations/bylanguage/{searchterm}
+<%= config[:api_server] %>/pls/stations/bylanguageexact/{searchterm}
+<%= config[:api_server] %>/pls/stations/bytag/{searchterm}
+<%= config[:api_server] %>/pls/stations/bytagexact/{searchterm}
+```
+
 > **Results:**
 
 > Details at struct '[Station](#station)'
@@ -65,6 +116,30 @@
 </result>
 ```
 
+```shell
+changeuuid,stationuuid,serveruuid,name,url,url_resolved,homepage,favicon,tags,country,countrycode,iso_3166_2,state,language,languagecodes,votes,lastchangetime,lastchangetime_iso8601,codec,bitrate,hls,lastcheckok,lastchecktime,lastchecktime_iso8601,lastcheckoktime,lastcheckoktime_iso8601,lastlocalchecktime,lastlocalchecktime_iso8601,clicktimestamp,clicktimestamp_iso8601,clickcount,clicktrend,ssl_error,geo_lat,geo_long,has_extended_info
+...
+...
+```
+
+```plaintext
+#EXTM3U
+#RADIOBROWSERUUID:...
+#EXTINF:...
+...
+
+...
+```
+
+```ini
+[playlist]
+NumberOfEntries=...
+Title1=...
+File1=...
+
+...
+```
+
 > **Example:**
 
 ```json
@@ -85,8 +160,30 @@
 <%= config[:api_server] %>/xml/stations/bytagexact/320kbps
 ```
 
+```shell
+<%= config[:api_server] %>/csv/stations/byname/jazz
+<%= config[:api_server] %>/csv/stations/bycountry/austria
+<%= config[:api_server] %>/csv/stations/bycountryexact/austria
+<%= config[:api_server] %>/csv/stations/bycountrycodeexact/at
+<%= config[:api_server] %>/csv/stations/bytagexact/320kbps
+<%= config[:api_server] %>/csv/stations/bytagexact/320kbps
+```
+
 ```plaintext
+<%= config[:api_server] %>/m3u/stations/byname/jazz
+<%= config[:api_server] %>/m3u/stations/bycountry/austria
+<%= config[:api_server] %>/m3u/stations/bycountryexact/austria
+<%= config[:api_server] %>/m3u/stations/bycountrycodeexact/at
 <%= config[:api_server] %>/m3u/stations/bytagexact/320kbps
+<%= config[:api_server] %>/m3u/stations/bytagexact/320kbps
+```
+
+```ini
+<%= config[:api_server] %>/pls/stations/byname/jazz
+<%= config[:api_server] %>/pls/stations/bycountry/austria
+<%= config[:api_server] %>/pls/stations/bycountryexact/austria
+<%= config[:api_server] %>/pls/stations/bycountrycodeexact/at
+<%= config[:api_server] %>/pls/stations/bytagexact/320kbps
 <%= config[:api_server] %>/pls/stations/bytagexact/320kbps
 ```
 
