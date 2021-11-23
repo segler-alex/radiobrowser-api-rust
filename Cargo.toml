@@ -16,7 +16,7 @@ colored = "2.0.0"
 csv = "1.1.6"
 dns-lookup = "1.0.8"
 fern = { version = "0.6.0", features = ["colored"] }
-handlebars = "4.1.3"
+handlebars = "4.1.5"
 hostname = "0.3.1"
 humantime = "2.1.0"
 icecast-stats = { version = "0.1.1" }
@@ -32,7 +32,7 @@ redis = { version = "0.21.4" }
 reqwest = { version = "0.11.6", features = ["blocking", "json"] }
 rouille = "3.4.0"
 serde = { version = "1.0.130", features = ["derive"] }
-serde_json = "1.0.69"
+serde_json = "1.0.71"
 serde_with = "1.11.0"
 signal-hook = "0.3.10"
 threadpool = "1.8.1"
@@ -41,7 +41,6 @@ url = "2.2.2"
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
 website-icon-extract = "0.5.0"
 xml_writer = "0.4.0"
-mdbook = "^0.4.0"
 
 [package.metadata.deb]
 maintainer = "sailor <segler@programmierecke.net>"
