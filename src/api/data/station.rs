@@ -1,6 +1,6 @@
 use crate::api::api_response::ApiResponse;
 use crate::api::data::StationHistoryCurrent;
-use crate::db::models::StationItem;
+use crate::db::models::DbStationItem;
 use std::error::Error;
 use chrono::NaiveDateTime;
 use chrono::DateTime;
@@ -252,6 +252,7 @@ impl Station {
 
     pub fn serialize_to_xspf(entries: Vec<Station>) -> std::io::Result<String> {
         let mut xml = xml_writer::XmlWriter::new(Vec::new());
+        // DOCS from: https://xspf.org/orig-xspf-v1.html
         xml.dtd("UTF-8")?;
         xml.begin_elem("playlist")?;
         xml.attr_esc("version", "1")?;
@@ -261,6 +262,8 @@ impl Station {
             xml.begin_elem("track")?;
             xml.elem_text("title", &entry.name)?;
             xml.elem_text("location", &entry.url)?;
+            xml.elem_text("image", &entry.favicon)?;
+            xml.elem_text("identifier", &format!("radiobrowser:{}",entry.stationuuid))?;
             xml.end_elem()?;
         }
         xml.end_elem()?;
@@ -454,8 +457,8 @@ impl From<&StationHistoryCurrent> for Station {
     }
 }
 
-impl From<StationItem> for Station {
-    fn from(item: StationItem) -> Self {
+impl From<DbStationItem> for Station {
+    fn from(item: DbStationItem) -> Self {
         Station {
             changeuuid: item.changeuuid,
             stationuuid: item.stationuuid,

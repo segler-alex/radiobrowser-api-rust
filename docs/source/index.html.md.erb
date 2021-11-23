@@ -1,0 +1,116 @@
+---
+title: API Reference
+
+language_tabs: # must be one of https://git.io/vQNgJ
+  - json
+  - xml
+  - shell: csv
+  - plaintext: m3u
+  - ini: pls
+
+toc_footers:
+  - <a href='https://github.com/segler-alex/radiobrowser-api-rust' target=_blank>Fork on Github</a>
+  - <a href='https://github.com/slatedocs/slate'>Docs Powered by Slate</a>
+
+includes:
+  - structs/index.md.erb
+  - structs/station.md.erb
+  - structs/station_check.md.erb
+  - structs/station_check_step.md.erb
+
+  - lists/index.md.erb
+  - lists/list/stations.md.erb
+  - lists/list/all_stations.md.erb
+  - lists/list/codecs.md.erb
+  - lists/list/countries.md.erb
+  - lists/list/country_codes.md.erb
+  - lists/list/states.md.erb
+  - lists/list/languages.md.erb
+  - lists/list/tags.md.erb
+  - lists/list/station_clicks.md.erb
+  - lists/list/check_results.md.erb
+  - lists/list/station_check_step.md.erb
+
+  - lists/search/advanced.md.erb
+  - lists/search/url.md.erb
+  - lists/search/uuid.md.erb
+
+  - lists/server/config.md.erb
+  - lists/server/mirrors.md.erb
+  - lists/server/prometheus.md.erb
+  - lists/server/stats.md.erb
+
+  - modify/index.md.erb
+  - modify/add_station.md.erb
+  - modify/station_click_counter.md.erb
+  - modify/vote_for_station.md.erb
+
+  - stations/index.md.erb
+  - stations/broken.md.erb
+  - stations/by_clicks.md.erb
+  - stations/by_recent_clicks.md.erb
+  - stations/by_recently_changed.md.erb
+  - stations/by_votes.md.erb
+  - stations/old.md.erb
+
+
+search: true
+
+code_clipboard: true
+
+meta:
+  - name: description
+    content: Documentation for the RadioBrowser API
+---
+
+# Introduction
+
+Server version: <%= config[:server_ver] %>
+
+This webservice can be used freely but without guarantee to work. I have been keeping it online since December, 2015, but downtimes are possible and I am not always home to fix it :) Please do not hesitate to send me ideas to improve the service at [segler_alex AT web DOT de](mailto:segler_alex@web.de).
+
+# Using the API
+
+> __Format__
+
+
+```html
+GET {path}
+User-Agent: {user-agent}/{version}
+Host: {root end-point}
+Content-type: {MIME type}
+
+```
+
+> __GET request examples__
+
+```html
+GET /json/stations/search?tag=rock&codec=mp3&order=country&reverse=true&limit=1000
+User-Agent: Cool Radio App/1.2
+Host: https://de1.api.radio-browser.info
+Content-type: application/json; charset=utf-8
+
+```
+
+```html
+GET /m3u/stations/bycountry/austria
+User-Agent: Cool Radio App/1.2
+Host: https://de1.api.radio-browser.info
+Content-type: text/plain
+
+```
+
+
+Please send a <span class="text-danger">descriptive User-Agent</span> in your HTTP requests, which makes it easier for me to get in touch with developers to help with the usage of the API. Something like `appname/appversion`, for example `Cool Radio App/1.2`. This also helps me to know which apps are using this service, so I can keep the list of apps up to date and tell people in which ways they can use this service.
+
+[Content type](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types) should be specified as appropriate.
+
+If you know an app that is using this service but not listed on <a class="badge badge-info"
+href="http://www.radio-browser.info">www.radio-browser.info</a>, please drop me a note.
+Thank you! At the moment this service checks radio stations by connecting to them at least every day and marks them accordingly. (`LastCheckOK=0/1`)
+
+If you can't find what you are looking for here, please create a feature request on [Github](https://github.com/segler-alex/radiobrowser-api-rust) or if you are a programmer, fork it and make a pull request. Thanks for your help! Recent changes can be found in the Changelog.
+
+<aside class="notice">
+Please note that all the parameters listed below can be added by using an HTTP POST request with the encoding "x-www-form-urlencoded" instead of GET request, and they can also be sent with encoding "application/json" used by Angular.js, for example.
+</aside>

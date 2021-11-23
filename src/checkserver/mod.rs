@@ -1,5 +1,5 @@
-use crate::db::connect;
 use crate::db::models::DbStreamingServer;
+use crate::db::DbConnection;
 use icecast_stats::generate_icecast_stats_url;
 use icecast_stats::IcecastStatsRoot;
 use rayon::prelude::*;
@@ -17,13 +17,15 @@ fn single_check(server: &mut DbStreamingServer) -> Result<(), String> {
     Ok(())
 }
 
-pub fn do_check(
-    database_url: String,
+pub fn do_check<C>(
+    mut conn_new_style: C,
     chunksize: u32,
     concurrency: usize,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error>>
+where
+    C: DbConnection,
+{
     trace!("do_check()");
-    let mut conn_new_style = connect(database_url)?;
     let servers: Vec<DbStreamingServer> = conn_new_style.get_servers_to_check(24, chunksize)?;
 
     let pool = rayon::ThreadPoolBuilder::new()

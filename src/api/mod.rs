@@ -12,6 +12,7 @@ mod api_response;
 mod cache;
 mod all_params;
 
+use std::thread::JoinHandle;
 use crate::api::data::ApiLanguage;
 use all_params::AllParameters;
 use prometheus_exporter::RegistryLinks;
@@ -40,7 +41,7 @@ use crate::api::data::ApiConfig;
 use crate::db::DbConnection;
 use crate::db::models::ExtraInfo;
 use crate::db::models::State;
-use crate::db::models::StationItem;
+use crate::db::models::DbStationItem;
 use crate::api::rouille::Response;
 use crate::api::rouille::Request;
 use std;
@@ -70,7 +71,7 @@ fn add_cors(result : rouille::Response) -> rouille::Response {
         .with_unique_header("Access-Control-Allow-Methods", "GET,POST")
 }
 
-fn get_only_first_item(mut stations: Vec<StationItem>) -> Option<StationItem>{
+fn get_only_first_item(mut stations: Vec<DbStationItem>) -> Option<DbStationItem>{
     if stations.len() == 1 {
         Some(stations.pop().unwrap())
     } else {
@@ -128,7 +129,7 @@ fn encode_message(status: Result<String, Box<dyn Error>>, format : &str) -> Resu
     })
 }
 
-fn encode_station_url<A>(connection_new: &A, station: Option<StationItem>, ip: &str, format : &str, seconds: u64, registry: RegistryLinks) -> Result<ApiResponse, Box<dyn Error>> where A: DbConnection {
+fn encode_station_url<A>(connection_new: &A, station: Option<DbStationItem>, ip: &str, format : &str, seconds: u64, registry: RegistryLinks) -> Result<ApiResponse, Box<dyn Error>> where A: DbConnection {
     Ok(match station {
         Some(station) => {
             registry.clicks.inc();
@@ -242,6 +243,27 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> ApiResponse
         },
         _ => ApiResponse::UnknownContentType
     }
+}
+
+use rouille::Server;
+
+pub fn start_unavailable<F, T>(config: Config, func: F) -> JoinHandle<T> where
+    F: FnOnce(std::sync::mpsc::Sender<()>) -> T,
+    F: Send + 'static,
+    T: Send + 'static,
+{
+    let server = Server::new(format!("{}:{}", &config.listen_host, &config.listen_port), |_| {
+        debug!("received request while loading");
+        // send "http service unavailable 503"
+        Response::text("loading").with_status_code(503)
+    }).unwrap();
+    info!("Listen on {:?} (warming up)", server.server_addr());
+    let (handle, sender) = server.stoppable();
+
+    let thread_handle = thread::spawn(|| func(sender));
+    handle.join().unwrap();
+
+    thread_handle
 }
 
 pub fn start<A: 'static +  std::clone::Clone>(

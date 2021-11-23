@@ -19,7 +19,6 @@ use crate::api::data::StationClickV0;
 use crate::api::data::Station;
 use crate::api::data::StationV0;
 use crate::db::DbConnection;
-use crate::db::connect;
 use crate::db::models::StationCheckItemNew;
 use crate::db::models::StationChangeItemNew;
 use crate::db::models::StationClickItemNew;
@@ -29,11 +28,10 @@ fn add_default_request_headers(req: RequestBuilder) -> RequestBuilder {
     req.header(USER_AGENT, format!("radiobrowser-api-rust/{}",pkg_version))
 }
 
-pub fn pull_worker(client: &Client, connection_string: String, mirrors: &Vec<String>, chunk_size_changes: usize, chunk_size_checks: usize, max_duplicates: usize, list_deleted: &mut Vec<UuidWithTime>) -> Result<(),Box<dyn Error>> {
-    let pool = connect(connection_string)?;
+pub fn pull_worker<C>(client: &Client, pool: C, mirrors: &Vec<String>, chunk_size_changes: usize, chunk_size_checks: usize, max_duplicates: usize, list_deleted: &mut Vec<UuidWithTime>) -> Result<(),Box<dyn Error>> where C: DbConnection + Clone {
     let list_deleted_uuids = list_deleted.iter().map(|item| item.uuid.to_string()).collect();
     for server in mirrors.iter() {
-        let result = pull_server(client, &pool, &server, chunk_size_changes, chunk_size_checks, &list_deleted_uuids);
+        let result = pull_server(client, pool.clone(), &server, chunk_size_changes, chunk_size_checks, &list_deleted_uuids);
         match result {
             Ok(_) => {
             },
@@ -185,7 +183,7 @@ fn pull_stations(client: &Client, server: &str, api_version: u32) -> Result<Vec<
     }
 }
 
-fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: &str, chunk_size_changes: usize, chunk_size_checks: usize, ignore_station_uuids: &Vec<String>) -> Result<(),Box<dyn std::error::Error>> {
+fn pull_server<C>(client: &Client, connection_new: C, server: &str, chunk_size_changes: usize, chunk_size_checks: usize, ignore_station_uuids: &Vec<String>) -> Result<(),Box<dyn std::error::Error>> where C: DbConnection {
     let insert_chunksize = 2000;
     let mut station_change_count = 0;
     let mut station_check_count = 0;
@@ -206,7 +204,7 @@ fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: 
 
             if let Some(last) = last {
                 trace!("Insert {} station changes..", chunk.len());
-                connection_new.insert_station_by_change(chunk)?;
+                connection_new.insert_station_by_change(chunk, "PULL")?;
                 connection_new.set_pull_server_lastid(server, &last.changeuuid)?;
             }
         }
@@ -286,7 +284,7 @@ fn pull_server(client: &Client, connection_new: &Box<dyn DbConnection>, server: 
                 
                 trace!("Inserting missing stations ({})..", changes.len());
                 if changes.len() > 0 {
-                    connection_new.insert_station_by_change(&changes)?;
+                    connection_new.insert_station_by_change(&changes, "PULL")?;
                 }
                 trace!("Insert checks ({})..", checks_ignored_station_missing.len());
                 let (_ignored_uuids_check_existing, _ignored_uuids_station_missing, inserted) = connection_new.insert_checks(checks_ignored_station_missing)?;

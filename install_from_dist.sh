@@ -11,6 +11,7 @@ sudo cp init/radiobrowser.service /etc/systemd/system
 sudo cp static/* /usr/share/radiobrowser/
 sudo cp etc/config-example.toml /etc/radiobrowser/config-example.toml
 sudo cp etc/language-replace.csv /etc/radiobrowser/language-replace.csv
+sudo cp etc/tag-replace.csv /etc/radiobrowser/tag-replace.csv
 sudo cp etc/language-to-code.csv /etc/radiobrowser/language-to-code.csv
 if [ ! -f /etc/radiobrowser/config.toml ]; then
     sudo cp etc/config-example.toml /etc/radiobrowser/config.toml

@@ -13,26 +13,59 @@ use std::fs;
 use std::time::Duration;
 use std::{collections::HashMap, sync::Mutex};
 
+static INSTANCE_CONFIG: OnceCell<Mutex<Config>> = OnceCell::new();
 static INSTANCE_LANGUAGE_TO_CODE: OnceCell<Mutex<HashMap<String, String>>> = OnceCell::new();
 static INSTANCE_LANGUAGE_REPLACE: OnceCell<Mutex<HashMap<String, String>>> = OnceCell::new();
+static INSTANCE_TAG_REPLACE: OnceCell<Mutex<HashMap<String, String>>> = OnceCell::new();
 
-pub fn load_all_extra_configs(c: &Config) -> Result<(), Box<dyn Error>> {
-    debug!("load_all_extra_configs()");
-    match data_mapping_item::read_map_csv_file(&c.language_replace_filepath) {
-        Ok(x1) => match INSTANCE_LANGUAGE_REPLACE.set(Mutex::new(x1)) {
-            Ok(_) => info!("Initial set of global language replace cache"),
-            Err(_) => info!("Updating global language replace cache"),
-        },
-        Err(err) => warn!("Unable to load file '{}': {}", &c.language_replace_filepath, err),
-    }
-    match data_mapping_item::read_map_csv_file(&c.language_to_code_filepath) {
-        Ok(x2) => match INSTANCE_LANGUAGE_TO_CODE.set(Mutex::new(x2)) {
-            Ok(_) => info!("Initial set of global language to code cache"),
-            Err(_) => info!("Updating global language to code cache"),
-        },
-        Err(err) => warn!("Unable to load file '{}': {}", &c.language_to_code_filepath, err),
+pub fn load_main_config() -> Result<(), Box<dyn Error>> {
+    debug!("load_main_config()");
+    match load_config() {
+        Ok(config) => {
+            trace!("Config: {:#?}", config);
+            let m = INSTANCE_CONFIG.get_or_init(|| Mutex::new(config.clone()));
+            *(m.lock()?) = config;
+        }
+        Err(err) => warn!("Unable to load file: {}", err),
     }
     Ok(())
+}
+pub fn load_all_extra_configs(c: &Config) -> Result<(), Box<dyn Error>> {
+    match data_mapping_item::read_map_csv_file(&c.language_replace_filepath) {
+        Ok(data) => {
+            let m = INSTANCE_LANGUAGE_REPLACE.get_or_init(|| Mutex::new(data.clone()));
+            *(m.lock()?) = data;
+        }
+        Err(err) => warn!(
+            "Unable to load file '{}': {}",
+            &c.language_replace_filepath, err
+        ),
+    }
+    match data_mapping_item::read_map_csv_file(&c.tag_replace_filepath) {
+        Ok(data) => {
+            let m = INSTANCE_TAG_REPLACE.get_or_init(|| Mutex::new(data.clone()));
+            *(m.lock()?) = data;
+        }
+        Err(err) => warn!(
+            "Unable to load file '{}': {}",
+            &c.tag_replace_filepath, err
+        ),
+    }
+    match data_mapping_item::read_map_csv_file(&c.language_to_code_filepath) {
+        Ok(data) => {
+            let m = INSTANCE_LANGUAGE_TO_CODE.get_or_init(|| Mutex::new(data.clone()));
+            *(m.lock()?) = data;
+        }
+        Err(err) => warn!(
+            "Unable to load file '{}': {}",
+            &c.language_to_code_filepath, err
+        ),
+    }
+    Ok(())
+}
+
+pub fn get_config() -> Option<&'static Mutex<Config>> {
+    INSTANCE_CONFIG.get()
 }
 
 pub fn get_cache_language_to_code() -> Option<&'static Mutex<HashMap<String, String>>> {
@@ -41,6 +74,10 @@ pub fn get_cache_language_to_code() -> Option<&'static Mutex<HashMap<String, Str
 
 pub fn get_cache_language_replace() -> Option<&'static Mutex<HashMap<String, String>>> {
     INSTANCE_LANGUAGE_REPLACE.get()
+}
+
+pub fn get_cache_tags_replace() -> Option<&'static Mutex<HashMap<String, String>>> {
+    INSTANCE_TAG_REPLACE.get()
 }
 
 pub fn convert_language_to_code<P: AsRef<str>>(language: P) -> Option<String> {
@@ -209,7 +246,7 @@ fn get_hosts_from_config(config: &toml::Value) -> Result<Vec<String>, Box<dyn Er
     Ok(list)
 }
 
-pub fn load_config() -> Result<Config, Box<dyn Error>> {
+fn load_config() -> Result<Config, Box<dyn Error>> {
     let hostname_str: String = hostname::get()
         .map(|os_string| os_string.to_string_lossy().into_owned())
         .unwrap_or("".to_string());
@@ -241,6 +278,13 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("REPLACE_LANGUAGE_FILE")
                 .help("Path to csv file for language replacement")
                 .env("REPLACE_LANGUAGE_FILE")
+                .takes_value(true),
+        ).arg(
+            Arg::with_name("replace-tag-file")
+                .long("replace-tag-file")
+                .value_name("REPLACE_TAG_FILE")
+                .help("Path to csv file for tag replacement")
+                .env("REPLACE_TAG_FILE")
                 .takes_value(true),
         ).arg(
             Arg::with_name("language-to-code-file")
@@ -334,6 +378,20 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .env("MIRROR_PULL_INTERVAL")
                 .takes_value(true),
         ).arg(
+            Arg::with_name("refresh-config-interval")
+                .long("refresh-config-interval")
+                .value_name("REFRESH_CONFIG_INTERVAL")
+                .help("download / redownload config interval")
+                .env("REFRESH_CONFIG_INTERVAL")
+                .takes_value(true),
+        ).arg(
+            Arg::with_name("cleanup-interval")
+                .long("cleanup-interval")
+                .value_name("CLEANUP_INTERVAL")
+                .help("cleanup tasks interval")
+                .env("CLEANUP_INTERVAL")
+                .takes_value(true),
+        ).arg(
             Arg::with_name("ignore-migration-errors")
                 .short("i")
                 .long("ignore-migration-errors")
@@ -354,7 +412,7 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("LOG_LEVEL")
                 .takes_value(false)
                 .multiple(true)
-                .help("increases the log level. can be specified mutliple times 0..3"),
+                .help("increases the log level. can be specified mutliple times 0..4"),
         ).arg(
             Arg::with_name("static-files-dir")
                 .short("g")
@@ -542,11 +600,51 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
+            Arg::with_name("favicon-size-min")
+                .long("favicon-size-min")
+                .value_name("FAVICON_SIZE_MIN")
+                .help("Minimum (width or height) of favicons extracted")
+                .env("FAVICON_SIZE_MIN")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("favicon-size-max")
+                .long("favicon-size-max")
+                .value_name("FAVICON_SIZE_MAX")
+                .help("Maximum (width or height) of favicons extracted")
+                .env("FAVICON_SIZE_MAX")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("favicon-size-optimum")
+                .long("favicon-size-optimum")
+                .value_name("FAVICON_SIZE_OPTIMUM")
+                .help("Optimum size of favicons extracted")
+                .env("FAVICON_SIZE_OPTIMUM")
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("enable-check")
                 .long("enable-check")
                 .value_name("ENABLE_CHECK")
                 .help("enable station checks")
                 .env("ENABLE_CHECK")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("enable-extract-favicon")
+                .long("enable-extract-favicon")
+                .value_name("ENABLE_EXTRACT_FAVICON")
+                .help("enable checking homepage for new icon")
+                .env("ENABLE_EXTRACT_FAVICON")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("recheck-existing-favicon")
+                .long("recheck-existing-favicon")
+                .value_name("RECHECK_EXISTING_FAVICON")
+                .help("recheck existing favicons")
+                .env("RECHECK_EXISTING_FAVICON")
                 .takes_value(true),
         )
         .arg(
@@ -564,17 +662,12 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
                 .help("chunk size for server check")
                 .env("ENABLE_SERVER_CHECK_CHUNKSIZE")
                 .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("favicon")
-                .long("favicon")
-                .value_name("FAVICON")
-                .help("check favicons and try to repair them")
-                .env("FAVICON")
-                .takes_value(true),
         ).get_matches();
 
-    let config_file_path: String = matches.value_of("config-file").unwrap().to_string();
+    let config_file_path: String = matches
+        .value_of("config-file")
+        .unwrap_or("/etc/radiobrowser.toml")
+        .to_string();
 
     let contents = fs::read_to_string(config_file_path)?;
     let config = toml::from_str::<toml::Value>(&contents)?;
@@ -624,6 +717,12 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         "mirror-pull-interval",
         String::from("5mins"),
     )?;
+    let refresh_config_interval = get_option_duration(
+        &matches,
+        &config,
+        "refresh-config-interval",
+        String::from("1day"),
+    )?;
     let ignore_migration_errors: bool =
         get_option_bool(&matches, &config, "ignore-migration-errors", false)?;
     let allow_database_downgrade: bool =
@@ -637,8 +736,19 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
     let concurrency: usize = get_option_number(&matches, &config, "concurrency", 1)? as usize;
     let check_stations: u32 = get_option_number(&matches, &config, "stations", 10)? as u32;
     let enable_check: bool = get_option_bool(&matches, &config, "enable-check", false)?;
+    let enable_extract_favicon: bool =
+        get_option_bool(&matches, &config, "enable-extract-favicon", false)?;
+    let recheck_existing_favicon: bool =
+        get_option_bool(&matches, &config, "recheck-existing-favicon", false)?;
+
+    let favicon_size_min: usize =
+        get_option_number(&matches, &config, "favicon-size-min", 32)? as usize;
+    let favicon_size_max: usize =
+        get_option_number(&matches, &config, "favicon-size-max", 256)? as usize;
+    let favicon_size_optimum: usize =
+        get_option_number(&matches, &config, "favicon-size-optimum", 128)? as usize;
+
     let delete: bool = get_option_bool(&matches, &config, "delete", false)?;
-    let favicon: bool = get_option_bool(&matches, &config, "favicon", false)?;
     let pause = get_option_duration(&matches, &config, "pause", String::from("10secs"))?;
     let tcp_timeout =
         get_option_duration(&matches, &config, "tcp-timeout", String::from("10secs"))?;
@@ -673,6 +783,8 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         "broken-stations-timeout",
         String::from("30days"),
     )?;
+    let cleanup_interval =
+        get_option_duration(&matches, &config, "cleanup-interval", String::from("1hour"))?;
     let checks_timeout =
         get_option_duration(&matches, &config, "checks-timeout", String::from("30days"))?;
     let clicks_timeout =
@@ -683,6 +795,12 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         &config,
         "replace-language-file",
         "language-replace.csv".to_string(),
+    )?;
+    let tag_replace_filepath = get_option_string(
+        &matches,
+        &config,
+        "replace-tag-file",
+        "tag-replace.csv".to_string(),
     )?;
     let language_to_code_filepath = get_option_string(
         &matches,
@@ -734,7 +852,6 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         connection_string,
         delete,
         enable_check,
-        favicon,
         ignore_migration_errors,
         listen_host,
         listen_port,
@@ -766,6 +883,14 @@ pub fn load_config() -> Result<Config, Box<dyn Error>> {
         check_servers,
         check_servers_chunksize,
         language_replace_filepath,
+        tag_replace_filepath,
         language_to_code_filepath,
+        enable_extract_favicon,
+        recheck_existing_favicon,
+        favicon_size_min,
+        favicon_size_max,
+        favicon_size_optimum,
+        refresh_config_interval,
+        cleanup_interval,
     })
 }

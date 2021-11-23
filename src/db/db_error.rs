@@ -5,7 +5,7 @@ use std::fmt::Result;
 
 #[derive(Debug, Clone)]
 pub enum DbError {
-    ConnectionError(String),
+    //ConnectionError(String),
     VoteError(String),
     AddStationError(String),
     IllegalOrderError(String),
@@ -14,7 +14,7 @@ pub enum DbError {
 impl Display for DbError {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match *self {
-            DbError::ConnectionError(ref v) => write!(f, "ConnectionError '{}'", v),
+            //DbError::ConnectionError(ref v) => write!(f, "ConnectionError '{}'", v),
             DbError::VoteError(ref v) => write!(f, "VoteError '{}'", v),
             DbError::AddStationError(ref v) => write!(f, "AddStationError '{}'", v),
             DbError::IllegalOrderError(ref v) => write!(f, "IllegalOrderError '{}'", v),

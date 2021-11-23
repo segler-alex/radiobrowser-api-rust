@@ -413,9 +413,35 @@
   #EXTINF:-1,Best Radio
   http://stream.example.com/mp3_128
 
-  #RADIOBROWSERUUID:01234567-89ab-cdef-0123-456789abcdef
+  #RADIOBROWSERUUID:11234567-89ab-cdef-0123-456789abcdef
   #EXTINF:-1,Other Radio
   http://stream.example2.com/mp3_256
+            </pre>
+          </div>
+
+          <div class="h5 mt-3">Example XSPF playlist with extension field:</div>
+          The XSPF files created by this server are extended with an additional field, that can be used to identify
+          entries of the file with this server.
+          We try to be consistent with the specification at <a href="https://xspf.org/orig-xspf-v1.html">https://xspf.org/orig-xspf-v1.html</a>
+          <div class="well well-sm bg-light border border-secondary rounded">
+            <pre class="mt-4">
+  &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; ?&gt;
+  &lt;playlist version=&quot;1&quot; xmlns=&quot;http://xspf.org/ns/0/&quot;&gt;
+    &lt;trackList&gt;
+      &lt;track&gt;
+        &lt;title&gt;Best Radio&lt;/title&gt;
+        &lt;location&gt;http://stream.example.com/mp3_128&lt;/location&gt;
+        &lt;image&gt;http://example.com/favicon.ico&lt;/image&gt;
+        &lt;identifier&gt;radiobrowser:01234567-89ab-cdef-0123-456789abcdef&lt;/identifier&gt;
+      &lt;/track&gt;
+      &lt;track&gt;
+        &lt;title&gt;Other Radio&lt;/title&gt;
+        &lt;location&gt;https://stream.example2.com/mp3_256&lt;/location&gt;
+        &lt;image&gt;http://example2.com/favicon.ico&lt;/image&gt;
+        &lt;identifier&gt;radiobrowser:11234567-89ab-cdef-0123-456789abcdef&lt;/identifier&gt;
+      &lt;/track&gt;
+    &lt;/trackList&gt;
+  &lt;/playlist&gt;
             </pre>
           </div>
         </div>

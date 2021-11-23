@@ -17,15 +17,18 @@ pub fn setup_logger(verbosity: usize, log_dir: &str, json: bool) -> Result<(), f
 
     base_config = match verbosity {
         0 => base_config
+            .level(log::LevelFilter::Error)
+            .level_for("radiobrowser_api_rust", log::LevelFilter::Error),
+        1 => base_config
             .level(log::LevelFilter::Warn)
             .level_for("radiobrowser_api_rust", log::LevelFilter::Warn),
-        1 => base_config
-            .level(log::LevelFilter::Info)
-            .level_for("radiobrowser_api_rust", log::LevelFilter::Info),
         2 => base_config
             .level(log::LevelFilter::Info)
+            .level_for("radiobrowser_api_rust", log::LevelFilter::Info),
+        3 => base_config
+            .level(log::LevelFilter::Info)
             .level_for("radiobrowser_api_rust", log::LevelFilter::Debug),
-        _3_or_more => base_config
+        _4_or_more => base_config
             .level(log::LevelFilter::Info)
             .level_for("radiobrowser_api_rust", log::LevelFilter::Trace),
     };

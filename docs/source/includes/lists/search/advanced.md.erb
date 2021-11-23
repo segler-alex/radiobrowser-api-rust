@@ -1,0 +1,79 @@
+## Advanced station search
+
+> **Syntax:**
+
+```json
+<%= config[:api_server] %>/json/stations/search
+```
+
+```xml
+<%= config[:api_server] %>/xml/stations/search
+```
+
+```shell
+<%= config[:api_server] %>/csv/stations/search
+```
+
+```plaintext
+<%= config[:api_server] %>/m3u/stations/search
+```
+
+```ini
+<%= config[:api_server] %>/pls/stations/search
+```
+
+> **Results:**
+
+> Array of struct [Station](#station)
+
+> **Example:**
+
+```json
+<%= config[:api_server] %>/json/stations/search
+```
+
+```xml
+<%= config[:api_server] %>/xml/stations/search
+```
+
+```shell
+<%= config[:api_server] %>/csv/stations/search
+```
+
+```plaintext
+<%= config[:api_server] %>/m3u/stations/search
+```
+
+```ini
+<%= config[:api_server] %>/pls/stations/search
+```
+
+A list of radio stations that match the search. It will search for the station whose attribute contains the search term. Please use '[Count station click](#station-click-count)' API call to let the click be counted, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL
+
+### Parameters:
+
+| Name | Default value | Possible value | Description |
+|------|---------------|----------------|-------------|
+| `name` |  | string | OPTIONAL, name of the station |
+| `nameExact` | `false` | `true`, `false` | OPTIONAL. True: only exact matches, otherwise all matches. |
+| `country` |  | string | OPTIONAL, country of the station |
+| `countryExact` | `false` | `true`, `false` | OPTIONAL. True: only exact matches, otherwise all matches. |
+| `countrycode` |  | string | OPTIONAL, 2-digit countrycode of the station (see <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2" target='_blank'>ISO 3166-1 alpha-2</a>). |
+| `state` |  | string | OPTIONAL, state of the station |
+| `stateExact` | `false` | `true`, `false` | OPTIONAL. True: only exact matches, otherwise all matches. |
+| `language` |  | string | OPTIONAL, language of the station |
+| `languageExact` | `false` | `true`, `false` | OPTIONAL. True: only exact matches, otherwise all matches. |
+| `tag` |  | string | OPTIONAL, a tag of the station |
+| `tagExact` | `false` | `true`, `false` | OPTIONAL. True: only exact matches, otherwise all matches. |
+| `tagList` |  | string, string, ... | OPTIONAL. , a comma-separated list of tag. It can also be an array of string in JSON HTTP POST parameters. All tags in list have to match. |
+| `codec` |  | string | OPTIONAL, codec of the station |
+| `bitrateMin` | `0` | POSITIVE INTEGER | OPTIONAL, minimum of kbps for bitrate field of stations in result |
+| `bitrateMax` | `1000000` | POSITIVE INTEGER | OPTIONAL, maximum of kbps for bitrate field of stations in result |
+| `has_geo_info` | both | not set, `true`, `false` | OPTIONAL, not set=display all, `true`=show only stations with geo_info, `false`=show only stations without geo_info |
+| `has_extended_info` | both | not set, `true`, `false` | OPTIONAL, not set=display all, `true`=show only stations which do provide extended information, `false`=show only stations without extended information |
+| `is_https` | both | not set, `true`, `false` | OPTIONAL, not set=display all, `true`=show only stations which have https url, `false`=show only stations that do stream unencrypted with http |
+| `order` | `name` | `name`, `url`, `homepage`, `favicon`, `tags`, `country`, `state`, `language`, `votes`, `codec`, `bitrate`, `lastcheckok`, `lastchecktime`, `clicktimestamp`, `clickcount`, `clicktrend`, `changetimestamp`, `random` | OPTIONAL, name of the attribute the result list will be sorted by |
+| `reverse` | `false` | `true`, `false` | OPTIONAL, reverse the result list if set to `true` |
+| `offset` | `0` | POSITIVE INTEGER | OPTIONAL, starting value of the result list from the database. For example, if you want to do paging on the server side. |
+| `limit` | `100000` | `0`,`1`,`2`,`3`,... | OPTIONAL, number of returned datarows (stations) starting with offset |
+| `hidebroken` | `false` | `true`, `false` | do list/not list broken stations |

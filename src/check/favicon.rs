@@ -1,67 +1,33 @@
-/*
-use reqwest::blocking::Client;
-use reqwest::header::CONTENT_TYPE;
-use reqwest::header::USER_AGENT;
-use std::time::Duration;
-use website_icon_extract;
+use website_icon_extract::ImageLink;
 
-pub fn check(
-    homepage: &str,
-    old_favicon: &str,
-    useragent: &str,
-    timeout: u32,
-) -> Result<String, Box<dyn std::error::Error>> {
-    let check = check_url(old_favicon, useragent, timeout);
-    if !check {
-        debug!("Check for favicon: {}", homepage);
-        let icons = website_icon_extract::extract_icons(homepage, useragent, timeout)?;
-        if icons.len() > 0 {
-            debug!("Favicon {}", icons[0]);
-            return Ok(icons[0].clone());
-        } else {
-            debug!("No favicons found for: {}", homepage);
-        }
-        Ok(String::from(""))
+fn proximity(optimal: i32, link: &ImageLink) -> i32
+{
+    let width: i32 = link.width as i32;
+    let height: i32 = link.height as i32;
+    (optimal - (width + height) / 2).abs()
+}
+
+pub fn get_best_icon(
+    mut list: Vec<ImageLink>,
+    optimal: usize,
+    minsize: usize,
+    maxsize: usize,
+) -> Option<ImageLink> {
+    if list.len() > 0 {
+        let mut new_list: Vec<ImageLink> = list
+            .drain(..)
+            .filter(|image| {
+                image.width >= minsize
+                    && image.width <= maxsize
+                    && image.height >= minsize
+                    && image.height <= maxsize
+            })
+            .collect();
+        new_list.sort_unstable_by(|a, b| {
+            proximity(optimal as i32, b).cmp(&proximity(optimal as i32, a))
+        });
+        new_list.pop()
     } else {
-        Ok(String::from(old_favicon))
+        None
     }
 }
-
-fn check_url(url: &str, useragent: &str, timeout: u32) -> bool {
-    let client = Client::builder()
-        .timeout(Duration::from_secs(timeout.into()))
-        .build();
-    if client.is_err() {
-        return false;
-    }
-    let client = client.unwrap();
-    let res = client
-        .get(url)
-        .header(USER_AGENT, useragent.to_string())
-        .send();
-    match res {
-        Ok(r) => {
-            if r.status().is_success() {
-                let t = r.headers().get(CONTENT_TYPE);
-                match t {
-                    Some(t) => {
-                        let value = t.to_str();
-                        if let Ok(value) = value {
-                            if value.starts_with("image"){
-                                return true;
-                            }
-                        }
-                    }
-                    None => {
-                        return false;
-                    }
-                }
-            }
-            return false;
-        }
-        Err(_) => {
-            return false;
-        }
-    }
-}
-*/

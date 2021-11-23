@@ -536,5 +536,17 @@ r#"ALTER TABLE Station MODIFY COLUMN Language VARCHAR(50) NULL;"#);
 r#"ALTER TABLE Station MODIFY COLUMN Tags TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;"#,
 r#"ALTER TABLE Station MODIFY COLUMN Tags TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"#);
 
+    migrations.add_migration("20211022_201700_Add_StationHistory_Source",
+r#"ALTER TABLE StationHistory ADD COLUMN Source VARCHAR(100) NOT NULL DEFAULT "INITIAL";"#,
+r#"ALTER TABLE StationHistory DROP COLUMN Source;"#);
+
+    migrations.add_migration("20211023_142000_Add_StationHistory_CountrySubdivisionCode",
+r#"ALTER TABLE StationHistory ADD COLUMN CountrySubdivisionCode VARCHAR(6) NULL;"#,
+r#"ALTER TABLE StationHistory DROP COLUMN CountrySubdivisionCode;"#);
+
+    migrations.add_migration("20211023_230500_Change_StationHistory_Language",
+r#"ALTER TABLE StationHistory MODIFY COLUMN Language VARCHAR(100) NULL;"#,
+r#"ALTER TABLE StationHistory MODIFY COLUMN Language VARCHAR(50) NULL;"#);
+
     Ok(migrations)
 }

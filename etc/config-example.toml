@@ -4,7 +4,7 @@
 static-files-dir = "/usr/share/radiobrowser"
 ## Log file path
 log-dir = "/var/log/radiobrowser/"
-## Log level 0(WARN)-3(TRACE)
+## Log level 0(ERROR)-4(TRACE)
 #log-level = 1
 ## Log in JSON format
 # log-json = false
@@ -14,18 +14,6 @@ listen-host = "127.0.0.1"
 listen-port = 8080
 ## How many concurrent threads used by socket
 threads = 5
-## Update caches at an interval
-update-caches-interval = "5mins"
-## The same ip cannot do clicks for the same stream in this timespan
-click-valid-timeout = "1day"
-## Broken streams are removed after this timespan, if they have never worked.
-broken-stations-never-working-timeout = "3days"
-## Broken streams are removed after this timespan.
-broken-stations-timeout = "30days"
-## Checks are removed after this timespan.
-checks-timeout = "30days"
-## Checks are removed after this timespan.
-clicks-timeout = "30days"
 ## Documentation url to be used if automatic way is not working (HTTP/1.0)
 server-url = "https://de1.api.radio-browser.info"
 
@@ -69,8 +57,6 @@ concurrency = 10
 stations = 100
 ## Enable delete logic for stations
 delete = true
-## Automatic favicon check for stations (experimental)
-favicon = false
 ## Interval in seconds to wait after every batch of checks
 pause = "60secs"
 ## Timeout for tcp connections
@@ -88,18 +74,52 @@ retries = 5
 ## User agent for the stream check
 #useragent = "useragent/1.0"
 
-# Check server infos if server supports it (icecast)
+## Check server infos if server supports it (icecast)
 server-info-check = false
-# Chunksize for checking servers
+## Chunksize for checking servers
 server-info-check-chunksize = 100
 
-## Cleanup
-## =======
+# Check if current favicon in database still works, and remove them if not
+recheck-existing-favicon = false
+## Try to extract favicon from website for empty favicons
+enable-extract-favicon = false
+## Minimum (width or height) of favicons extracted
+favicon-size-min = 32
+## Maximum (width or height) of favicons extracted
+favicon-size-max = 256
+## Optimum size of favicons extracted
+favicon-size-optimum = 128
+
 ## File path to CSV for replacing languages (local path or http/https)
 #replace-language-file = "https://radiobrowser.gitlab.io/radiobrowser-static-data/language-replace.csv"
 replace-language-file = "/etc/radiobrowser/language-replace.csv"
 ## File path to CSV for mapping language to code (local path or http/https)
 language-to-code-file = "/etc/radiobrowser/language-to-code.csv"
+## File path to CSV for replacing tags (local path or http/https)
+#replace-tag-file = "https://radiobrowser.gitlab.io/radiobrowser-static-data/tag-replace.csv"
+replace-tag-file = "/etc/radiobrowser/tag-replace.csv"
+
+## Caches
+## ======
+## Update caches at an interval
+update-caches-interval = "5mins"
+
+## Cleanup
+## =======
+## Cleanup worker startup interval
+cleanup-interval = "1hour"
+## The same ip cannot do clicks for the same stream in this timespan
+click-valid-timeout = "1day"
+## Broken streams are removed after this timespan, if they have never worked.
+broken-stations-never-working-timeout = "3days"
+## Broken streams are removed after this timespan.
+broken-stations-timeout = "30days"
+## Checks are removed after this timespan.
+checks-timeout = "30days"
+## Checks are removed after this timespan.
+clicks-timeout = "30days"
+## reload / redownload some config files
+refresh-config-interval = "1day"
 
 ## Mirroring
 ## =========
