@@ -1,0 +1,48 @@
+## Station check step
+
+This struct is used in a tree structure to represent all codepaths that were necessary to check an address of a single stream. Steps can cause multiple other steps for example playlists.
+
+> **Results:**
+
+```json
+{
+    "stepuuid": "01234567-89ab-cdef-0123-456789abcdef",
+    "parent_stepuuid": "01234567-89ab-cdef-0123-456789abcdef",
+    "checkuuid": "01234567-89ab-cdef-0123-456789abcdef",
+    "stationuuid": "01234567-89ab-cdef-0123-456789abcdef",
+    "url": "http://stream.example.com:8000/streamname",
+    "urltype": "STREAM",
+    "error": "BadError",
+    "creation_iso8601": "2021-04-13T20:11:19Z"
+}
+```
+
+```xml
+<checkstep
+    stepuuid="01234567-89ab-cdef-0123-456789abcdef"
+    parent_stepuuid="01234567-89ab-cdef-0123-456789abcdef"
+    checkuuid="01234567-89ab-cdef-0123-456789abcdef"
+    stationuuid="01234567-89ab-cdef-0123-456789abcdef"
+    url="http://stream.example.com:8000/streamname"
+    urltype="STREAM"
+    error="BadError"
+    creation_iso8601="2021-04-13T20:11:19Z"/>
+```
+
+```shell
+stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,creation_iso8601
+01234567-89ab-cdef-0123-456789abcdef,01234567-89ab-cdef-0123-456789abcdef,01234567-89ab-cdef-0123-456789abcdef,01234567-89ab-cdef-0123-456789abcdef,http://stream.example.com:8000/streamname,STREAM,BadError,2021-04-13T20:11:19Z
+```
+
+### Fields:
+
+| Name | Possible value/Datatype | Description | Nullable |
+|------|-------------------------|-------------|----------|
+| `stepuuid` | [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier) | An unique id for this StationCheckStep | NO |
+| `parent_stepuuid` | [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier) | An unique id for referencing another StationCheckStep. Is set if this step has a parent. | YES |
+| `checkuuid` | [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier) | An unique id for referencing a StationCheck | NO |
+| `stationuuid` | [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier) | An unique id for referencing a Station | NO |
+| `url` | string, URL (HTTP/HTTPS) | The url that this step of the checking process handled | NO |
+| `urltype` | string | Does represent which kind of url it is. One of the following: STREAM, REDIRECT, PLAYLIST. | YES |
+| `error` | string | URL to the homepage of the stream, so you can direct the user to a page with more information about the stream. | YES |
+| `creation_iso8601` | [ISO-8601](https://en.wikipedia.org/wiki/ISO_8601) datetime string | Date and time of step creation | NO |

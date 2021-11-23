@@ -1,0 +1,202 @@
+## List of radio stations
+
+> **Syntax:**
+
+```json
+<%= config[:api_server] %>/json/stations/byuuid/{searchterm}
+<%= config[:api_server] %>/json/stations/byname/{searchterm}
+<%= config[:api_server] %>/json/stations/bynameexact/{searchterm}
+<%= config[:api_server] %>/json/stations/bycodec/{searchterm}
+<%= config[:api_server] %>/json/stations/bycodecexact/{searchterm}
+<%= config[:api_server] %>/json/stations/bycountry/{searchterm}
+<%= config[:api_server] %>/json/stations/bycountryexact/{searchterm}
+<%= config[:api_server] %>/json/stations/bycountrycodeexact/{searchterm}
+<%= config[:api_server] %>/json/stations/bystate/{searchterm}
+<%= config[:api_server] %>/json/stations/bystateexact/{searchterm}
+<%= config[:api_server] %>/json/stations/bylanguage/{searchterm}
+<%= config[:api_server] %>/json/stations/bylanguageexact/{searchterm}
+<%= config[:api_server] %>/json/stations/bytag/{searchterm}
+<%= config[:api_server] %>/json/stations/bytagexact/{searchterm}
+```
+
+```xml
+<%= config[:api_server] %>/xml/stations/byuuid/{searchterm}
+<%= config[:api_server] %>/xml/stations/byname/{searchterm}
+<%= config[:api_server] %>/xml/stations/bynameexact/{searchterm}
+<%= config[:api_server] %>/xml/stations/bycodec/{searchterm}
+<%= config[:api_server] %>/xml/stations/bycodecexact/{searchterm}
+<%= config[:api_server] %>/xml/stations/bycountry/{searchterm}
+<%= config[:api_server] %>/xml/stations/bycountryexact/{searchterm}
+<%= config[:api_server] %>/xml/stations/bycountrycodeexact/{searchterm}
+<%= config[:api_server] %>/xml/stations/bystate/{searchterm}
+<%= config[:api_server] %>/xml/stations/bystateexact/{searchterm}
+<%= config[:api_server] %>/xml/stations/bylanguage/{searchterm}
+<%= config[:api_server] %>/xml/stations/bylanguageexact/{searchterm}
+<%= config[:api_server] %>/xml/stations/bytag/{searchterm}
+<%= config[:api_server] %>/xml/stations/bytagexact/{searchterm}
+```
+
+```shell
+<%= config[:api_server] %>/csv/stations/byuuid/{searchterm}
+<%= config[:api_server] %>/csv/stations/byname/{searchterm}
+<%= config[:api_server] %>/csv/stations/bynameexact/{searchterm}
+<%= config[:api_server] %>/csv/stations/bycodec/{searchterm}
+<%= config[:api_server] %>/csv/stations/bycodecexact/{searchterm}
+<%= config[:api_server] %>/csv/stations/bycountry/{searchterm}
+<%= config[:api_server] %>/csv/stations/bycountryexact/{searchterm}
+<%= config[:api_server] %>/csv/stations/bycountrycodeexact/{searchterm}
+<%= config[:api_server] %>/csv/stations/bystate/{searchterm}
+<%= config[:api_server] %>/csv/stations/bystateexact/{searchterm}
+<%= config[:api_server] %>/csv/stations/bylanguage/{searchterm}
+<%= config[:api_server] %>/csv/stations/bylanguageexact/{searchterm}
+<%= config[:api_server] %>/csv/stations/bytag/{searchterm}
+<%= config[:api_server] %>/csv/stations/bytagexact/{searchterm}
+```
+
+```plaintext
+<%= config[:api_server] %>/m3u/stations/byuuid/{searchterm}
+<%= config[:api_server] %>/m3u/stations/byname/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bynameexact/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bycodec/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bycodecexact/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bycountry/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bycountryexact/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bycountrycodeexact/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bystate/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bystateexact/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bylanguage/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bylanguageexact/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bytag/{searchterm}
+<%= config[:api_server] %>/m3u/stations/bytagexact/{searchterm}
+```
+
+```ini
+<%= config[:api_server] %>/pls/stations/byuuid/{searchterm}
+<%= config[:api_server] %>/pls/stations/byname/{searchterm}
+<%= config[:api_server] %>/pls/stations/bynameexact/{searchterm}
+<%= config[:api_server] %>/pls/stations/bycodec/{searchterm}
+<%= config[:api_server] %>/pls/stations/bycodecexact/{searchterm}
+<%= config[:api_server] %>/pls/stations/bycountry/{searchterm}
+<%= config[:api_server] %>/pls/stations/bycountryexact/{searchterm}
+<%= config[:api_server] %>/pls/stations/bycountrycodeexact/{searchterm}
+<%= config[:api_server] %>/pls/stations/bystate/{searchterm}
+<%= config[:api_server] %>/pls/stations/bystateexact/{searchterm}
+<%= config[:api_server] %>/pls/stations/bylanguage/{searchterm}
+<%= config[:api_server] %>/pls/stations/bylanguageexact/{searchterm}
+<%= config[:api_server] %>/pls/stations/bytag/{searchterm}
+<%= config[:api_server] %>/pls/stations/bytagexact/{searchterm}
+```
+
+> **Results:**
+
+> Details at struct '[Station](#station)'
+
+```json
+[
+    {
+        "name": "..",
+        ...
+    },
+    {
+        ...
+    },
+    {
+        ...
+    },
+    ...
+]
+```
+
+```xml
+<result>
+    <station name=".." ... >
+    <station name=".." ... >
+    <station name=".." ... >
+    ...
+</result>
+```
+
+```shell
+changeuuid,stationuuid,serveruuid,name,url,url_resolved,homepage,favicon,tags,country,countrycode,iso_3166_2,state,language,languagecodes,votes,lastchangetime,lastchangetime_iso8601,codec,bitrate,hls,lastcheckok,lastchecktime,lastchecktime_iso8601,lastcheckoktime,lastcheckoktime_iso8601,lastlocalchecktime,lastlocalchecktime_iso8601,clicktimestamp,clicktimestamp_iso8601,clickcount,clicktrend,ssl_error,geo_lat,geo_long,has_extended_info
+...
+...
+```
+
+```plaintext
+#EXTM3U
+#RADIOBROWSERUUID:...
+#EXTINF:...
+...
+
+...
+```
+
+```ini
+[playlist]
+NumberOfEntries=...
+Title1=...
+File1=...
+
+...
+```
+
+> **Example:**
+
+```json
+<%= config[:api_server] %>/json/stations/byname/jazz
+<%= config[:api_server] %>/json/stations/bycountry/austria
+<%= config[:api_server] %>/json/stations/bycountryexact/austria
+<%= config[:api_server] %>/json/stations/bycountrycodeexact/at
+<%= config[:api_server] %>/json/stations/bytagexact/320kbps
+<%= config[:api_server] %>/json/stations/bytagexact/320kbps
+```
+
+```xml
+<%= config[:api_server] %>/xml/stations/byname/jazz
+<%= config[:api_server] %>/xml/stations/bycountry/austria
+<%= config[:api_server] %>/xml/stations/bycountryexact/austria
+<%= config[:api_server] %>/xml/stations/bycountrycodeexact/at
+<%= config[:api_server] %>/xml/stations/bytagexact/320kbps
+<%= config[:api_server] %>/xml/stations/bytagexact/320kbps
+```
+
+```shell
+<%= config[:api_server] %>/csv/stations/byname/jazz
+<%= config[:api_server] %>/csv/stations/bycountry/austria
+<%= config[:api_server] %>/csv/stations/bycountryexact/austria
+<%= config[:api_server] %>/csv/stations/bycountrycodeexact/at
+<%= config[:api_server] %>/csv/stations/bytagexact/320kbps
+<%= config[:api_server] %>/csv/stations/bytagexact/320kbps
+```
+
+```plaintext
+<%= config[:api_server] %>/m3u/stations/byname/jazz
+<%= config[:api_server] %>/m3u/stations/bycountry/austria
+<%= config[:api_server] %>/m3u/stations/bycountryexact/austria
+<%= config[:api_server] %>/m3u/stations/bycountrycodeexact/at
+<%= config[:api_server] %>/m3u/stations/bytagexact/320kbps
+<%= config[:api_server] %>/m3u/stations/bytagexact/320kbps
+```
+
+```ini
+<%= config[:api_server] %>/pls/stations/byname/jazz
+<%= config[:api_server] %>/pls/stations/bycountry/austria
+<%= config[:api_server] %>/pls/stations/bycountryexact/austria
+<%= config[:api_server] %>/pls/stations/bycountrycodeexact/at
+<%= config[:api_server] %>/pls/stations/bytagexact/320kbps
+<%= config[:api_server] %>/pls/stations/bytagexact/320kbps
+```
+
+A list of radio stations that match the search. The variants with "exact" will only search for perfect matches, and others will search for the station whose attribute contains the search term.
+
+Please use '[station click counter](#station-click-counter)' API call to let the click be counted, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL
+
+### Parameters:
+
+| Name | Default value | Possible value | Description |
+|------|---------------|----------------|-------------|
+| `order` | `name` | `name`, `url`, `homepage`, `favicon`, `tags`, `country`, `state`, `language`, `votes`, `codec`, `bitrate`, `lastcheckok`, `lastchecktime`, `clicktimestamp`, `clickcount`, `clicktrend`, `changetimestamp`, `random` | name of the attribute the result list will be sorted by |
+| `reverse` | `false` | `true`, `false` | reverse the result list if set to `true` |
+| `offset` | `0` | `0`,`1`,`2`,`3`,... | starting value of the result list from the database. For example, if you want to do paging on the server side. |
+| `limit` | `100000` | `0`,`1`,`2`,`3`,... | number of returned datarows (stations) starting with offset |
+| `hidebroken` | `false` | `true`, `false` | do list/not list broken stations |

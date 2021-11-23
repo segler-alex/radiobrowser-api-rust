@@ -1,0 +1,69 @@
+## Stations by votes
+
+> **Syntax:**
+
+```json
+<%= config[:api_server] %>/json/stations/topvote
+<%= config[:api_server] %>/json/stations/topvote/rowcount
+```
+
+```xml
+<%= config[:api_server] %>/xml/stations/topvote
+<%= config[:api_server] %>/xml/stations/topvote/rowcount
+```
+
+```shell
+<%= config[:api_server] %>/csv/stations/topvote
+<%= config[:api_server] %>/csv/stations/topvote/rowcount
+```
+
+```plaintext
+<%= config[:api_server] %>/m3u/stations/topvote
+<%= config[:api_server] %>/m3u/stations/topvote/rowcount
+```
+
+```ini
+<%= config[:api_server] %>/pls/stations/topvote
+<%= config[:api_server] %>/pls/stations/topvote/rowcount
+```
+
+> **Results:**
+
+> Array of struct '[station](#station)'
+
+> **Example:**
+
+```json
+<%= config[:api_server] %>/json/stations/topvote
+<%= config[:api_server] %>/json/stations/topvote/5
+```
+
+```xml
+<%= config[:api_server] %>/xml/stations/topvote
+<%= config[:api_server] %>/xml/stations/topvote/5
+```
+
+```shell
+<%= config[:api_server] %>/csv/stations/topvote
+<%= config[:api_server] %>/csv/stations/topvote/5
+```
+
+```plaintext
+<%= config[:api_server] %>/m3u/stations/topvote
+<%= config[:api_server] %>/m3u/stations/topvote/5
+```
+
+```ini
+<%= config[:api_server] %>/pls/stations/topvote
+<%= config[:api_server] %>/pls/stations/topvote/5
+```
+
+A list of the highest-voted stations. You can add a parameter with the number of wanted stations, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL
+
+### Parameters:
+
+| Name | Default value | Possible value | Description |
+|------|---------------|----------------|-------------|
+| `offset` | `0` | `0`,`1`,`2`,`3`,... | starting value of the result list from the database. For example, if you want to do paging on the server side. |
+| `limit` | `100000` | `0`,`1`,`2`,`3`,... | number of returned datarows (stations) starting with offset |
+| `hidebroken` | `false` | `true`, `false` | do list/not list broken stations |

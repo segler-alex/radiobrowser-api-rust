@@ -1,0 +1,69 @@
+## Stations by recently changed
+
+> **Syntax:**
+
+```json
+<%= config[:api_server] %>/json/stations/lastchange
+<%= config[:api_server] %>/json/stations/lastchange/rowcount
+```
+
+```xml
+<%= config[:api_server] %>/xml/stations/lastchange
+<%= config[:api_server] %>/xml/stations/lastchange/rowcount
+```
+
+```shell
+<%= config[:api_server] %>/csv/stations/lastchange
+<%= config[:api_server] %>/csv/stations/lastchange/rowcount
+```
+
+```plaintext
+<%= config[:api_server] %>/m3u/stations/lastchange
+<%= config[:api_server] %>/m3u/stations/lastchange/rowcount
+```
+
+```ini
+<%= config[:api_server] %>/pls/stations/lastchange
+<%= config[:api_server] %>/pls/stations/lastchange/rowcount
+```
+
+> **Results:**
+
+> Array of struct '[station](#station)'
+
+> **Example:**
+
+```json
+<%= config[:api_server] %>/json/stations/lastchange
+<%= config[:api_server] %>/json/stations/lastchange/5
+```
+
+```xml
+<%= config[:api_server] %>/xml/stations/lastchange
+<%= config[:api_server] %>/xml/stations/lastchange/5
+```
+
+```shell
+<%= config[:api_server] %>/csv/stations/lastchange
+<%= config[:api_server] %>/csv/stations/lastchange/5
+```
+
+```plaintext
+<%= config[:api_server] %>/m3u/stations/lastchange
+<%= config[:api_server] %>/m3u/stations/lastchange/5
+```
+
+```ini
+<%= config[:api_server] %>/pls/stations/lastchange
+<%= config[:api_server] %>/pls/stations/lastchange/5
+```
+
+A list of stations that were added or changed recently, supported output formats: JSON, XML, CSV, M3U, PLS, XSPF, TTL
+
+### Parameters:
+
+| Name | Default value | Possible value | Description |
+|------|---------------|----------------|-------------|
+| `offset` | `0` | `0`,`1`,`2`,`3`,... | starting value of the result list from the database. For example, if you want to do paging on the server side. |
+| `limit` | `100000` | `0`,`1`,`2`,`3`,... | number of returned datarows (stations) starting with offset |
+| `hidebroken` | `false` | `true`, `false` | do list/not list broken stations |

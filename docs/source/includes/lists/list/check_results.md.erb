@@ -1,0 +1,47 @@
+## List of station check results
+
+> **Syntax:**
+
+```json
+<%= config[:api_server] %>/json/checks
+<%= config[:api_server] %>/json/checks/stationuuid
+```
+
+```xml
+<%= config[:api_server] %>/xml/checks
+<%= config[:api_server] %>/xml/checks/stationuuid
+```
+
+```shell
+<%= config[:api_server] %>/csv/checks
+<%= config[:api_server] %>/csv/checks/stationuuid
+```
+
+> **Results:**
+
+> Details at struct '[Station check](#station-check)'
+
+> **Example:**
+
+```json
+<%= config[:api_server] %>/json/checks
+```
+
+```xml
+<%= config[:api_server] %>/xml/checks
+```
+
+```shell
+<%= config[:api_server] %>/csv/checks
+```
+
+A list of station check results. If a station UUID is provided, the whole history will be returned. If a station ID is not provided, a list of all last checks of all stations will be sent (without older check results), supported output formats: JSON, XML, CSV
+
+### Parameters:
+
+| Name | Default value | Possible value | Description |
+|------|---------------|----------------|-------------|
+| `stationuuid` |  | [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier) | If set, only list check result of the matching station. |
+| `lastcheckuuid` |  | [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier) | If set, only list checks after the check with the given check. |
+| `seconds` | `0` | positive integer values | if >`0`, it will only return history entries from the last 'seconds' seconds. |
+| `limit` | `999999` | `0`,`1`,`2`,`3`... | number of returned datarows (checks) |
