@@ -109,6 +109,26 @@ Title2=Other Radio
 File2=http://stream.example2.com/mp3_256
 ```
 
+```mxlm
+<?xml version="1.0" encoding="UTF-8" ?>
+<playlist version="1" xmlns="http://xspf.org/ns/0/">
+    <trackList>
+        <track>
+            <title>Best Radio</title>
+            <location>http://stream.example.com/mp3_128</location>
+            <image>http://example.com/favicon.ico</image>
+            <identifier>radiobrowser:01234567-89ab-cdef-0123-456789abcdef</identifier>
+        </track>
+        <track>
+            <title>Other Radio</title>
+            <location>https://stream.example2.com/mp3_256</location>
+            <image>http://example2.com/favicon.ico</image>
+            <identifier>radiobrowser:11234567-89ab-cdef-0123-456789abcdef</identifier>
+        </track>
+    </trackList>
+</playlist>
+```
+
 ### Fields:
 
 | Name | Possible value/Datatype | Description |
@@ -147,3 +167,12 @@ File2=http://stream.example2.com/mp3_256
 | `geo_lat` | number, double | Latitude on earth where the stream is located. |
 | `geo_long` | number, double | Longitude on earth where the stream is located. |
 | `has_extended_info` | bool, optional | Is `true`, if the stream owner does provide extended information as HTTP headers which override the information in the database. |
+
+
+<aside class="notice">
+The <b>M3U</b> files created by this server are extended with an additional field, that can be used to identify entries of the file with this server. The field is added as a special comment, so it will not interfere with normal operations of players, that use this playlist.
+</aside>
+
+<aside class="notice">
+The <b>XSPF</b> files created by this server are extended with an additional field, that can be used to identify entries of the file with this server. We try to be consistent with the specification at <a href="https://xspf.org/orig-xspf-v1.html">https://xspf.org/orig-xspf-v1.html</a>
+</aside>
