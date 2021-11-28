@@ -413,7 +413,7 @@ impl DbConnection for MysqlConnection {
             )?;
             for url in urls.iter() {
                 let uuids: Vec<String> = conn.exec_map(
-                    format!("SELECT StationUuid FROM Station WHERE {column_key}=:url ORDER BY clickcount DESC, Votes DESC, Creation LIMIT :max_duplicates,1000", column_key = column_key),
+                    format!("SELECT StationUuid FROM Station WHERE {column_key}=:url ORDER BY clickcount DESC, Votes DESC, StationUuid LIMIT :max_duplicates,1000", column_key = column_key),
                     params!(max_duplicates,url),
                     |uuid| {
                         uuid
@@ -1683,65 +1683,18 @@ impl DbConnection for MysqlConnection {
                 ];
 
                 if item.metainfo_overrides_database {
-                    let mut query = vec![];
                     let do_not_index = item.do_not_index.unwrap_or(false);
                     if !do_not_index {
-                        debug!("override station: uuid='{}'", item.station_uuid);
-
-                        params.push((String::from("urlcache"), item.url.clone().into()));
-
-                        if let Some(name) = &item.name {
-                            params.push((String::from("name"), name.into()));
-                            query.push("Name=:name");
-                        }
-                        if let Some(homepage) = &item.homepage {
-                            params.push((String::from("homepage"), homepage.into()));
-                            query.push("Homepage=:homepage");
-                        }
-                        if let Some(loadbalancer) = &item.loadbalancer {
-                            params.push((String::from("loadbalancer"), loadbalancer.into()));
-                            query.push("Url=:loadbalancer");
-                        }
-                        if let Some(countrycode) = &item.countrycode {
-                            params.push((String::from("countrycode"), countrycode.into()));
-                            query.push("CountryCode=UPPER(:countrycode)");
-                        }
-                        if let Some(countrysubdivisioncode) = &item.countrysubdivisioncode {
-                            params.push((
-                                String::from("countrysubdivisioncode"),
-                                countrysubdivisioncode.into(),
-                            ));
-                            query.push("CountrySubdivisionCode=UPPER(:countrysubdivisioncode)");
-                        }
-                        if let Some(tags) = &item.tags {
-                            params.push((String::from("tags"), fix_multi_field(tags).into()));
-                            query.push("Tags=:tags");
-                        }
-                        if let Some(favicon) = &item.favicon {
-                            params.push((String::from("favicon"), favicon.into()));
-                            query.push("Favicon=:favicon");
-                        }
-                        if let Some(geo_lat) = &item.geo_lat {
-                            params.push((String::from("geo_lat"), geo_lat.into()));
-                            query.push("GeoLat=:geo_lat");
-                        }
-                        if let Some(geo_long) = &item.geo_long {
-                            params.push((String::from("geo_long"), geo_long.into()));
-                            query.push("GeoLong=:geo_long");
-                        }
-                        if let Some(languagecodes) = &item.languagecodes {
-                            params.push((String::from("languagecodes"), languagecodes.into()));
-                            query.push("LanguageCodes=:languagecodes");
-                        }
-                        query.push("SslError=:ssl_error");
-                        query.push("LastCheckOk=:vote");
-                        if local {
-                            query.push("LastLocalCheckTime=UTC_TIMESTAMP()");
-                        }
-
                         if item.check_ok {
-                            let query_update_ok = format!("UPDATE Station SET ExtendedInfo=TRUE,LastCheckOkTime=UTC_TIMESTAMP(),LastCheckTime=UTC_TIMESTAMP(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache,{} WHERE StationUuid=:stationuuid", query.join(","));
+                            params.push((String::from("urlcache"), item.url.clone().into()));
+                            let query_update_ok = format!("UPDATE Station SET ExtendedInfo=TRUE,{lastlocalchecktime}LastCheckOkTime=UTC_TIMESTAMP(),LastCheckTime=UTC_TIMESTAMP(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache,LastCheckOk=:vote,
+                            SslError=:ssl_error WHERE StationUuid=:stationuuid", lastlocalchecktime = if local {"LastLocalCheckTime=UTC_TIMESTAMP(),"} else {""});
                             transaction.exec_drop(query_update_ok, params)?;
+                        } else {
+                            let query_update_check_ok = format!("UPDATE Station st SET {lastlocalchecktime}LastCheckTime=UTC_TIMESTAMP(),LastCheckOk=:vote WHERE StationUuid=:stationuuid",
+                                lastlocalchecktime = if local {"LastLocalCheckTime=UTC_TIMESTAMP(),"} else {""},
+                            );
+                            transaction.exec_drop(query_update_check_ok, params)?;
                         }
                     } else {
                         let query_delete = "DELETE FROM Station WHERE StationUuid=:stationuuid";
@@ -1750,7 +1703,6 @@ impl DbConnection for MysqlConnection {
                 } else {
                     if item.check_ok {
                         params.push((String::from("urlcache"), item.url.clone().into()));
-
                         let query_update_ok = format!("UPDATE Station SET ExtendedInfo=FALSE,{lastlocalchecktime}LastCheckOkTime=UTC_TIMESTAMP(),LastCheckTime=UTC_TIMESTAMP(),Codec=:codec,Bitrate=:bitrate,Hls=:hls,UrlCache=:urlcache,LastCheckOk=:vote,SslError=:ssl_error WHERE StationUuid=:stationuuid",
                             lastlocalchecktime = if local {"LastLocalCheckTime=UTC_TIMESTAMP(),"} else {""},
                         );

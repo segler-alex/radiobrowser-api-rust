@@ -45,7 +45,6 @@ impl From<Row> for StationCheckItem {
 impl From<Row> for DbStationItem {
     fn from(mut row: Row) -> Self {
         DbStationItem {
-            changed:                     false,
             id:                          row.take("StationID").unwrap(),
             changeuuid:                  row.take("ChangeUuid").unwrap(),
             stationuuid:                 row.take("StationUuid").unwrap_or("".to_string()),

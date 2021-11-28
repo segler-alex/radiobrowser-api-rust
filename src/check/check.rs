@@ -1,3 +1,4 @@
+use crate::check::diff_calc::DiffCalc;
 use crate::check::favicon::get_best_icon;
 use crate::config::get_cache_tags_replace;
 use crate::config::get_cache_language_replace;
@@ -22,7 +23,7 @@ use website_icon_extract::ImageLink;
 
 #[derive(Clone, Debug)]
 pub struct StationOldNew {
-    pub station: DbStationItem,
+    pub station: DiffCalc<DbStationItem>,
     pub check: StationCheckItemNew,
     pub steps: Vec<StationCheckStepItemNew>,
 }
@@ -134,7 +135,7 @@ fn flatten_check_result(
 }
 
 fn dbcheck_internal(
-    station: DbStationItem,
+    diff: DiffCalc<DbStationItem>,
     source: &str,
     timeout: u64,
     max_depth: u8,
@@ -142,12 +143,12 @@ fn dbcheck_internal(
 ) -> StationOldNew {
     let checkuuid = Uuid::new_v4().to_hyphenated().to_string();
     let now = Instant::now();
-    trace!("Check started: {} - {}", station.stationuuid, station.name);
+    trace!("Check started: {} - {}", diff.new.stationuuid, diff.new.name);
     let checks: StreamCheckResult =
-        av_stream_info_rust::check_tree(&station.url, timeout as u32, max_depth, retries, true);
+        av_stream_info_rust::check_tree(&diff.new.url, timeout as u32, max_depth, retries, true);
     let timing_ms = now.elapsed().as_millis();
     let (steps, check) = flatten_check_result(
-        station.stationuuid.clone(),
+        diff.new.stationuuid.clone(),
         checkuuid.clone(),
         checks,
         None,
@@ -157,19 +158,19 @@ fn dbcheck_internal(
 
     match check {
         Some(check) => StationOldNew {
-            station,
+            station: diff,
             check,
             steps,
         },
         None => {
             let check = StationCheckItemNew::broken(
-                station.stationuuid.clone(),
+                diff.new.stationuuid.clone(),
                 checkuuid,
                 source.to_string(),
                 timing_ms,
             );
             StationOldNew {
-                station,
+                station: diff,
                 check,
                 steps,
             }
@@ -252,16 +253,17 @@ where
     let results: Vec<_> = pool.install(|| {
         stations
             .into_par_iter()
-            .map(|mut station| {
+            .map(|station| DiffCalc::new(station))
+            .map(|mut diff| {
                 // check current favicon
-                if !station.favicon.is_empty() && recheck_existing_favicon {
+                if !diff.new.favicon.is_empty() && recheck_existing_favicon {
                     trace!(
                         "checking favicon {} '{}'",
-                        station.stationuuid,
-                        station.favicon
+                        diff.new.stationuuid,
+                        diff.new.favicon
                     );
-                    let request = client.head(&station.favicon).send();
-                    //let link = ImageLink::new(&station.favicon, agent, timeout);
+                    let request = client.head(&diff.new.favicon).send();
+                    //let link = ImageLink::new(&diff.new.favicon, agent, timeout);
                     let remove = match request {
                         Ok(request) => {
                             let status = request.status();
@@ -272,18 +274,18 @@ where
                     if remove {
                         trace!(
                             "removed favicon {} '{}'",
-                            station.stationuuid, station.favicon
+                            diff.new.stationuuid, diff.new.favicon
                         );
                         // reset favicon, it could not be loaded
-                        station.set_favicon(String::new());
+                        diff.new.set_favicon(String::new());
                     }
                 }
-                station
+                diff
             })
-            .map(|mut station| {
-                if station.favicon.is_empty() && enable_extract_favicon {
-                    trace!("searching favicon {}", station.stationuuid);
-                    let links = ImageLink::from_website(&station.homepage, agent, timeout);
+            .map(|mut diff| {
+                if diff.new.favicon.is_empty() && enable_extract_favicon {
+                    trace!("searching favicon {}", diff.new.stationuuid);
+                    let links = ImageLink::from_website(&diff.new.homepage, agent, timeout);
                     if let Ok(links) = links {
                         let icon = get_best_icon(
                             links,
@@ -292,19 +294,19 @@ where
                             favicon_size_max,
                         );
                         if let Some(icon) = icon {
-                            station.set_favicon(icon.url.to_string());
+                            diff.new.set_favicon(icon.url.to_string());
                             trace!(
                                 "added favicon {} '{}'",
-                                station.stationuuid,
-                                station.favicon
+                                diff.new.stationuuid,
+                                diff.new.favicon
                             );
                         }
                     }
                 }
-                station
+                diff
             })
-            .map(|mut station| {
-                let lang_copy = station.language.clone();
+            .map(|mut diff| {
+                let lang_copy = diff.new.language.clone();
                 let mut lang_trimmed: Vec<&str> = lang_copy
                     .split(",")
                     .by_ref()
@@ -322,11 +324,11 @@ where
                     .collect();
                 lang_trimmed.sort();
                 lang_trimmed.dedup();
-                station.set_language(lang_trimmed.join(","));
-                station
+                diff.new.set_language(lang_trimmed.join(","));
+                diff
             })
-            .map(|mut station| {
-                let tags_copy = station.tags.clone();
+            .map(|mut diff| {
+                let tags_copy = diff.new.tags.clone();
                 let mut tags_trimmed: Vec<&str> = tags_copy
                     .split(",")
                     .by_ref()
@@ -344,11 +346,11 @@ where
                     .collect();
                 tags_trimmed.sort();
                 tags_trimmed.dedup();
-                station.set_tags(tags_trimmed.join(","));
-                station
+                diff.new.set_tags(tags_trimmed.join(","));
+                diff
             })
-            .map(|mut station| {
-                let language = station.language.clone();
+            .map(|mut diff| {
+                let language = diff.new.language.clone();
                 // convert each language to code
                 let mut lang_trimmed: Vec<&str> = language
                     .split(",")
@@ -363,7 +365,7 @@ where
                     .collect();
                 lang_trimmed.sort();
                 lang_trimmed.dedup();
-                let codes = station.languagecodes.clone();
+                let codes = diff.new.languagecodes.clone();
                 // cleanup current codes
                 let mut codes_trimmed: Vec<&str> = codes
                     .split(",")
@@ -376,22 +378,51 @@ where
                         codes_trimmed.push(new_lang);
                     }
                 }
-                station.set_languagecodes(codes_trimmed.join(","));
-                station
+                diff.new.set_languagecodes(codes_trimmed.join(","));
+                diff
             })
-            .map(|mut station| {
-                station.set_homepage(Url::parse(&station.homepage).map(|u|u.to_string()).unwrap_or_default());
-                station.set_url(Url::parse(&station.url).map(|u|u.to_string()).unwrap_or_default());
-                station
+            .map(|mut diff| {
+                diff.new.set_homepage(Url::parse(&diff.new.homepage).map(|u|u.to_string()).unwrap_or_default());
+                diff.new.set_url(Url::parse(&diff.new.url).map(|u|u.to_string()).unwrap_or_default());
+                diff
             })
-            .map(|station| dbcheck_internal(station, source, timeout, max_depth, retries))
-            //.map(|mut diff| {
-            //    diff.station.set_bitrate(diff.check.bitrate);
-            //    diff.station.set_codec(&diff.check.codec);
-            //    diff.station.set_hls(diff.check.hls);
-            //    diff.station.set_last_check_ok(diff.check.check_ok);
-            //    diff
-            //})
+            .map(|diff| dbcheck_internal(diff, source, timeout, max_depth, retries))
+            .map(|mut diff| {
+                if diff.check.metainfo_overrides_database {
+                    debug!("override station: uuid='{}'", diff.station.new.stationuuid);
+                    if let Some(name) = diff.check.name.clone() {
+                        diff.station.new.name = name;
+                    }
+                    if let Some(homepage) = diff.check.homepage.clone() {
+                        diff.station.new.homepage = homepage;
+                    }
+                    if let Some(loadbalancer) = diff.check.loadbalancer.clone() {
+                        diff.station.new.url = loadbalancer;
+                    }
+                    if let Some(countrycode) = diff.check.countrycode.clone() {
+                        diff.station.new.countrycode = countrycode;
+                    }
+                    if diff.check.countrysubdivisioncode.is_some() {
+                        diff.station.new.iso_3166_2 = diff.check.countrysubdivisioncode.clone().map(|s|s.to_uppercase().to_string());
+                    }
+                    if let Some(tags) = diff.check.tags.clone() {
+                        diff.station.new.tags = tags;
+                    }
+                    if let Some(favicon) = diff.check.favicon.clone() {
+                        diff.station.new.favicon = favicon;
+                    }
+                    if diff.check.geo_lat.is_some() {
+                        diff.station.new.geo_lat = diff.check.geo_lat.clone();
+                    }
+                    if diff.check.geo_long.is_some() {
+                        diff.station.new.geo_long = diff.check.geo_long.clone();
+                    }
+                    if let Some(languagecodes) = diff.check.languagecodes.clone() {
+                        diff.station.new.languagecodes = languagecodes;
+                    }
+                }
+                diff
+            })
             .collect()
     });
 
@@ -402,9 +433,9 @@ where
         checks.push(result.check);
         steps.extend(result.steps);
 
-        if result.station.get_changed() {
-            debug!("changed {}", result.station.stationuuid);
-            conn.update_station_auto(&result.station, "AUTO")?;
+        if result.station.changed() {
+            debug!("changed {}", result.station.new.stationuuid);
+            conn.update_station_auto(&result.station.new, "AUTO")?;
         }
     }
 

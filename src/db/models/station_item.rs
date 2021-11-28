@@ -1,7 +1,7 @@
 use chrono::DateTime;
 use chrono::Utc;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct DbStationItem {
     pub id: i32,
     pub changeuuid: String,
@@ -40,14 +40,9 @@ pub struct DbStationItem {
     pub geo_lat: Option<f64>,
     pub geo_long: Option<f64>,
     pub has_extended_info: Option<bool>,
-    pub changed: bool,
 }
 
 impl DbStationItem {
-    pub fn get_changed(&self) -> bool {
-        self.changed
-    }
-
     pub fn set_favicon<P: AsRef<str>>(&mut self, favicon: P) {
         if !self.favicon.eq(favicon.as_ref()) {
             debug!(
@@ -57,7 +52,6 @@ impl DbStationItem {
                 favicon.as_ref()
             );
             self.favicon = favicon.as_ref().to_string();
-            self.changed = true;
         }
     }
 
@@ -70,7 +64,6 @@ impl DbStationItem {
                 language.as_ref()
             );
             self.language = language.as_ref().to_string();
-            self.changed = true;
         }
     }
 
@@ -83,7 +76,6 @@ impl DbStationItem {
                 tags.as_ref()
             );
             self.tags = tags.as_ref().to_string();
-            self.changed = true;
         }
     }
 
@@ -96,7 +88,6 @@ impl DbStationItem {
                 languagecodes.as_ref()
             );
             self.languagecodes = languagecodes.as_ref().to_string();
-            self.changed = true;
         }
     }
 
@@ -109,7 +100,6 @@ impl DbStationItem {
                 url.as_ref()
             );
             self.url = url.as_ref().to_string();
-            self.changed = true;
         }
     }
 
@@ -122,36 +112,6 @@ impl DbStationItem {
                 homepage.as_ref()
             );
             self.homepage = homepage.as_ref().to_string();
-            self.changed = true;
         }
     }
-    /*
-    pub fn set_last_check_ok(&mut self, check_ok: bool) {
-        if self.lastcheckok != check_ok {
-            self.lastcheckok = check_ok;
-            self.changed = true;
-        }
-    }
-
-    pub fn set_codec<P: AsRef<str>>(&mut self, codec: P) {
-        if self.codec != codec.as_ref() {
-            self.codec = codec.as_ref().to_string();
-            self.changed = true;
-        }
-    }
-
-    pub fn set_bitrate(&mut self, bitrate: u32) {
-        if self.bitrate != bitrate {
-            self.bitrate = bitrate;
-            self.changed = true;
-        }
-    }
-
-    pub fn set_hls(&mut self, hls: bool) {
-        if self.hls != hls {
-            self.hls = hls;
-            self.changed = true;
-        }
-    }
-    */
 }
