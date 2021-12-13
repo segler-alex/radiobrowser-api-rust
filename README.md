@@ -1,4 +1,6 @@
 # radiobrowser-api-rust
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fsegler-alex%2Fradiobrowser-api-rust.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fsegler-alex%2Fradiobrowser-api-rust?ref=badge_shield)
+
 
 ## What is radiobrowser-api-rust?
 In short it is an API for an index of web streams (audio and video). Streams can be added and searched by any user of the API.
@@ -423,3 +425,6 @@ OPTIONS:
         --useragent <USERAGENT>
             user agent value for http requests [env: USERAGENT=]
 ```
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fsegler-alex%2Fradiobrowser-api-rust.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fsegler-alex%2Fradiobrowser-api-rust?ref=badge_large)
