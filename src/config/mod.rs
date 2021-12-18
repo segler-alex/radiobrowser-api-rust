@@ -251,7 +251,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
         .map(|os_string| os_string.to_string_lossy().into_owned())
         .unwrap_or("".to_string());
 
-    let matches = App::new("radiobrowser-api-rust")
+    let matches = App::new(crate_name!())
         .version(crate_version!())
         .author("segler_alex@web.de")
         .about("HTTP Rest API for radiobrowser")

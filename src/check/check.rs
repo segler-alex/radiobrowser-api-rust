@@ -198,10 +198,10 @@ where
 {
     let stations = conn.get_stations_to_check(24, stations_count)?;
     let checked_count = stations.len();
-    let agent = "radiobrowser-api-rust/0.1.0";
+    let agent = format!("{}/{}", crate_name!(), crate_version!());
 
     let client = Client::builder()
-        .user_agent(agent)
+        .user_agent(&agent)
         .timeout(Duration::from_secs(timeout))
         .build()?;
 
@@ -285,7 +285,7 @@ where
             .map(|mut diff| {
                 if diff.new.favicon.is_empty() && enable_extract_favicon {
                     trace!("searching favicon {}", diff.new.stationuuid);
-                    let links = ImageLink::from_website(&diff.new.homepage, agent, timeout);
+                    let links = ImageLink::from_website(&diff.new.homepage, &agent, timeout);
                     if let Ok(links) = links {
                         let icon = get_best_icon(
                             links,

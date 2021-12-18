@@ -25,7 +25,8 @@ use crate::db::models::StationClickItemNew;
 
 fn add_default_request_headers(req: RequestBuilder) -> RequestBuilder {
     let pkg_version = env!("CARGO_PKG_VERSION");
-    req.header(USER_AGENT, format!("radiobrowser-api-rust/{}",pkg_version))
+    let pkg_name = crate_name!();
+    req.header(USER_AGENT, format!("{}/{}", pkg_name, pkg_version))
 }
 
 pub fn pull_worker<C>(client: &Client, pool: C, mirrors: &Vec<String>, chunk_size_changes: usize, chunk_size_checks: usize, max_duplicates: usize, list_deleted: &mut Vec<UuidWithTime>) -> Result<(),Box<dyn Error>> where C: DbConnection + Clone {
