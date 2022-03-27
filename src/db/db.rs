@@ -69,6 +69,8 @@ pub trait DbConnection {
     fn insert_checks(&self, list: Vec<StationCheckItemNew>) -> Result<(Vec<StationCheckItemNew>,Vec<StationCheckItemNew>,Vec<StationCheckItemNew>), Box<dyn std::error::Error>>;
     fn update_station_with_check_data(&self, list: &Vec<StationCheckItemNew>, local: bool) -> Result<(), Box<dyn Error>>;
     //fn update_station(&self, station: &DbStationItem, reason: &str) -> Result<(), Box<dyn Error>>;
+    fn delete_stationhistory_more_than(&self, itemcount: u32) -> Result<(), Box<dyn Error>>;
+    fn delete_stationhistory_byid_more_than(&self, stationuuid: String, itemcount: usize) -> Result<(), Box<dyn Error>>;
 
     fn insert_clicks(&self, list: &Vec<StationClickItemNew>) -> Result<(), Box<dyn Error>>;
 

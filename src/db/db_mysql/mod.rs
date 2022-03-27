@@ -549,6 +549,41 @@ impl DbConnection for MysqlConnection {
         self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastLocalCheckTime IS NULL OR LastLocalCheckTime < UTC_TIMESTAMP() - INTERVAL :hours HOUR", params!(hours))
     }
 
+    fn delete_stationhistory_byid_more_than(&self, stationuuid: String, itemcount: usize) -> Result<(), Box<dyn Error>> {
+        let mut conn = self.pool.get_conn()?;
+        let query = r#"SELECT StationChangeID
+        FROM StationHistory
+        WHERE StationUuid=:stationuuid
+        ORDER BY Creation DESC
+        "#;
+        let items: Vec<u64> = conn.exec_map(query, params!{stationuuid}, |changeid| {
+            changeid
+        })?;
+        if items.len() > itemcount{
+            let (_items_keep, items_delete) = items.split_at(itemcount);
+            conn.exec_batch("DELETE FROM StationHistory WHERE StationChangeID=:changeid", items_delete.iter().map(|changeid| params!{changeid}))?;
+        }
+        Ok(())
+        //DELETE FROM StationHistory WHERE StationChangeID IN ();
+    }
+
+    fn delete_stationhistory_more_than(&self, itemcount: u32) -> Result<(), Box<dyn Error>> {
+        let mut conn = self.pool.get_conn()?;
+        let query = r#"SELECT * FROM
+            (
+                SELECT StationChangeID,
+                ROW_NUMBER() OVER (PARTITION BY StationUuid ORDER BY Creation) AS row_number
+                FROM StationHistory
+                WHERE StationUuid='0f902505-76c7-489b-8ddc-03b05b5867ae'
+            )
+            AS temp_table WHERE temp_table.row_number > :itemcount;"#;
+        let _items: Vec<u64> = conn.exec_map(query, params!{itemcount}, |(changeid,_number): (u64, u32)| {
+            changeid
+        })?;
+        Ok(())
+        //DELETE FROM StationHistory WHERE StationChangeID IN ();
+    }
+
     fn get_stations_to_check(
         &mut self,
         hours: u32,
