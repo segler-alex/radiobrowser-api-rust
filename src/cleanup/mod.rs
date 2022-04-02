@@ -1,12 +1,5 @@
 use crate::DbConnection;
-use serde::Deserialize;
 use std::error::Error;
-
-#[derive(Debug, Clone, Deserialize)]
-struct DataMappingItem {
-    from: String,
-    to: String,
-}
 
 pub fn do_cleanup<C>(
     delete: bool,

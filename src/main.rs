@@ -221,35 +221,6 @@ fn mainloop() -> Result<(), Box<dyn Error>> {
         .map_err(|e| MainError::LoggerInitError(e.to_string()))?;
     info!("Config: {:#?}", config);
     config::load_all_extra_configs(&config)?;
-    let config2 = config.clone();
-    let config3 = config.clone();
-    
-    api::start_unavailable(config3, move |sender| loop {
-        let connection = db::MysqlConnection::new(&config2.connection_string);
-        match connection {
-            Ok(connection) => {
-                let migration_result = connection.do_migrations(
-                    config2.ignore_migration_errors,
-                    config2.allow_database_downgrade,
-                );
-                match migration_result {
-                    Ok(_) => {
-                        // stop current server
-                        sender.send(()).unwrap();
-                    }
-                    Err(err) => {
-                        error!("Migrations error: {}", err);
-                        thread::sleep(time::Duration::from_millis(1000));
-                    }
-                };
-                break;
-            }
-            Err(e) => {
-                error!("DB connection error: {}", e);
-                thread::sleep(time::Duration::from_millis(1000));
-            }
-        }
-    });
 
     let config2 = config.clone();
 
@@ -257,20 +228,40 @@ fn mainloop() -> Result<(), Box<dyn Error>> {
         let connection = db::MysqlConnection::new(&config2.connection_string);
         match connection {
             Ok(connection) => {
-                let migration_result = connection.do_migrations(
-                    config2.ignore_migration_errors,
-                    config2.allow_database_downgrade,
-                );
-                match migration_result {
-                    Ok(_) => {
-                        jobs(connection.clone());
-                        api::start(connection, config2);
+                if config2.no_migrations {
+                    match connection.migrations_needed() {
+                        Ok(migrations_needed) => {
+                            if !migrations_needed {
+                                debug!("Migrations are not allowed but not needed.");
+                                jobs(connection.clone());
+                                api::start(connection, config2);
+                            } else {
+                                error!("Migrations are needed but not allowed by parameter!");
+                                thread::sleep(time::Duration::from_millis(1000));
+                            }
+                        },
+                        Err(err) => {
+                            error!("Migrations checking error: {}", err);
+                            thread::sleep(time::Duration::from_millis(1000));
+                        }
                     }
-                    Err(err) => {
-                        error!("Migrations error: {}", err);
-                        thread::sleep(time::Duration::from_millis(1000));
-                    }
-                };
+                } else {
+                    let migration_result = connection.do_migrations(
+                        config2.ignore_migration_errors,
+                        config2.allow_database_downgrade,
+                    );
+                    match migration_result {
+                        Ok(_) => {
+                            debug!("Migrations done.");
+                            jobs(connection.clone());
+                            api::start(connection, config2);
+                        }
+                        Err(err) => {
+                            error!("Migrations error: {}", err);
+                            thread::sleep(time::Duration::from_millis(1000));
+                        }
+                    };
+                }
                 break;
             }
             Err(e) => {

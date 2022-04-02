@@ -2,7 +2,7 @@ mod config;
 mod config_error;
 mod data_mapping_item;
 
-use clap::{App, Arg};
+use clap::{Command, Arg};
 pub use config::CacheType;
 pub use config::Config;
 pub use config_error::ConfigError;
@@ -251,13 +251,13 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
         .map(|os_string| os_string.to_string_lossy().into_owned())
         .unwrap_or("".to_string());
 
-    let matches = App::new(crate_name!())
+    let matches = Command::new(crate_name!())
         .version(crate_version!())
         .author("segler_alex@web.de")
         .about("HTTP Rest API for radiobrowser")
         .arg(
-            Arg::with_name("config-file")
-                .short("f")
+            Arg::new("config-file")
+                .short('f')
                 .long("config-file")
                 .value_name("CONFIG-FILE")
                 .help("Path to config file")
@@ -265,164 +265,170 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .default_value("/etc/radiobrowser.toml")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("log-dir")
-                .short("l")
+            Arg::new("log-dir")
+                .short('l')
                 .long("log-dir")
                 .value_name("LOG-DIR")
                 .help("Path to log dir")
                 .env("LOG_DIR")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("replace-language-file")
+            Arg::new("replace-language-file")
                 .long("replace-language-file")
                 .value_name("REPLACE_LANGUAGE_FILE")
                 .help("Path to csv file for language replacement")
                 .env("REPLACE_LANGUAGE_FILE")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("replace-tag-file")
+            Arg::new("replace-tag-file")
                 .long("replace-tag-file")
                 .value_name("REPLACE_TAG_FILE")
                 .help("Path to csv file for tag replacement")
                 .env("REPLACE_TAG_FILE")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("language-to-code-file")
+            Arg::new("language-to-code-file")
                 .long("language-to-code-file")
                 .value_name("LANGUAGE_TO_CODE_FILE")
                 .help("Path to csv file for language to code mapping")
                 .env("LANGUAGE_TO_CODE_FILE")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("log-json")
-                .short("j")
+            Arg::new("log-json")
+                .short('j')
                 .long("log-json")
                 .value_name("LOG_JSON")
                 .takes_value(true)
                 .help("Log in JSON format"),
         ).arg(
-            Arg::with_name("database")
-                .short("d")
+            Arg::new("database")
+                .short('d')
                 .long("database")
                 .value_name("DATABASE_URL")
                 .help("Database connection url")
                 .env("DATABASE_URL")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("listen-host")
-                .short("h")
+            Arg::new("listen-host")
+                .short('h')
                 .long("host")
                 .value_name("HOST")
                 .help("listening host ip")
                 .env("HOST")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("server-url")
-                .short("s")
+            Arg::new("server-url")
+                .short('s')
                 .long("server-url")
                 .value_name("SERVER_URL")
                 .help("full server url that should be used in docs")
                 .env("SERVER_URL")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("listen-port")
-                .short("p")
+            Arg::new("listen-port")
+                .short('p')
                 .long("port")
                 .value_name("PORT")
                 .help("listening port")
                 .env("PORT")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("prometheus-exporter")
-                .short("e")
+            Arg::new("prometheus-exporter")
+                .short('e')
                 .long("prometheus-exporter")
                 .value_name("PROMETHEUS_EXPORTER")
                 .takes_value(true)
                 .help("export statistics through a prometheus compatible exporter"),
         ).arg(
-            Arg::with_name("prometheus-exporter-prefix")
+            Arg::new("prometheus-exporter-prefix")
                 .long("prometheus-exporter-prefix")
                 .value_name("PROMETHEUS_EXPORTER_PREFIX")
                 .takes_value(true)
                 .help("prefix for all exported values on /metrics"),
         ).arg(
-            Arg::with_name("threads")
-                .short("t")
+            Arg::new("threads")
+                .short('t')
                 .long("threads")
                 .value_name("THREADS")
                 .help("concurrent threads used by socket")
                 .env("THREADS")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("mirror")
-                .short("m")
+            Arg::new("mirror")
+                .short('m')
                 .long("mirror")
                 .value_name("MIRROR")
                 .help("address of other radiobrowser server to pull updates from")
-                .multiple(true)
+                .multiple_occurrences(true)
                 .takes_value(true),
         ).arg(
-            Arg::with_name("update-caches-interval")
-                .short("u")
+            Arg::new("update-caches-interval")
+                .short('u')
                 .long("update-caches-interval")
                 .value_name("UPDATE_CACHES_INTERVAL")
                 .help("update caches at an interval")
                 .env("UPDATE_CACHES_INTERVAL")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("mirror-pull-interval")
-                .short("q")
+            Arg::new("mirror-pull-interval")
+                .short('q')
                 .long("mirror-pull-interval")
                 .value_name("MIRROR_PULL_INTERVAL")
                 .help("pull from mirrors at an interval")
                 .env("MIRROR_PULL_INTERVAL")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("refresh-config-interval")
+            Arg::new("refresh-config-interval")
                 .long("refresh-config-interval")
                 .value_name("REFRESH_CONFIG_INTERVAL")
                 .help("download / redownload config interval")
                 .env("REFRESH_CONFIG_INTERVAL")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("cleanup-interval")
+            Arg::new("cleanup-interval")
                 .long("cleanup-interval")
                 .value_name("CLEANUP_INTERVAL")
                 .help("cleanup tasks interval")
                 .env("CLEANUP_INTERVAL")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("ignore-migration-errors")
-                .short("i")
+            Arg::new("no-migrations")
+                .long("no-migrations")
+                .value_name("NO_MIGRATIONS")
+                .takes_value(true)
+                .help("do not do migrations, exit if migrations needed"),
+        ).arg(
+            Arg::new("ignore-migration-errors")
+                .short('i')
                 .long("ignore-migration-errors")
                 .value_name("IGNORE_MIGRATION_ERRORS")
                 .takes_value(true)
                 .help("ignore errors in migrations"),
         ).arg(
-            Arg::with_name("allow-database-downgrade")
-                .short("a")
+            Arg::new("allow-database-downgrade")
+                .short('a')
                 .long("allow-database-downgrade")
                 .value_name("ALLOW_DATABASE_DOWNGRADE")
                 .takes_value(true)
                 .help("allows downgrade of database if tables were created with newer software version"),
         ).arg(
-            Arg::with_name("log-level")
-                .short("v")
+            Arg::new("log-level")
+                .short('v')
                 .long("verbose")
                 .value_name("LOG_LEVEL")
                 .takes_value(false)
-                .multiple(true)
+                .multiple_occurrences(true)
                 .help("increases the log level. can be specified mutliple times 0..4"),
         ).arg(
-            Arg::with_name("static-files-dir")
-                .short("g")
+            Arg::new("static-files-dir")
+                .short('g')
                 .long("static-files-dir")
                 .value_name("STATIC_FILES_DIR")
                 .help("directory that contains the static files")
                 .env("STATIC_FILES_DIR")
                 .takes_value(true),
         ).arg(
-            Arg::with_name("source")
+            Arg::new("source")
                 .long("source")
                 .value_name("SOURCE")
                 .help("Source string for database check entries")
@@ -430,21 +436,21 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("server-location")
+            Arg::new("server-location")
                 .long("server-location")
                 .help("freeform location server string")
                 .env("SERVERLOCATION")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("server-country-code")
+            Arg::new("server-country-code")
                 .long("server-country-code")
                 .help("2 letter country code for server location")
                 .env("SERVERCOUNTRYCODE")
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("useragent")
+            Arg::new("useragent")
                 .long("useragent")
                 .value_name("USERAGENT")
                 .help("user agent value for http requests")
@@ -452,7 +458,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("cache-type")
+            Arg::new("cache-type")
                 .long("cache-type")
                 .value_name("CACHETYPE")
                 .help("one of none,builtin,redis,memcached")
@@ -460,7 +466,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("cache-url")
+            Arg::new("cache-url")
                 .long("cache-url")
                 .value_name("URL")
                 .help("url to access cache server")
@@ -468,7 +474,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("cache-ttl")
+            Arg::new("cache-ttl")
                 .long("cache-ttl")
                 .value_name("DURATION")
                 .help("time to life for cache items")
@@ -476,8 +482,8 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("retries")
-                .short("r")
+            Arg::new("retries")
+                .short('r')
                 .long("retries")
                 .value_name("RETRIES")
                 .help("Max number of retries for station checks")
@@ -485,7 +491,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("click-valid-timeout")
+            Arg::new("click-valid-timeout")
                 .long("click_valid_timeout")
                 .value_name("CLICK_VALID_TIMEOUT")
                 .help("Possible clicks from the same IP. IPs are removed after this timespan.")
@@ -493,7 +499,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("broken-stations-never-working-timeout")
+            Arg::new("broken-stations-never-working-timeout")
                 .long("broken_stations_never_working_timeout")
                 .value_name("BROKEN_STATIONS_NEVER_WORKING_TIMEOUT")
                 .help("Broken streams are removed after this timespan, if they have never worked.")
@@ -501,7 +507,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("broken-stations-timeout")
+            Arg::new("broken-stations-timeout")
                 .long("broken_stations_timeout")
                 .value_name("BROKEN_STATIONS_TIMEOUT")
                 .help("Broken streams are removed after this timespan.")
@@ -509,7 +515,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("checks-timeout")
+            Arg::new("checks-timeout")
                 .long("checks_timeout")
                 .value_name("CHECKS_TIMEOUT")
                 .help("Checks are removed after this timespan.")
@@ -517,7 +523,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("clicks-timeout")
+            Arg::new("clicks-timeout")
                 .long("clicks_timeout")
                 .value_name("CLICKS_TIMEOUT")
                 .help("Clicks are removed after this timespan.")
@@ -525,7 +531,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("max-depth")
+            Arg::new("max-depth")
                 .long("max_depth")
                 .value_name("MAX_DEPTH")
                 .help("max recursive link check depth")
@@ -533,7 +539,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("tcp-timeout")
+            Arg::new("tcp-timeout")
                 .long("tcp_timeout")
                 .value_name("TCP_TIMEOUT")
                 .help("tcp connect/read timeout")
@@ -541,7 +547,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("pause")
+            Arg::new("pause")
                 .long("pause")
                 .value_name("PAUSE")
                 .help("database check pauses")
@@ -549,8 +555,8 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("stations")
-                .short("n")
+            Arg::new("stations")
+                .short('n')
                 .long("stations")
                 .value_name("STATIONS")
                 .help("batch size for station checks")
@@ -558,8 +564,8 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("concurrency")
-                .short("c")
+            Arg::new("concurrency")
+                .short('c')
                 .long("concurrency")
                 .value_name("CONCURRENCY")
                 .help("streams checked in parallel")
@@ -567,7 +573,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("chunk-size-changes")
+            Arg::new("chunk-size-changes")
                 .long("chunk-size-changes")
                 .value_name("CHUNK_SIZE_CHANGES")
                 .help("chunk size for downloading changes")
@@ -575,7 +581,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("chunk-size-checks")
+            Arg::new("chunk-size-checks")
                 .long("chunk-size-checks")
                 .value_name("CHUNK_SIZE_CHECKS")
                 .help("chunk size for downloading checks")
@@ -583,8 +589,8 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("delete")
-                .short("x")
+            Arg::new("delete")
+                .short('x')
                 .long("delete")
                 .value_name("DELETE")
                 .help("delete broken stations according to rules")
@@ -592,7 +598,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("max-duplicates")
+            Arg::new("max-duplicates")
                 .long("max-duplicates")
                 .value_name("MAX_DUPLICATES")
                 .help("Maximum stations that have the same url")
@@ -600,7 +606,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("favicon-size-min")
+            Arg::new("favicon-size-min")
                 .long("favicon-size-min")
                 .value_name("FAVICON_SIZE_MIN")
                 .help("Minimum (width or height) of favicons extracted")
@@ -608,7 +614,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("favicon-size-max")
+            Arg::new("favicon-size-max")
                 .long("favicon-size-max")
                 .value_name("FAVICON_SIZE_MAX")
                 .help("Maximum (width or height) of favicons extracted")
@@ -616,7 +622,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("favicon-size-optimum")
+            Arg::new("favicon-size-optimum")
                 .long("favicon-size-optimum")
                 .value_name("FAVICON_SIZE_OPTIMUM")
                 .help("Optimum size of favicons extracted")
@@ -624,7 +630,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("enable-check")
+            Arg::new("enable-check")
                 .long("enable-check")
                 .value_name("ENABLE_CHECK")
                 .help("enable station checks")
@@ -632,7 +638,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("enable-extract-favicon")
+            Arg::new("enable-extract-favicon")
                 .long("enable-extract-favicon")
                 .value_name("ENABLE_EXTRACT_FAVICON")
                 .help("enable checking homepage for new icon")
@@ -640,7 +646,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("recheck-existing-favicon")
+            Arg::new("recheck-existing-favicon")
                 .long("recheck-existing-favicon")
                 .value_name("RECHECK_EXISTING_FAVICON")
                 .help("recheck existing favicons")
@@ -648,7 +654,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("server-info-check")
+            Arg::new("server-info-check")
                 .long("server-info-check")
                 .value_name("ENABLE_SERVER_CHECK")
                 .help("enable server checks")
@@ -656,7 +662,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("server-info-check-chunksize")
+            Arg::new("server-info-check-chunksize")
                 .long("server-info-check-chunksize")
                 .value_name("ENABLE_SERVER_CHECK_CHUNKSIZE")
                 .help("chunk size for server check")
@@ -723,6 +729,8 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
         "refresh-config-interval",
         String::from("1day"),
     )?;
+    let no_migrations: bool =
+        get_option_bool(&matches, &config, "no-migrations", false)?;
     let ignore_migration_errors: bool =
         get_option_bool(&matches, &config, "ignore-migration-errors", false)?;
     let allow_database_downgrade: bool =
@@ -892,5 +900,6 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
         favicon_size_optimum,
         refresh_config_interval,
         cleanup_interval,
+        no_migrations,
     })
 }

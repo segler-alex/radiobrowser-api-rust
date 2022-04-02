@@ -81,6 +81,11 @@ impl MysqlConnection {
         Ok(MysqlConnection { pool })
     }
 
+    pub fn migrations_needed(&self) -> Result<bool, Box<dyn Error>> {
+        let migrations = migrations::load_migrations(&self.pool)?;
+        Ok(migrations.migrations_needed()?)
+    }
+
     pub fn do_migrations(
         &self,
         ignore_migration_errors: bool,

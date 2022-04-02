@@ -12,7 +12,8 @@ mod api_response;
 mod cache;
 mod all_params;
 
-use std::thread::JoinHandle;
+//use std::thread::JoinHandle;
+//use rouille::Server;
 use crate::api::data::ApiLanguage;
 use all_params::AllParameters;
 use prometheus_exporter::RegistryLinks;
@@ -245,8 +246,7 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> ApiResponse
     }
 }
 
-use rouille::Server;
-
+/*
 pub fn start_unavailable<F, T>(config: Config, func: F) -> JoinHandle<T> where
     F: FnOnce(std::sync::mpsc::Sender<()>) -> T,
     F: Send + 'static,
@@ -265,6 +265,7 @@ pub fn start_unavailable<F, T>(config: Config, func: F) -> JoinHandle<T> where
 
     thread_handle
 }
+*/
 
 pub fn start<A: 'static +  std::clone::Clone>(
     connection_new: A,
