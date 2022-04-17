@@ -479,9 +479,9 @@ fn handle_cached_connection<A>(
         param_homepage: ppp.get_string("homepage"),
         param_favicon: ppp.get_string("favicon"),
     
-        param_last_changeuuid: ppp.get_string("lastchangeuuid"),
-        param_last_checkuuid: ppp.get_string("lastcheckuuid"),
-        param_last_clickuuid: ppp.get_string("lastclickuuid"),
+        param_last_changeuuid: ppp.get_string("lastchangeuuid").map(|item|item.to_lowercase()),
+        param_last_checkuuid: ppp.get_string("lastcheckuuid").map(|item|item.to_lowercase()),
+        param_last_clickuuid: ppp.get_string("lastclickuuid").map(|item|item.to_lowercase()),
     
         param_name: ppp.get_string("name"),
         param_name_exact: ppp.get_bool("nameExact", false),
