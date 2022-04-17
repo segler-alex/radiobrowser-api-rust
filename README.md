@@ -118,7 +118,7 @@ sudo systemctl start radiobrowser
 ```bash
 wget https://github.com/segler-alex/radiobrowser-api-rust/releases/download/0.7.23/radiobrowser-api-rust_0.7.23_amd64.deb
 sudo apt install default-mysql-server
-sudo dpkg -i radiobrowser-api-rust_0.7.1_amd64.deb
+sudo dpkg -i radiobrowser-api-rust_0.7.23_amd64.deb
 cat /usr/share/radiobrowser/init.sql | mysql
 ```
 

@@ -474,7 +474,7 @@ fn handle_cached_connection<A>(
 
     let allparams = AllParameters {
         url: request.raw_url().to_string(),
-        param_uuids: str_to_arr(&ppp.get_string("uuids").unwrap_or(String::new())),
+        param_uuids: str_to_arr(&ppp.get_string("uuids").unwrap_or(String::new())).iter().map(|item|item.to_lowercase()).collect(),
         param_tags: ppp.get_string("tags"),
         param_homepage: ppp.get_string("homepage"),
         param_favicon: ppp.get_string("favicon"),
