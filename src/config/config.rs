@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub enum CacheType {
     None,
     BuiltIn,
@@ -19,7 +19,7 @@ impl From<CacheType> for String {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Config {
     pub allow_database_downgrade: bool,
     pub broken_stations_never_working_timeout: Duration,
@@ -73,4 +73,12 @@ pub struct Config {
     pub favicon_size_optimum: usize,
     pub refresh_config_interval: Duration,
     pub cleanup_interval: Duration,
+    pub sub_command: ConfigSubCommand,
+}
+
+#[derive(Debug, Clone)]
+pub enum ConfigSubCommand {
+    None,
+    ResetHistory,
+    CleanHistory,
 }

@@ -311,6 +311,15 @@ impl MysqlConnection {
 }
 
 impl DbConnection for MysqlConnection {
+    fn get_stations_uuid_order_by_changes(&mut self, min_change_count: u32) -> Result<Vec<String>, Box<dyn Error>> {
+        let query = format!(r#"SELECT StationUuid, COUNT(*) AS change_count FROM StationHistory GROUP BY StationUuid HAVING change_count > {} ORDER BY change_count DESC"#, min_change_count);
+        let mut conn = self.pool.get_conn()?;
+        let list = conn.query_map(query,|(stationuuid,_count):(String, u32)| {
+            stationuuid
+        })?;
+        Ok(list)
+    }
+
     fn get_stations_with_empty_icon(&mut self) -> Result<Vec<(String, String)>, Box<dyn Error>> {
         trace!("get_stations_with_empty_icon()");
         let query =
@@ -486,6 +495,26 @@ impl DbConnection for MysqlConnection {
         let list: Vec<String> = conn.exec_map(query, params!(seconds), |(uuid,)| uuid)?;
         let query = "DELETE FROM StreamingServers WHERE Uuid=:uuid;";
         conn.exec_batch(query, list.iter().map(|uuid| params!("uuid" => uuid)))?;
+        Ok(())
+    }
+
+    fn delete_change_by_uuid(&mut self, changeuuids: &[String]) -> Result<(), Box<dyn Error>> {
+        trace!("delete_change_by_uuid()");
+        let mut conn = self.pool.get_conn()?;
+        let query = "DELETE FROM StationHistory WHERE ChangeUuid=:uuid;";
+        conn.exec_batch(query, changeuuids.iter().map(|uuid| params!("uuid" => uuid)))?;
+        Ok(())
+    }
+
+    fn resethistory(&mut self) -> Result<(), Box<dyn Error>> {
+        trace!("resethistory()");
+        let mut transaction = self.pool.start_transaction(TxOpts::default())?;
+        transaction.query_drop("DELETE FROM StationHistory;")?;
+        trace!("resethistory() deletion done");
+        transaction.query_drop(r#"INSERT INTO StationHistory(Name,Url,Homepage,Favicon,CountryCode,SubCountry,Language,LanguageCodes,CountrySubdivisionCode,Tags,Votes,Creation,StationUuid,ChangeUuid,GeoLat,GeoLong,Source)
+                                                      SELECT Name,Url,Homepage,Favicon,CountryCode,SubCountry,Language,LanguageCodes,CountrySubdivisionCode,Tags,Votes,Creation,StationUuid,ChangeUuid,GeoLat,GeoLong,"{}" FROM Station"#)?;
+        trace!("resethistory() reinsert done");
+        transaction.commit()?;
         Ok(())
     }
 

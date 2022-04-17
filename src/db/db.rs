@@ -31,6 +31,7 @@ pub trait DbConnection {
     fn get_stations_by_uuid(&self, uuids: Vec<String>) -> Result<Vec<DbStationItem>,Box<dyn Error>>;
     fn get_stations_by_column_multiple(&self,column_name: &str,search: Option<String>,exact: bool,order: &str,reverse: bool,hidebroken: bool,offset: u32,limit: u32) -> Result<Vec<DbStationItem>, Box<dyn Error>>;
     fn get_stations_by_all(&self,order: &str,reverse: bool,hidebroken: bool,offset: u32,limit: u32) -> Result<Vec<DbStationItem>, Box<dyn Error>>;
+    fn get_stations_uuid_order_by_changes(&mut self, min_change_count: u32) -> Result<Vec<String>, Box<dyn Error>>;
     fn get_stations_advanced(
         &self,name: Option<String>,name_exact: bool,country: Option<String>,country_exact: bool,countrycode: Option<String>,
         state: Option<String>,state_exact: bool,language: Option<String>,
@@ -82,8 +83,10 @@ pub trait DbConnection {
     fn delete_old_clicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn delete_removed_from_history(&mut self) -> Result<(), Box<dyn Error>>;
     fn delete_unused_streaming_servers(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
+    fn delete_change_by_uuid(&mut self, changeuuids: &[String]) -> Result<(), Box<dyn Error>>;
     fn remove_unused_ip_infos_from_stationclicks(&mut self, seconds: u64) -> Result<(), Box<dyn Error>>;
     fn calc_country_field(&mut self) -> Result<(), Box<dyn Error>>;
+    fn resethistory(&mut self) -> Result<(), Box<dyn Error>>;
     
     fn get_stations_with_empty_icon(&mut self) -> Result<Vec<(String, String)>, Box<dyn Error>>;
     fn get_stations_with_non_empty_icon(&mut self) -> Result<Vec<(String, String)>, Box<dyn Error>>;

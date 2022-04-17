@@ -2,9 +2,10 @@ mod config;
 mod config_error;
 mod data_mapping_item;
 
-use clap::{Command, Arg};
+use clap::{Arg, Command};
 pub use config::CacheType;
 pub use config::Config;
+pub use config::ConfigSubCommand;
 pub use config_error::ConfigError;
 use humantime;
 use once_cell::sync::OnceCell;
@@ -46,10 +47,7 @@ pub fn load_all_extra_configs(c: &Config) -> Result<(), Box<dyn Error>> {
             let m = INSTANCE_TAG_REPLACE.get_or_init(|| Mutex::new(data.clone()));
             *(m.lock()?) = data;
         }
-        Err(err) => warn!(
-            "Unable to load file '{}': {}",
-            &c.tag_replace_filepath, err
-        ),
+        Err(err) => warn!("Unable to load file '{}': {}", &c.tag_replace_filepath, err),
     }
     match data_mapping_item::read_map_csv_file(&c.language_to_code_filepath) {
         Ok(data) => {
@@ -255,6 +253,11 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
         .version(crate_version!())
         .author("segler_alex@web.de")
         .about("HTTP Rest API for radiobrowser")
+        .subcommand(Command::new("cli")
+            .about("CLI commands")
+            .subcommand(Command::new("resethistory"))
+            .subcommand(Command::new("cleanhistory"))
+        )
         .arg(
             Arg::new("config-file")
                 .short('f')
@@ -729,8 +732,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
         "refresh-config-interval",
         String::from("1day"),
     )?;
-    let no_migrations: bool =
-        get_option_bool(&matches, &config, "no-migrations", false)?;
+    let no_migrations: bool = get_option_bool(&matches, &config, "no-migrations", false)?;
     let ignore_migration_errors: bool =
         get_option_bool(&matches, &config, "ignore-migration-errors", false)?;
     let allow_database_downgrade: bool =
@@ -846,6 +848,15 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
         }
     }
 
+    let sub_command = match matches.subcommand() {
+        Some(("cli", matches)) => match matches.subcommand() {
+            Some(("resethistory", _matches)) => ConfigSubCommand::ResetHistory,
+            Some(("cleanhistory", _matches)) => ConfigSubCommand::CleanHistory,
+            _ => panic!("Cli command missing"),
+        },
+        _ => ConfigSubCommand::None,
+    };
+
     let mut servers = get_hosts_from_config(&config)?;
     servers_pull.append(&mut servers);
     Ok(Config {
@@ -901,5 +912,6 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
         refresh_config_interval,
         cleanup_interval,
         no_migrations,
+        sub_command,
     })
 }
