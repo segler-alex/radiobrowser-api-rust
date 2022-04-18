@@ -7,6 +7,7 @@ use mysql::Row;
 
 impl From<Row> for StationCheckItem {
     fn from(mut row: Row) -> Self {
+        const ZERO: i32 = 0;
         StationCheckItem {
             check_id:                      row.take("CheckID").unwrap(),
             station_uuid:                  row.take("StationUuid").unwrap_or("".to_string()),
@@ -14,12 +15,12 @@ impl From<Row> for StationCheckItem {
             source:                        row.take("Source").unwrap_or("".to_string()),
             codec:                         row.take_opt("Codec").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             bitrate:                       row.take_opt("Bitrate").unwrap_or(Ok(0)).unwrap_or(0),
-            hls:                           row.take_opt("Hls").unwrap_or(Ok(0)).unwrap_or(0) == 1,
-            check_ok:                      row.take_opt("CheckOK").unwrap_or(Ok(0)).unwrap_or(0) == 1,
+            hls:                           row.take_opt("Hls").unwrap_or(Ok(ZERO)).unwrap_or(0) == 1,
+            check_ok:                      row.take_opt("CheckOK").unwrap_or(Ok(ZERO)).unwrap_or(0) == 1,
             check_time_iso8601:            row.take_opt("CheckTime").transpose().ok().flatten().map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc)),
             check_time:                    row.take_opt("CheckTimeFormated").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
             url:                           row.take_opt("UrlCache").unwrap_or(Ok("".to_string())).unwrap_or("".to_string()),
-            metainfo_overrides_database:   row.take_opt("MetainfoOverridesDatabase").unwrap_or(Ok(0)).unwrap_or(0) == 1,
+            metainfo_overrides_database:   row.take_opt("MetainfoOverridesDatabase").unwrap_or(Ok(ZERO)).unwrap_or(0) == 1,
             public:                        row.take_opt("Public").transpose().unwrap_or(None).map(|x: u32| x == 1),
             name:                          row.take_opt("Name").transpose().unwrap_or(None),
             description:                   row.take_opt("Description").transpose().unwrap_or(None),

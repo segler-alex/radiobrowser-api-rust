@@ -155,6 +155,7 @@ fn dbcheck_internal(
         source,
         timing_ms,
     );
+    trace!("Check finished: {} - {}", diff.new.stationuuid, diff.new.name);
 
     match check {
         Some(check) => StationOldNew {

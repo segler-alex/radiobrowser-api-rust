@@ -12,7 +12,9 @@ mod api_response;
 mod cache;
 mod all_params;
 
-use std::thread::JoinHandle;
+//use std::thread::JoinHandle;
+//use rouille::Server;
+use crate::api::data::ApiCountry;
 use crate::api::data::ApiLanguage;
 use all_params::AllParameters;
 use prometheus_exporter::RegistryLinks;
@@ -245,8 +247,7 @@ fn encode_status(status: Status, format : &str, static_dir: &str) -> ApiResponse
     }
 }
 
-use rouille::Server;
-
+/*
 pub fn start_unavailable<F, T>(config: Config, func: F) -> JoinHandle<T> where
     F: FnOnce(std::sync::mpsc::Sender<()>) -> T,
     F: Send + 'static,
@@ -265,6 +266,7 @@ pub fn start_unavailable<F, T>(config: Config, func: F) -> JoinHandle<T> where
 
     thread_handle
 }
+*/
 
 pub fn start<A: 'static +  std::clone::Clone>(
     connection_new: A,
@@ -473,14 +475,14 @@ fn handle_cached_connection<A>(
 
     let allparams = AllParameters {
         url: request.raw_url().to_string(),
-        param_uuids: str_to_arr(&ppp.get_string("uuids").unwrap_or(String::new())),
+        param_uuids: str_to_arr(&ppp.get_string("uuids").unwrap_or(String::new())).iter().map(|item|item.to_lowercase()).collect(),
         param_tags: ppp.get_string("tags"),
         param_homepage: ppp.get_string("homepage"),
         param_favicon: ppp.get_string("favicon"),
     
-        param_last_changeuuid: ppp.get_string("lastchangeuuid"),
-        param_last_checkuuid: ppp.get_string("lastcheckuuid"),
-        param_last_clickuuid: ppp.get_string("lastclickuuid"),
+        param_last_changeuuid: ppp.get_string("lastchangeuuid").map(|item|item.to_lowercase()),
+        param_last_checkuuid: ppp.get_string("lastcheckuuid").map(|item|item.to_lowercase()),
+        param_last_clickuuid: ppp.get_string("lastclickuuid").map(|item|item.to_lowercase()),
     
         param_name: ppp.get_string("name"),
         param_name_exact: ppp.get_bool("nameExact", false),
@@ -643,7 +645,7 @@ fn do_api_calls<A>(all_params: AllParameters,
 
         match command {
             "languages" => Ok((true,ApiLanguage::get_response(connection_new.get_extra("LanguageCache", "LanguageName", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format)?)),
-            "countries" => Ok((true,encode_extra(connection_new.get_1_n("Country", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "country")?)),
+            "countries" => Ok((true,ApiCountry::get_response(connection_new.get_countries(filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format)?)),
             "countrycodes" => Ok((true,encode_extra(connection_new.get_1_n("CountryCode", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "countrycode")?)),
             "states" => Ok((true,encode_states(connection_new.get_states(None, filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format)?)),
             "codecs" => Ok((true,encode_extra(connection_new.get_1_n("Codec", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "codec")?)),
@@ -667,7 +669,7 @@ fn do_api_calls<A>(all_params: AllParameters,
         // None => connection_new.get_1_n("Country", filter, param_order, param_reverse, param_hidebroken)?, format, "country")?,
         match command {
             "languages" => Ok((true,ApiLanguage::get_response(connection_new.get_extra("LanguageCache", "LanguageName", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format)?)),
-            "countries" => Ok((true,encode_extra(connection_new.get_1_n("Country", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "country")?)),
+            "countries" => Ok((true,ApiCountry::get_response(connection_new.get_countries(Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format)?)),
             "countrycodes" => Ok((true,encode_extra(connection_new.get_1_n("CountryCode", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "countrycode")?)),
             "codecs" => Ok((true,encode_extra(connection_new.get_1_n("Codec", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "codec")?)),
             "tags" => Ok((true,encode_extra(connection_new.get_extra("TagCache", "TagName", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "tag")?)),

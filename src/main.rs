@@ -7,7 +7,11 @@ extern crate log;
 #[macro_use]
 extern crate prometheus;
 
+use crate::cli::delete_duplicate_changes;
+use crate::cli::resethistory;
+use crate::config::Config;
 use crate::db::DbConnection;
+use crate::db::MysqlConnection;
 use crate::pull::UuidWithTime;
 use core::fmt::Display;
 use core::fmt::Formatter;
@@ -24,6 +28,7 @@ mod api;
 mod check;
 mod checkserver;
 mod cleanup;
+mod cli;
 mod config;
 mod db;
 mod logger;
@@ -72,7 +77,6 @@ where
             .lock()
             .expect("Config could not be pulled from shared memory.")
             .clone();
-        
         if config.refresh_config_interval.as_secs() > 0
             && (once_refresh_config
                 || last_time_refresh_config.elapsed().as_secs()
@@ -207,6 +211,37 @@ where
     });
 }
 
+fn mainloopitem(mut connection: MysqlConnection, config: Config) -> Result<(), Box<dyn Error>> {
+    trace!("mainloopitem()");
+    if config.no_migrations {
+        if connection.migrations_needed()? {
+            debug!("Migrations are not allowed but not needed.");
+        } else {
+            panic!("Migrations are needed but not allowed by parameter!");
+        }
+    } else {
+        connection.do_migrations(
+            config.ignore_migration_errors,
+            config.allow_database_downgrade,
+        )?;
+    }
+    use config::ConfigSubCommand;
+    match config.sub_command {
+        ConfigSubCommand::Migrate => {}
+        ConfigSubCommand::CleanHistory => {
+            delete_duplicate_changes(&mut connection, 3)?;
+        }
+        ConfigSubCommand::ResetHistory => {
+            resethistory(&mut connection)?;
+        }
+        _ => {
+            jobs(connection.clone());
+            api::start(connection, config);
+        }
+    }
+    Ok(())
+}
+
 fn mainloop() -> Result<(), Box<dyn Error>> {
     // load config
     config::load_main_config()?;
@@ -221,88 +256,56 @@ fn mainloop() -> Result<(), Box<dyn Error>> {
         .map_err(|e| MainError::LoggerInitError(e.to_string()))?;
     info!("Config: {:#?}", config);
     config::load_all_extra_configs(&config)?;
+
     let config2 = config.clone();
-    let config3 = config.clone();
-    
-    api::start_unavailable(config3, move |sender| loop {
+
+    if let config::ConfigSubCommand::None = config2.sub_command {
+        thread::spawn(|| loop {
+            let connection = db::MysqlConnection::new(&config2.connection_string);
+            match connection {
+                Ok(connection) => {
+                    match mainloopitem(connection, config2) {
+                        Err(err) => {
+                            error!("Error: {}", err);
+                        }
+                        Ok(_) => {}
+                    }
+                    break;
+                }
+                Err(e) => {
+                    error!("DB connection error: {}", e);
+                    thread::sleep(time::Duration::from_millis(1000));
+                }
+            }
+        });
+        let mut signals = Signals::new(&[SIGHUP])?;
+        for signal in &mut signals {
+            match signal {
+                SIGHUP => {
+                    info!("received HUP, reload config");
+                    config::load_main_config()?;
+                    config::load_all_extra_configs(&config)?;
+                }
+                _ => unreachable!(),
+            }
+        }
+    } else {
         let connection = db::MysqlConnection::new(&config2.connection_string);
         match connection {
             Ok(connection) => {
-                let migration_result = connection.do_migrations(
-                    config2.ignore_migration_errors,
-                    config2.allow_database_downgrade,
-                );
-                match migration_result {
-                    Ok(_) => {
-                        // stop current server
-                        sender.send(()).unwrap();
-                    }
-                    Err(err) => {
-                        error!("Migrations error: {}", err);
-                        thread::sleep(time::Duration::from_millis(1000));
-                    }
-                };
-                break;
+                mainloopitem(connection, config2)?;
             }
             Err(e) => {
                 error!("DB connection error: {}", e);
                 thread::sleep(time::Duration::from_millis(1000));
             }
-        }
-    });
-
-    let config2 = config.clone();
-
-    thread::spawn(|| loop {
-        let connection = db::MysqlConnection::new(&config2.connection_string);
-        match connection {
-            Ok(connection) => {
-                let migration_result = connection.do_migrations(
-                    config2.ignore_migration_errors,
-                    config2.allow_database_downgrade,
-                );
-                match migration_result {
-                    Ok(_) => {
-                        jobs(connection.clone());
-                        api::start(connection, config2);
-                    }
-                    Err(err) => {
-                        error!("Migrations error: {}", err);
-                        thread::sleep(time::Duration::from_millis(1000));
-                    }
-                };
-                break;
-            }
-            Err(e) => {
-                error!("DB connection error: {}", e);
-                thread::sleep(time::Duration::from_millis(1000));
-            }
-        }
-    });
-
-    let mut signals = Signals::new(&[SIGHUP])?;
-    for signal in &mut signals {
-        match signal {
-            SIGHUP => {
-                info!("received HUP, reload config");
-                config::load_main_config()?;
-                config::load_all_extra_configs(&config)?;
-            }
-            _ => unreachable!(),
         }
     }
 
     Ok(())
 }
 
-fn main() {
-    match mainloop() {
-        Err(e) => {
-            println!("{}", e);
-            std::process::exit(1);
-        }
-        Ok(_) => {
-            std::process::exit(0);
-        }
-    }
+fn main() -> Result<(), Box<dyn Error>> {
+    mainloop()?;
+    Ok(())
 }

@@ -120,6 +120,41 @@ impl<'a> Migrations<'a> {
         Ok(())
     }
 
+    pub fn migrations_needed(
+        &self,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
+        self.ensure_tables()?;
+
+        let migrations_applied = self.get_applied_migrations()?;
+        // apply all migrations, that are not applied
+        for wanted in self.migrations_wanted.iter() {
+            let mut found = false;
+            for applied in migrations_applied.iter() {
+                if applied.name == wanted.name {
+                    found = true;
+                }
+            }
+            if !found {
+                return Ok(true);
+            }
+        }
+
+        // unapply all migrations, that are not in wanted
+        for wanted in migrations_applied.iter().rev() {
+            let mut found = false;
+            for applied in self.migrations_wanted.iter() {
+                if applied.name == wanted.name {
+                    found = true;
+                }
+            }
+            if !found {
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
+    }
+
     pub fn do_migrations(
         &self,
         ignore_errors: bool,

@@ -2,6 +2,7 @@ mod conversions;
 mod migrations;
 mod simple_migrate;
 
+use crate::db::models::DBCountry;
 use crate::db::db_error::DbError;
 use crate::db::models::DbStreamingServer;
 use crate::db::models::DbStreamingServerNew;
@@ -79,6 +80,11 @@ impl MysqlConnection {
         let opts = Opts::from_url(connection_str)?;
         let pool = mysql::Pool::new(opts)?;
         Ok(MysqlConnection { pool })
+    }
+
+    pub fn migrations_needed(&self) -> Result<bool, Box<dyn Error>> {
+        let migrations = migrations::load_migrations(&self.pool)?;
+        Ok(migrations.migrations_needed()?)
     }
 
     pub fn do_migrations(
@@ -306,6 +312,15 @@ impl MysqlConnection {
 }
 
 impl DbConnection for MysqlConnection {
+    fn get_stations_uuid_order_by_changes(&mut self, min_change_count: u32) -> Result<Vec<String>, Box<dyn Error>> {
+        let query = format!(r#"SELECT StationUuid, COUNT(*) AS change_count FROM StationHistory GROUP BY StationUuid HAVING change_count > {} ORDER BY change_count DESC"#, min_change_count);
+        let mut conn = self.pool.get_conn()?;
+        let list = conn.query_map(query,|(stationuuid,_count):(String, u32)| {
+            stationuuid
+        })?;
+        Ok(list)
+    }
+
     fn get_stations_with_empty_icon(&mut self) -> Result<Vec<(String, String)>, Box<dyn Error>> {
         trace!("get_stations_with_empty_icon()");
         let query =
@@ -484,6 +499,26 @@ impl DbConnection for MysqlConnection {
         Ok(())
     }
 
+    fn delete_change_by_uuid(&mut self, changeuuids: &[String]) -> Result<(), Box<dyn Error>> {
+        trace!("delete_change_by_uuid()");
+        let mut conn = self.pool.get_conn()?;
+        let query = "DELETE FROM StationHistory WHERE ChangeUuid=:uuid;";
+        conn.exec_batch(query, changeuuids.iter().map(|uuid| params!("uuid" => uuid)))?;
+        Ok(())
+    }
+
+    fn resethistory(&mut self) -> Result<(), Box<dyn Error>> {
+        trace!("resethistory()");
+        let mut transaction = self.pool.start_transaction(TxOpts::default())?;
+        transaction.query_drop("DELETE FROM StationHistory;")?;
+        trace!("resethistory() deletion done");
+        transaction.query_drop(r#"INSERT INTO StationHistory(Name,Url,Homepage,Favicon,CountryCode,SubCountry,Language,LanguageCodes,CountrySubdivisionCode,Tags,Votes,Creation,StationUuid,ChangeUuid,GeoLat,GeoLong,Source)
+                                                      SELECT Name,Url,Homepage,Favicon,CountryCode,SubCountry,Language,LanguageCodes,CountrySubdivisionCode,Tags,Votes,Creation,StationUuid,ChangeUuid,GeoLat,GeoLong,"{}" FROM Station"#)?;
+        trace!("resethistory() reinsert done");
+        transaction.commit()?;
+        Ok(())
+    }
+
     fn remove_unused_ip_infos_from_stationclicks(
         &mut self,
         seconds: u64,
@@ -547,6 +582,41 @@ impl DbConnection for MysqlConnection {
      */
     fn get_station_count_todo(&self, hours: u32) -> Result<u64, Box<dyn Error>> {
         self.get_single_column_number_params("SELECT COUNT(*) AS Items FROM Station WHERE LastLocalCheckTime IS NULL OR LastLocalCheckTime < UTC_TIMESTAMP() - INTERVAL :hours HOUR", params!(hours))
+    }
+
+    fn delete_stationhistory_byid_more_than(&self, stationuuid: String, itemcount: usize) -> Result<(), Box<dyn Error>> {
+        let mut conn = self.pool.get_conn()?;
+        let query = r#"SELECT StationChangeID
+        FROM StationHistory
+        WHERE StationUuid=:stationuuid
+        ORDER BY Creation DESC
+        "#;
+        let items: Vec<u64> = conn.exec_map(query, params!{stationuuid}, |changeid| {
+            changeid
+        })?;
+        if items.len() > itemcount{
+            let (_items_keep, items_delete) = items.split_at(itemcount);
+            conn.exec_batch("DELETE FROM StationHistory WHERE StationChangeID=:changeid", items_delete.iter().map(|changeid| params!{changeid}))?;
+        }
+        Ok(())
+        //DELETE FROM StationHistory WHERE StationChangeID IN ();
+    }
+
+    fn delete_stationhistory_more_than(&self, itemcount: u32) -> Result<(), Box<dyn Error>> {
+        let mut conn = self.pool.get_conn()?;
+        let query = r#"SELECT * FROM
+            (
+                SELECT StationChangeID,
+                ROW_NUMBER() OVER (PARTITION BY StationUuid ORDER BY Creation) AS row_number
+                FROM StationHistory
+                WHERE StationUuid='0f902505-76c7-489b-8ddc-03b05b5867ae'
+            )
+            AS temp_table WHERE temp_table.row_number > :itemcount;"#;
+        let _items: Vec<u64> = conn.exec_map(query, params!{itemcount}, |(changeid,_number): (u64, u32)| {
+            changeid
+        })?;
+        Ok(())
+        //DELETE FROM StationHistory WHERE StationChangeID IN ();
     }
 
     fn get_stations_to_check(
@@ -1981,6 +2051,54 @@ impl DbConnection for MysqlConnection {
             stations.push(ExtraInfo::new(name, stationcount));
         }
         Ok(stations)
+    }
+
+    fn get_countries(
+        &self,
+        search: Option<String>,
+        order: String,
+        reverse: bool,
+        hidebroken: bool,
+        offset: u32,
+        limit: u32,
+    ) -> Result<Vec<DBCountry>, Box<dyn Error>> {
+        let order = filter_order_1_n(&order)?;
+        let query: String;
+        let reverse_string = if reverse { "DESC" } else { "ASC" };
+        let hidebroken_string = if hidebroken {
+            " AND LastCheckOK=TRUE"
+        } else {
+            ""
+        };
+        
+        let mut conn = self.pool.get_conn()?;
+        let result = match search {
+            Some(value) => {
+                query = format!("SELECT CountryCode AS name,COUNT(*) AS stationcount FROM Station WHERE UPPER(CountryCode) LIKE UPPER(CONCAT('%',?,'%')) AND CountryCode<>'' {hidebroken} GROUP BY CountryCode ORDER BY {order} {reverse} LIMIT {offset},{limit}",
+                    order = order, reverse = reverse_string,
+                    hidebroken = hidebroken_string,
+                    offset = offset,
+                    limit = limit,
+                );
+                conn.exec_iter(query, (value,))
+            }
+            None => {
+                query = format!("SELECT CountryCode AS name,COUNT(*) AS stationcount FROM Station WHERE CountryCode<>'' {hidebroken} GROUP BY CountryCode ORDER BY {order} {reverse} LIMIT {offset},{limit}",
+                    order = order, reverse = reverse_string, hidebroken = hidebroken_string,
+                    offset = offset,
+                    limit = limit,
+                );
+                conn.exec_iter(query, ())
+            }
+        }?;
+
+        let mut countries = vec![];
+        for row in result {
+            let row = row?;
+            let (countrycode, stationcount) = mysql::from_row_opt(row)?;
+            countries.push(DBCountry::new(countrycode, stationcount));
+        }
+        Ok(countries)
     }
 
     fn get_states(
