@@ -2,6 +2,7 @@ mod conversions;
 mod migrations;
 mod simple_migrate;
 
+use crate::db::models::DBCountry;
 use crate::db::db_error::DbError;
 use crate::db::models::DbStreamingServer;
 use crate::db::models::DbStreamingServerNew;
@@ -2050,6 +2051,54 @@ impl DbConnection for MysqlConnection {
             stations.push(ExtraInfo::new(name, stationcount));
         }
         Ok(stations)
+    }
+
+    fn get_countries(
+        &self,
+        search: Option<String>,
+        order: String,
+        reverse: bool,
+        hidebroken: bool,
+        offset: u32,
+        limit: u32,
+    ) -> Result<Vec<DBCountry>, Box<dyn Error>> {
+        let order = filter_order_1_n(&order)?;
+        let query: String;
+        let reverse_string = if reverse { "DESC" } else { "ASC" };
+        let hidebroken_string = if hidebroken {
+            " AND LastCheckOK=TRUE"
+        } else {
+            ""
+        };
+        
+        let mut conn = self.pool.get_conn()?;
+        let result = match search {
+            Some(value) => {
+                query = format!("SELECT CountryCode AS name,COUNT(*) AS stationcount FROM Station WHERE UPPER(CountryCode) LIKE UPPER(CONCAT('%',?,'%')) AND CountryCode<>'' {hidebroken} GROUP BY CountryCode ORDER BY {order} {reverse} LIMIT {offset},{limit}",
+                    order = order, reverse = reverse_string,
+                    hidebroken = hidebroken_string,
+                    offset = offset,
+                    limit = limit,
+                );
+                conn.exec_iter(query, (value,))
+            }
+            None => {
+                query = format!("SELECT CountryCode AS name,COUNT(*) AS stationcount FROM Station WHERE CountryCode<>'' {hidebroken} GROUP BY CountryCode ORDER BY {order} {reverse} LIMIT {offset},{limit}",
+                    order = order, reverse = reverse_string, hidebroken = hidebroken_string,
+                    offset = offset,
+                    limit = limit,
+                );
+                conn.exec_iter(query, ())
+            }
+        }?;
+
+        let mut countries = vec![];
+        for row in result {
+            let row = row?;
+            let (countrycode, stationcount) = mysql::from_row_opt(row)?;
+            countries.push(DBCountry::new(countrycode, stationcount));
+        }
+        Ok(countries)
     }
 
     fn get_states(

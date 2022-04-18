@@ -14,6 +14,7 @@ mod all_params;
 
 //use std::thread::JoinHandle;
 //use rouille::Server;
+use crate::api::data::ApiCountry;
 use crate::api::data::ApiLanguage;
 use all_params::AllParameters;
 use prometheus_exporter::RegistryLinks;
@@ -644,7 +645,7 @@ fn do_api_calls<A>(all_params: AllParameters,
 
         match command {
             "languages" => Ok((true,ApiLanguage::get_response(connection_new.get_extra("LanguageCache", "LanguageName", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format)?)),
-            "countries" => Ok((true,encode_extra(connection_new.get_1_n("Country", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "country")?)),
+            "countries" => Ok((true,ApiCountry::get_response(connection_new.get_countries(filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format)?)),
             "countrycodes" => Ok((true,encode_extra(connection_new.get_1_n("CountryCode", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "countrycode")?)),
             "states" => Ok((true,encode_states(connection_new.get_states(None, filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format)?)),
             "codecs" => Ok((true,encode_extra(connection_new.get_1_n("Codec", filter, all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "codec")?)),
@@ -668,7 +669,7 @@ fn do_api_calls<A>(all_params: AllParameters,
         // None => connection_new.get_1_n("Country", filter, param_order, param_reverse, param_hidebroken)?, format, "country")?,
         match command {
             "languages" => Ok((true,ApiLanguage::get_response(connection_new.get_extra("LanguageCache", "LanguageName", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format)?)),
-            "countries" => Ok((true,encode_extra(connection_new.get_1_n("Country", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "country")?)),
+            "countries" => Ok((true,ApiCountry::get_response(connection_new.get_countries(Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format)?)),
             "countrycodes" => Ok((true,encode_extra(connection_new.get_1_n("CountryCode", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "countrycode")?)),
             "codecs" => Ok((true,encode_extra(connection_new.get_1_n("Codec", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "codec")?)),
             "tags" => Ok((true,encode_extra(connection_new.get_extra("TagCache", "TagName", Some(String::from(parameter)), all_params.param_order, all_params.param_reverse, all_params.param_hidebroken, all_params.param_offset, all_params.param_limit)?, format, "tag")?)),
