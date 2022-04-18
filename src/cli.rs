@@ -4,17 +4,17 @@ use crate::db::MysqlConnection;
 use std::error::Error;
 
 fn change_duplicated(item1: &StationHistoryItem, item2: &StationHistoryItem) -> bool {
-    if !item1.countrycode.eq(&item2.countrycode)
-        || !item1.favicon.eq(&item2.favicon)
-        || !item1.geo_lat.eq(&item2.geo_lat)
-        || !item1.geo_long.eq(&item2.geo_long)
-        || !item1.homepage.eq(&item2.homepage)
-        || !item1.language.eq(&item2.language)
-        || !item1.languagecodes.eq(&item2.languagecodes)
-        || !item1.name.eq(&item2.name)
-        || !item1.state.eq(&item2.state)
-        || !item1.tags.eq(&item2.tags)
-        || !item1.url.eq(&item2.url)
+    if item1.countrycode.eq(&item2.countrycode)
+        && item1.favicon.eq(&item2.favicon)
+        && item1.geo_lat.eq(&item2.geo_lat)
+        && item1.geo_long.eq(&item2.geo_long)
+        && item1.homepage.eq(&item2.homepage)
+        && item1.language.eq(&item2.language)
+        && item1.languagecodes.eq(&item2.languagecodes)
+        && item1.name.eq(&item2.name)
+        && item1.state.eq(&item2.state)
+        && item1.tags.eq(&item2.tags)
+        && item1.url.eq(&item2.url)
     {
         return true;
     }
