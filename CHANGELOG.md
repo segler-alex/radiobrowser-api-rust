@@ -5,7 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-## [0.7.23] Unreleased
+## [0.7.23] 2022-04-18
+### Added
+* CLI: basic cli commands for database maintenance
+* API: countrycode field to countries endpoint (#148)
+### Changed
+* API: Deprecated countrycodes endpoint
+* API: support uppercase stationuuids (#147)
 ### Fixed
 * CHECK: Station compare and update does not create new history entries if not needed anymore
 
