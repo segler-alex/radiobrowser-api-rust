@@ -138,4 +138,4 @@ chunk-size-checks = 10000
 #[pullservers.beta]
 #host = "http://de1.api.radio-browser.info"
 #[pullservers.gamma]
-#host = "http://fr1.api.radio-browser.info"
+#host = "http://at1.api.radio-browser.info"
