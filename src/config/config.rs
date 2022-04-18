@@ -79,6 +79,7 @@ pub struct Config {
 #[derive(Debug, Clone)]
 pub enum ConfigSubCommand {
     None,
+    Migrate,
     ResetHistory,
     CleanHistory,
 }

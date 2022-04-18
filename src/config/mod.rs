@@ -255,8 +255,9 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
         .about("HTTP Rest API for radiobrowser")
         .subcommand(Command::new("cli")
             .about("CLI commands")
-            .subcommand(Command::new("resethistory"))
-            .subcommand(Command::new("cleanhistory"))
+            .subcommand(Command::new("resethistory").about("Reset the station history"))
+            .subcommand(Command::new("cleanhistory").about("Remove duplicated steps in the station history"))
+            .subcommand(Command::new("migrate").about("Do a database migration if necessary"))
         )
         .arg(
             Arg::new("config-file")
@@ -852,6 +853,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
         Some(("cli", matches)) => match matches.subcommand() {
             Some(("resethistory", _matches)) => ConfigSubCommand::ResetHistory,
             Some(("cleanhistory", _matches)) => ConfigSubCommand::CleanHistory,
+            Some(("migrate", _matches)) => ConfigSubCommand::Migrate,
             _ => panic!("Cli command missing"),
         },
         _ => ConfigSubCommand::None,

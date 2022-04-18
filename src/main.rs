@@ -227,6 +227,7 @@ fn mainloopitem(mut connection: MysqlConnection, config: Config) -> Result<(), B
     }
     use config::ConfigSubCommand;
     match config.sub_command {
+        ConfigSubCommand::Migrate => {}
         ConfigSubCommand::CleanHistory => {
             delete_duplicate_changes(&mut connection, 3)?;
         }
