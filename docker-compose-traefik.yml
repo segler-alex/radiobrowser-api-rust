@@ -2,7 +2,7 @@ version: "3.2"
 services:
   api:
     build: ./
-    image: segleralex/radiobrowser-api-rust:0.7.23
+    image: segleralex/radiobrowser-api-rust:0.7.24
     deploy:
       replicas: 1
       labels:
