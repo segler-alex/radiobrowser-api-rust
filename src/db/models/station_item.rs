@@ -43,6 +43,18 @@ pub struct DbStationItem {
 }
 
 impl DbStationItem {
+    pub fn set_name<P: AsRef<str>>(&mut self, name: P) {
+        if !self.name.eq(name.as_ref()) {
+            debug!(
+                "station changed {}: name '{}' -> '{}'",
+                self.stationuuid,
+                self.name,
+                name.as_ref()
+            );
+            self.name = name.as_ref().to_string();
+        }
+    }
+
     pub fn set_favicon<P: AsRef<str>>(&mut self, favicon: P) {
         if !self.favicon.eq(favicon.as_ref()) {
             debug!(
@@ -76,6 +88,18 @@ impl DbStationItem {
                 tags.as_ref()
             );
             self.tags = tags.as_ref().to_string();
+        }
+    }
+
+    pub fn set_countrycode<P: AsRef<str>>(&mut self, countrycode: P) {
+        if !self.countrycode.eq(countrycode.as_ref()) {
+            debug!(
+                "station changed {}: countrycode '{}' -> '{}'",
+                self.stationuuid,
+                self.countrycode,
+                countrycode.as_ref()
+            );
+            self.countrycode = countrycode.as_ref().to_string();
         }
     }
 
@@ -114,4 +138,29 @@ impl DbStationItem {
             self.homepage = homepage.as_ref().to_string();
         }
     }
+
+    pub fn set_iso_3166_2(&mut self, iso_3166_2: Option<String>) {
+        if !self.iso_3166_2.eq(&iso_3166_2) {
+            debug!(
+                "station changed {}: iso_3166_2 '{:?}' -> '{:?}'",
+                self.stationuuid,
+                self.iso_3166_2,
+                iso_3166_2
+            );
+            self.iso_3166_2 = iso_3166_2;
+        }
+    }
+/*
+    pub fn set_geo_lat<P: AsRef<str>>(&mut self, geo_lat: Option<f64>) {
+        if !self.geo_lat.eq(&geo_lat) {
+            debug!(
+                "station changed {}: geo_lat '{}' -> '{}'",
+                self.stationuuid,
+                self.geo_lat.unwrap_or_default(),
+                geo_lat.unwrap_or_default()
+            );
+            self.geo_lat = geo_lat;
+        }
+    }
+    */
 }

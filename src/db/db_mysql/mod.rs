@@ -344,17 +344,39 @@ impl DbConnection for MysqlConnection {
     fn update_station_auto(&mut self, station: &DbStationItem, reason: &str) -> Result<(), Box<dyn Error>>
     {
         trace!("update_station_auto({})", station.stationuuid);
-        let query = r#"UPDATE Station SET Favicon=:favicon,Tags=:tags,Language=:language,LanguageCodes=:languagecodes,Creation=UTC_TIMESTAMP(),ChangeUuid=:changeuuid WHERE StationUuid=:stationuuid"#;
+        let query = r#"UPDATE Station SET
+                Name=:name,
+                Homepage=:homepage,
+                Url=:url,
+                Favicon=:favicon,
+                Tags=:tags,
+                Language=:language,
+                LanguageCodes=:languagecodes,
+                CountryCode=:countrycode,
+                CountrySubdivisionCode=:countrysubdivisioncode,
+                GeoLat=:geolat,
+                GeoLong=:geolong,
+                Creation=UTC_TIMESTAMP(),
+                ChangeUuid=:changeuuid
+            WHERE
+                StationUuid=:stationuuid"#;
         let mut transaction = self.pool.start_transaction(TxOpts::default())?;
         transaction.exec_drop(
             query,
             params! {
+                "name" => &station.name,
+                "homepage" => &station.homepage,
+                "url" => &station.url,
                 "favicon" => &station.favicon,
                 "language" => &station.language,
                 "tags" => &station.tags,
                 "languagecodes" => &station.languagecodes,
+                "countrycode" => &station.countrycode,
+                "countrysubdivisioncode" => &station.iso_3166_2,
+                "geolat" => &station.geo_lat,
+                "geolong" => &station.geo_long,
                 "stationuuid" => &station.stationuuid,
-                "changeuuid" => Uuid::new_v4().to_hyphenated().to_string(),
+                "changeuuid" => Uuid::new_v4().as_hyphenated().to_string(),
             }
         )?;
         MysqlConnection::backup_stations_by_uuid(
@@ -767,7 +789,7 @@ impl DbConnection for MysqlConnection {
                 .filter(|item2| !existing_urls.contains(&item2.url))
                 .map(|item| {
                     (
-                        Uuid::new_v4().to_hyphenated().to_string(),
+                        Uuid::new_v4().as_hyphenated().to_string(),
                         &item.url,
                         &item.statusurl,
                         &item.status,
@@ -1341,8 +1363,8 @@ impl DbConnection for MysqlConnection {
             ))));
         }
 
-        let stationuuid = Uuid::new_v4().to_hyphenated().to_string();
-        let changeuuid = Uuid::new_v4().to_hyphenated().to_string();
+        let stationuuid = Uuid::new_v4().as_hyphenated().to_string();
+        let changeuuid = Uuid::new_v4().as_hyphenated().to_string();
         let params = params! {
             "name" => name,
             "url" => url,
@@ -1533,6 +1555,11 @@ impl DbConnection for MysqlConnection {
         Ok(list_ids)
     }
 
+    /// Inserts checks
+    /// Returns tupple
+    /// - existing_checks
+    /// - ignored_checks_no_station
+    /// - inserted
     fn insert_checks(
         &self,
         list: Vec<StationCheckItemNew>,

@@ -54,7 +54,7 @@ fn flatten_check_result(
                         info,
                     ));
                     let new_item = StationCheckStepItemNew {
-                        stepuuid: Uuid::new_v4().to_hyphenated().to_string(),
+                        stepuuid: Uuid::new_v4().as_hyphenated().to_string(),
                         parent_stepuuid: parent,
                         checkuuid,
                         stationuuid,
@@ -65,7 +65,7 @@ fn flatten_check_result(
                     list.push(new_item);
                 }
                 UrlType::Redirect(item) => {
-                    let stepuuid = Uuid::new_v4().to_hyphenated().to_string();
+                    let stepuuid = Uuid::new_v4().as_hyphenated().to_string();
                     let new_item = StationCheckStepItemNew {
                         stepuuid: stepuuid.clone(),
                         parent_stepuuid: parent,
@@ -90,7 +90,7 @@ fn flatten_check_result(
                     }
                 }
                 UrlType::PlayList(playlist) => {
-                    let stepuuid = Uuid::new_v4().to_hyphenated().to_string();
+                    let stepuuid = Uuid::new_v4().as_hyphenated().to_string();
                     let new_item = StationCheckStepItemNew {
                         stepuuid: stepuuid.clone(),
                         parent_stepuuid: parent,
@@ -120,7 +120,7 @@ fn flatten_check_result(
         }
         Err(err) => {
             let new_item = StationCheckStepItemNew {
-                stepuuid: Uuid::new_v4().to_hyphenated().to_string(),
+                stepuuid: Uuid::new_v4().as_hyphenated().to_string(),
                 parent_stepuuid: parent,
                 checkuuid,
                 stationuuid,
@@ -141,7 +141,7 @@ fn dbcheck_internal(
     max_depth: u8,
     retries: u8,
 ) -> StationOldNew {
-    let checkuuid = Uuid::new_v4().to_hyphenated().to_string();
+    let checkuuid = Uuid::new_v4().as_hyphenated().to_string();
     let now = Instant::now();
     trace!("Check started: {} - {}", diff.new.stationuuid, diff.new.name);
     let checks: StreamCheckResult =
@@ -255,16 +255,53 @@ where
         stations
             .into_par_iter()
             .map(|station| DiffCalc::new(station))
+            .map(|diff| dbcheck_internal(diff, source, timeout, max_depth, retries))
+            .map(|mut diff| {
+                if diff.check.metainfo_overrides_database {
+                    debug!("override station: uuid='{}'", diff.station.new.stationuuid);
+                    if let Some(name) = diff.check.name.clone() {
+                        diff.station.new.set_name(name);
+                    }
+                    if let Some(homepage) = diff.check.homepage.clone() {
+                        diff.station.new.set_homepage(homepage);
+                    }
+                    if let Some(loadbalancer) = diff.check.loadbalancer.clone() {
+                        diff.station.new.set_url(loadbalancer);
+                    }
+                    if let Some(countrycode) = diff.check.countrycode.clone() {
+                        diff.station.new.set_countrycode(countrycode);
+                    }
+                    if diff.check.countrysubdivisioncode.is_some() {
+                        diff.station.new.set_iso_3166_2(diff.check.countrysubdivisioncode.clone().map(|s|s.to_uppercase().to_string()));
+                    }
+                    if let Some(tags) = diff.check.tags.clone() {
+                        diff.station.new.set_tags(tags);
+                    }
+                    if let Some(favicon) = diff.check.favicon.clone() {
+                        diff.station.new.set_favicon(favicon);
+                    }
+                    if diff.check.geo_lat.is_some() {
+                        diff.station.new.geo_lat = diff.check.geo_lat.clone();
+                    }
+                    if diff.check.geo_long.is_some() {
+                        diff.station.new.geo_long = diff.check.geo_long.clone();
+                    }
+                    if let Some(languagecodes) = diff.check.languagecodes.clone() {
+                        diff.station.new.set_languagecodes(languagecodes);
+                    }
+                }
+                diff
+            })
             .map(|mut diff| {
                 // check current favicon
-                if !diff.new.favicon.is_empty() && recheck_existing_favicon {
+                if !diff.station.new.favicon.is_empty() && recheck_existing_favicon {
                     trace!(
                         "checking favicon {} '{}'",
-                        diff.new.stationuuid,
-                        diff.new.favicon
+                        diff.station.new.stationuuid,
+                        diff.station.new.favicon
                     );
-                    let request = client.head(&diff.new.favicon).send();
-                    //let link = ImageLink::new(&diff.new.favicon, agent, timeout);
+                    let request = client.head(&diff.station.new.favicon).send();
+                    //let link = ImageLink::new(&diff.station.new.favicon, agent, timeout);
                     let remove = match request {
                         Ok(request) => {
                             let status = request.status();
@@ -275,18 +312,18 @@ where
                     if remove {
                         trace!(
                             "removed favicon {} '{}'",
-                            diff.new.stationuuid, diff.new.favicon
+                            diff.station.new.stationuuid, diff.station.new.favicon
                         );
                         // reset favicon, it could not be loaded
-                        diff.new.set_favicon(String::new());
+                        diff.station.new.set_favicon(String::new());
                     }
                 }
                 diff
             })
             .map(|mut diff| {
-                if diff.new.favicon.is_empty() && enable_extract_favicon {
-                    trace!("searching favicon {}", diff.new.stationuuid);
-                    let links = ImageLink::from_website(&diff.new.homepage, &agent, timeout);
+                if diff.station.new.favicon.is_empty() && enable_extract_favicon {
+                    trace!("searching favicon {}", diff.station.new.stationuuid);
+                    let links = ImageLink::from_website(&diff.station.new.homepage, &agent, timeout);
                     if let Ok(links) = links {
                         let icon = get_best_icon(
                             links,
@@ -295,11 +332,11 @@ where
                             favicon_size_max,
                         );
                         if let Some(icon) = icon {
-                            diff.new.set_favicon(icon.url.to_string());
+                            diff.station.new.set_favicon(icon.url.to_string());
                             trace!(
                                 "added favicon {} '{}'",
-                                diff.new.stationuuid,
-                                diff.new.favicon
+                                diff.station.new.stationuuid,
+                                diff.station.new.favicon
                             );
                         }
                     }
@@ -307,7 +344,7 @@ where
                 diff
             })
             .map(|mut diff| {
-                let lang_copy = diff.new.language.clone();
+                let lang_copy = diff.station.new.language.clone();
                 let mut lang_trimmed: Vec<&str> = lang_copy
                     .split(",")
                     .by_ref()
@@ -325,11 +362,11 @@ where
                     .collect();
                 lang_trimmed.sort();
                 lang_trimmed.dedup();
-                diff.new.set_language(lang_trimmed.join(","));
+                diff.station.new.set_language(lang_trimmed.join(","));
                 diff
             })
             .map(|mut diff| {
-                let tags_copy = diff.new.tags.clone();
+                let tags_copy = diff.station.new.tags.to_lowercase().clone();
                 let mut tags_trimmed: Vec<&str> = tags_copy
                     .split(",")
                     .by_ref()
@@ -347,11 +384,11 @@ where
                     .collect();
                 tags_trimmed.sort();
                 tags_trimmed.dedup();
-                diff.new.set_tags(tags_trimmed.join(","));
+                diff.station.new.set_tags(tags_trimmed.join(","));
                 diff
             })
             .map(|mut diff| {
-                let language = diff.new.language.clone();
+                let language = diff.station.new.language.clone();
                 // convert each language to code
                 let mut lang_trimmed: Vec<&str> = language
                     .split(",")
@@ -366,7 +403,7 @@ where
                     .collect();
                 lang_trimmed.sort();
                 lang_trimmed.dedup();
-                let codes = diff.new.languagecodes.clone();
+                let codes = diff.station.new.languagecodes.clone();
                 // cleanup current codes
                 let mut codes_trimmed: Vec<&str> = codes
                     .split(",")
@@ -379,49 +416,12 @@ where
                         codes_trimmed.push(new_lang);
                     }
                 }
-                diff.new.set_languagecodes(codes_trimmed.join(","));
+                diff.station.new.set_languagecodes(codes_trimmed.join(","));
                 diff
             })
             .map(|mut diff| {
-                diff.new.set_homepage(Url::parse(&diff.new.homepage).map(|u|u.to_string()).unwrap_or_default());
-                diff.new.set_url(Url::parse(&diff.new.url).map(|u|u.to_string()).unwrap_or_default());
-                diff
-            })
-            .map(|diff| dbcheck_internal(diff, source, timeout, max_depth, retries))
-            .map(|mut diff| {
-                if diff.check.metainfo_overrides_database {
-                    debug!("override station: uuid='{}'", diff.station.new.stationuuid);
-                    if let Some(name) = diff.check.name.clone() {
-                        diff.station.new.name = name;
-                    }
-                    if let Some(homepage) = diff.check.homepage.clone() {
-                        diff.station.new.homepage = homepage;
-                    }
-                    if let Some(loadbalancer) = diff.check.loadbalancer.clone() {
-                        diff.station.new.url = loadbalancer;
-                    }
-                    if let Some(countrycode) = diff.check.countrycode.clone() {
-                        diff.station.new.countrycode = countrycode;
-                    }
-                    if diff.check.countrysubdivisioncode.is_some() {
-                        diff.station.new.iso_3166_2 = diff.check.countrysubdivisioncode.clone().map(|s|s.to_uppercase().to_string());
-                    }
-                    if let Some(tags) = diff.check.tags.clone() {
-                        diff.station.new.tags = tags;
-                    }
-                    if let Some(favicon) = diff.check.favicon.clone() {
-                        diff.station.new.favicon = favicon;
-                    }
-                    if diff.check.geo_lat.is_some() {
-                        diff.station.new.geo_lat = diff.check.geo_lat.clone();
-                    }
-                    if diff.check.geo_long.is_some() {
-                        diff.station.new.geo_long = diff.check.geo_long.clone();
-                    }
-                    if let Some(languagecodes) = diff.check.languagecodes.clone() {
-                        diff.station.new.languagecodes = languagecodes;
-                    }
-                }
+                diff.station.new.set_homepage(Url::parse(&diff.station.new.homepage).map(|u|u.to_string()).unwrap_or_default());
+                diff.station.new.set_url(Url::parse(&diff.station.new.url).map(|u|u.to_string()).unwrap_or_default());
                 diff
             })
             .collect()

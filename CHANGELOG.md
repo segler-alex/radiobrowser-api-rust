@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 * CLI: cleanup history did not correctly find duplicates
+* CHECK: update all fields for stations
+* CHECK: do check first and then local corrections
 ## [0.7.23] 2022-04-18
 ### Added
 * CLI: basic cli commands for database maintenance
