@@ -509,7 +509,7 @@ fn handle_cached_connection<A>(
         param_is_https: ppp.get_bool_opt("is_https")?,
         
         param_offset: ppp.get_number("offset", 0),
-        param_limit: ppp.get_number("limit", 999999),
+        param_limit: ppp.get_number("limit", 1000),
     
         param_seconds: ppp.get_number("seconds", 0),
         param_url: ppp.get_string("url"),
