@@ -54,7 +54,7 @@ use crate::config;
 use crate::config::Config;
 
 use std::fs::File;
-use self::serde_json::value::{Map};
+use self::serde_json::value::Map;
 use serde::{Serialize,Deserialize};
 
 use handlebars::{
@@ -471,6 +471,7 @@ fn handle_cached_connection<A>(
 
     let remote_ip: String = request.header("X-Forwarded-For").unwrap_or(&request.remote_addr().ip().to_string()).to_string();
 
+    
     let ppp = RequestParameters::new(&request);
 
     let allparams = AllParameters {
@@ -599,7 +600,7 @@ fn do_api_calls<A>(all_params: AllParameters,
     content_type: &str,
     remote_ip: String,
 ) -> Result<(bool, ApiResponse), Box<dyn Error>> where A: DbConnection {
-    use percent_encoding::{percent_decode_str};
+    use percent_encoding::percent_decode_str;
     trace!("content_type: {}", content_type);
     let parts : Vec<&str> = all_params.url.split('?').collect();
     let items : Vec<String> = parts[0].split('/').map(|item| {
