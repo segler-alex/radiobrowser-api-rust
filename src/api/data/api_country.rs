@@ -12,6 +12,7 @@ pub struct ApiCountry {
 }
 
 impl ApiCountry {
+    /*
     pub fn new(name: String, iso_3166_1: String, stationcount: u32) -> Self {
         ApiCountry {
             name,
@@ -19,6 +20,7 @@ impl ApiCountry {
             stationcount,
         }
     }
+    */
 
     pub fn new_with_code(iso_3166_1: String, stationcount: u32) -> Self {
         let name = Country::from_alpha2(&iso_3166_1).map(|d| d.long_name).unwrap_or("");

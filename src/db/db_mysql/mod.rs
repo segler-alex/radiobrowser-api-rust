@@ -1755,7 +1755,7 @@ impl DbConnection for MysqlConnection {
         if list.len() > 0 {
             // calculate majority vote for checks
             let result = transaction.exec_iter(
-                format!("SELECT StationUuid,ROUND(AVG(CheckOk)) AS result FROM StationCheck WHERE StationUuid IN ({}) GROUP BY StationUuid", uuids = query_in),
+                format!("SELECT StationUuid,ROUND(AVG(CheckOk)) AS result FROM StationCheck WHERE StationUuid IN ({uuids}) GROUP BY StationUuid", uuids = query_in),
                 list_station_uuid
             )?;
 
@@ -2308,7 +2308,7 @@ impl DbConnection for MysqlConnection {
                 let result_2_vote_check =
                     conn.exec_iter(query_2_vote_check, params!(ip, "id" => station.id))?;
                 for resultsingle in result_2_vote_check {
-                    for _ in resultsingle {
+                    if let Ok(_) = resultsingle {
                         // do not allow vote
                         return Err(Box::new(DbError::VoteError(
                             "you are voting for the same station too often".to_string(),
@@ -2451,7 +2451,7 @@ impl DbConnection for MysqlConnection {
         let mut conn = self.pool.get_conn()?;
         let list = conn.query_map("SELECT Id,StationUuid,CheckUuid,Url,UrlType,Error,StepUuid,ParentStepUuid,InsertTime FROM StationCheckStep",
             |(id,stationuuid,checkuuid,url,urltype,error,stepuuid,parent_stepuuid,inserttime)| {
-                let inserttime = chrono::DateTime::<chrono::Utc>::from_utc(inserttime, chrono::Utc);
+                let inserttime = chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(inserttime, chrono::Utc);
             StationCheckStepItem{
                 id,stepuuid,parent_stepuuid,checkuuid,stationuuid,url,urltype,error,inserttime
             }
@@ -2488,7 +2488,7 @@ impl DbConnection for MysqlConnection {
                     inserttime,
                 )| {
                     let inserttime =
-                        chrono::DateTime::<chrono::Utc>::from_utc(inserttime, chrono::Utc);
+                        chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(inserttime, chrono::Utc);
                     StationCheckStepItem {
                         id,
                         stepuuid,

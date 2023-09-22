@@ -48,7 +48,7 @@ impl From<StationHistoryV0> for StationHistoryCurrent {
     fn from(item: StationHistoryV0) -> Self {
         let lastchangetime_iso8601 = NaiveDateTime::parse_from_str(&item.lastchangetime, "%Y-%m-%d %H:%M:%S")
             .ok()
-            .map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc));
+            .map(|x|chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(x, chrono::Utc));
 
         StationHistoryCurrent {
             changeuuid: item.changeuuid,
@@ -76,7 +76,7 @@ impl From<&StationHistoryV0> for StationHistoryCurrent {
     fn from(item: &StationHistoryV0) -> Self {
         let lastchangetime_iso8601 = NaiveDateTime::parse_from_str(&item.lastchangetime, "%Y-%m-%d %H:%M:%S")
             .ok()
-            .map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc));
+            .map(|x|chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(x, chrono::Utc));
 
         StationHistoryCurrent {
             changeuuid: item.changeuuid.clone(),

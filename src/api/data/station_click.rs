@@ -85,7 +85,7 @@ impl TryFrom<StationClickV0> for StationClick {
     fn try_from(item: StationClickV0) -> Result<Self, Self::Error> {
         let clicktimestamp_iso8601 = NaiveDateTime::parse_from_str(&item.clicktimestamp, "%Y-%m-%d %H:%M:%S")
             .ok()
-            .map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc));
+            .map(|x|chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(x, chrono::Utc));
 
         Ok(StationClick {
             stationuuid: item.stationuuid,

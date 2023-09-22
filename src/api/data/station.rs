@@ -414,7 +414,7 @@ impl From<&StationHistoryCurrent> for Station {
     fn from(item: &StationHistoryCurrent) -> Self {
         let lastchangetime_iso8601 = NaiveDateTime::parse_from_str(&item.lastchangetime, "%Y-%m-%d %H:%M:%S")
             .ok()
-            .map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc));
+            .map(|x|chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(x, chrono::Utc));
         
         Station {
             changeuuid: item.changeuuid.clone(),
@@ -504,16 +504,16 @@ impl From<StationV0> for Station {
     fn from(item: StationV0) -> Self {
         let lastchangetime_iso8601 = NaiveDateTime::parse_from_str(&item.lastchangetime, "%Y-%m-%d %H:%M:%S")
             .ok()
-            .map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc));
+            .map(|x|chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(x, chrono::Utc));
         let clicktimestamp_iso8601 = NaiveDateTime::parse_from_str(&item.clicktimestamp, "%Y-%m-%d %H:%M:%S")
             .ok()
-            .map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc));
+            .map(|x|chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(x, chrono::Utc));
         let lastcheckoktime_iso8601 = NaiveDateTime::parse_from_str(&item.lastcheckoktime, "%Y-%m-%d %H:%M:%S")
             .ok()
-            .map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc));
+            .map(|x|chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(x, chrono::Utc));
         let lastchecktime_iso8601 = NaiveDateTime::parse_from_str(&item.lastchecktime, "%Y-%m-%d %H:%M:%S")
             .ok()
-            .map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc));
+            .map(|x|chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(x, chrono::Utc));
 
         Station {
             changeuuid: item.changeuuid,

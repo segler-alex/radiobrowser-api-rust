@@ -198,7 +198,7 @@ impl TryFrom<StationCheckV0> for StationCheck {
     fn try_from(item: StationCheckV0) -> Result<Self, Self::Error> {
         let timestamp_iso8601 = NaiveDateTime::parse_from_str(&item.timestamp, "%Y-%m-%d %H:%M:%S")
             .ok()
-            .map(|x|chrono::DateTime::<chrono::Utc>::from_utc(x, chrono::Utc));
+            .map(|x|chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(x, chrono::Utc));
 
         Ok(StationCheck {
             stationuuid: item.stationuuid,
