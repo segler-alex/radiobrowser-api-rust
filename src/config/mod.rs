@@ -2,6 +2,7 @@ mod config;
 mod config_error;
 mod data_mapping_item;
 
+use clap::ArgAction;
 use clap::{Arg, Command};
 pub use config::CacheType;
 pub use config::Config;
@@ -102,9 +103,9 @@ fn get_option_string(
     setting_name: &str,
     default_value: String,
 ) -> Result<String, Box<dyn Error>> {
-    let value_from_clap = matches.value_of(setting_name);
+    let value_from_clap: Option<String> = matches.get_one(setting_name).map(|x: &String|x.to_owned());
     if let Some(value_from_clap) = value_from_clap {
-        return Ok(value_from_clap.to_string());
+        return Ok(value_from_clap.clone());
     }
 
     let setting = config.get(setting_name);
@@ -141,9 +142,9 @@ fn get_option_number(
     setting_name: &str,
     default_value: i64,
 ) -> Result<i64, Box<dyn Error>> {
-    let value_from_clap = matches.value_of(setting_name);
+    let value_from_clap = matches.get_one(setting_name);
     if let Some(value_from_clap) = value_from_clap {
-        return Ok(value_from_clap.to_string().parse()?);
+        return Ok(*value_from_clap);
     }
 
     let setting = config.get(setting_name);
@@ -170,7 +171,7 @@ fn get_option_number_occurences(
     setting_name: &str,
     default_value: usize,
 ) -> Result<usize, Box<dyn Error>> {
-    let value_from_clap = matches.occurrences_of(setting_name) as usize;
+    let value_from_clap = matches.get_count(setting_name) as usize;
     if value_from_clap > 0 {
         return Ok(value_from_clap);
     }
@@ -199,9 +200,9 @@ fn get_option_bool(
     setting_name: &str,
     default_value: bool,
 ) -> Result<bool, Box<dyn Error>> {
-    let value_from_clap = matches.value_of(setting_name);
+    let value_from_clap = matches.get_one(setting_name);
     if let Some(value_from_clap) = value_from_clap {
-        return Ok(value_from_clap.to_string().parse()?);
+        return Ok(*value_from_clap);
     }
 
     let setting = config.get(setting_name);
@@ -267,7 +268,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .help("Path to config file")
                 .env("CONFIG_FILE")
                 .default_value("/etc/radiobrowser.toml")
-                .takes_value(true),
+                .num_args(1),
         ).arg(
             Arg::new("log-dir")
                 .short('l')
@@ -275,34 +276,34 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("LOG-DIR")
                 .help("Path to log dir")
                 .env("LOG_DIR")
-                .takes_value(true),
+                .num_args(1),
         ).arg(
             Arg::new("replace-language-file")
                 .long("replace-language-file")
                 .value_name("REPLACE_LANGUAGE_FILE")
                 .help("Path to csv file for language replacement")
                 .env("REPLACE_LANGUAGE_FILE")
-                .takes_value(true),
+                .num_args(1),
         ).arg(
             Arg::new("replace-tag-file")
                 .long("replace-tag-file")
                 .value_name("REPLACE_TAG_FILE")
                 .help("Path to csv file for tag replacement")
                 .env("REPLACE_TAG_FILE")
-                .takes_value(true),
+                .num_args(1),
         ).arg(
             Arg::new("language-to-code-file")
                 .long("language-to-code-file")
                 .value_name("LANGUAGE_TO_CODE_FILE")
                 .help("Path to csv file for language to code mapping")
                 .env("LANGUAGE_TO_CODE_FILE")
-                .takes_value(true),
+                .num_args(1),
         ).arg(
             Arg::new("log-json")
                 .short('j')
                 .long("log-json")
                 .value_name("LOG_JSON")
-                .takes_value(true)
+                .num_args(1)
                 .help("Log in JSON format"),
         ).arg(
             Arg::new("database")
@@ -311,15 +312,14 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("DATABASE_URL")
                 .help("Database connection url")
                 .env("DATABASE_URL")
-                .takes_value(true),
+                .num_args(1),
         ).arg(
             Arg::new("listen-host")
-                .short('h')
                 .long("host")
                 .value_name("HOST")
                 .help("listening host ip")
                 .env("HOST")
-                .takes_value(true),
+                .num_args(1),
         ).arg(
             Arg::new("server-url")
                 .short('s')
@@ -327,7 +327,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("SERVER_URL")
                 .help("full server url that should be used in docs")
                 .env("SERVER_URL")
-                .takes_value(true),
+                .num_args(1),
         ).arg(
             Arg::new("listen-port")
                 .short('p')
@@ -335,19 +335,19 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("PORT")
                 .help("listening port")
                 .env("PORT")
-                .takes_value(true),
+                .num_args(1),
         ).arg(
             Arg::new("prometheus-exporter")
                 .short('e')
                 .long("prometheus-exporter")
                 .value_name("PROMETHEUS_EXPORTER")
-                .takes_value(true)
+                .num_args(1)
                 .help("export statistics through a prometheus compatible exporter"),
         ).arg(
             Arg::new("prometheus-exporter-prefix")
                 .long("prometheus-exporter-prefix")
                 .value_name("PROMETHEUS_EXPORTER_PREFIX")
-                .takes_value(true)
+                .num_args(1)
                 .help("prefix for all exported values on /metrics"),
         ).arg(
             Arg::new("threads")
@@ -356,15 +356,15 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("THREADS")
                 .help("concurrent threads used by socket")
                 .env("THREADS")
-                .takes_value(true),
+                .num_args(1),
         ).arg(
             Arg::new("mirror")
                 .short('m')
                 .long("mirror")
                 .value_name("MIRROR")
                 .help("address of other radiobrowser server to pull updates from")
-                .multiple_occurrences(true)
-                .takes_value(true),
+                .action(ArgAction::Append)
+                .num_args(1),
         ).arg(
             Arg::new("update-caches-interval")
                 .short('u')
@@ -372,7 +372,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("UPDATE_CACHES_INTERVAL")
                 .help("update caches at an interval")
                 .env("UPDATE_CACHES_INTERVAL")
-                .takes_value(true),
+                .num_args(1),
         ).arg(
             Arg::new("mirror-pull-interval")
                 .short('q')
@@ -380,48 +380,48 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("MIRROR_PULL_INTERVAL")
                 .help("pull from mirrors at an interval")
                 .env("MIRROR_PULL_INTERVAL")
-                .takes_value(true),
+                .num_args(1),
         ).arg(
             Arg::new("refresh-config-interval")
                 .long("refresh-config-interval")
                 .value_name("REFRESH_CONFIG_INTERVAL")
                 .help("download / redownload config interval")
                 .env("REFRESH_CONFIG_INTERVAL")
-                .takes_value(true),
+                .num_args(1),
         ).arg(
             Arg::new("cleanup-interval")
                 .long("cleanup-interval")
                 .value_name("CLEANUP_INTERVAL")
                 .help("cleanup tasks interval")
                 .env("CLEANUP_INTERVAL")
-                .takes_value(true),
+                .num_args(1),
         ).arg(
             Arg::new("no-migrations")
                 .long("no-migrations")
                 .value_name("NO_MIGRATIONS")
-                .takes_value(true)
+                .num_args(1)
                 .help("do not do migrations, exit if migrations needed"),
         ).arg(
             Arg::new("ignore-migration-errors")
                 .short('i')
                 .long("ignore-migration-errors")
                 .value_name("IGNORE_MIGRATION_ERRORS")
-                .takes_value(true)
+                .num_args(1)
                 .help("ignore errors in migrations"),
         ).arg(
             Arg::new("allow-database-downgrade")
                 .short('a')
                 .long("allow-database-downgrade")
                 .value_name("ALLOW_DATABASE_DOWNGRADE")
-                .takes_value(true)
+                .num_args(1)
                 .help("allows downgrade of database if tables were created with newer software version"),
         ).arg(
             Arg::new("log-level")
                 .short('v')
                 .long("verbose")
                 .value_name("LOG_LEVEL")
-                .takes_value(false)
-                .multiple_occurrences(true)
+                .num_args(0)
+                .action(ArgAction::Count)
                 .help("increases the log level. can be specified mutliple times 0..4"),
         ).arg(
             Arg::new("static-files-dir")
@@ -430,28 +430,28 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("STATIC_FILES_DIR")
                 .help("directory that contains the static files")
                 .env("STATIC_FILES_DIR")
-                .takes_value(true),
+                .num_args(1),
         ).arg(
             Arg::new("source")
                 .long("source")
                 .value_name("SOURCE")
                 .help("Source string for database check entries")
                 .env("SOURCE")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("server-location")
                 .long("server-location")
                 .help("freeform location server string")
                 .env("SERVERLOCATION")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("server-country-code")
                 .long("server-country-code")
                 .help("2 letter country code for server location")
                 .env("SERVERCOUNTRYCODE")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("useragent")
@@ -459,7 +459,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("USERAGENT")
                 .help("user agent value for http requests")
                 .env("USERAGENT")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("cache-type")
@@ -467,7 +467,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("CACHETYPE")
                 .help("one of none,builtin,redis,memcached")
                 .env("CACHETYPE")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("cache-url")
@@ -475,7 +475,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("URL")
                 .help("url to access cache server")
                 .env("CACHEURL")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("cache-ttl")
@@ -483,7 +483,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("DURATION")
                 .help("time to life for cache items")
                 .env("CACHETTL")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("retries")
@@ -492,7 +492,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("RETRIES")
                 .help("Max number of retries for station checks")
                 .env("RETRIES")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("click-valid-timeout")
@@ -500,7 +500,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("CLICK_VALID_TIMEOUT")
                 .help("Possible clicks from the same IP. IPs are removed after this timespan.")
                 .env("CLICK_VALID_TIMEOUT")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("broken-stations-never-working-timeout")
@@ -508,7 +508,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("BROKEN_STATIONS_NEVER_WORKING_TIMEOUT")
                 .help("Broken streams are removed after this timespan, if they have never worked.")
                 .env("BROKEN_STATIONS_NEVER_WORKING_TIMEOUT")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("broken-stations-timeout")
@@ -516,7 +516,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("BROKEN_STATIONS_TIMEOUT")
                 .help("Broken streams are removed after this timespan.")
                 .env("BROKEN_STATIONS_TIMEOUT")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("checks-timeout")
@@ -524,7 +524,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("CHECKS_TIMEOUT")
                 .help("Checks are removed after this timespan.")
                 .env("CHECKS_TIMEOUT")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("clicks-timeout")
@@ -532,7 +532,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("CLICKS_TIMEOUT")
                 .help("Clicks are removed after this timespan.")
                 .env("CLICKS_TIMEOUT")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("max-depth")
@@ -540,7 +540,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("MAX_DEPTH")
                 .help("max recursive link check depth")
                 .env("MAX_DEPTH")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("tcp-timeout")
@@ -548,7 +548,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("TCP_TIMEOUT")
                 .help("tcp connect/read timeout")
                 .env("TCP_TIMEOUT")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("pause")
@@ -556,7 +556,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("PAUSE")
                 .help("database check pauses")
                 .env("PAUSE")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("stations")
@@ -565,7 +565,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("STATIONS")
                 .help("batch size for station checks")
                 .env("STATIONS")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("concurrency")
@@ -574,7 +574,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("CONCURRENCY")
                 .help("streams checked in parallel")
                 .env("CONCURRENCY")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("chunk-size-changes")
@@ -582,7 +582,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("CHUNK_SIZE_CHANGES")
                 .help("chunk size for downloading changes")
                 .env("CHUNK_SIZE_CHANGES")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("chunk-size-checks")
@@ -590,7 +590,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("CHUNK_SIZE_CHECKS")
                 .help("chunk size for downloading checks")
                 .env("CHUNK_SIZE_CHECKS")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("delete")
@@ -599,7 +599,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("DELETE")
                 .help("delete broken stations according to rules")
                 .env("DELETE")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("max-duplicates")
@@ -607,7 +607,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("MAX_DUPLICATES")
                 .help("Maximum stations that have the same url")
                 .env("MAX_DUPLICATES")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("favicon-size-min")
@@ -615,7 +615,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("FAVICON_SIZE_MIN")
                 .help("Minimum (width or height) of favicons extracted")
                 .env("FAVICON_SIZE_MIN")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("favicon-size-max")
@@ -623,7 +623,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("FAVICON_SIZE_MAX")
                 .help("Maximum (width or height) of favicons extracted")
                 .env("FAVICON_SIZE_MAX")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("favicon-size-optimum")
@@ -631,7 +631,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("FAVICON_SIZE_OPTIMUM")
                 .help("Optimum size of favicons extracted")
                 .env("FAVICON_SIZE_OPTIMUM")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("enable-check")
@@ -639,7 +639,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("ENABLE_CHECK")
                 .help("enable station checks")
                 .env("ENABLE_CHECK")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("enable-extract-favicon")
@@ -647,7 +647,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("ENABLE_EXTRACT_FAVICON")
                 .help("enable checking homepage for new icon")
                 .env("ENABLE_EXTRACT_FAVICON")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("recheck-existing-favicon")
@@ -655,7 +655,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("RECHECK_EXISTING_FAVICON")
                 .help("recheck existing favicons")
                 .env("RECHECK_EXISTING_FAVICON")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("server-info-check")
@@ -663,7 +663,7 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("ENABLE_SERVER_CHECK")
                 .help("enable server checks")
                 .env("ENABLE_SERVER_CHECK")
-                .takes_value(true),
+                .num_args(1),
         )
         .arg(
             Arg::new("server-info-check-chunksize")
@@ -671,13 +671,13 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
                 .value_name("ENABLE_SERVER_CHECK_CHUNKSIZE")
                 .help("chunk size for server check")
                 .env("ENABLE_SERVER_CHECK_CHUNKSIZE")
-                .takes_value(true),
+                .num_args(1),
         ).get_matches();
 
     let config_file_path: String = matches
-        .value_of("config-file")
-        .unwrap_or("/etc/radiobrowser.toml")
-        .to_string();
+        .get_one("config-file")
+        .map(|x: &String|x.to_owned())
+        .unwrap_or(String::from("/etc/radiobrowser.toml"));
 
     let contents = fs::read_to_string(config_file_path)?;
     let config = toml::from_str::<toml::Value>(&contents)?;
@@ -842,10 +842,11 @@ fn load_config() -> Result<Config, Box<dyn Error>> {
 
     let max_duplicates = get_option_number(&matches, &config, "max-duplicates", 0)? as usize;
     let mut servers_pull = vec![];
-    let mirrors = matches.values_of("mirror");
+    let mirrors = matches.get_many("mirror");
     if let Some(mirrors) = mirrors {
         for mirror in mirrors {
-            servers_pull.push(mirror.to_string());
+            let x: &String = mirror;
+            servers_pull.push(x.clone());
         }
     }
 
