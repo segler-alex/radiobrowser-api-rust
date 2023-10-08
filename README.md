@@ -1,3 +1,6 @@
+# THIS PROJECT MOVED TO GITLAB
+[https://gitlab.com/radiobrowser/radiobrowser-api-rust](https://gitlab.com/radiobrowser/radiobrowser-api-rust)
+
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md) 
 # radiobrowser-api-rust
 
